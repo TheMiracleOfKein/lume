@@ -5,8 +5,16 @@ import com.lume.app.R
 import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.db.SourcePackEntity
 import com.lume.app.data.network.AppHttp
+import com.lume.app.data.network.ImageReferers
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.domain.CatalogSource
+import com.lume.app.domain.Chapter
+import com.lume.app.domain.ComicPage
+import com.lume.app.domain.FilterList
+import com.lume.app.domain.HomeFeed
+import com.lume.app.domain.PagedResult
+import com.lume.app.domain.TitleDetails
+import com.lume.app.domain.TitleSummary
 import com.lume.app.domain.SourceManifest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +30,7 @@ class SourceRegistry(
     private val prefs: AppPreferences,
     private val dao: LibraryDao,
     private val libAuth: LibAuthStore? = null,
+    private val referers: ImageReferers? = null,
     private val json: Json = Json { ignoreUnknownKeys = true; isLenient = true },
 ) {
     private val bundledIds = mutableSetOf<String>()
@@ -117,24 +126,45 @@ class SourceRegistry(
         list += source
     }
 
-    private fun createEngine(manifest: SourceManifest): CatalogSource = when (manifest.engine) {
-        SourceEngines.MADARA -> MadaraEngine(manifest, http)
-        SourceEngines.LIBSOCIAL -> LibSocialEngine(manifest, http, libAuth)
-        SourceEngines.MANGADEX -> MangaDexEngine(manifest, http)
-        SourceEngines.MANGAKATANA -> MangaKatanaEngine(manifest, http)
-        SourceEngines.ASURA -> AsuraEngine(manifest, http)
-        SourceEngines.WEEBCENTRAL -> WeebCentralEngine(manifest, http)
-        SourceEngines.DEMONIC -> DemonicEngine(manifest, http)
-        SourceEngines.HIVETOONS -> HiveToonsEngine(manifest, http)
-        SourceEngines.REMANGA -> RemangaEngine(manifest, http)
-        SourceEngines.MANGABUFF -> MangaBuffEngine(manifest, http)
-        SourceEngines.LOCAL -> LocalEngine(context)
-        else -> error(
-            if (SourceEngines.isKnown(manifest.engine)) {
-                "Engine wiring missing for ${manifest.engine}"
-            } else {
-                "Unknown engine: ${manifest.engine}. New engines ship with app updates."
-            },
-        )
+    private fun createEngine(manifest: SourceManifest): CatalogSource {
+        referers?.register(manifest)
+        // engineConfig.rateLimit = requests/second for the API host (or the site when no apiBase).
+        manifest.configString("rateLimit")?.toDoubleOrNull()?.let { perSecond ->
+            val host = runCatching { URI(manifest.configString("apiBase") ?: manifest.baseUrl).host }.getOrNull()
+            if (host != null) http.setRateLimit(host, perSecond)
+        }
+        val engine = buildEngine(manifest)
+        return if (referers != null) ImageHostTrackingSource(engine, referers) else engine
     }
+
+    private fun buildEngine(manifest: SourceManifest): CatalogSource =
+        if (manifest.engine == SourceEngines.LOCAL) LocalEngine(context) else SourceEngines.create(manifest, http, libAuth)
+}
+
+/**
+ * Wraps an engine and records which hosts its covers and pages come from, so the shared image
+ * loader can attach the right `Referer` (see [ImageReferers]).
+ */
+private class ImageHostTrackingSource(
+    private val delegate: CatalogSource,
+    private val referers: ImageReferers,
+) : CatalogSource by delegate {
+    private fun learn(url: String?) = referers.learn(url, delegate.manifest)
+
+    private fun PagedResult<TitleSummary>.learned() = also { result -> result.items.forEach { learn(it.coverUrl) } }
+
+    override suspend fun getHome(): HomeFeed = delegate.getHome().also { feed ->
+        (feed.spotlight + feed.latest).forEach { learn(it.coverUrl) }
+    }
+
+    override suspend fun getLatest(page: Int) = delegate.getLatest(page).learned()
+    override suspend fun getPopular(page: Int) = delegate.getPopular(page).learned()
+
+    override suspend fun search(query: String, page: Int, filters: FilterList) =
+        delegate.search(query, page, filters).learned()
+
+    override suspend fun getTitle(id: String): TitleDetails = delegate.getTitle(id).also { learn(it.coverUrl) }
+
+    override suspend fun getPages(chapter: Chapter): List<ComicPage> =
+        delegate.getPages(chapter).also { pages -> pages.firstOrNull()?.let { learn(it.imageUrl) } }
 }

@@ -10,7 +10,9 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
+import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -128,13 +130,17 @@ class LibraryUpdateWorker(
         private const val CHANNEL_ID = "library_updates"
         private const val NOTIF_ID = 42
 
-        fun schedule(context: Context, enabled: Boolean) {
+        fun schedule(context: Context, enabled: Boolean, intervalHours: Int = 6, wifiOnly: Boolean = false) {
             val wm = WorkManager.getInstance(context)
             if (!enabled) {
                 wm.cancelUniqueWork(WORK_NAME)
                 return
             }
-            val request = PeriodicWorkRequestBuilder<LibraryUpdateWorker>(6, TimeUnit.HOURS)
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(if (wifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED)
+                .build()
+            val request = PeriodicWorkRequestBuilder<LibraryUpdateWorker>(intervalHours.toLong(), TimeUnit.HOURS)
+                .setConstraints(constraints)
                 .build()
             wm.enqueueUniquePeriodicWork(
                 WORK_NAME,

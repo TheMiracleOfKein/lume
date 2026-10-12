@@ -1,8 +1,14 @@
 package com.lume.app.ui.screens
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,8 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -50,19 +54,31 @@ import com.lume.app.R
 import com.lume.app.data.library.LibraryUpdateWorker
 import com.lume.app.data.locale.AppLanguage
 import com.lume.app.data.locale.AppLocaleController
+import com.lume.app.data.prefs.AppPreferences
+import com.lume.app.data.prefs.ReaderSettings
+import com.lume.app.ui.components.ChoiceChip
+import com.lume.app.ui.components.SettingsSection
+import com.lume.app.ui.components.SwitchRow
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.theme.AppColors
+import com.lume.app.ui.theme.Motion
 import com.lume.app.ui.tracker.TrackerAuthActivity
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(nav: NavHostController) {
-    val darkTheme by LumeApp.instance.prefs.darkTheme.collectAsState(initial = true)
-    val libraryUpdates by LumeApp.instance.prefs.libraryUpdatesEnabled.collectAsState(initial = false)
-    val appLanguageTag by LumeApp.instance.prefs.appLanguage.collectAsState(initial = "system")
-    val anilistTokenState by LumeApp.instance.prefs.anilistAccessToken.collectAsState(initial = null)
-    val shikiTokenState by LumeApp.instance.prefs.shikimoriAccessToken.collectAsState(initial = null)
+    val prefs = LumeApp.instance.prefs
+    val darkTheme by prefs.darkTheme.collectAsState(initial = true)
+    val libraryUpdates by prefs.libraryUpdatesEnabled.collectAsState(initial = false)
+    val libraryInterval by prefs.libraryUpdateIntervalHours.collectAsState(initial = 6)
+    val libraryWifiOnly by prefs.libraryUpdateWifiOnly.collectAsState(initial = false)
+    val downloadsWifiOnly by prefs.downloadsWifiOnly.collectAsState(initial = false)
+    val searchNsfw by prefs.globalSearchNsfw.collectAsState(initial = true)
+    val reader by prefs.readerSettings.collectAsState(initial = ReaderSettings())
+    val appLanguageTag by prefs.appLanguage.collectAsState(initial = "system")
+    val anilistTokenState by prefs.anilistAccessToken.collectAsState(initial = null)
+    val shikiTokenState by prefs.shikimoriAccessToken.collectAsState(initial = null)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -73,6 +89,14 @@ fun SettingsScreen(nav: NavHostController) {
     val anilistLoggedIn = !anilistTokenState.isNullOrBlank()
     val shikiLoggedIn = !shikiTokenState.isNullOrBlank()
     val currentLanguage = AppLanguage.fromStored(appLanguageTag)
+
+    fun reschedule(enabled: Boolean = libraryUpdates, hours: Int = libraryInterval, wifi: Boolean = libraryWifiOnly) {
+        LibraryUpdateWorker.schedule(LumeApp.instance, enabled, intervalHours = hours, wifiOnly = wifi)
+    }
+
+    fun updateReader(next: ReaderSettings) {
+        scope.launch { prefs.setReaderSettings(next) }
+    }
 
     Scaffold(
         containerColor = AppColors.background,
@@ -94,53 +118,183 @@ fun SettingsScreen(nav: NavHostController) {
                 .fillMaxSize()
                 .background(AppColors.background)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
         ) {
-            SettingsSwitchRow(
-                label = stringResource(R.string.settings_dark_theme),
-                checked = darkTheme,
-                onCheckedChange = { value ->
-                    scope.launch { LumeApp.instance.prefs.setDarkTheme(value) }
-                },
-            )
-            Spacer(Modifier.height(12.dp))
-            Text(stringResource(R.string.settings_language), color = AppColors.textSecondary, fontSize = 13.sp)
-            Spacer(Modifier.height(8.dp))
-            AppLanguage.entries.forEach { lang ->
-                val selected = currentLanguage == lang
+            // ---------------- General ----------------
+            SettingsSection(stringResource(R.string.settings_section_general))
+            SettingsGroup {
+                SwitchRow(
+                    label = stringResource(R.string.settings_dark_theme),
+                    checked = darkTheme,
+                    onCheckedChange = { value -> scope.launch { prefs.setDarkTheme(value) } },
+                )
                 Text(
-                    text = stringResource(lang.labelRes),
-                    color = AppColors.textPrimary,
-                    fontSize = 15.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (selected) AppColors.accentMuted else AppColors.surface)
-                        .clickable {
-                            scope.launch {
-                                LumeApp.instance.prefs.setAppLanguage(lang.tag)
-                                AppLocaleController.apply(lang)
-                            }
-                        }
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    stringResource(R.string.settings_language),
+                    color = AppColors.textSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AppLanguage.entries.forEach { lang ->
+                        ChoiceChip(
+                            label = stringResource(lang.labelRes),
+                            selected = currentLanguage == lang,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                scope.launch {
+                                    prefs.setAppLanguage(lang.tag)
+                                    AppLocaleController.apply(lang)
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
+            // ---------------- Reader (defaults; the reader sheet edits the same values) ----------------
+            SettingsSection(stringResource(R.string.settings_section_reader))
+            SettingsGroup {
+                SwitchRow(
+                    label = stringResource(R.string.reader_immersive),
+                    hint = stringResource(R.string.reader_immersive_hint),
+                    checked = reader.immersive,
+                    onCheckedChange = { updateReader(reader.copy(immersive = it)) },
+                )
+                SwitchRow(
+                    label = stringResource(R.string.reader_keep_screen_on),
+                    checked = reader.keepScreenOn,
+                    onCheckedChange = { updateReader(reader.copy(keepScreenOn = it)) },
+                )
+                SwitchRow(
+                    label = stringResource(R.string.reader_seamless),
+                    checked = reader.seamlessReading,
+                    onCheckedChange = { updateReader(reader.copy(seamlessReading = it)) },
+                )
+                SwitchRow(
+                    label = stringResource(R.string.reader_tap_zones),
+                    checked = reader.tapZones,
+                    onCheckedChange = { updateReader(reader.copy(tapZones = it)) },
+                )
+                SwitchRow(
+                    label = stringResource(R.string.reader_volume_keys),
+                    checked = reader.volumeKeys,
+                    onCheckedChange = { updateReader(reader.copy(volumeKeys = it)) },
+                )
+                SwitchRow(
+                    label = stringResource(R.string.reader_double_tap_zoom),
+                    checked = reader.doubleTapZoom,
+                    onCheckedChange = { updateReader(reader.copy(doubleTapZoom = it)) },
                 )
             }
-            Spacer(Modifier.height(12.dp))
-            SettingsSwitchRow(
-                label = stringResource(R.string.settings_library_auto_check),
-                checked = libraryUpdates,
-                onCheckedChange = { value ->
-                    scope.launch {
-                        LumeApp.instance.prefs.setLibraryUpdatesEnabled(value)
-                        LibraryUpdateWorker.schedule(LumeApp.instance, value)
+
+            // ---------------- Library ----------------
+            SettingsSection(stringResource(R.string.settings_section_library))
+            SettingsGroup {
+                SwitchRow(
+                    label = stringResource(R.string.settings_library_auto_check),
+                    checked = libraryUpdates,
+                    onCheckedChange = { value ->
+                        scope.launch {
+                            prefs.setLibraryUpdatesEnabled(value)
+                            reschedule(enabled = value)
+                        }
+                    },
+                )
+                AnimatedVisibility(
+                    visible = libraryUpdates,
+                    enter = expandVertically(Motion.medium()) + fadeIn(Motion.medium()),
+                    exit = shrinkVertically(Motion.medium()) + fadeOut(Motion.short()),
+                ) {
+                    Column {
+                        Text(
+                            stringResource(R.string.settings_library_interval),
+                            color = AppColors.textSecondary,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp),
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            AppPreferences.LIBRARY_INTERVALS.forEach { hours ->
+                                ChoiceChip(
+                                    label = stringResource(R.string.settings_interval_hours, hours),
+                                    selected = hours == libraryInterval,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = {
+                                        scope.launch {
+                                            prefs.setLibraryUpdateIntervalHours(hours)
+                                            reschedule(hours = hours)
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                        SwitchRow(
+                            label = stringResource(R.string.settings_wifi_only),
+                            checked = libraryWifiOnly,
+                            modifier = Modifier.padding(top = 4.dp),
+                            onCheckedChange = { value ->
+                                scope.launch {
+                                    prefs.setLibraryUpdateWifiOnly(value)
+                                    reschedule(wifi = value)
+                                }
+                            },
+                        )
                     }
-                },
-            )
-            Spacer(Modifier.height(12.dp))
-            SettingsLink(stringResource(R.string.settings_sources)) { nav.navigate(Routes.Sources) }
-            SettingsLink(stringResource(R.string.settings_downloads)) { nav.navigate(Routes.Downloads) }
-            Spacer(Modifier.height(16.dp))
+                }
+            }
+
+            // ---------------- Downloads ----------------
+            SettingsSection(stringResource(R.string.settings_section_downloads))
+            SettingsGroup {
+                SwitchRow(
+                    label = stringResource(R.string.settings_downloads_wifi_only),
+                    checked = downloadsWifiOnly,
+                    onCheckedChange = { value -> scope.launch { prefs.setDownloadsWifiOnly(value) } },
+                )
+                SettingsLink(stringResource(R.string.settings_downloads)) { nav.navigate(Routes.Downloads) }
+                SettingsLink(stringResource(R.string.settings_restore_downloads)) {
+                    scope.launch {
+                        val n = LumeApp.instance.downloads.recoverFromDisk()
+                        val e = runCatching {
+                            LumeApp.instance.downloads.enrichMetadata(
+                                LumeApp.instance.sources,
+                                LumeApp.instance.offlineCache,
+                            )
+                        }.getOrDefault(0)
+                        statusMessage = when {
+                            n > 0 || e > 0 -> resources.getString(R.string.restore_downloads_done, n, e)
+                            else -> resources.getString(R.string.restore_downloads_empty)
+                        }
+                        Toast.makeText(context, statusMessage, Toast.LENGTH_LONG).show()
+                    }
+                }
+                Text(
+                    stringResource(R.string.settings_download_folder),
+                    color = AppColors.textSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+                )
+                Text(
+                    text = downloadPath,
+                    color = AppColors.textTertiary,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 8.dp),
+                )
+            }
+
+            // ---------------- Search & sources ----------------
+            SettingsSection(stringResource(R.string.settings_section_search))
+            SettingsGroup {
+                SwitchRow(
+                    label = stringResource(R.string.settings_search_nsfw),
+                    checked = searchNsfw,
+                    onCheckedChange = { value -> scope.launch { prefs.setGlobalSearchNsfw(value) } },
+                )
+                SettingsLink(stringResource(R.string.settings_sources)) { nav.navigate(Routes.Sources) }
+            }
+
+            // ---------------- Data & accounts ----------------
+            SettingsSection(stringResource(R.string.settings_section_data))
             Text(stringResource(R.string.settings_trackers), color = AppColors.textSecondary, fontSize = 13.sp)
             Spacer(Modifier.height(8.dp))
             TrackerLoginCard(
@@ -182,69 +336,61 @@ fun SettingsScreen(nav: NavHostController) {
                     }
                 },
             )
-            Spacer(Modifier.height(16.dp))
-            Text(stringResource(R.string.settings_download_folder), color = AppColors.textSecondary, fontSize = 13.sp)
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = downloadPath,
-                color = AppColors.textTertiary,
-                fontSize = 12.sp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(AppColors.surface)
-                    .padding(16.dp),
-            )
-            Spacer(Modifier.height(8.dp))
-            SettingsLink(stringResource(R.string.settings_restore_downloads)) {
-                scope.launch {
-                    val n = LumeApp.instance.downloads.recoverFromDisk()
-                    val e = runCatching {
-                        LumeApp.instance.downloads.enrichMetadata(
-                            LumeApp.instance.sources,
-                            LumeApp.instance.offlineCache,
-                        )
-                    }.getOrDefault(0)
-                    statusMessage = when {
-                        n > 0 || e > 0 -> resources.getString(R.string.restore_downloads_done, n, e)
-                        else -> resources.getString(R.string.restore_downloads_empty)
-                    }
-                    Toast.makeText(context, statusMessage, Toast.LENGTH_LONG).show()
-                }
-            }
-            Spacer(Modifier.height(16.dp))
-            SettingsLink(stringResource(R.string.settings_create_backup)) {
-                scope.launch {
-                    runCatching { LumeApp.instance.backup.createBackup() }
-                        .onSuccess {
-                            statusMessage = resources.getString(R.string.backup_created, it.name)
-                        }
-                        .onFailure {
-                            statusMessage = it.message ?: resources.getString(R.string.backup_error)
-                        }
-                }
-            }
-            SettingsLink(stringResource(R.string.settings_restore_backup)) {
-                scope.launch {
-                    runCatching { LumeApp.instance.backup.restoreLatest() }
-                        .onSuccess { file ->
-                            statusMessage = if (file != null) {
-                                resources.getString(R.string.backup_restored, file.name)
-                            } else {
-                                resources.getString(R.string.backup_none)
+            Spacer(Modifier.height(10.dp))
+            SettingsGroup {
+                SettingsLink(stringResource(R.string.settings_create_backup)) {
+                    scope.launch {
+                        runCatching { LumeApp.instance.backup.createBackup() }
+                            .onSuccess {
+                                statusMessage = resources.getString(R.string.backup_created, it.name)
                             }
-                        }
-                        .onFailure {
-                            statusMessage = it.message ?: resources.getString(R.string.restore_error)
-                        }
+                            .onFailure {
+                                statusMessage = it.message ?: resources.getString(R.string.backup_error)
+                            }
+                    }
+                }
+                SettingsLink(stringResource(R.string.settings_restore_backup)) {
+                    scope.launch {
+                        runCatching { LumeApp.instance.backup.restoreLatest() }
+                            .onSuccess { file ->
+                                statusMessage = if (file != null) {
+                                    resources.getString(R.string.backup_restored, file.name)
+                                } else {
+                                    resources.getString(R.string.backup_none)
+                                }
+                            }
+                            .onFailure {
+                                statusMessage = it.message ?: resources.getString(R.string.restore_error)
+                            }
+                    }
                 }
             }
-            statusMessage?.let {
-                Spacer(Modifier.height(12.dp))
-                Text(it, color = AppColors.accent, fontSize = 13.sp)
+            AnimatedVisibility(
+                visible = statusMessage != null,
+                enter = expandVertically(Motion.medium()) + fadeIn(Motion.medium()),
+                exit = shrinkVertically(Motion.medium()) + fadeOut(Motion.short()),
+            ) {
+                Text(
+                    statusMessage.orEmpty(),
+                    color = AppColors.accent,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
             }
         }
     }
+}
+
+/** Rounded surface that groups related settings rows. */
+@Composable
+private fun SettingsGroup(content: @Composable () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(AppColors.surface)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+    ) { content() }
 }
 
 @Composable
@@ -291,46 +437,13 @@ private fun TrackerLoginCard(
 }
 
 @Composable
-private fun SettingsSwitchRow(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(AppColors.surface)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = label,
-            color = AppColors.textPrimary,
-            fontSize = 15.sp,
-            modifier = Modifier.weight(1f),
-        )
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = AppColors.accent,
-                checkedTrackColor = AppColors.accentMuted,
-            ),
-        )
-    }
-}
-
-@Composable
 private fun SettingsLink(label: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(AppColors.surface)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 16.dp),
+            .padding(horizontal = 4.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, color = AppColors.textPrimary, fontSize = 15.sp, modifier = Modifier.weight(1f))

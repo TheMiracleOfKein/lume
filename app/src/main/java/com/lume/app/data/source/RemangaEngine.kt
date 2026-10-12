@@ -4,7 +4,6 @@ import com.lume.app.data.network.AppHttp
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
-import com.lume.app.domain.HomeFeed
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
 import com.lume.app.domain.SourceManifest
@@ -39,20 +38,15 @@ class RemangaEngine(
             "Origin" to siteBase,
         )
 
-    override suspend fun getHome(): HomeFeed {
-        val popular = getPopular()
-        val latest = getLatest()
-        return HomeFeed(spotlight = popular.items.take(12), latest = latest.items)
-    }
-
     override suspend fun getLatest(page: Int): PagedResult<TitleSummary> =
         titles(page, ordering = "-chapter_date")
 
     override suspend fun getPopular(page: Int): PagedResult<TitleSummary> =
-        titles(page, ordering = "-score")
+        titles(page, ordering = "-rating")
 
+    /** `/titles/` ignores `ordering`; the catalog endpoint is what the site uses for sorting. */
     private suspend fun titles(page: Int, ordering: String): PagedResult<TitleSummary> {
-        val uri = URI("$apiBase/titles/?ordering=$ordering&count=20&page=$page")
+        val uri = URI("$apiBase/search/catalog/?ordering=$ordering&count=$PAGE_SIZE&page=$page")
         val response = http.get(uri, source = manifest, headers = headers, checkCloudflare = false)
         return parseTitleList(response.body, page)
     }
@@ -62,34 +56,52 @@ class RemangaEngine(
         page: Int,
         filters: com.lume.app.domain.FilterList,
     ): PagedResult<TitleSummary> {
-        val q = urlEncode(query)
-        val uri = URI("$apiBase/search/?query=$q&count=20&page=$page")
+        if (query.isBlank()) {
+            val ordering = filters.filters.filterIsInstance<com.lume.app.domain.SourceFilter.Select>()
+                .firstOrNull { it.id == "ordering" }?.selectedValue ?: "-rating"
+            return titles(page, ordering)
+        }
+        val q = urlEncode(query.trim())
+        val uri = URI("$apiBase/search/?query=$q&count=$PAGE_SIZE&page=$page")
         val response = http.get(uri, source = manifest, headers = headers, checkCloudflare = false)
         return parseTitleList(response.body, page)
     }
 
-    override fun getFilters(): com.lume.app.domain.FilterList = com.lume.app.domain.FilterList()
+    override fun getFilters(): com.lume.app.domain.FilterList = com.lume.app.domain.FilterList(
+        listOf(
+            com.lume.app.domain.SourceFilter.Select(
+                id = "ordering",
+                name = com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort),
+                options = listOf("-rating", "-chapter_date", "-views", "-id"),
+            ),
+        ),
+    )
 
     override suspend fun getTitle(id: String): TitleDetails {
         val dir = slug(id)
-        val uri = URI("$apiBase/titles/$dir/")
+        val uri = URI("$apiBase/titles/${pathSegment(dir)}/")
         val response = http.get(uri, source = manifest, headers = headers, checkCloudflare = false)
         val root = asObject(json.parseToJsonElement(response.body))
         val data = asObject(root["content"] ?: root["data"] ?: root)
         val genres = (data["genres"] as? JsonArray).orEmpty().mapNotNull { stringOrNull((it as? JsonObject)?.get("name")) }
-        val authors = (data["creators"] as? JsonObject)?.values.orEmpty().flatMap { el ->
-            when (el) {
-                is JsonArray -> el.mapNotNull { stringOrNull((it as? JsonObject)?.get("name")) }
-                is JsonObject -> listOfNotNull(stringOrNull(el["name"]))
-                else -> emptyList()
+        val creators = data["creators"]
+        val authors = when (creators) {
+            is JsonArray -> creators.mapNotNull { stringOrNull((it as? JsonObject)?.get("name")) }
+            is JsonObject -> creators.values.flatMap { el ->
+                when (el) {
+                    is JsonArray -> el.mapNotNull { stringOrNull((it as? JsonObject)?.get("name")) }
+                    is JsonObject -> listOfNotNull(stringOrNull(el["name"]))
+                    else -> emptyList()
+                }
             }
-        }
+            else -> emptyList()
+        }.distinct()
         return TitleDetails(
             id = dir,
             title = stringOrNull(data["main_name"]) ?: stringOrNull(data["secondary_name"]) ?: dir,
             altTitle = stringOrNull(data["secondary_name"]),
             coverUrl = coverUrl(data["cover"]),
-            description = stringOrNull(data["description"]),
+            description = htmlToText(stringOrNull(data["description"])),
             typeLabel = nestedName(data["type"]),
             status = nestedName(data["status"]) ?: nestedName(data["translate_status"]),
             authors = authors,
@@ -99,7 +111,7 @@ class RemangaEngine(
 
     override suspend fun getChapters(titleId: String): List<Chapter> {
         val dir = slug(titleId)
-        val detailUri = URI("$apiBase/titles/$dir/")
+        val detailUri = URI("$apiBase/titles/${pathSegment(dir)}/")
         val detail = http.get(detailUri, source = manifest, headers = headers, checkCloudflare = false)
         val root = asObject(json.parseToJsonElement(detail.body))
         val data = asObject(root["content"] ?: root)
@@ -174,6 +186,7 @@ class RemangaEngine(
     private fun parseTitleList(raw: String, page: Int): PagedResult<TitleSummary> {
         val root = asObject(json.parseToJsonElement(raw))
         val list = root["content"] as? JsonArray ?: JsonArray(emptyList())
+        val totalPages = ((root["props"] as? JsonObject)?.get("total_pages")).let { stringOrNull(it)?.toIntOrNull() }
         val items = list.mapNotNull { el ->
             val item = el as? JsonObject ?: return@mapNotNull null
             val dir = stringOrNull(item["dir"]) ?: return@mapNotNull null
@@ -185,7 +198,8 @@ class RemangaEngine(
                 latestChapter = stringOrNull(item["count_chapters"]),
             )
         }
-        return PagedResult(items = items, page = page, hasNext = items.size >= 20)
+        val hasNext = totalPages?.let { page < it } ?: (items.size >= PAGE_SIZE)
+        return PagedResult(items = items, page = page, hasNext = hasNext && items.isNotEmpty())
     }
 
     private fun coverUrl(el: JsonElement?): String? {
@@ -197,8 +211,8 @@ class RemangaEngine(
     private fun absMedia(path: String): String {
         if (path.startsWith("http")) return path
         val p = path.removePrefix("/")
-        return if (p.startsWith("media/")) "https://remanga.org/$p"
-        else "https://remanga.org/media/$p"
+        return if (p.startsWith("media/")) "$siteBase/$p"
+        else "$siteBase/media/$p"
     }
 
     private fun slug(id: String): String = id.trim('/').substringBefore('/').ifBlank { id }
@@ -216,4 +230,10 @@ class RemangaEngine(
     }
 
     private fun asObject(el: JsonElement): JsonObject = el as? JsonObject ?: JsonObject(emptyMap())
+
+    override fun webUrl(titleId: String): String = "$siteBase/manga/${pathSegment(slug(titleId))}"
+
+    private companion object {
+        const val PAGE_SIZE = 30
+    }
 }

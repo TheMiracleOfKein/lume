@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -122,12 +124,20 @@ class DownloadQueue(
                     val next = dao.pendingDownloadQueue()
                         .firstOrNull { it.status == DownloadQueueEntity.STATUS_PENDING }
                         ?: break
+                    awaitAllowedNetwork()
                     processOne(next)
                 }
             } finally {
                 mutex.withLock { processing = false }
             }
         }
+    }
+
+    /** "Wi-Fi only": park the queue on metered networks until Wi-Fi returns or the option is turned off. */
+    private suspend fun awaitAllowedNetwork() {
+        val app = LumeApp.instance
+        combine(app.prefs.downloadsWifiOnly, app.network.unmetered) { wifiOnly, unmetered -> !wifiOnly || unmetered }
+            .first { it }
     }
 
     private suspend fun processOne(item: DownloadQueueEntity) {

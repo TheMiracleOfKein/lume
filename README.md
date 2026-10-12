@@ -9,7 +9,10 @@ Lume uses first-party catalogue engines (MangaDex, Madara, LibSocial, and others
 ## Features
 
 - Library, home feed, catalogue, search, downloads, offline cache
-- Vertical (webtoon) and page reader
+- Vertical (webtoon) and page reader with seamless chapters, tap zones and volume-key paging
+- Fullscreen reading (controls and system bars hide on scroll, tap to show), night dimming, webtoon side margins
+- Global search that streams results per source, with per-source timeouts and retry
+- Open any title in the browser or share its link
 - Source packs + in-app login for supported LibSocial sites
 - Optional trackers: Shikimori and AniList
 - Backup / restore
@@ -32,6 +35,8 @@ gradlew.bat :app:assembleDebug
 ```
 
 APK output: `app/build/outputs/apk/debug/`.
+
+Tests: `gradlew :app:testDebugUnitTest` (add `-Plume.live` to check bundled sources against the live sites; see [docs/ENGINES.md](docs/ENGINES.md#live-source-checks)).
 
 1. Copy [`local.properties.example`](local.properties.example) to `local.properties`.
 2. Set `sdk.dir` (Android Studio usually does this for you).

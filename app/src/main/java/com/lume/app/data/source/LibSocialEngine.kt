@@ -4,7 +4,6 @@ import com.lume.app.data.network.AppHttp
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
-import com.lume.app.domain.HomeFeed
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
 import com.lume.app.domain.SourceManifest
@@ -48,12 +47,6 @@ class LibSocialEngine(
     @Volatile
     private var imageServerCache: String? = null
 
-    override suspend fun getHome(): HomeFeed {
-        val latest = getLatest()
-        val popular = getPopular()
-        return HomeFeed(spotlight = popular.items.take(12), latest = latest.items)
-    }
-
     override suspend fun getLatest(page: Int) = mangaList(page, "last_chapter_at")
     override suspend fun getPopular(page: Int) = mangaList(page, "rating_score")
 
@@ -80,12 +73,25 @@ class LibSocialEngine(
 
     override suspend fun getTitle(id: String): TitleDetails {
         val slug = slug(id)
-        val uri = URI("${apiBase.toString().trimEnd('/')}/manga/$slug")
-        val response = http.get(uri, source = manifest, headers = apiHeaders(), checkCloudflare = false)
+        val base = "${apiBase.toString().trimEnd('/')}/manga/$slug"
+        // Without fields[] the API returns only names/cover — no summary, genres or authors.
+        val withFields = base + "?" + TITLE_FIELDS.joinToString("&") { "fields[]=$it" }
+        val response = runCatching {
+            http.get(URI(withFields), source = manifest, headers = apiHeaders(), checkCloudflare = false)
+        }.getOrElse { e ->
+            if (e is com.lume.app.data.network.SourceHttpException && e.code in 400..422) {
+                http.get(URI(base), source = manifest, headers = apiHeaders(), checkCloudflare = false)
+            } else {
+                throw e
+            }
+        }
         val root = asObject(json.parseToJsonElement(response.body))
         val data = asObject(root["data"] ?: root)
         val cover = coverUrl(data["cover"])
-        val genres = (data["genres"] as? JsonArray).orEmpty().mapNotNull {
+        val genres = ((data["genres"] as? JsonArray).orEmpty() + (data["tags"] as? JsonArray).orEmpty()).mapNotNull {
+            (it as? JsonObject)?.get("name")?.jsonPrimitive?.contentOrNull
+        }.distinct()
+        val artists = (data["artists"] as? JsonArray).orEmpty().mapNotNull {
             (it as? JsonObject)?.get("name")?.jsonPrimitive?.contentOrNull
         }
         val authors = (data["authors"] as? JsonArray).orEmpty().mapNotNull {
@@ -98,11 +104,11 @@ class LibSocialEngine(
                 ?: slug,
             altTitle = data["name"]?.jsonPrimitive?.contentOrNull,
             coverUrl = cover,
-            description = data["summary"]?.jsonPrimitive?.contentOrNull
-                ?: data["description"]?.jsonPrimitive?.contentOrNull,
+            description = htmlToText(stringOrNull(data["summary"]) ?: stringOrNull(data["description"])),
             typeLabel = nestedLabel(data["type"]),
             status = nestedLabel(data["status"]),
             authors = authors,
+            artists = artists,
             genres = genres,
         )
     }
@@ -278,6 +284,7 @@ class LibSocialEngine(
     private fun parseList(raw: String, page: Int): PagedResult<TitleSummary> {
         val root = asObject(json.parseToJsonElement(raw))
         val data = root["data"]
+        val apiHasNext = (root["meta"] as? JsonObject)?.get("has_next_page")?.let { stringOrNull(it)?.toBooleanStrictOrNull() }
         val list = when {
             data is JsonArray -> data
             data is JsonObject && data["data"] is JsonArray -> data["data"]!!.jsonArray
@@ -301,7 +308,7 @@ class LibSocialEngine(
                     ?: stringOrNull(item["last_chapter"]),
             )
         }
-        return PagedResult(items = items, page = page, hasNext = items.size >= 20)
+        return PagedResult(items = items, page = page, hasNext = apiHasNext ?: (items.size >= 20))
     }
 
     private fun coverUrl(el: JsonElement?): String? {
@@ -330,4 +337,12 @@ class LibSocialEngine(
     }
 
     private fun asObject(el: JsonElement): JsonObject = el as? JsonObject ?: JsonObject(emptyMap())
+
+    override fun webUrl(titleId: String): String = "${manifest.baseUrl.trimEnd('/')}/ru/manga/${slug(titleId)}"
+
+    private companion object {
+        val TITLE_FIELDS = listOf(
+            "summary", "genres", "tags", "authors", "artists", "releaseDate", "status_id", "chap_count",
+        )
+    }
 }

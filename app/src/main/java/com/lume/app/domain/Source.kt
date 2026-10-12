@@ -1,5 +1,7 @@
 package com.lume.app.domain
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -47,7 +49,13 @@ interface CatalogSource {
     val supportsLatest: Boolean get() = true
     val supportsPopular: Boolean get() = true
 
-    suspend fun getHome(): HomeFeed
+    /** Popular + latest, fetched concurrently. Override for sources with a dedicated home feed. */
+    suspend fun getHome(): HomeFeed = coroutineScope {
+        val popular = async { getPopular() }
+        val latest = async { getLatest() }
+        HomeFeed(spotlight = popular.await().items.take(12), latest = latest.await().items)
+    }
+
     suspend fun getLatest(page: Int = 1): PagedResult<TitleSummary>
     suspend fun getPopular(page: Int = 1): PagedResult<TitleSummary>
 
@@ -63,6 +71,16 @@ interface CatalogSource {
     suspend fun getTitle(id: String): TitleDetails
     suspend fun getChapters(titleId: String): List<Chapter>
     suspend fun getPages(chapter: Chapter): List<ComicPage>
+
+    /**
+     * Public website URL of a title (for "Open in browser" and solving site checks in a WebView).
+     * Default: ids that are paths resolve against [SourceManifest.baseUrl]; opaque ids return null.
+     */
+    fun webUrl(titleId: String): String? {
+        if (titleId.startsWith("http://") || titleId.startsWith("https://")) return titleId
+        if (!titleId.startsWith("/")) return null
+        return manifest.baseUrl.trimEnd('/') + titleId
+    }
 }
 
 /** Optional per-source preferences screen hook. */

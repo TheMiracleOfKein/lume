@@ -1,29 +1,32 @@
 package com.lume.app.data.source
 
+import com.lume.app.R
+import com.lume.app.data.locale.appString
 import com.lume.app.data.network.AppHttp
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.FilterList
-import com.lume.app.domain.HomeFeed
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
+import com.lume.app.domain.SourceFilter
 import com.lume.app.domain.SourceManifest
 import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleSummary
+import com.lume.app.util.urlEncode
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import org.jsoup.Jsoup
 import java.net.URI
-import com.lume.app.util.urlEncode
+import java.util.concurrent.ConcurrentHashMap
 
 /**
- * HiveToons / HiveToon family — JSON query API + HTML chapter pages.
+ * HiveToons / Iken family (HiveToons, Vortex Scans, …).
+ *
+ * Catalogue, details and the full chapter list come from the JSON API; only page images are
+ * scraped from the chapter HTML (`img[data-reader-page-image]`). The series *page* renders just
+ * the newest ~25 chapters, so it must not be used as the chapter list.
  */
 class HiveToonsEngine(
     override val manifest: SourceManifest,
@@ -32,112 +35,145 @@ class HiveToonsEngine(
 ) : CatalogSource {
     private val apiBase get() = (manifest.configString("apiBase") ?: "https://api.hivetoons.org").trimEnd('/')
     private val siteBase get() = manifest.baseUrl.trimEnd('/')
+    private val postIds = ConcurrentHashMap<String, String>()
 
-    override suspend fun getHome(): HomeFeed {
-        val popular = getPopular()
-        val latest = getLatest()
-        return HomeFeed(spotlight = popular.items.take(12), latest = latest.items)
+    // The API expects camelCase sort keys; unknown values silently fall back to default order.
+    override suspend fun getPopular(page: Int) = query(page, "totalViews")
+    override suspend fun getLatest(page: Int) = query(page, "updatedAt")
+
+    override fun getFilters(): FilterList = FilterList(
+        listOf(
+            SourceFilter.Select(
+                id = "orderBy",
+                name = appString(R.string.filter_sort),
+                options = listOf("totalViews", "updatedAt", "createdAt"),
+            ),
+        ),
+    )
+
+    override suspend fun search(query: String, page: Int, filters: FilterList): PagedResult<TitleSummary> {
+        val order = filters.filters.filterIsInstance<SourceFilter.Select>()
+            .firstOrNull { it.id == "orderBy" }?.selectedValue ?: "totalViews"
+        return query(page, order, search = query.trim())
     }
-
-    override suspend fun getPopular(page: Int) = query(page, "total_views")
-    override suspend fun getLatest(page: Int) = query(page, "updated_at")
 
     private suspend fun query(page: Int, orderBy: String, search: String = ""): PagedResult<TitleSummary> {
         val q = buildString {
-            append("page=$page&perPage=24&orderBy=$orderBy")
+            append("page=$page&perPage=$PAGE_SIZE&orderBy=$orderBy")
             if (search.isNotBlank()) append("&searchTerm=${urlEncode(search)}")
         }
-        val response = http.get(
-            URI("$apiBase/api/query?$q"),
-            source = manifest,
-            headers = apiHeaders(),
-            checkCloudflare = false,
-        )
-        val root = json.parseToJsonElement(response.body).jsonObject
-        val posts = root["posts"]?.jsonArray ?: JsonArray(emptyList())
-        val items = posts.mapNotNull { el ->
-            val item = el as? JsonObject ?: return@mapNotNull null
-            val slug = item["slug"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+        val root = apiObject("$apiBase/api/query?$q")
+        val items = root["posts"].arr().orEmpty().mapNotNull { el ->
+            val item = el.obj() ?: return@mapNotNull null
+            val slug = item.str("slug") ?: return@mapNotNull null
+            item.str("id")?.let { postIds[slug] = it }
             TitleSummary(
                 id = "/series/$slug",
-                title = item["postTitle"]?.jsonPrimitive?.contentOrNull
-                    ?: item["title"]?.jsonPrimitive?.contentOrNull
-                    ?: slug,
-                coverUrl = item["featuredImage"]?.jsonPrimitive?.contentOrNull
-                    ?: item["cover"]?.jsonPrimitive?.contentOrNull,
-                latestChapter = item["chapterCount"]?.jsonPrimitive?.contentOrNull
-                    ?: item["chaptersCount"]?.jsonPrimitive?.contentOrNull,
+                title = item.str("postTitle") ?: item.str("title") ?: slug,
+                coverUrl = item.str("featuredImage") ?: item.str("cover"),
+                latestChapter = item["chapters"].arr()?.firstOrNull().obj().str("number")
+                    ?: item.str("chapterCount"),
+                typeLabel = item.str("seriesType"),
             )
         }
-        return PagedResult(items = items, page = page, hasNext = items.size >= 24)
-    }
-
-    override suspend fun search(query: String, page: Int, filters: FilterList): PagedResult<TitleSummary> {
-        if (query.isBlank()) return getPopular(page)
-        return query(page, "total_views", search = query)
+        val total = root.str("totalCount")?.toIntOrNull()
+        val hasNext = total?.let { page * PAGE_SIZE < it } ?: (items.size >= PAGE_SIZE)
+        return PagedResult(items = items, page = page, hasNext = hasNext && items.isNotEmpty())
     }
 
     override suspend fun getTitle(id: String): TitleDetails {
-        val response = http.get(abs(id), source = manifest)
-        val doc = Jsoup.parse(response.body, siteBase)
-        val title = doc.selectFirst("h1, h2")?.text()?.trim().orEmpty()
-        val cover = doc.selectFirst("meta[property=og:image]")?.attr("content")
-            ?: doc.selectFirst("img")?.attr("abs:src")
-        val description = doc.selectFirst("meta[name=description], .description, p")?.let {
-            if (it.tagName() == "meta") it.attr("content") else it.text()
-        }?.trim()
+        val post = post(slugOf(id))
         return TitleDetails(
             id = id,
-            title = title.ifEmpty { id.substringAfterLast('/') },
-            coverUrl = cover,
-            description = description,
+            title = post.str("postTitle") ?: slugOf(id),
+            altTitle = post.str("alternativeTitles")?.takeIf { it != post.str("postTitle") },
+            coverUrl = post.str("featuredImage"),
+            description = htmlToText(post.str("postContent")),
+            typeLabel = post.str("seriesType"),
+            status = post.str("seriesStatus"),
+            authors = listOfNotNull(post.str("author")),
+            artists = listOfNotNull(post.str("artist")),
+            genres = post["genres"].arr().orEmpty().mapNotNull { it.obj().str("name") },
         )
     }
 
     override suspend fun getChapters(titleId: String): List<Chapter> {
-        val response = http.get(abs(titleId), source = manifest)
-        val doc = Jsoup.parse(response.body, siteBase)
-        val slug = titleId.trim('/').substringAfterLast('/')
-        return doc.select("a[href*=/series/$slug/chapter]").mapNotNull { a ->
-            val href = a.attr("abs:href")
-            val path = runCatching { URI(href).path }.getOrNull().orEmpty()
-            if (!path.contains("/chapter")) return@mapNotNull null
-            val name = a.text().replace(Regex("\\s+"), " ").trim().ifEmpty { path.substringAfterLast('/') }
-            Chapter(
-                id = path,
-                title = name,
-                url = path,
-                number = Regex("""chapter-([0-9]+(?:\.[0-9]+)?)""", RegexOption.IGNORE_CASE)
-                    .find(path)?.groupValues?.getOrNull(1),
-            )
-        }.distinctBy { it.id }
+        val slug = slugOf(titleId)
+        val postId = postIds[slug] ?: post(slug).str("id")
+            ?: throw SourceFetchException("${manifest.name}: series id not found")
+        val out = ArrayList<Chapter>()
+        var skip = 0
+        while (skip < MAX_CHAPTERS) {
+            val root = apiObject("$apiBase/api/chapters?postId=$postId&skip=$skip&take=$CHAPTER_BATCH&order=desc&userid=")
+            val batch = root["post"].obj()?.get("chapters").arr().orEmpty()
+            for (el in batch) {
+                val item = el.obj() ?: continue
+                // Paid / timed-unlock chapters render no images for guests.
+                val accessible = item["isAccessible"].bool() ?: (item["isLocked"].bool() != true)
+                if (!accessible) continue
+                val chapterSlug = item.str("slug") ?: continue
+                val number = item.str("number")
+                val name = item.str("title")
+                out += Chapter(
+                    id = "/series/$slug/$chapterSlug",
+                    title = buildString {
+                        append("Chapter ").append(number ?: chapterSlug.substringAfter("chapter-"))
+                        if (!name.isNullOrBlank() && !name.equals("Chapter $number", ignoreCase = true)) {
+                            append(" — ").append(name)
+                        }
+                    },
+                    url = "/series/$slug/$chapterSlug",
+                    number = number,
+                    dateLabel = item.str("createdAt")?.take(10),
+                )
+            }
+            val total = root.str("totalChapterCount")?.toIntOrNull()
+            skip += CHAPTER_BATCH
+            if (batch.size < CHAPTER_BATCH || (total != null && skip >= total)) break
+        }
+        return out
     }
 
     override suspend fun getPages(chapter: Chapter): List<ComicPage> {
-        val response = http.get(abs(chapter.url.ifBlank { chapter.id }), source = manifest)
+        val response = http.get(resolveUrl(siteBase, chapter.url.ifBlank { chapter.id }), source = manifest)
         val doc = Jsoup.parse(response.body, siteBase)
-        val pages = doc.select("img").mapNotNull { img ->
-            val url = img.attr("abs:src").ifBlank { img.attr("data-src") }
-            if (!url.startsWith("http")) return@mapNotNull null
-            val lower = url.lowercase()
-            if ("logo" in lower || "icon" in lower || "avatar" in lower || "featured" in lower) {
-                return@mapNotNull null
-            }
-            if ("/upload/" !in url && "storage." !in lower) return@mapNotNull null
-            url
-        }.distinct().mapIndexed { index, url -> ComicPage(index = index, imageUrl = url) }
-        if (pages.isEmpty()) throw SourceFetchException("HiveToons: пустые страницы")
+        val marked = doc.select("img[data-reader-page-image]")
+            .sortedBy { it.attr("data-reader-index").toIntOrNull() ?: Int.MAX_VALUE }
+            .map { it.attr("abs:src").ifBlank { it.attr("abs:data-src") } }
+        // Fallback for older Iken templates without reader markers.
+        val urls = marked.ifEmpty {
+            doc.select("main img, img").map { it.attr("abs:src").ifBlank { it.attr("abs:data-src") } }
+                .filter { "/upload/series/" in it }
+        }
+        val pages = urls.filter { it.startsWith("http") }.distinct()
+            .mapIndexed { index, url -> ComicPage(index = index, imageUrl = url) }
+        if (pages.isEmpty()) throw SourceFetchException(appString(R.string.error_pages_failed_named, manifest.name))
         return pages
     }
 
-    private fun abs(pathOrUrl: String): URI {
-        val parsed = URI(pathOrUrl)
-        return if (parsed.scheme != null) parsed else URI("$siteBase/${pathOrUrl.trimStart('/')}")
+    private suspend fun post(slug: String): JsonObject {
+        val root = apiObject("$apiBase/api/post?postSlug=${urlEncode(slug)}")
+        val post = root["post"].obj() ?: throw SourceFetchException("${manifest.name}: series not found")
+        post.str("id")?.let { postIds[slug] = it }
+        return post
     }
+
+    private suspend fun apiObject(url: String): JsonObject {
+        val response = http.get(URI(url), source = manifest, headers = apiHeaders(), checkCloudflare = false)
+        return json.parseToJsonElement(response.body).jsonObject
+    }
+
+    private fun slugOf(id: String): String = id.trim('/').removePrefix("series/").substringBefore('/')
 
     private fun apiHeaders(): Map<String, String> = mapOf(
         "Accept" to "application/json",
         "Origin" to siteBase,
         "Referer" to "$siteBase/",
     )
+
+    private companion object {
+        const val PAGE_SIZE = 24
+        const val CHAPTER_BATCH = 500
+        const val MAX_CHAPTERS = 10_000
+    }
 }

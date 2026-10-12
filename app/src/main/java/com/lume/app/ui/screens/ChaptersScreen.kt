@@ -50,13 +50,18 @@ import androidx.navigation.NavHostController
 import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.DownloadQueueEntity
+import com.lume.app.data.offline.networkOr
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.TitleDetails
+import com.lume.app.ui.components.AnimatedLoadState
 import com.lume.app.ui.components.ErrorRetryBox
+import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
+import com.lume.app.ui.components.loadStateOf
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.theme.AppColors
+import com.lume.app.ui.theme.animatedItem
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,13 +94,15 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
             val cached = offline.get(sourceId, titleId)
             val source = LumeApp.instance.sources.sourceById(sourceId)
             val d = cached?.details
-                ?: source?.let { runCatching { it.getTitle(titleId) }.getOrNull() }
-                ?: offline.detailsFromDownloads(sourceId, titleId)
+                ?: networkOr(source, { getTitle(titleId) }) {
+                    offline.detailsFromDownloads(sourceId, titleId)
+                }
                 ?: error(resources.getString(R.string.error_no_title_data))
             details = d
             val list = cached?.chapters
-                ?: source?.let { runCatching { it.getChapters(titleId) }.getOrNull() }
-                ?: offline.chaptersFromDownloads(sourceId, titleId)
+                ?: networkOr(source, { getChapters(titleId) }, isUsable = { it.isNotEmpty() }) {
+                    offline.chaptersFromDownloads(sourceId, titleId)
+                }.orEmpty()
             if (source != null && list.isNotEmpty()) {
                 offline.save(sourceId, titleId, d, list)
             }
@@ -223,135 +230,140 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
             }
         },
     ) { padding ->
-        when {
-            loading -> LoadingBox(Modifier.padding(padding))
-            error != null -> ErrorRetryBox(
-                message = error!!,
-                onRetry = { refreshEpoch++ },
-                onCloudflare = cloudflareUri?.let { uri ->
-                    { scope.launch { LumeApp.instance.http.requestChallenge(uri) } }
-                },
-                modifier = Modifier.padding(padding),
-            )
-            else -> LazyColumn(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .background(AppColors.background),
-            ) {
-                items(displayed, key = { it.id }) { chapter ->
-                    val queueItem = queueByChapter[chapter.id]
-                    val isDownloaded = chapter.id in downloadedIds
-                    val isRead = chapter.id in readIds
-                    val isCurrent = chapter.id == currentChapterId
-                    val selected = chapter.id in selectedIds
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                if (selectMode) {
-                                    if (isDownloaded) return@clickable
-                                    selectedIds = if (selected) {
-                                        selectedIds - chapter.id
+        AnimatedLoadState(
+            state = loadStateOf(loading, error),
+            modifier = Modifier.fillMaxSize(),
+        ) { pane ->
+            when (pane) {
+                LoadState.Loading -> LoadingBox(Modifier.padding(padding))
+                LoadState.Error -> ErrorRetryBox(
+                    message = error.orEmpty(),
+                    onRetry = { refreshEpoch++ },
+                    onCloudflare = cloudflareUri?.let { uri ->
+                        { scope.launch { LumeApp.instance.http.requestChallenge(uri) } }
+                    },
+                    modifier = Modifier.padding(padding),
+                )
+                else -> LazyColumn(
+                    modifier = Modifier
+                        .padding(padding)
+                        .fillMaxSize()
+                        .background(AppColors.background),
+                ) {
+                    items(displayed, key = { it.id }) { chapter ->
+                        val queueItem = queueByChapter[chapter.id]
+                        val isDownloaded = chapter.id in downloadedIds
+                        val isRead = chapter.id in readIds
+                        val isCurrent = chapter.id == currentChapterId
+                        val selected = chapter.id in selectedIds
+                        Row(
+                            modifier = animatedItem()
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (selectMode) {
+                                        if (isDownloaded) return@clickable
+                                        selectedIds = if (selected) {
+                                            selectedIds - chapter.id
+                                        } else {
+                                            selectedIds + chapter.id
+                                        }
                                     } else {
-                                        selectedIds + chapter.id
+                                        nav.navigate(Routes.reader(sourceId, titleId, chapter.id))
                                     }
-                                } else {
-                                    nav.navigate(Routes.reader(sourceId, titleId, chapter.id))
+                                }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (selectMode) {
+                                Checkbox(
+                                    checked = selected,
+                                    onCheckedChange = {
+                                        if (isDownloaded) return@Checkbox
+                                        selectedIds = if (selected) {
+                                            selectedIds - chapter.id
+                                        } else {
+                                            selectedIds + chapter.id
+                                        }
+                                    },
+                                    enabled = !isDownloaded,
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(chapter.title, color = AppColors.textPrimary, fontSize = 14.sp)
+                                chapter.dateLabel?.let {
+                                    Text(it, color = AppColors.textTertiary, fontSize = 11.sp)
                                 }
                             }
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        if (selectMode) {
-                            Checkbox(
-                                checked = selected,
-                                onCheckedChange = {
-                                    if (isDownloaded) return@Checkbox
-                                    selectedIds = if (selected) {
-                                        selectedIds - chapter.id
-                                    } else {
-                                        selectedIds + chapter.id
-                                    }
-                                },
-                                enabled = !isDownloaded,
-                            )
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(chapter.title, color = AppColors.textPrimary, fontSize = 14.sp)
-                            chapter.dateLabel?.let {
-                                Text(it, color = AppColors.textTertiary, fontSize = 11.sp)
-                            }
-                        }
-                        when {
-                            isCurrent -> Icon(
-                                Icons.Outlined.PlayArrow,
-                                contentDescription = stringResource(R.string.cd_current),
-                                tint = AppColors.accent,
-                                modifier = Modifier.size(20.dp).padding(end = 4.dp),
-                            )
-                            isRead -> Icon(
-                                Icons.Outlined.CheckCircle,
-                                contentDescription = stringResource(R.string.cd_read),
-                                tint = AppColors.textSecondary,
-                                modifier = Modifier.size(18.dp).padding(end = 4.dp),
-                            )
-                        }
-                        if (!selectMode) {
                             when {
-                                queueItem != null &&
-                                    (queueItem.status == DownloadQueueEntity.STATUS_PENDING ||
-                                        queueItem.status == DownloadQueueEntity.STATUS_RUNNING) -> {
-                                    IconButton(
+                                isCurrent -> Icon(
+                                    Icons.Outlined.PlayArrow,
+                                    contentDescription = stringResource(R.string.cd_current),
+                                    tint = AppColors.accent,
+                                    modifier = Modifier.size(20.dp).padding(end = 4.dp),
+                                )
+                                isRead -> Icon(
+                                    Icons.Outlined.CheckCircle,
+                                    contentDescription = stringResource(R.string.cd_read),
+                                    tint = AppColors.textSecondary,
+                                    modifier = Modifier.size(18.dp).padding(end = 4.dp),
+                                )
+                            }
+                            if (!selectMode) {
+                                when {
+                                    queueItem != null &&
+                                        (queueItem.status == DownloadQueueEntity.STATUS_PENDING ||
+                                            queueItem.status == DownloadQueueEntity.STATUS_RUNNING) -> {
+                                        IconButton(
+                                            onClick = {
+                                                LumeApp.instance.downloadQueue.cancel(
+                                                    sourceId,
+                                                    titleId,
+                                                    chapter.id,
+                                                )
+                                            },
+                                        ) {
+                                            Box(
+                                                modifier = Modifier.size(40.dp),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                if (queueItem.status == DownloadQueueEntity.STATUS_RUNNING) {
+                                                    CircularProgressIndicator(
+                                                        progress = { queueItem.progress },
+                                                        color = AppColors.accent,
+                                                        strokeWidth = 2.dp,
+                                                        modifier = Modifier.size(22.dp),
+                                                    )
+                                                }
+                                                Icon(
+                                                    Icons.Outlined.Close,
+                                                    contentDescription = stringResource(R.string.cd_cancel),
+                                                    tint = AppColors.danger,
+                                                    modifier = Modifier.size(14.dp),
+                                                )
+                                            }
+                                        }
+                                    }
+                                    isDownloaded -> Icon(
+                                        Icons.Outlined.DownloadDone,
+                                        contentDescription = stringResource(R.string.cd_downloaded),
+                                        tint = AppColors.accent,
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .padding(8.dp),
+                                    )
+                                    else -> IconButton(
                                         onClick = {
-                                            LumeApp.instance.downloadQueue.cancel(
-                                                sourceId,
-                                                titleId,
-                                                chapter.id,
+                                            LumeApp.instance.downloadQueue.enqueue(
+                                                sourceId = sourceId,
+                                                titleId = titleId,
+                                                chapter = chapter,
+                                                titleName = details?.title ?: titleId,
+                                                coverUrl = details?.coverUrl,
                                             )
                                         },
                                     ) {
-                                        Box(
-                                            modifier = Modifier.size(40.dp),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            if (queueItem.status == DownloadQueueEntity.STATUS_RUNNING) {
-                                                CircularProgressIndicator(
-                                                    progress = { queueItem.progress },
-                                                    color = AppColors.accent,
-                                                    strokeWidth = 2.dp,
-                                                    modifier = Modifier.size(22.dp),
-                                                )
-                                            }
-                                            Icon(
-                                                Icons.Outlined.Close,
-                                                contentDescription = stringResource(R.string.cd_cancel),
-                                                tint = AppColors.danger,
-                                                modifier = Modifier.size(14.dp),
-                                            )
-                                        }
+                                        Icon(Icons.Outlined.Download, null, tint = AppColors.textSecondary)
                                     }
-                                }
-                                isDownloaded -> Icon(
-                                    Icons.Outlined.DownloadDone,
-                                    contentDescription = stringResource(R.string.cd_downloaded),
-                                    tint = AppColors.accent,
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .padding(8.dp),
-                                )
-                                else -> IconButton(
-                                    onClick = {
-                                        LumeApp.instance.downloadQueue.enqueue(
-                                            sourceId = sourceId,
-                                            titleId = titleId,
-                                            chapter = chapter,
-                                            titleName = details?.title ?: titleId,
-                                            coverUrl = details?.coverUrl,
-                                        )
-                                    },
-                                ) {
-                                    Icon(Icons.Outlined.Download, null, tint = AppColors.textSecondary)
                                 }
                             }
                         }

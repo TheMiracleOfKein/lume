@@ -1,127 +1,80 @@
 package com.lume.app.ui.screens
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.lume.app.LumeApp
-import com.lume.app.domain.CloudflareException
-import com.lume.app.domain.GlobalSearchHit
-import com.lume.app.domain.TitleSummary
+import com.lume.app.R
+import com.lume.app.ui.components.AnimatedLoadState
+import com.lume.app.ui.components.CoverCard
+import com.lume.app.ui.components.EmptyBox
 import com.lume.app.ui.components.ErrorRetryBox
+import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
 import com.lume.app.ui.components.QuickSearchBar
-import com.lume.app.ui.components.SectionHeader
+import com.lume.app.ui.components.SegmentTab
 import com.lume.app.ui.components.TitleListRow
 import com.lume.app.ui.nav.Routes
+import com.lume.app.ui.screens.SearchViewModel.Mode
+import com.lume.app.ui.screens.SearchViewModel.SourceRow
+import com.lume.app.ui.screens.SearchViewModel.SourceState
 import com.lume.app.ui.theme.AppColors
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
+import com.lume.app.ui.theme.Motion
+import com.lume.app.ui.theme.animatedItem
 import kotlinx.coroutines.launch
-import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.stringResource
-import com.lume.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen(nav: NavHostController) {
-    val resources = LocalResources.current
-    var query by remember { mutableStateOf("") }
-    var mode by remember { mutableIntStateOf(0) } // 0 current, 1 global
-    var items by remember { mutableStateOf<List<TitleSummary>>(emptyList()) }
-    var globalHits by remember { mutableStateOf<List<GlobalSearchHit>>(emptyList()) }
-    var sourceId by remember { mutableStateOf("") }
-    var loading by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var cloudflareUri by remember { mutableStateOf<java.net.URI?>(null) }
-    var searched by remember { mutableStateOf(false) }
+fun SearchScreen(nav: NavHostController, vm: SearchViewModel = viewModel()) {
     val scope = rememberCoroutineScope()
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    val networkEpoch by LumeApp.instance.http.networkEpoch.collectAsState()
 
-    fun doSearch() {
-        val q = query.trim()
-        if (q.isEmpty()) return
-        scope.launch {
-            loading = true
-            error = null
-            cloudflareUri = null
-            searched = true
-            items = emptyList()
-            globalHits = emptyList()
-            if (mode == 0) {
-                runCatching {
-                    val source = LumeApp.instance.sources.activeSource() ?: error(resources.getString(R.string.error_no_sources))
-                    sourceId = source.manifest.id
-                    source.search(q)
-                }.onSuccess {
-                    items = it.items
-                    loading = false
-                }.onFailure { e ->
-                    loading = false
-                    if (e is CloudflareException) {
-                        cloudflareUri = e.uri
-                        LumeApp.instance.http.requestChallenge(e.uri)
-                        error = resources.getString(R.string.error_cloudflare_needed)
-                    } else {
-                        error = e.message ?: e.toString()
-                    }
-                }
-            } else {
-                runCatching {
-                    coroutineScope {
-                        val sources = LumeApp.instance.sources.sources.value
-                        sources.map { source ->
-                            async {
-                                runCatching {
-                                    source.search(q).items.map { title ->
-                                        GlobalSearchHit(
-                                            sourceId = source.manifest.id,
-                                            sourceName = source.manifest.name,
-                                            title = title,
-                                        )
-                                    }
-                                }.getOrDefault(emptyList())
-                            }
-                        }.awaitAll().flatten()
-                    }
-                }.onSuccess {
-                    globalHits = it
-                    loading = false
-                }.onFailure { e ->
-                    loading = false
-                    error = e.message ?: e.toString()
-                }
-            }
-        }
-    }
+    // A solved Cloudflare check bumps the epoch: refill the sources it was blocking.
+    LaunchedEffect(networkEpoch) { if (networkEpoch > 0) vm.retryChallenged() }
 
     Scaffold(
         containerColor = AppColors.background,
@@ -144,62 +97,45 @@ fun SearchScreen(nav: NavHostController) {
                 .background(AppColors.background),
         ) {
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
-                SearchModeTab(stringResource(R.string.search_mode_current), selected = mode == 0, modifier = Modifier.weight(1f)) {
-                    mode = 0
+                SegmentTab(stringResource(R.string.search_mode_current), vm.mode == Mode.Current, Modifier.weight(1f)) {
+                    if (vm.mode != Mode.Current) {
+                        vm.mode = Mode.Current
+                        vm.search()
+                    }
                 }
-                SearchModeTab(stringResource(R.string.search_mode_all), selected = mode == 1, modifier = Modifier.weight(1f)) {
-                    mode = 1
+                SegmentTab(stringResource(R.string.search_mode_all), vm.mode == Mode.Global, Modifier.weight(1f)) {
+                    if (vm.mode != Mode.Global) {
+                        vm.mode = Mode.Global
+                        vm.search()
+                    }
                 }
             }
             QuickSearchBar(
-                value = query,
-                onValueChange = { query = it },
-                onSubmit = { doSearch() },
+                value = vm.query,
+                onValueChange = { vm.query = it },
+                onSubmit = {
+                    // Give the results the whole screen.
+                    keyboard?.hide()
+                    focusManager.clearFocus()
+                    vm.search()
+                },
                 hint = stringResource(R.string.search_hint_title),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
-            when {
-                loading -> LoadingBox()
-                error != null -> ErrorRetryBox(
-                    message = error!!,
-                    onRetry = { doSearch() },
-                    onCloudflare = cloudflareUri?.let { uri ->
-                        { scope.launch { LumeApp.instance.http.requestChallenge(uri) } }
-                    },
-                )
-                searched && mode == 0 && items.isEmpty() -> EmptySearch()
-                searched && mode == 1 && globalHits.isEmpty() -> EmptySearch()
-                mode == 0 -> LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(items, key = { it.id }) { item ->
-                        TitleListRow(
-                            title = item.title,
-                            coverUrl = item.coverUrl,
-                            subtitle = item.latestChapter,
-                            typeLabel = item.typeLabel,
-                            onClick = { nav.navigate(Routes.title(sourceId, item.id)) },
-                        )
-                    }
-                }
-                else -> {
-                    val grouped = globalHits.groupBy { it.sourceName }
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        grouped.forEach { (name, hits) ->
-                            item(key = "header-$name") {
-                                SectionHeader(title = name)
-                            }
-                            items(hits, key = { "${it.sourceId}:${it.title.id}" }) { hit ->
-                                TitleListRow(
-                                    title = hit.title.title,
-                                    coverUrl = hit.title.coverUrl,
-                                    subtitle = hit.title.latestChapter,
-                                    typeLabel = hit.title.typeLabel,
-                                    onClick = {
-                                        nav.navigate(Routes.title(hit.sourceId, hit.title.id))
-                                    },
-                                )
-                            }
-                        }
-                    }
+            AnimatedContent(
+                targetState = vm.mode,
+                modifier = Modifier.fillMaxSize(),
+                transitionSpec = Motion.contentSwap(),
+                label = "searchMode",
+            ) { pane ->
+                if (pane == Mode.Current) {
+                    CurrentSourceResults(vm, nav, onChallenge = { uri ->
+                        scope.launch { LumeApp.instance.http.requestChallenge(uri) }
+                    })
+                } else {
+                    GlobalResults(vm, nav, onChallenge = { uri ->
+                        scope.launch { LumeApp.instance.http.requestChallenge(uri) }
+                    })
                 }
             }
         }
@@ -207,30 +143,171 @@ fun SearchScreen(nav: NavHostController) {
 }
 
 @Composable
-private fun EmptySearch() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(stringResource(R.string.search_empty), color = AppColors.textSecondary, fontSize = 15.sp)
+private fun CurrentSourceResults(
+    vm: SearchViewModel,
+    nav: NavHostController,
+    onChallenge: (java.net.URI) -> Unit,
+) {
+    val state = vm.currentState
+    val loadState = when (state) {
+        null -> LoadState.Empty
+        SourceState.Loading -> LoadState.Loading
+        is SourceState.Failed -> LoadState.Error
+        is SourceState.Done -> if (state.items.isEmpty()) LoadState.Empty else LoadState.Content
+    }
+    AnimatedLoadState(loadState, Modifier.fillMaxSize()) { target ->
+        when (target) {
+            LoadState.Loading -> LoadingBox()
+            LoadState.Error -> {
+                val failed = state as? SourceState.Failed
+                ErrorRetryBox(
+                    message = failed?.message.orEmpty(),
+                    onRetry = { vm.search() },
+                    onCloudflare = failed?.challenge?.let { uri -> { onChallenge(uri) } },
+                )
+            }
+            LoadState.Empty -> if (vm.searched) EmptyBox(stringResource(R.string.search_empty)) else Box(Modifier.fillMaxSize())
+            LoadState.Content -> LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items((state as? SourceState.Done)?.items.orEmpty(), key = { it.id }) { item ->
+                    TitleListRow(
+                        title = item.title,
+                        coverUrl = item.coverUrl,
+                        subtitle = item.latestChapter,
+                        typeLabel = item.typeLabel,
+                        modifier = animatedItem(),
+                        onClick = { nav.navigate(Routes.title(vm.currentSourceId, item.id)) },
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun SearchModeTab(
-    label: String,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
+private fun GlobalResults(
+    vm: SearchViewModel,
+    nav: NavHostController,
+    onChallenge: (java.net.URI) -> Unit,
 ) {
-    Box(
-        modifier = modifier
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            color = if (selected) AppColors.accent else AppColors.textSecondary,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            fontSize = 13.sp,
-        )
+    if (!vm.searched) {
+        Box(Modifier.fillMaxSize())
+        return
+    }
+    val rows = vm.globalRows
+    // Sources with hits first, then the ones still searching, then empty / failed. Within each
+    // group the original order (active source first) is kept; animateItem smooths the moves.
+    val ordered = remember(rows) {
+        rows.sortedBy { row ->
+            when (val s = row.state) {
+                is SourceState.Done -> if (s.items.isNotEmpty()) 0 else 2
+                SourceState.Loading -> 1
+                is SourceState.Failed -> 3
+            }
+        }
+    }
+    val total = rows.size
+    val done = total - vm.globalPending
+    Column(Modifier.fillMaxSize()) {
+        // Overall progress stays visible while any source is still answering.
+        Box(Modifier.fillMaxWidth().height(3.dp)) {
+            if (vm.globalPending > 0 && total > 0) {
+                LinearProgressIndicator(
+                    progress = { done.toFloat() / total },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = AppColors.accent,
+                    trackColor = AppColors.surface,
+                )
+            }
+        }
+        if (vm.globalPending == 0 && rows.none { (it.state as? SourceState.Done)?.items?.isNotEmpty() == true }) {
+            EmptyBox(stringResource(R.string.search_empty))
+            return@Column
+        }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 16.dp),
+        ) {
+            items(ordered, key = { it.sourceId }) { row ->
+                SourceResultRow(
+                    row = row,
+                    modifier = animatedItem(),
+                    onOpen = { titleId -> nav.navigate(Routes.title(row.sourceId, titleId)) },
+                    onRetry = {
+                        (row.state as? SourceState.Failed)?.challenge?.let(onChallenge)
+                        vm.retrySource(row.sourceId)
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SourceResultRow(
+    row: SourceRow,
+    onOpen: (String) -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = row.sourceName,
+                color = AppColors.textPrimary,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            when (val s = row.state) {
+                SourceState.Loading -> CircularProgressIndicator(
+                    color = AppColors.accent,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.padding(end = 8.dp).size(16.dp),
+                )
+                is SourceState.Done -> Text(
+                    text = if (s.items.isEmpty()) {
+                        stringResource(R.string.search_source_empty)
+                    } else {
+                        pluralStringResource(R.plurals.search_source_count, s.items.size, s.items.size)
+                    },
+                    color = AppColors.textSecondary,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+                is SourceState.Failed -> TextButton(onClick = onRetry) {
+                    Text(stringResource(R.string.action_retry), color = AppColors.accent, fontSize = 12.sp)
+                }
+            }
+        }
+        when (val s = row.state) {
+            is SourceState.Done -> if (s.items.isNotEmpty()) {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    items(s.items, key = { it.id }) { item ->
+                        CoverCard(
+                            title = item.title,
+                            coverUrl = item.coverUrl,
+                            badge = item.latestChapter,
+                            width = 104.dp,
+                            onClick = { onOpen(item.id) },
+                        )
+                    }
+                }
+            }
+            is SourceState.Failed -> Text(
+                text = s.message,
+                color = AppColors.textTertiary,
+                fontSize = 12.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+            SourceState.Loading -> Unit
+        }
     }
 }

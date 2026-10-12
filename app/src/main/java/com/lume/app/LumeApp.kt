@@ -12,6 +12,7 @@ import com.lume.app.data.downloads.DownloadQueue
 import com.lume.app.data.downloads.DownloadStore
 import com.lume.app.data.library.LibraryUpdateWorker
 import com.lume.app.data.network.AppHttp
+import com.lume.app.data.network.ImageReferers
 import com.lume.app.data.network.NetworkMonitor
 import com.lume.app.data.offline.OfflineTitleCache
 import com.lume.app.data.prefs.AppPreferences
@@ -51,6 +52,7 @@ class LumeApp : Application(), ImageLoaderFactory {
         private set
     lateinit var libAuth: LibAuthStore
         private set
+    val imageReferers = ImageReferers()
 
     val dao get() = database.libraryDao()
 
@@ -74,7 +76,7 @@ class LumeApp : Application(), ImageLoaderFactory {
                 com.lume.app.data.locale.AppLocaleController.applyStoredTag(prefs.appLanguage.first())
             }
         }
-        sources = SourceRegistry(this, http, prefs, dao, libAuth)
+        sources = SourceRegistry(this, http, prefs, dao, libAuth, imageReferers)
         downloads = DownloadStore(this, dao, http)
         offlineCache = OfflineTitleCache(dao)
         downloadQueue = DownloadQueue(dao, downloads, sources, offlineCache)
@@ -93,8 +95,12 @@ class LumeApp : Application(), ImageLoaderFactory {
                     android.util.Log.i("LumeApp", "Enriched $enriched download row(s)")
                 }
             }
-            val enabled = prefs.libraryUpdatesEnabled.first()
-            LibraryUpdateWorker.schedule(this@LumeApp, enabled)
+            LibraryUpdateWorker.schedule(
+                this@LumeApp,
+                enabled = prefs.libraryUpdatesEnabled.first(),
+                intervalHours = prefs.libraryUpdateIntervalHours.first(),
+                wifiOnly = prefs.libraryUpdateWifiOnly.first(),
+            )
         }
     }
 
@@ -102,11 +108,12 @@ class LumeApp : Application(), ImageLoaderFactory {
         val client: OkHttpClient = http.okHttp.newBuilder()
             .addInterceptor { chain ->
                 val original = chain.request()
+                // Same UA as catalogue requests and the challenge WebView (cf_clearance is UA-bound).
                 val builder = original.newBuilder()
-                    .header("User-Agent", AppHttp.DEFAULT_UA)
+                    .header("User-Agent", http.userAgent)
                     .header("Accept", "image/avif,image/webp,image/apng,image/*,*/*;q=0.8")
                 if (original.header("Referer").isNullOrBlank()) {
-                    refererForImageHost(original.url.host)?.let { builder.header("Referer", it) }
+                    imageReferers.refererFor(original.url.host)?.let { builder.header("Referer", it) }
                 }
                 chain.proceed(builder.build())
             }
@@ -122,56 +129,6 @@ class LumeApp : Application(), ImageLoaderFactory {
                     .build()
             }
             .build()
-    }
-
-    /**
-     * Lib CDNs (cover.cdnlibs.org, img*.imglib.info, …) return 403 without a site Referer.
-     */
-    private fun refererForImageHost(host: String): String? {
-        val h = host.lowercase()
-        val needsLibReferer =
-            h.contains("cdnlibs") ||
-                h.contains("imglib") ||
-                h.contains("imgslib") ||
-                h.contains("hentaicdn") ||
-                h.contains("reimg") ||
-                h.contains("mangabuff") ||
-                h.endsWith("mangalib.me") ||
-                h.endsWith("hentailib.me") ||
-                h.endsWith("yaoilib.me") ||
-                h.endsWith("ranobelib.me") ||
-                h.endsWith("remanga.org")
-        if (!needsLibReferer) return null
-        if (!::sources.isInitialized) {
-            return when {
-                h.contains("hentai") -> "https://hentailib.me/"
-                h.contains("yaoi") -> "https://yaoilib.me/"
-                h.contains("ranobe") -> "https://ranobelib.me/"
-                h.contains("reimg") || h.contains("remanga") -> "https://remanga.org/"
-                h.contains("mangabuff") -> "https://mangabuff.ru/"
-                else -> "https://mangalib.me/"
-            }
-        }
-        val all = sources.sources.value
-        val preferred = when {
-            h.contains("hentai") -> all.firstOrNull { it.manifest.id.contains("hentai", ignoreCase = true) }
-            h.contains("yaoi") -> all.firstOrNull { it.manifest.id.contains("yaoi", ignoreCase = true) }
-            h.contains("ranobe") -> all.firstOrNull { it.manifest.id.contains("ranobe", ignoreCase = true) }
-            h.contains("reimg") || h.contains("remanga") -> all.firstOrNull { it.manifest.engine == "remanga" }
-            h.contains("mangabuff") -> all.firstOrNull { it.manifest.engine == "mangabuff" }
-            else -> all.firstOrNull { it.manifest.engine.equals("libsocial", ignoreCase = true) && it.manifest.id == "mangalib" }
-                ?: all.firstOrNull { it.manifest.engine.equals("libsocial", ignoreCase = true) }
-        }
-        return preferred?.manifest?.headers?.get("Referer")
-            ?: preferred?.manifest?.baseUrl?.trimEnd('/')?.plus("/")
-            ?: when {
-                h.contains("hentai") -> "https://hentailib.me/"
-                h.contains("yaoi") -> "https://yaoilib.me/"
-                h.contains("ranobe") -> "https://ranobelib.me/"
-                h.contains("reimg") || h.contains("remanga") -> "https://remanga.org/"
-                h.contains("mangabuff") -> "https://mangabuff.ru/"
-                else -> "https://mangalib.me/"
-            }
     }
 
     companion object {

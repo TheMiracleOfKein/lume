@@ -1,5 +1,8 @@
 package com.lume.app.ui.shell
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -37,10 +40,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,11 +58,40 @@ import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.theme.AppColors
+import com.lume.app.ui.theme.Motion
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
 fun MainMenu(
+    visible: Boolean,
+    onClose: () -> Unit,
+    onNavigate: (String) -> Unit,
+) {
+    BackHandler(enabled = visible, onBack = onClose)
+    Box(modifier = Modifier.fillMaxSize()) {
+        AnimatedVisibility(visible = visible, enter = Motion.scrimEnter, exit = Motion.scrimExit) {
+            // Tap dimmed area (left of the panel) to close.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.54f))
+                    .clickable(onClick = onClose),
+            )
+        }
+        AnimatedVisibility(
+            visible = visible,
+            modifier = Modifier.align(Alignment.CenterEnd),
+            enter = Motion.drawerEnterFromEnd,
+            exit = Motion.drawerExitToEnd,
+        ) {
+            MenuPanel(onClose = onClose, onNavigate = onNavigate)
+        }
+    }
+}
+
+@Composable
+private fun MenuPanel(
     onClose: () -> Unit,
     onNavigate: (String) -> Unit,
 ) {
@@ -74,37 +104,29 @@ fun MainMenu(
         ?: sources.firstOrNull()?.manifest?.name
         ?: stringResource(R.string.none_short)
 
-    var dragOffset by remember { mutableFloatStateOf(0f) }
+    // Animatable so a short swipe springs back smoothly instead of snapping.
+    val dragOffset = remember { Animatable(0f) }
     val closeThresholdPx = with(density) { 72.dp.toPx() }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Tap dimmed area (right of the panel and edges) to close.
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.54f))
-                .clickable(onClick = onClose),
-        )
-
+    Box {
         Column(
             modifier = Modifier
-                .align(Alignment.CenterEnd)
                 .fillMaxHeight()
                 .widthIn(max = 400.dp)
                 .fillMaxWidth(0.88f)
-                .offset { IntOffset(dragOffset.roundToInt(), 0) }
+                .offset { IntOffset(dragOffset.value.roundToInt(), 0) }
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures(
-                        onDragCancel = { dragOffset = 0f },
+                        onDragCancel = { scope.launch { dragOffset.animateTo(0f, Motion.medium()) } },
                         onDragEnd = {
                             // Swipe toward the right edge dismisses a right-side drawer.
-                            if (dragOffset >= closeThresholdPx) onClose()
-                            else dragOffset = 0f
+                            if (dragOffset.value >= closeThresholdPx) onClose()
+                            else scope.launch { dragOffset.animateTo(0f, Motion.medium()) }
                         },
                         onHorizontalDrag = { change, amount ->
-                            if (amount > 0f || dragOffset > 0f) {
+                            if (amount > 0f || dragOffset.value > 0f) {
                                 change.consume()
-                                dragOffset = (dragOffset + amount).coerceAtLeast(0f)
+                                scope.launch { dragOffset.snapTo((dragOffset.value + amount).coerceAtLeast(0f)) }
                             }
                         },
                     )

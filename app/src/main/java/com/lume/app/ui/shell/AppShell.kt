@@ -1,5 +1,8 @@
 package com.lume.app.ui.shell
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,12 +20,11 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmark
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -67,6 +70,7 @@ import com.lume.app.ui.screens.SettingsScreen
 import com.lume.app.ui.screens.SourcesScreen
 import com.lume.app.ui.screens.TitleScreen
 import com.lume.app.ui.theme.AppColors
+import com.lume.app.ui.theme.Motion
 import java.net.URI
 
 private val MainTabRoutes = setOf(
@@ -112,7 +116,11 @@ fun AppShell(nav: NavHostController) {
             // handle status bars themselves (avoids double top gap on Title etc.).
             contentWindowInsets = WindowInsets.navigationBars.only(WindowInsetsSides.Bottom),
             bottomBar = {
-                if (showBottomBar) {
+                AnimatedVisibility(
+                    visible = showBottomBar,
+                    enter = Motion.barEnterFromBottom,
+                    exit = Motion.barExitToBottom,
+                ) {
                     BottomNavBar(
                         currentRoute = route,
                         onSelect = { target ->
@@ -139,6 +147,11 @@ fun AppShell(nav: NavHostController) {
                     .padding(padding)
                     .fillMaxSize()
                     .background(AppColors.background),
+                // Tabs fade through; drilling into a title / reader slides. Same specs everywhere.
+                enterTransition = { if (isTabSwitch()) Motion.tabEnter else Motion.screenEnter },
+                exitTransition = { if (isTabSwitch()) Motion.tabExit else Motion.screenExit },
+                popEnterTransition = { if (isTabSwitch()) Motion.tabEnter else Motion.screenPopEnter },
+                popExitTransition = { if (isTabSwitch()) Motion.tabExit else Motion.screenPopExit },
             ) {
                 lumeComposable(Routes.Home) { HomeScreen(nav) }
                 lumeComposable(Routes.Catalog) { CatalogScreen(nav) }
@@ -192,28 +205,30 @@ fun AppShell(nav: NavHostController) {
             }
         }
 
-        if (menuOpen) {
-            MainMenu(
-                onClose = { menuOpen = false },
-                onNavigate = { target ->
-                    menuOpen = false
-                    when (target) {
-                        Routes.Home, Routes.Catalog, Routes.Library, Routes.History -> {
-                            nav.navigate(target) {
-                                popUpTo(nav.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
+        MainMenu(
+            visible = menuOpen,
+            onClose = { menuOpen = false },
+            onNavigate = { target ->
+                menuOpen = false
+                when (target) {
+                    Routes.Home, Routes.Catalog, Routes.Library, Routes.History -> {
+                        nav.navigate(target) {
+                            popUpTo(nav.graph.findStartDestination().id) {
+                                saveState = true
                             }
+                            launchSingleTop = true
+                            restoreState = true
                         }
-                        else -> nav.navigate(target)
                     }
-                },
-            )
-        }
+                    else -> nav.navigate(target)
+                }
+            },
+        )
     }
 }
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boolean =
+    initialState.destination.route in MainTabRoutes && targetState.destination.route in MainTabRoutes
 
 private fun NavGraphBuilder.lumeComposable(
     route: String,
@@ -294,7 +309,11 @@ private fun NavSlot(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val color = if (selected) AppColors.textPrimary else AppColors.textSecondary
+    val color by animateColorAsState(
+        if (selected) AppColors.textPrimary else AppColors.textSecondary,
+        Motion.short(),
+        label = "navSlot",
+    )
     Column(
         modifier = modifier
             .fillMaxSize()

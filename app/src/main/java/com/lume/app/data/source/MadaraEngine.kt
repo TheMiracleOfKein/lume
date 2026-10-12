@@ -4,7 +4,6 @@ import com.lume.app.data.network.AppHttp
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
-import com.lume.app.domain.HomeFeed
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
 import com.lume.app.domain.SourceManifest
@@ -114,8 +113,8 @@ class MadaraParser {
         )
     }
 
-    fun parseChapters(html: String): List<Chapter> {
-        val document = Jsoup.parse(html)
+    fun parseChapters(html: String, baseUrl: String? = null): List<Chapter> {
+        val document = Jsoup.parse(html, baseUrl.orEmpty())
         val nodes = document.select(
             "li.wp-manga-chapter, li.chapter-item, li.wp-manga-chapter.free-chap, .listing-chapters_wrap li",
         )
@@ -204,12 +203,6 @@ class MadaraEngine(
     private fun abs(pathOrUrl: String): URI {
         val parsed = URI(pathOrUrl)
         return if (parsed.scheme != null) parsed else manifest.baseUri.resolve(pathOrUrl)
-    }
-
-    override suspend fun getHome(): HomeFeed {
-        val latest = getLatest()
-        val popular = getPopular()
-        return HomeFeed(spotlight = popular.items.take(12), latest = latest.items)
     }
 
     override suspend fun getLatest(page: Int) =
@@ -310,30 +303,54 @@ class MadaraEngine(
         ),
     )
 
-    override suspend fun getTitle(id: String): TitleDetails {
-        val response = http.get(abs(id), source = manifest)
-        return parser.parseTitleDetails(response.body, id, manifest.baseUrl)
+    /**
+     * The title screen asks for details and chapters back to back; both come from the same page.
+     * A short-lived cache halves requests to Cloudflare-fronted Madara sites.
+     */
+    @Volatile
+    private var titlePageCache: Triple<String, Long, String>? = null
+
+    private suspend fun titlePage(id: String): String {
+        val url = abs(id).toString()
+        titlePageCache?.let { (cachedUrl, at, body) ->
+            if (cachedUrl == url && System.currentTimeMillis() - at < TITLE_CACHE_MS) return body
+        }
+        val body = http.get(URI(url), source = manifest).body
+        titlePageCache = Triple(url, System.currentTimeMillis(), body)
+        return body
     }
 
+    override suspend fun getTitle(id: String): TitleDetails =
+        parser.parseTitleDetails(titlePage(id), id, manifest.baseUrl)
+
     override suspend fun getChapters(titleId: String): List<Chapter> {
-        val response = http.get(abs(titleId), source = manifest)
-        var chapters = parser.parseChapters(response.body)
-        if (chapters.isEmpty()) {
-            val postId = postId(response.body).orEmpty()
-            val ajax = http.postForm(
-                manifest.baseUri.resolve("/wp-admin/admin-ajax.php"),
-                source = manifest,
-                headers = mapOf("X-Requested-With" to "XMLHttpRequest"),
-                form = mapOf("action" to "manga_get_chapters", "manga" to postId),
-            )
-            chapters = parser.parseChapters(ajax.body)
-        }
-        return chapters
+        val html = titlePage(titleId)
+        parser.parseChapters(html, manifest.baseUrl).takeIf { it.isNotEmpty() }?.let { return it }
+        val ajaxHeaders = mapOf(
+            "X-Requested-With" to "XMLHttpRequest",
+            "Origin" to manifest.baseUrl.trimEnd('/'),
+            "Referer" to abs(titleId).toString(),
+        )
+        // Madara ≥ 1.6.x: chapters are loaded from `<title-url>ajax/chapters/`.
+        val titleUrl = abs(titleId).toString().substringBefore('?').trimEnd('/') + "/"
+        runCatching {
+            val ajax = http.postForm(URI("${titleUrl}ajax/chapters/"), source = manifest, headers = ajaxHeaders, form = emptyMap())
+            parser.parseChapters(ajax.body, manifest.baseUrl)
+        }.getOrNull()?.takeIf { it.isNotEmpty() }?.let { return it }
+        // Older Madara: admin-ajax with the numeric post id.
+        val postId = postId(html) ?: return emptyList()
+        val ajax = http.postForm(
+            manifest.baseUri.resolve("/wp-admin/admin-ajax.php"),
+            source = manifest,
+            headers = ajaxHeaders,
+            form = mapOf("action" to "manga_get_chapters", "manga" to postId),
+        )
+        return parser.parseChapters(ajax.body, manifest.baseUrl)
     }
 
     override suspend fun getPages(chapter: Chapter): List<ComicPage> {
         var url = chapter.url
-        if (!url.contains("style=")) url = "$url$chapterSuffix"
+        if (!url.contains("style=")) url = withQuery(url, chapterSuffix)
         val response = http.get(abs(url), source = manifest)
         val pages = parser.parsePages(response.body, manifest.baseUrl)
         if (pages.isEmpty()) throw SourceFetchException(com.lume.app.data.locale.appString(com.lume.app.R.string.error_pages_failed))
@@ -341,7 +358,12 @@ class MadaraEngine(
     }
 
     private fun postId(html: String): String? =
-        Regex("""manga_id["\s:=]+(\d+)""").find(html)?.groupValues?.getOrNull(1)
+        Regex("""id=["']manga-chapters-holder["'][^>]*data-id=["'](\d+)""").find(html)?.groupValues?.getOrNull(1)
+            ?: Regex("""manga_id["\s:=]+(\d+)""").find(html)?.groupValues?.getOrNull(1)
             ?: Regex("""id=["']post-(\d+)["']""").find(html)?.groupValues?.getOrNull(1)
             ?: Regex("""post=(\d+)""").find(html)?.groupValues?.getOrNull(1)
+
+    private companion object {
+        const val TITLE_CACHE_MS = 60_000L
+    }
 }

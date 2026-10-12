@@ -1,5 +1,6 @@
 package com.lume.app.ui.screens
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -17,8 +18,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -44,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -53,21 +57,30 @@ import androidx.navigation.NavHostController
 import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.BookmarkEntity
+import com.lume.app.data.offline.networkOr
 import com.lume.app.data.tracker.TrackerSearchResult
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.TitleDetails
+import com.lume.app.domain.inReadingOrder
+import com.lume.app.ui.components.AnimatedLoadState
 import com.lume.app.ui.components.CoverImage
 import com.lume.app.ui.components.ErrorRetryBox
+import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
+import com.lume.app.ui.components.loadStateOf
+import com.lume.app.ui.components.openInBrowser
+import com.lume.app.ui.components.shareLink
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.theme.AppColors
+import com.lume.app.ui.theme.Motion
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
     val resources = LocalResources.current
+    val context = LocalContext.current
     var details by remember { mutableStateOf<TitleDetails?>(null) }
     var chapters by remember { mutableStateOf<List<Chapter>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -91,12 +104,14 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
             val cached = offline.get(sourceId, titleId)
             val source = LumeApp.instance.sources.sourceById(sourceId)
             val d = cached?.details
-                ?: source?.let { runCatching { it.getTitle(titleId) }.getOrNull() }
-                ?: offline.detailsFromDownloads(sourceId, titleId)
+                ?: networkOr(source, { getTitle(titleId) }) {
+                    offline.detailsFromDownloads(sourceId, titleId)
+                }
                 ?: error(resources.getString(R.string.error_no_title_data))
             val c = cached?.chapters
-                ?: source?.let { runCatching { it.getChapters(titleId) }.getOrNull() }
-                ?: offline.chaptersFromDownloads(sourceId, titleId)
+                ?: networkOr(source, { getChapters(titleId) }, isUsable = { it.isNotEmpty() }) {
+                    offline.chaptersFromDownloads(sourceId, titleId)
+                }.orEmpty()
             if (source != null && c.isNotEmpty()) {
                 offline.save(sourceId, titleId, d, c)
             }
@@ -140,6 +155,25 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                     }
                 },
                 actions = {
+                    val webUrl = remember(sourceId, titleId) {
+                        LumeApp.instance.sources.sourceById(sourceId)?.webUrl(titleId)
+                    }
+                    if (webUrl != null) {
+                        IconButton(onClick = { openInBrowser(context, webUrl) }) {
+                            Icon(
+                                Icons.AutoMirrored.Outlined.OpenInNew,
+                                contentDescription = stringResource(R.string.cd_open_in_browser),
+                                tint = AppColors.textPrimary,
+                            )
+                        }
+                        IconButton(onClick = { shareLink(context, details?.title, webUrl) }) {
+                            Icon(
+                                Icons.Outlined.Share,
+                                contentDescription = stringResource(R.string.cd_share),
+                                tint = AppColors.textPrimary,
+                            )
+                        }
+                    }
                     IconButton(
                         onClick = {
                             val d = details ?: return@IconButton
@@ -173,128 +207,134 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
             )
         },
     ) { padding ->
-        when {
-            loading -> LoadingBox(Modifier.padding(padding))
-            error != null -> ErrorRetryBox(
-                message = error!!,
-                onRetry = { refreshEpoch++ },
-                onCloudflare = cloudflareUri?.let { uri ->
-                    { scope.launch { LumeApp.instance.http.requestChallenge(uri) } }
-                },
-                modifier = Modifier.padding(padding),
-            )
-            else -> {
-                val d = details!!
-                Column(
-                    modifier = Modifier
-                        .padding(padding)
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                ) {
-                    Row {
-                        CoverImage(
-                            url = d.coverUrl,
-                            width = 120.dp,
-                            height = 170.dp,
-                            radius = 8.dp,
-                            sourceId = sourceId,
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                d.title,
-                                color = AppColors.textPrimary,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
+        AnimatedLoadState(
+            state = loadStateOf(loading, error),
+            modifier = Modifier.fillMaxSize(),
+        ) { pane ->
+            when (pane) {
+                LoadState.Loading -> LoadingBox(Modifier.padding(padding))
+                LoadState.Error -> ErrorRetryBox(
+                    message = error.orEmpty(),
+                    onRetry = { refreshEpoch++ },
+                    onCloudflare = cloudflareUri?.let { uri ->
+                        { scope.launch { LumeApp.instance.http.requestChallenge(uri) } }
+                    },
+                    modifier = Modifier.padding(padding),
+                )
+                else -> {
+                    val d = details!!
+                    Column(
+                        modifier = Modifier
+                            .padding(padding)
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(16.dp),
+                    ) {
+                        Row {
+                            CoverImage(
+                                url = d.coverUrl,
+                                width = 120.dp,
+                                height = 170.dp,
+                                radius = 8.dp,
+                                sourceId = sourceId,
                             )
-                            d.altTitle?.let {
-                                Text(it, color = AppColors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
-                            }
-                            d.status?.let {
+                            Spacer(Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    stringResource(R.string.title_status, it),
-                                    color = AppColors.textSecondary,
-                                    fontSize = 13.sp,
-                                    modifier = Modifier.padding(top = 8.dp),
+                                    d.title,
+                                    color = AppColors.textPrimary,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
                                 )
-                            }
-                            d.typeLabel?.let {
-                                Text(it, color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
-                            }
-                            Spacer(Modifier.height(12.dp))
-                            Button(
-                                onClick = {
-                                    val chId = progressState?.chapterId
-                                        ?: chapters.firstOrNull()?.id
-                                    if (chId != null) {
-                                        nav.navigate(Routes.reader(sourceId, titleId, chId))
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = AppColors.accent,
-                                    contentColor = Color.Black,
-                                ),
-                                enabled = chapters.isNotEmpty(),
-                            ) {
-                                Text(
-                                    if (progressState != null) {
-                                        stringResource(R.string.action_continue)
-                                    } else {
-                                        stringResource(R.string.action_read)
+                                d.altTitle?.let {
+                                    Text(it, color = AppColors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+                                }
+                                d.status?.let {
+                                    Text(
+                                        stringResource(R.string.title_status, it),
+                                        color = AppColors.textSecondary,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.padding(top = 8.dp),
+                                    )
+                                }
+                                d.typeLabel?.let {
+                                    Text(it, color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                                }
+                                Spacer(Modifier.height(12.dp))
+                                Button(
+                                    onClick = {
+                                        // No progress yet: start from the first chapter, not the newest one.
+                                        val chId = progressState?.chapterId
+                                            ?: chapters.inReadingOrder().firstOrNull()?.id
+                                        if (chId != null) {
+                                            nav.navigate(Routes.reader(sourceId, titleId, chId))
+                                        }
                                     },
-                                )
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = AppColors.accent,
+                                        contentColor = Color.Black,
+                                    ),
+                                    enabled = chapters.isNotEmpty(),
+                                ) {
+                                    Text(
+                                        if (progressState != null) {
+                                            stringResource(R.string.action_continue)
+                                        } else {
+                                            stringResource(R.string.action_read)
+                                        },
+                                    )
+                                }
                             }
                         }
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    OutlinedButton(
-                        onClick = { nav.navigate(Routes.chapters(sourceId, titleId)) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(
-                            stringResource(R.string.title_chapters_list, chapters.size),
-                            color = AppColors.textPrimary,
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = { showTrackers = true },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        val linked = if (links.isEmpty()) {
-                            stringResource(R.string.none_short)
-                        } else {
-                            links.joinToString { it.tracker }
-                        }
-                        Text(stringResource(R.string.title_trackers, linked), color = AppColors.textPrimary)
-                    }
-                    if (d.genres.isNotEmpty()) {
-                        Spacer(Modifier.height(12.dp))
-                        Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                            d.genres.forEach { genre ->
-                                Text(
-                                    text = genre,
-                                    color = AppColors.textSecondary,
-                                    fontSize = 12.sp,
-                                    modifier = Modifier
-                                        .padding(end = 8.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(AppColors.card)
-                                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                                )
-                            }
-                        }
-                    }
-                    d.description?.let {
                         Spacer(Modifier.height(16.dp))
-                        Text(
-                            stringResource(R.string.title_description),
-                            color = AppColors.textPrimary,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                        OutlinedButton(
+                            onClick = { nav.navigate(Routes.chapters(sourceId, titleId)) },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                stringResource(R.string.title_chapters_list, chapters.size),
+                                color = AppColors.textPrimary,
+                            )
+                        }
                         Spacer(Modifier.height(8.dp))
-                        Text(it, color = AppColors.textSecondary, fontSize = 14.sp, lineHeight = 20.sp)
+                        OutlinedButton(
+                            onClick = { showTrackers = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            val linked = if (links.isEmpty()) {
+                                stringResource(R.string.none_short)
+                            } else {
+                                links.joinToString { it.tracker }
+                            }
+                            Text(stringResource(R.string.title_trackers, linked), color = AppColors.textPrimary)
+                        }
+                        if (d.genres.isNotEmpty()) {
+                            Spacer(Modifier.height(12.dp))
+                            Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                                d.genres.forEach { genre ->
+                                    Text(
+                                        text = genre,
+                                        color = AppColors.textSecondary,
+                                        fontSize = 12.sp,
+                                        modifier = Modifier
+                                            .padding(end = 8.dp)
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(AppColors.card)
+                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    )
+                                }
+                            }
+                        }
+                        d.description?.let {
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                stringResource(R.string.title_description),
+                                color = AppColors.textPrimary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(it, color = AppColors.textSecondary, fontSize = 14.sp, lineHeight = 20.sp)
+                        }
                     }
                 }
             }
@@ -388,9 +428,14 @@ private fun TrackersDialog(
                 Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
                     trackers.forEach { t ->
                         val selected = t.id == selectedTracker.id
+                        val color by animateColorAsState(
+                            if (selected) AppColors.accent else AppColors.textSecondary,
+                            Motion.short(),
+                            label = "tracker",
+                        )
                         Text(
                             text = t.displayName,
-                            color = if (selected) AppColors.accent else AppColors.textSecondary,
+                            color = color,
                             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                             modifier = Modifier
                                 .padding(end = 12.dp)

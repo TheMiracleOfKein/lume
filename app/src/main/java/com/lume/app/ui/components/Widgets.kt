@@ -1,5 +1,8 @@
 package com.lume.app.ui.components
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -28,25 +31,26 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.lume.app.R
 import com.lume.app.ui.theme.AppColors
+import com.lume.app.ui.theme.Motion
 
 @Composable
 fun CoverImage(
@@ -215,6 +219,11 @@ fun LumeLogo(
     selected: Boolean,
     size: Dp = 28.dp,
 ) {
+    val highlight by animateColorAsState(
+        if (selected) AppColors.accent.copy(alpha = 0.2f) else Color.Transparent,
+        Motion.short(),
+        label = "logo",
+    )
     Image(
         painter = painterResource(R.drawable.ic_lume),
         contentDescription = stringResource(R.string.app_name),
@@ -222,10 +231,7 @@ fun LumeLogo(
         modifier = Modifier
             .size(size)
             .clip(RoundedCornerShape(size * 0.22f))
-            .then(
-                if (selected) Modifier.background(AppColors.accent.copy(alpha = 0.2f))
-                else Modifier,
-            ),
+            .background(highlight),
     )
 }
 
@@ -297,5 +303,83 @@ fun SectionHeader(
             modifier = Modifier.weight(1f),
         )
         trailing?.invoke()
+    }
+}
+
+/** Poster card used by horizontal rows (home spotlight, global search). */
+@Composable
+fun CoverCard(
+    title: String,
+    coverUrl: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    badge: String? = null,
+    width: Dp = 128.dp,
+) {
+    Column(
+        modifier = modifier
+            .width(width)
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick),
+    ) {
+        Box {
+            CoverImage(url = coverUrl, width = width, height = width * 1.4f, radius = 10.dp)
+            if (!badge.isNullOrBlank()) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.Black.copy(alpha = 0.7f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                ) {
+                    Text(badge, color = Color.White, fontSize = 10.sp, maxLines = 1)
+                }
+            }
+        }
+        Text(
+            text = title,
+            color = AppColors.textPrimary,
+            fontSize = 12.sp,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 6.dp, bottom = 2.dp),
+        )
+    }
+}
+
+/** What a screen is showing; drives [AnimatedLoadState]. */
+enum class LoadState { Loading, Error, Empty, Content }
+
+fun loadStateOf(loading: Boolean, error: String?, isEmpty: Boolean = false): LoadState = when {
+    loading -> LoadState.Loading
+    error != null -> LoadState.Error
+    isEmpty -> LoadState.Empty
+    else -> LoadState.Content
+}
+
+/**
+ * Cross-fades between loading / error / empty / content with the app-wide [Motion] spec, so
+ * every screen swaps state the same way instead of popping.
+ */
+@Composable
+fun AnimatedLoadState(
+    state: LoadState,
+    modifier: Modifier = Modifier,
+    content: @Composable (LoadState) -> Unit,
+) {
+    AnimatedContent(
+        targetState = state,
+        modifier = modifier,
+        transitionSpec = Motion.contentSwap(),
+        label = "loadState",
+    ) { target -> content(target) }
+}
+
+/** Small empty-state message, centered. */
+@Composable
+fun EmptyBox(message: String, modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        Text(message, color = AppColors.textSecondary, fontSize = 15.sp)
     }
 }

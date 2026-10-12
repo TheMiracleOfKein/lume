@@ -5,7 +5,6 @@ import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.FilterList
-import com.lume.app.domain.HomeFeed
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
 import com.lume.app.domain.SourceManifest
@@ -21,12 +20,6 @@ class WeebCentralEngine(
     private val http: AppHttp,
 ) : CatalogSource {
     private val limit = 32
-
-    override suspend fun getHome(): HomeFeed {
-        val popular = getPopular()
-        val latest = getLatest()
-        return HomeFeed(spotlight = popular.items.take(12), latest = latest.items)
-    }
 
     override suspend fun getPopular(page: Int) =
         searchData(page = page, text = "", sort = "Popularity", order = "Descending")

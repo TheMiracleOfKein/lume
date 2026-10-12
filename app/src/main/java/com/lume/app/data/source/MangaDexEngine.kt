@@ -5,7 +5,6 @@ import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.FilterList
-import com.lume.app.domain.HomeFeed
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
 import com.lume.app.domain.SourceFilter
@@ -37,11 +36,8 @@ class MangaDexEngine(
             .map { it.trim() }
             .filter { it.isNotEmpty() }
 
-    override suspend fun getHome(): HomeFeed {
-        val popular = getPopular()
-        val latest = getLatest()
-        return HomeFeed(spotlight = popular.items.take(12), latest = latest.items)
-    }
+    /** `engineConfig.dataSaver = true` serves compressed pages (smaller downloads, lower quality). */
+    private val dataSaver get() = manifest.configBool("dataSaver")
 
     override suspend fun getPopular(page: Int) =
         mangaList(page, orderKey = "followedCount")
@@ -69,6 +65,10 @@ class MangaDexEngine(
 
     override suspend fun search(query: String, page: Int, filters: FilterList): PagedResult<TitleSummary> {
         if (query.isBlank()) return getPopular(page)
+        val langs = filters.filters.filterIsInstance<SourceFilter.Select>()
+            .firstOrNull { it.id == "lang" }?.selectedValue
+            ?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }
+            ?: languages
         val offset = (page - 1) * PAGE_SIZE
         val q = buildString {
             append("limit=$PAGE_SIZE&offset=$offset")
@@ -78,7 +78,7 @@ class MangaDexEngine(
             for (rating in listOf("safe", "suggestive", "erotica")) {
                 append("&contentRating[]=$rating")
             }
-            for (lang in languages) {
+            for (lang in langs) {
                 append("&availableTranslatedLanguage[]=${enc(lang)}")
             }
         }
@@ -91,7 +91,7 @@ class MangaDexEngine(
             SourceFilter.Select(
                 id = "lang",
                 name = com.lume.app.data.locale.appString(com.lume.app.R.string.filter_language),
-                options = listOf("en", "ru", "en,ru"),
+                options = listOf(languages.joinToString(","), "en", "ru").distinct(),
             ),
         ),
     )
@@ -131,7 +131,8 @@ class MangaDexEngine(
         val mangaId = titleId.trim('/')
         val chapters = mutableListOf<Chapter>()
         var offset = 0
-        val limit = 100
+        // The feed endpoint allows up to 500 per request; long series have thousands of entries.
+        val limit = 500
         while (true) {
             val q = buildString {
                 append("limit=$limit&offset=$offset")
@@ -181,7 +182,7 @@ class MangaDexEngine(
             }
             val total = root["total"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: chapters.size
             offset += limit
-            if (data.isEmpty() || offset >= total || offset >= 500) break
+            if (data.isEmpty() || offset >= total || offset >= MAX_FEED) break
         }
         return chapters
     }
@@ -198,10 +199,11 @@ class MangaDexEngine(
         val chapterObj = root["chapter"]?.jsonObject
             ?: throw SourceFetchException("MangaDex: нет chapter")
         val hash = chapterObj["hash"]?.jsonPrimitive?.contentOrNull.orEmpty()
-        val data = chapterObj["data"]?.jsonArray ?: JsonArray(emptyList())
+        val quality = if (dataSaver) "data-saver" else "data"
+        val data = chapterObj[if (dataSaver) "dataSaver" else "data"]?.jsonArray ?: JsonArray(emptyList())
         val pages = data.mapIndexedNotNull { index, el ->
             val file = el.jsonPrimitive.contentOrNull ?: return@mapIndexedNotNull null
-            ComicPage(index = index, imageUrl = "$baseUrl/data/$hash/$file")
+            ComicPage(index = index, imageUrl = "$baseUrl/$quality/$hash/$file")
         }
         if (pages.isEmpty()) throw SourceFetchException("MangaDex: пустые страницы")
         return pages
@@ -260,5 +262,8 @@ class MangaDexEngine(
 
     companion object {
         private const val PAGE_SIZE = 20
+        private const val MAX_FEED = 10_000
     }
+
+    override fun webUrl(titleId: String): String = "${manifest.baseUrl.trimEnd('/')}/title/${titleId.trim('/')}"
 }

@@ -36,28 +36,31 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.lume.app.LumeApp
+import com.lume.app.R
 import com.lume.app.data.db.ProgressEntity
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.HomeFeed
+import com.lume.app.ui.components.AnimatedLoadState
+import com.lume.app.ui.components.CoverCard
 import com.lume.app.ui.components.CoverImage
 import com.lume.app.ui.components.ErrorRetryBox
+import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
 import com.lume.app.ui.components.QuickSearchBar
 import com.lume.app.ui.components.SectionHeader
 import com.lume.app.ui.components.TitleListRow
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.theme.AppColors
+import com.lume.app.ui.theme.animatedItem
 import kotlinx.coroutines.launch
-import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.stringResource
-import com.lume.app.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,165 +131,146 @@ fun HomeScreen(nav: NavHostController) {
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         )
 
-        when {
-            !online -> {
-                Text(
-                    stringResource(R.string.home_offline_downloaded),
-                    color = AppColors.textSecondary,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                )
-                if (offlineTitles.isEmpty()) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(stringResource(R.string.home_no_downloaded), color = AppColors.textSecondary, fontSize = 15.sp)
+        AnimatedLoadState(
+            state = when {
+            !online -> LoadState.Empty
+            loading && feed == null -> LoadState.Loading
+            error != null && feed == null -> LoadState.Error
+            else -> LoadState.Content
+        },
+            modifier = Modifier.fillMaxSize(),
+        ) { pane ->
+            when (pane) {
+                LoadState.Empty -> {
+                    Text(
+                        stringResource(R.string.home_offline_downloaded),
+                        color = AppColors.textSecondary,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                    if (offlineTitles.isEmpty()) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(stringResource(R.string.home_no_downloaded), color = AppColors.textSecondary, fontSize = 15.sp)
+                        }
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(offlineTitles, key = { "${it.first}:${it.second}" }) { (sid, tid, item) ->
+                                TitleListRow(
+                                    modifier = animatedItem(),
+                                    title = item.titleName,
+                                    coverUrl = item.coverUrl,
+                                    subtitle = stringResource(R.string.chapters_count_short, downloads.count { it.sourceId == sid && it.titleId == tid }),
+                                    onClick = { nav.navigate(Routes.title(sid, tid)) },
+                                )
+                            }
+                        }
                     }
-                } else {
+                }
+                LoadState.Loading -> LoadingBox()
+                LoadState.Error -> ErrorRetryBox(
+                    message = error.orEmpty(),
+                    onRetry = { refreshEpoch++ },
+                    onCloudflare = cloudflareUri?.let { uri ->
+                        { scope.launch { LumeApp.instance.http.requestChallenge(uri) } }
+                    },
+                )
+                else -> {
+                    val ptrState = rememberPullToRefreshState()
+                    PullToRefreshBox(
+                        isRefreshing = loading,
+                        onRefresh = { refreshEpoch++ },
+                        state = ptrState,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(offlineTitles, key = { "${it.first}:${it.second}" }) { (sid, tid, item) ->
-                            TitleListRow(
-                                title = item.titleName,
-                                coverUrl = item.coverUrl,
-                                subtitle = stringResource(R.string.chapters_count_short, downloads.count { it.sourceId == sid && it.titleId == tid }),
-                                onClick = { nav.navigate(Routes.title(sid, tid)) },
+                        item {
+                            val spotlight = feed?.spotlight.orEmpty()
+                            if (spotlight.isNotEmpty()) {
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier.height(220.dp),
+                                ) {
+                                    items(spotlight, key = { it.id }) { item ->
+                                        CoverCard(
+                                            title = item.title,
+                                            coverUrl = item.coverUrl,
+                                            badge = item.latestChapter,
+                                            onClick = { nav.navigate(Routes.title(sourceId, item.id)) },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        if (history.isNotEmpty()) {
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.home_continue_reading),
+                                        color = AppColors.textPrimary,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    TextButton(
+                                        onClick = {
+                                            scope.launch { LumeApp.instance.dao.clearAllProgress() }
+                                        },
+                                    ) {
+                                        Text(stringResource(R.string.action_clear), color = AppColors.accent, fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                            item {
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    items(history.take(20), key = { "${it.sourceId}:${it.titleId}" }) { item ->
+                                        ContinueCard(item) {
+                                            nav.navigate(
+                                                Routes.reader(item.sourceId, item.titleId, item.chapterId),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        item {
+                            SectionHeader(
+                                title = stringResource(R.string.home_now_reading),
+                                onTap = { nav.navigate(Routes.Catalog) },
+                            )
+                            Text(
+                                text = stringResource(R.string.home_new_releases),
+                                color = AppColors.textSecondary,
+                                fontSize = 13.sp,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                             )
                         }
-                    }
-                }
-            }
-            loading && feed == null -> LoadingBox()
-            error != null && feed == null -> ErrorRetryBox(
-                message = error!!,
-                onRetry = { refreshEpoch++ },
-                onCloudflare = cloudflareUri?.let { uri ->
-                    { scope.launch { LumeApp.instance.http.requestChallenge(uri) } }
-                },
-            )
-            else -> {
-                val ptrState = rememberPullToRefreshState()
-                PullToRefreshBox(
-                    isRefreshing = loading,
-                    onRefresh = { refreshEpoch++ },
-                    state = ptrState,
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    item {
-                        val spotlight = feed?.spotlight.orEmpty()
-                        if (spotlight.isNotEmpty()) {
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                modifier = Modifier.height(220.dp),
-                            ) {
-                                items(spotlight, key = { it.id }) { item ->
-                                    Column(
-                                        modifier = Modifier
-                                            .width(128.dp)
-                                            .clickable {
-                                                nav.navigate(Routes.title(sourceId, item.id))
-                                            },
-                                    ) {
-                                        Box {
-                                            CoverImage(
-                                                url = item.coverUrl,
-                                                width = 128.dp,
-                                                height = 180.dp,
-                                                radius = 10.dp,
-                                                sourceId = sourceId,
-                                            )
-                                            item.latestChapter?.let { ch ->
-                                                Box(
-                                                    modifier = Modifier
-                                                        .align(Alignment.BottomStart)
-                                                        .padding(6.dp)
-                                                        .clip(RoundedCornerShape(4.dp))
-                                                        .background(Color.Black.copy(alpha = 0.7f))
-                                                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                                                ) {
-                                                    Text(ch, color = Color.White, fontSize = 10.sp, maxLines = 1)
-                                                }
-                                            }
-                                        }
-                                        Text(
-                                            text = item.title,
-                                            color = AppColors.textPrimary,
-                                            fontSize = 12.sp,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.padding(top = 6.dp),
-                                        )
-                                    }
-                                }
-                            }
+
+                        items(feed?.latest.orEmpty(), key = { it.id }) { item ->
+                            TitleListRow(
+                                modifier = animatedItem(),
+                                title = item.title,
+                                coverUrl = item.coverUrl,
+                                subtitle = item.latestChapter ?: item.updatedLabel,
+                                typeLabel = item.typeLabel,
+                                sourceId = sourceId,
+                                onClick = { nav.navigate(Routes.title(sourceId, item.id)) },
+                            )
                         }
-                    }
 
-                    if (history.isNotEmpty()) {
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.home_continue_reading),
-                                    color = AppColors.textPrimary,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                TextButton(
-                                    onClick = {
-                                        scope.launch { LumeApp.instance.dao.clearAllProgress() }
-                                    },
-                                ) {
-                                    Text(stringResource(R.string.action_clear), color = AppColors.accent, fontSize = 12.sp)
-                                }
-                            }
-                        }
-                        item {
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                items(history.take(20), key = { "${it.sourceId}:${it.titleId}" }) { item ->
-                                    ContinueCard(item) {
-                                        nav.navigate(
-                                            Routes.reader(item.sourceId, item.titleId, item.chapterId),
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                        item { Spacer(Modifier.height(24.dp)) }
                     }
-
-                    item {
-                        SectionHeader(
-                            title = stringResource(R.string.home_now_reading),
-                            onTap = { nav.navigate(Routes.Catalog) },
-                        )
-                        Text(
-                            text = stringResource(R.string.home_new_releases),
-                            color = AppColors.textSecondary,
-                            fontSize = 13.sp,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                        )
                     }
-
-                    items(feed?.latest.orEmpty(), key = { it.id }) { item ->
-                        TitleListRow(
-                            title = item.title,
-                            coverUrl = item.coverUrl,
-                            subtitle = item.latestChapter ?: item.updatedLabel,
-                            typeLabel = item.typeLabel,
-                            sourceId = sourceId,
-                            onClick = { nav.navigate(Routes.title(sourceId, item.id)) },
-                        )
-                    }
-
-                    item { Spacer(Modifier.height(24.dp)) }
-                }
                 }
             }
         }

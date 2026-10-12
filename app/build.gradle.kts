@@ -75,6 +75,17 @@ android {
     lint {
         disable.add("EditedTargetSdkVersion")
     }
+
+    testOptions {
+        // Engines touch android.webkit / Context only through runCatching fallbacks.
+        unitTests.isReturnDefaultValues = true
+        unitTests.all { test ->
+            // Live catalogue checks hit real sites: ./gradlew :app:testDebugUnitTest -Plume.live
+            test.systemProperty("lume.live", project.hasProperty("lume.live").toString())
+            project.findProperty("lume.live.sources")?.let { test.systemProperty("lume.live.sources", it.toString()) }
+            test.testLogging { events("passed", "skipped", "failed"); showStandardStreams = true }
+        }
+    }
 }
 
 dependencies {
@@ -102,4 +113,5 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.androidx.work.runtime.ktx)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    testImplementation(libs.junit)
 }

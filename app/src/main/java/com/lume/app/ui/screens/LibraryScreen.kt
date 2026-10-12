@@ -1,5 +1,6 @@
 package com.lume.app.ui.screens
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -41,6 +42,8 @@ import com.lume.app.data.db.CategoryEntity
 import com.lume.app.ui.components.TitleListRow
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.theme.AppColors
+import com.lume.app.ui.theme.Motion
+import com.lume.app.ui.theme.animatedItem
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -137,6 +140,7 @@ fun LibraryScreen(nav: NavHostController) {
                         val meta = metaMap["${item.sourceId}:${item.titleId}"]
                         val showNew = (meta?.unreadNewCount ?: 0) > 0
                         TitleListRow(
+                            modifier = animatedItem(),
                             title = item.titleName,
                             coverUrl = item.coverUrl,
                             typeLabel = item.typeLabel,
@@ -207,15 +211,25 @@ fun LibraryScreen(nav: NavHostController) {
 
 @Composable
 private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val color by animateColorAsState(
+        if (selected) AppColors.accent else AppColors.textSecondary,
+        Motion.short(),
+        label = "chipText",
+    )
+    val background by animateColorAsState(
+        if (selected) AppColors.accentMuted else AppColors.card,
+        Motion.short(),
+        label = "chipBackground",
+    )
     Text(
         text = label,
-        color = if (selected) AppColors.accent else AppColors.textSecondary,
+        color = color,
         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
         fontSize = 13.sp,
         modifier = Modifier
             .padding(end = 8.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(if (selected) AppColors.accentMuted else AppColors.card)
+            .background(background)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
     )

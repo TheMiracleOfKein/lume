@@ -1,5 +1,11 @@
 package com.lume.app.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -45,6 +51,8 @@ import com.lume.app.data.db.DownloadQueueEntity
 import com.lume.app.ui.components.CoverImage
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.theme.AppColors
+import com.lume.app.ui.theme.Motion
+import com.lume.app.ui.theme.animatedItem
 import kotlinx.coroutines.launch
 
 private data class DownloadTitleGroup(
@@ -122,7 +130,7 @@ fun DownloadsScreen(nav: NavHostController) {
                         }
                         items(activeQueue, key = { "q-${it.id}" }) { item ->
                             Row(
-                                modifier = Modifier
+                                modifier = animatedItem()
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -131,8 +139,9 @@ fun DownloadsScreen(nav: NavHostController) {
                                     Text(item.titleName, color = AppColors.textPrimary, fontSize = 14.sp)
                                     Text(item.chapterName, color = AppColors.textSecondary, fontSize = 12.sp)
                                     if (item.status == DownloadQueueEntity.STATUS_RUNNING) {
+                                        val progress by animateFloatAsState(item.progress, Motion.medium(), label = "dl")
                                         LinearProgressIndicator(
-                                            progress = { item.progress },
+                                            progress = { progress },
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .padding(top = 6.dp),
@@ -152,7 +161,7 @@ fun DownloadsScreen(nav: NavHostController) {
                     items(groups, key = { "${it.sourceId}:${it.titleId}" }) { group ->
                         val key = "${group.sourceId}|${group.titleId}"
                         val isOpen = key in expanded
-                        Column(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = animatedItem().fillMaxWidth()) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -209,48 +218,54 @@ fun DownloadsScreen(nav: NavHostController) {
                                     )
                                 }
                             }
-                            if (isOpen) {
-                                group.chapters.forEach { item ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                nav.navigate(
-                                                    Routes.reader(
-                                                        item.sourceId,
-                                                        item.titleId,
-                                                        item.chapterId,
-                                                    ),
-                                                )
-                                            }
-                                            .padding(start = 76.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(item.chapterName, color = AppColors.textPrimary, fontSize = 13.sp)
-                                            Text(
-                                                stringResource(R.string.pages_count_short, item.pageCount),
-                                                color = AppColors.textTertiary,
-                                                fontSize = 11.sp,
-                                            )
-                                        }
-                                        IconButton(
-                                            onClick = {
-                                                scope.launch {
-                                                    LumeApp.instance.downloads.delete(
-                                                        item.sourceId,
-                                                        item.titleId,
-                                                        item.chapterId,
+                            AnimatedVisibility(
+                                visible = isOpen,
+                                enter = expandVertically(Motion.medium()) + fadeIn(Motion.medium()),
+                                exit = shrinkVertically(Motion.medium()) + fadeOut(Motion.short()),
+                            ) {
+                                Column {
+                                    group.chapters.forEach { item ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    nav.navigate(
+                                                        Routes.reader(
+                                                            item.sourceId,
+                                                            item.titleId,
+                                                            item.chapterId,
+                                                        ),
                                                     )
                                                 }
-                                            },
+                                                .padding(start = 76.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
                                         ) {
-                                            Icon(
-                                                Icons.Outlined.Delete,
-                                                null,
-                                                tint = AppColors.danger,
-                                                modifier = Modifier.size(20.dp),
-                                            )
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(item.chapterName, color = AppColors.textPrimary, fontSize = 13.sp)
+                                                Text(
+                                                    stringResource(R.string.pages_count_short, item.pageCount),
+                                                    color = AppColors.textTertiary,
+                                                    fontSize = 11.sp,
+                                                )
+                                            }
+                                            IconButton(
+                                                onClick = {
+                                                    scope.launch {
+                                                        LumeApp.instance.downloads.delete(
+                                                            item.sourceId,
+                                                            item.titleId,
+                                                            item.chapterId,
+                                                        )
+                                                    }
+                                                },
+                                            ) {
+                                                Icon(
+                                                    Icons.Outlined.Delete,
+                                                    null,
+                                                    tint = AppColors.danger,
+                                                    modifier = Modifier.size(20.dp),
+                                                )
+                                            }
                                         }
                                     }
                                 }

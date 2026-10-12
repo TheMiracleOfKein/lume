@@ -2,6 +2,9 @@ package com.lume.app.data.source
 
 import android.content.Context
 import com.lume.app.R
+import com.lume.app.data.network.AppHttp
+import com.lume.app.domain.CatalogSource
+import com.lume.app.domain.SourceManifest
 
 /**
  * Catalogue engines are first-party Kotlin adapters.
@@ -72,4 +75,26 @@ object SourceEngines {
 
     fun importRejectedMessage(context: Context, engine: String): String =
         context.getString(R.string.import_reject_engine, engine)
+
+    /** Build a network engine for [manifest]. [LOCAL] needs a Context and is created by the registry. */
+    fun create(manifest: SourceManifest, http: AppHttp, libAuth: LibAuthStore? = null): CatalogSource =
+        when (manifest.engine) {
+            MADARA -> MadaraEngine(manifest, http)
+            LIBSOCIAL -> LibSocialEngine(manifest, http, libAuth)
+            MANGADEX -> MangaDexEngine(manifest, http)
+            MANGAKATANA -> MangaKatanaEngine(manifest, http)
+            ASURA -> AsuraEngine(manifest, http)
+            WEEBCENTRAL -> WeebCentralEngine(manifest, http)
+            DEMONIC -> DemonicEngine(manifest, http)
+            HIVETOONS -> HiveToonsEngine(manifest, http)
+            REMANGA -> RemangaEngine(manifest, http)
+            MANGABUFF -> MangaBuffEngine(manifest, http)
+            else -> error(
+                if (isKnown(manifest.engine)) {
+                    "Engine wiring missing for ${manifest.engine}"
+                } else {
+                    "Unknown engine: ${manifest.engine}. New engines ship with app updates."
+                },
+            )
+        }
 }

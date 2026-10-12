@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "mangadex",
   "name": "MangaDex",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "mediaKind": "comics",
   "language": "multi",
   "engine": "mangadex",
@@ -12,6 +12,7 @@
   },
   "engineConfig": {
     "apiBase": "https://api.mangadex.org",
-    "languages": "en,ru"
+    "languages": "en,ru",
+    "rateLimit": "4"
   }
 }

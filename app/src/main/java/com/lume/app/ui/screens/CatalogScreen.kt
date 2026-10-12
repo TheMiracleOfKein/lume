@@ -1,7 +1,7 @@
 package com.lume.app.ui.screens
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,22 +26,26 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
-import com.lume.app.LumeApp
-import com.lume.app.domain.CloudflareException
-import com.lume.app.domain.TitleSummary
-import com.lume.app.ui.components.ErrorRetryBox
-import com.lume.app.ui.components.LoadingBox
-import com.lume.app.ui.components.TitleListRow
-import com.lume.app.ui.nav.Routes
-import com.lume.app.ui.theme.AppColors
-import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
+import com.lume.app.LumeApp
 import com.lume.app.R
+import com.lume.app.domain.CloudflareException
+import com.lume.app.domain.TitleSummary
+import com.lume.app.ui.components.AnimatedLoadState
+import com.lume.app.ui.components.ErrorRetryBox
+import com.lume.app.ui.components.LoadState
+import com.lume.app.ui.components.LoadingBox
+import com.lume.app.ui.components.SegmentTab
+import com.lume.app.ui.components.TitleListRow
+import com.lume.app.ui.components.loadStateOf
+import com.lume.app.ui.nav.Routes
+import com.lume.app.ui.theme.AppColors
+import com.lume.app.ui.theme.Motion
+import com.lume.app.ui.theme.animatedItem
+import kotlinx.coroutines.launch
 
 @Composable
 fun CatalogScreen(nav: NavHostController) {
@@ -121,83 +125,75 @@ fun CatalogScreen(nav: NavHostController) {
             .statusBarsPadding(),
     ) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp)) {
-            CatalogTab(stringResource(R.string.catalog_tab_popular), selected = tab == 0, modifier = Modifier.weight(1f)) { tab = 0 }
-            CatalogTab(stringResource(R.string.catalog_tab_updates), selected = tab == 1, modifier = Modifier.weight(1f)) { tab = 1 }
-            CatalogTab(stringResource(R.string.catalog_tab_library), selected = tab == 2, modifier = Modifier.weight(1f)) { tab = 2 }
+            SegmentTab(stringResource(R.string.catalog_tab_popular), selected = tab == 0, modifier = Modifier.weight(1f)) { tab = 0 }
+            SegmentTab(stringResource(R.string.catalog_tab_updates), selected = tab == 1, modifier = Modifier.weight(1f)) { tab = 1 }
+            SegmentTab(stringResource(R.string.catalog_tab_library), selected = tab == 2, modifier = Modifier.weight(1f)) { tab = 2 }
         }
 
-        when (tab) {
-            0, 1 -> when {
-                loading && items.isEmpty() -> LoadingBox()
-                error != null && items.isEmpty() -> ErrorRetryBox(
-                    message = error!!,
-                    onRetry = { refreshEpoch++ },
-                    onCloudflare = cloudflareUri?.let { uri ->
-                        { scope.launch { LumeApp.instance.http.requestChallenge(uri) } }
-                    },
-                )
-                else -> LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                    items(items, key = { it.id }) { item ->
-                        TitleListRow(
-                            title = item.title,
-                            coverUrl = item.coverUrl,
-                            subtitle = item.latestChapter ?: item.updatedLabel,
-                            typeLabel = item.typeLabel,
-                            onClick = { nav.navigate(Routes.title(sourceId, item.id)) },
+        AnimatedContent(
+            targetState = tab,
+            transitionSpec = Motion.contentSwap(),
+            label = "catalogTab",
+        ) { tabPane ->
+            when (tabPane) {
+                0, 1 -> AnimatedLoadState(
+                    state = loadStateOf(loading && items.isEmpty(), error.takeIf { items.isEmpty() }),
+                    modifier = Modifier.fillMaxSize(),
+                ) { pane ->
+                    when (pane) {
+                        LoadState.Loading -> LoadingBox()
+                        LoadState.Error -> ErrorRetryBox(
+                            message = error.orEmpty(),
+                            onRetry = { refreshEpoch++ },
+                            onCloudflare = cloudflareUri?.let { uri ->
+                                { scope.launch { LumeApp.instance.http.requestChallenge(uri) } }
+                            },
                         )
+                        else -> LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                            items(items, key = { it.id }) { item ->
+                                TitleListRow(
+                                    modifier = animatedItem(),
+                                    title = item.title,
+                                    coverUrl = item.coverUrl,
+                                    subtitle = item.latestChapter ?: item.updatedLabel,
+                                    typeLabel = item.typeLabel,
+                                    onClick = { nav.navigate(Routes.title(sourceId, item.id)) },
+                                )
+                            }
+                            if (loadingMore) {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        CircularProgressIndicator(color = AppColors.accent)
+                                    }
+                                }
+                            }
+                        }
                     }
-                    if (loadingMore) {
-                        item {
-                            Box(
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                CircularProgressIndicator(color = AppColors.accent)
+                }
+                else -> {
+                    if (bookmarks.isEmpty()) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(stringResource(R.string.library_empty), color = AppColors.textSecondary)
+                        }
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(bookmarks, key = { "${it.sourceId}:${it.titleId}" }) { item ->
+                                TitleListRow(
+                                    modifier = animatedItem(),
+                                    title = item.titleName,
+                                    coverUrl = item.coverUrl,
+                                    typeLabel = item.typeLabel,
+                                    onClick = { nav.navigate(Routes.title(item.sourceId, item.titleId)) },
+                                )
                             }
                         }
                     }
                 }
             }
-            else -> {
-                if (bookmarks.isEmpty()) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(stringResource(R.string.library_empty), color = AppColors.textSecondary)
-                    }
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(bookmarks, key = { "${it.sourceId}:${it.titleId}" }) { item ->
-                            TitleListRow(
-                                title = item.titleName,
-                                coverUrl = item.coverUrl,
-                                typeLabel = item.typeLabel,
-                                onClick = { nav.navigate(Routes.title(item.sourceId, item.titleId)) },
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }
 
-@Composable
-private fun CatalogTab(
-    label: String,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = modifier
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            color = if (selected) AppColors.accent else AppColors.textSecondary,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            fontSize = 13.sp,
-        )
-    }
-}

@@ -126,6 +126,8 @@ class SourceLoginActivity : ComponentActivity() {
                 WebView(ctx).apply {
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
+                    // Share the app UA so cookies set during login (incl. anti-bot clearance) stay valid.
+                    settings.userAgentString = LumeApp.instance.http.userAgent
                     CookieManager.getInstance().setAcceptCookie(true)
                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                     webViewClient = object : WebViewClient() {

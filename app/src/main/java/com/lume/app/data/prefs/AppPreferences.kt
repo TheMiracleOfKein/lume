@@ -22,6 +22,20 @@ data class ReaderSettings(
     val hidePageNumber: Boolean = false,
     /** Continuous scroll across chapters with a divider; next chapter is prefetched. */
     val seamlessReading: Boolean = true,
+    /** Volume down / up turn to the next / previous page (consumes the key in the reader). */
+    val volumeKeys: Boolean = false,
+    /** Paged modes: tap the left / right third to turn pages; the middle toggles controls. */
+    val tapZones: Boolean = true,
+    /**
+     * Fullscreen reading: scrolling hides the reader controls *and* the status / navigation bars;
+     * a tap without scrolling brings them back.
+     */
+    val immersive: Boolean = true,
+    val keepScreenOn: Boolean = true,
+    /** Webtoon mode: empty margin on each side, in percent of the screen width (tablets/landscape). */
+    val sidePaddingPercent: Int = 0,
+    /** Extra darkening over pages for night reading, 0 (off) … 0.8. */
+    val dim: Float = 0f,
 )
 
 class AppPreferences(private val context: Context) {
@@ -33,6 +47,16 @@ class AppPreferences(private val context: Context) {
     private val readerZoomKey = booleanPreferencesKey("reader_zoom")
     private val readerHidePageKey = booleanPreferencesKey("reader_hide_page")
     private val readerSeamlessKey = booleanPreferencesKey("reader_seamless")
+    private val readerVolumeKeysKey = booleanPreferencesKey("reader_volume_keys")
+    private val readerTapZonesKey = booleanPreferencesKey("reader_tap_zones")
+    private val readerImmersiveKey = booleanPreferencesKey("reader_immersive")
+    private val readerKeepScreenOnKey = booleanPreferencesKey("reader_keep_screen_on")
+    private val readerSidePaddingKey = intPreferencesKey("reader_side_padding")
+    private val readerDimKey = doublePreferencesKey("reader_dim")
+    private val libraryIntervalKey = intPreferencesKey("library_update_interval_hours")
+    private val libraryWifiOnlyKey = booleanPreferencesKey("library_update_wifi_only")
+    private val downloadsWifiOnlyKey = booleanPreferencesKey("downloads_wifi_only")
+    private val globalSearchNsfwKey = booleanPreferencesKey("global_search_nsfw")
     private val libraryUpdatesKey = booleanPreferencesKey("library_updates_enabled")
     private val appLanguageKey = stringPreferencesKey("app_language")
 
@@ -74,7 +98,36 @@ class AppPreferences(private val context: Context) {
             doubleTapZoom = prefs[readerZoomKey] ?: true,
             hidePageNumber = prefs[readerHidePageKey] ?: false,
             seamlessReading = prefs[readerSeamlessKey] ?: true,
+            volumeKeys = prefs[readerVolumeKeysKey] ?: false,
+            tapZones = prefs[readerTapZonesKey] ?: true,
+            immersive = prefs[readerImmersiveKey] ?: true,
+            keepScreenOn = prefs[readerKeepScreenOnKey] ?: true,
+            sidePaddingPercent = (prefs[readerSidePaddingKey] ?: 0).coerceIn(0, MAX_SIDE_PADDING),
+            dim = (prefs[readerDimKey] ?: 0.0).toFloat().coerceIn(0f, MAX_DIM),
         )
+    }
+
+    /** Hours between background library checks (one of [LIBRARY_INTERVALS]). */
+    val libraryUpdateIntervalHours: Flow<Int> =
+        context.appDataStore.data.map { it[libraryIntervalKey]?.takeIf { h -> h in LIBRARY_INTERVALS } ?: 6 }
+    val libraryUpdateWifiOnly: Flow<Boolean> = context.appDataStore.data.map { it[libraryWifiOnlyKey] ?: false }
+    val downloadsWifiOnly: Flow<Boolean> = context.appDataStore.data.map { it[downloadsWifiOnlyKey] ?: false }
+    val globalSearchNsfw: Flow<Boolean> = context.appDataStore.data.map { it[globalSearchNsfwKey] ?: true }
+
+    suspend fun setLibraryUpdateIntervalHours(hours: Int) {
+        context.appDataStore.edit { it[libraryIntervalKey] = hours }
+    }
+
+    suspend fun setLibraryUpdateWifiOnly(value: Boolean) {
+        context.appDataStore.edit { it[libraryWifiOnlyKey] = value }
+    }
+
+    suspend fun setDownloadsWifiOnly(value: Boolean) {
+        context.appDataStore.edit { it[downloadsWifiOnlyKey] = value }
+    }
+
+    suspend fun setGlobalSearchNsfw(value: Boolean) {
+        context.appDataStore.edit { it[globalSearchNsfwKey] = value }
     }
 
     suspend fun setDarkTheme(value: Boolean) {
@@ -101,6 +154,12 @@ class AppPreferences(private val context: Context) {
             it[readerZoomKey] = settings.doubleTapZoom
             it[readerHidePageKey] = settings.hidePageNumber
             it[readerSeamlessKey] = settings.seamlessReading
+            it[readerVolumeKeysKey] = settings.volumeKeys
+            it[readerTapZonesKey] = settings.tapZones
+            it[readerImmersiveKey] = settings.immersive
+            it[readerKeepScreenOnKey] = settings.keepScreenOn
+            it[readerSidePaddingKey] = settings.sidePaddingPercent
+            it[readerDimKey] = settings.dim.toDouble()
         }
     }
 
@@ -142,5 +201,11 @@ class AppPreferences(private val context: Context) {
             it[shikiClientIdKey] = clientId
             it[shikiClientSecretKey] = clientSecret
         }
+    }
+
+    companion object {
+        val LIBRARY_INTERVALS = listOf(3, 6, 12, 24, 48)
+        const val MAX_SIDE_PADDING = 30
+        const val MAX_DIM = 0.8f
     }
 }

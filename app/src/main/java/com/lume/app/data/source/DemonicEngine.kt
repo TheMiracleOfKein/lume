@@ -5,7 +5,6 @@ import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.FilterList
-import com.lume.app.domain.HomeFeed
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
 import com.lume.app.domain.SourceManifest
@@ -21,12 +20,6 @@ class DemonicEngine(
     override val manifest: SourceManifest,
     private val http: AppHttp,
 ) : CatalogSource {
-    override suspend fun getHome(): HomeFeed {
-        val latest = getLatest()
-        val popular = getPopular()
-        return HomeFeed(spotlight = popular.items.take(12), latest = latest.items)
-    }
-
     override suspend fun getLatest(page: Int): PagedResult<TitleSummary> {
         val response = http.get(manifest.baseUri.resolve("/lastupdates.php"), source = manifest)
         return parseMangaLinks(response.body, page)

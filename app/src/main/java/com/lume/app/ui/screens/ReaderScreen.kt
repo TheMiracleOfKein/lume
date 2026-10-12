@@ -1,33 +1,45 @@
 package com.lume.app.ui.screens
 
+import androidx.activity.compose.LocalActivity
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateCentroid
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Bookmark
@@ -46,12 +58,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -65,19 +75,27 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.positionChanged
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -85,6 +103,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.imageLoader
@@ -95,6 +116,8 @@ import com.lume.app.R
 import com.lume.app.data.db.BookmarkEntity
 import com.lume.app.data.db.ChapterReadEntity
 import com.lume.app.data.db.ProgressEntity
+import com.lume.app.data.offline.networkOr
+import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.data.prefs.ReaderSettings
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.CloudflareException
@@ -102,19 +125,28 @@ import com.lume.app.domain.ComicPage
 import com.lume.app.domain.ReaderMode
 import com.lume.app.domain.ReaderTheme
 import com.lume.app.domain.inReadingOrder
+import com.lume.app.ui.components.AnimatedLoadState
+import com.lume.app.ui.components.ChoiceChip
 import com.lume.app.ui.components.ErrorRetryBox
+import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
+import com.lume.app.ui.components.SwitchRow
+import com.lume.app.ui.components.loadStateOf
+import com.lume.app.ui.components.lumeSliderColors
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.theme.AppColors
+import com.lume.app.ui.theme.Motion
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ReaderScreen(
     nav: NavHostController,
@@ -146,6 +178,32 @@ fun ReaderScreen(
     var readerSettings by remember { mutableStateOf(ReaderSettings()) }
     val systemDark = isSystemInDarkTheme()
     val stripItems = remember(loadedChapters) { buildReaderStrip(loadedChapters) }
+    /** +1 = next page, -1 = previous; collected by whichever reader mode is active. */
+    val pageTurns = remember { MutableSharedFlow<Int>(extraBufferCapacity = 8) }
+    val focusRequester = remember { FocusRequester() }
+    val view = LocalView.current
+    DisposableEffect(view, readerSettings.keepScreenOn) {
+        view.keepScreenOn = readerSettings.keepScreenOn
+        onDispose { view.keepScreenOn = false }
+    }
+    // Fullscreen: when the controls hide, the status and navigation bars hide with them
+    // (a swipe from the edge peeks them; a tap on the page restores everything).
+    val window = LocalActivity.current?.window
+    val insetsController = remember(window, view) {
+        window?.let { WindowCompat.getInsetsController(it, view) }
+    }
+    val hideSystemBars = readerSettings.immersive && !chromeVisible && !settingsOpen
+    LaunchedEffect(insetsController, hideSystemBars) {
+        insetsController?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        if (hideSystemBars) {
+            insetsController?.hide(WindowInsetsCompat.Type.systemBars())
+        } else {
+            insetsController?.show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+    DisposableEffect(insetsController) {
+        onDispose { insetsController?.show(WindowInsetsCompat.Type.systemBars()) }
+    }
 
     fun chapterIdsMatch(a: String, b: String): Boolean =
         a == b || a.trimEnd('/') == b.trimEnd('/')
@@ -229,16 +287,18 @@ fun ReaderScreen(
             val offline = LumeApp.instance.offlineCache
             val cached = offline.get(sourceId, titleId)
             val details = cached?.details
-                ?: source?.let { runCatching { it.getTitle(titleId) }.getOrNull() }
-                ?: offline.detailsFromDownloads(sourceId, titleId)
+                ?: networkOr(source, { getTitle(titleId) }) {
+                    offline.detailsFromDownloads(sourceId, titleId)
+                }
                 ?: error(resources.getString(R.string.error_no_title_offline))
             titleName = details.title
             coverUrl = details.coverUrl
             typeLabel = details.typeLabel
             bookmarked = dao.getBookmark(sourceId, titleId) != null
             val rawList = cached?.chapters
-                ?: source?.let { runCatching { it.getChapters(titleId) }.getOrNull() }
-                ?: offline.chaptersFromDownloads(sourceId, titleId)
+                ?: networkOr(source, { getChapters(titleId) }, isUsable = { it.isNotEmpty() }) {
+                    offline.chaptersFromDownloads(sourceId, titleId)
+                }.orEmpty()
             if (rawList.isEmpty()) error(resources.getString(R.string.error_no_chapters))
             // Keep source order in cache; reader always uses oldest → newest.
             if (source != null && cached == null) {
@@ -367,234 +427,313 @@ fun ReaderScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(readerBg),
+            .background(readerBg)
+            .focusRequester(focusRequester)
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                if (!readerSettings.volumeKeys || settingsOpen) return@onPreviewKeyEvent false
+                val delta = when (event.nativeKeyEvent.keyCode) {
+                    android.view.KeyEvent.KEYCODE_VOLUME_DOWN -> 1
+                    android.view.KeyEvent.KEYCODE_VOLUME_UP -> -1
+                    else -> return@onPreviewKeyEvent false
+                }
+                // Consume both down and up so the system volume does not change.
+                if (event.type == KeyEventType.KeyDown) pageTurns.tryEmit(delta)
+                true
+            },
     ) {
-        when {
-            loading -> LoadingBox()
-            error != null -> ErrorRetryBox(
-                message = error!!,
-                onRetry = { refreshEpoch++ },
-                onCloudflare = cloudflareUri?.let { uri ->
-                    { scope.launch { LumeApp.instance.http.requestChallenge(uri) } }
-                },
-            )
-            else -> {
-                val toggleChrome = { chromeVisible = !chromeVisible }
-                val chapterPageCount = loadedChapters.firstOrNull { it.chapter.id == chapter?.id }?.pages?.size
-                    ?: stripItems.filterIsInstance<ReaderStripItem.Page>()
-                        .firstOrNull { it.chapter.id == chapter?.id }?.chapterPageCount
-                    ?: 0
-                when (readerSettings.mode) {
-                    ReaderMode.Webtoon -> {
-                        val listState = rememberLazyListState(
-                            initialFirstVisibleItemIndex = pageIndex.coerceIn(0, (stripItems.size - 1).coerceAtLeast(0)),
-                        )
-                        LaunchedEffect(listState, stripItems) {
-                            snapshotFlow {
-                                val idx = listState.firstVisibleItemIndex
-                                val item = stripItems.getOrNull(idx)
-                                val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: idx
-                                Triple(item, lastVisible, stripItems.size)
+        LaunchedEffect(loading, settingsOpen) {
+            if (!loading && !settingsOpen) runCatching { focusRequester.requestFocus() }
+        }
+        AnimatedLoadState(
+            state = loadStateOf(loading, error),
+            modifier = Modifier.fillMaxSize(),
+        ) { pane ->
+            when (pane) {
+                LoadState.Loading -> LoadingBox()
+                LoadState.Error -> ErrorRetryBox(
+                    message = error.orEmpty(),
+                    onRetry = { refreshEpoch++ },
+                    onCloudflare = cloudflareUri?.let { uri ->
+                        { scope.launch { LumeApp.instance.http.requestChallenge(uri) } }
+                    },
+                )
+                else -> Box(Modifier.fillMaxSize()) {
+                    val toggleChrome = { chromeVisible = !chromeVisible }
+                    val chapterPageCount = loadedChapters.firstOrNull { it.chapter.id == chapter?.id }?.pages?.size
+                        ?: stripItems.filterIsInstance<ReaderStripItem.Page>()
+                            .firstOrNull { it.chapter.id == chapter?.id }?.chapterPageCount
+                        ?: 0
+                    when (readerSettings.mode) {
+                        ReaderMode.Webtoon -> {
+                            val sideMargin = with(LocalDensity.current) {
+                                (LocalWindowInfo.current.containerSize.width * readerSettings.sidePaddingPercent / 100).toDp()
                             }
-                                .distinctUntilChanged()
-                                .collect { (item, lastVisible, total) ->
-                                    when (item) {
-                                        is ReaderStripItem.Page -> onVisiblePage(
-                                            item.chapter,
-                                            item.indexInChapter,
-                                            item.chapterPageCount,
-                                        )
-                                        is ReaderStripItem.Divider -> onVisiblePage(item.chapter, 0, 1)
-                                        null -> Unit
-                                    }
-                                    maybePrefetchFromProgress(lastVisible, total)
+                            val listState = rememberLazyListState(
+                                initialFirstVisibleItemIndex = pageIndex.coerceIn(0, (stripItems.size - 1).coerceAtLeast(0)),
+                            )
+                            LaunchedEffect(listState, stripItems) {
+                                snapshotFlow {
+                                    val idx = listState.firstVisibleItemIndex
+                                    val item = stripItems.getOrNull(idx)
+                                    val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: idx
+                                    Triple(item, lastVisible, stripItems.size)
                                 }
+                                    .distinctUntilChanged()
+                                    .collect { (item, lastVisible, total) ->
+                                        when (item) {
+                                            is ReaderStripItem.Page -> onVisiblePage(
+                                                item.chapter,
+                                                item.indexInChapter,
+                                                item.chapterPageCount,
+                                            )
+                                            is ReaderStripItem.Divider -> onVisiblePage(item.chapter, 0, 1)
+                                            null -> Unit
+                                        }
+                                        maybePrefetchFromProgress(lastVisible, total)
+                                    }
+                            }
+                            LaunchedEffect(listState) {
+                                pageTurns.collect { delta ->
+                                    if (readerSettings.immersive) chromeVisible = false
+                                    val viewport = listState.layoutInfo.viewportSize.height
+                                    listState.animateScrollBy(delta * viewport * 0.85f)
+                                }
+                            }
+                            LaunchedEffect(listState, readerSettings.immersive) {
+                                if (!readerSettings.immersive) return@LaunchedEffect
+                                listState.interactionSource.interactions.collect { interaction ->
+                                    if (interaction is DragInteraction.Start) chromeVisible = false
+                                }
+                            }
+                            ReaderZoomFrame(
+                                zoomEnabled = readerSettings.doubleTapZoom,
+                                resetKey = chapterId,
+                                onSingleTap = toggleChrome,
+                                modifier = Modifier.fillMaxSize(),
+                            ) { zoomModifier, scale ->
+                                LazyColumn(
+                                    state = listState,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .then(zoomModifier),
+                                    verticalArrangement = Arrangement.spacedBy(readerSettings.gap.dp),
+                                    contentPadding = PaddingValues(horizontal = sideMargin),
+                                    userScrollEnabled = scale <= 1.01f,
+                                ) {
+                                    itemsIndexed(
+                                        stripItems,
+                                        key = { _, item ->
+                                            when (item) {
+                                                is ReaderStripItem.Divider -> "div-${item.chapter.id}"
+                                                is ReaderStripItem.Page ->
+                                                    "p-${item.chapter.id}-${item.page.index}-${item.indexInChapter}"
+                                            }
+                                        },
+                                    ) { _, item ->
+                                        when (item) {
+                                            is ReaderStripItem.Divider -> ChapterDividerBand(item.chapter.title)
+                                            is ReaderStripItem.Page -> ReaderPageImage(item.page, zoomEnabled = false)
+                                        }
+                                    }
+                                }
+                            }
                         }
-                        ReaderZoomFrame(
-                            zoomEnabled = readerSettings.doubleTapZoom,
-                            resetKey = chapterId,
-                            onSingleTap = toggleChrome,
-                            modifier = Modifier.fillMaxSize(),
-                        ) { zoomModifier, scale ->
-                            LazyColumn(
-                                state = listState,
+                        ReaderMode.Ltr, ReaderMode.Rtl -> {
+                            val pagerState = rememberPagerState(
+                                initialPage = pageIndex.coerceIn(0, (stripItems.size - 1).coerceAtLeast(0)),
+                                pageCount = { stripItems.size.coerceAtLeast(1) },
+                            )
+                            LaunchedEffect(pagerState, stripItems) {
+                                snapshotFlow { pagerState.currentPage to stripItems.size }
+                                    .distinctUntilChanged()
+                                    .collect { (page, total) ->
+                                        when (val item = stripItems.getOrNull(page)) {
+                                            is ReaderStripItem.Page -> onVisiblePage(
+                                                item.chapter,
+                                                item.indexInChapter,
+                                                item.chapterPageCount,
+                                            )
+                                            is ReaderStripItem.Divider -> onVisiblePage(item.chapter, 0, 1)
+                                            null -> Unit
+                                        }
+                                        if (readerSettings.seamlessReading) {
+                                            maybePrefetchFromProgress(page, total)
+                                        }
+                                    }
+                            }
+                            LaunchedEffect(pagerState, readerSettings.immersive) {
+                                if (!readerSettings.immersive) return@LaunchedEffect
+                                pagerState.interactionSource.interactions.collect { interaction ->
+                                    if (interaction is DragInteraction.Start) chromeVisible = false
+                                }
+                            }
+                            LaunchedEffect(pagerState) {
+                                pageTurns.collect { delta ->
+                                    if (readerSettings.immersive) chromeVisible = false
+                                    val target = (pagerState.currentPage + delta).coerceIn(0, pagerState.pageCount - 1)
+                                    pagerState.animateScrollToPage(target)
+                                }
+                            }
+                            val rtl = readerSettings.mode == ReaderMode.Rtl
+                            val onPagerTap: (Float, Int) -> Unit = { x, width ->
+                                val third = width / 3f
+                                val zone = when {
+                                    !readerSettings.tapZones -> 0
+                                    x < third -> -1
+                                    x > width - third -> 1
+                                    else -> 0
+                                }
+                                // In RTL the left side is "forward".
+                                if (zone == 0) toggleChrome() else pageTurns.tryEmit(if (rtl) -zone else zone)
+                            }
+                            HorizontalPager(
+                                state = pagerState,
+                                reverseLayout = rtl,
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .then(zoomModifier),
-                                verticalArrangement = Arrangement.spacedBy(readerSettings.gap.dp),
-                                userScrollEnabled = scale <= 1.01f,
-                            ) {
-                                itemsIndexed(
-                                    stripItems,
-                                    key = { _, item ->
-                                        when (item) {
-                                            is ReaderStripItem.Divider -> "div-${item.chapter.id}"
-                                            is ReaderStripItem.Page ->
-                                                "p-${item.chapter.id}-${item.page.index}-${item.indexInChapter}"
-                                        }
+                                    .pointerInput(readerSettings.tapZones, rtl) {
+                                        detectTapGestures(onTap = { offset -> onPagerTap(offset.x, size.width) })
                                     },
-                                ) { _, item ->
-                                    when (item) {
-                                        is ReaderStripItem.Divider -> ChapterDividerBand(item.chapter.title)
-                                        is ReaderStripItem.Page -> ReaderPageImage(item.page, zoomEnabled = false)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    ReaderMode.Ltr, ReaderMode.Rtl -> {
-                        val pagerState = rememberPagerState(
-                            initialPage = pageIndex.coerceIn(0, (stripItems.size - 1).coerceAtLeast(0)),
-                            pageCount = { stripItems.size.coerceAtLeast(1) },
-                        )
-                        LaunchedEffect(pagerState, stripItems) {
-                            snapshotFlow { pagerState.currentPage to stripItems.size }
-                                .distinctUntilChanged()
-                                .collect { (page, total) ->
-                                    when (val item = stripItems.getOrNull(page)) {
-                                        is ReaderStripItem.Page -> onVisiblePage(
-                                            item.chapter,
-                                            item.indexInChapter,
-                                            item.chapterPageCount,
+                                userScrollEnabled = true,
+                            ) { page ->
+                                when (val item = stripItems.getOrNull(page)) {
+                                    is ReaderStripItem.Page -> Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        ReaderPageImage(
+                                            item.page,
+                                            ContentScale.Fit,
+                                            zoomEnabled = readerSettings.doubleTapZoom,
+                                            fillViewport = true,
+                                            // The zoom gesture consumes taps, so forward single taps.
+                                            onTap = onPagerTap,
                                         )
-                                        is ReaderStripItem.Divider -> onVisiblePage(item.chapter, 0, 1)
-                                        null -> Unit
                                     }
-                                    if (readerSettings.seamlessReading) {
-                                        maybePrefetchFromProgress(page, total)
-                                    }
-                                }
-                        }
-                        HorizontalPager(
-                            state = pagerState,
-                            reverseLayout = readerSettings.mode == ReaderMode.Rtl,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .pointerInput(Unit) {
-                                    detectTapGestures(onTap = { toggleChrome() })
-                                },
-                            userScrollEnabled = true,
-                        ) { page ->
-                            when (val item = stripItems.getOrNull(page)) {
-                                is ReaderStripItem.Page -> Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    ReaderPageImage(
-                                        item.page,
-                                        ContentScale.Fit,
-                                        zoomEnabled = readerSettings.doubleTapZoom,
+                                    is ReaderStripItem.Divider -> ChapterDividerBand(
+                                        title = item.chapter.title,
                                         fillViewport = true,
                                     )
+                                    null -> Box(Modifier.fillMaxSize())
                                 }
-                                is ReaderStripItem.Divider -> ChapterDividerBand(
-                                    title = item.chapter.title,
-                                    fillViewport = true,
-                                )
-                                null -> Box(Modifier.fillMaxSize())
                             }
                         }
                     }
-                }
 
-                if (chromeVisible) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .fillMaxWidth()
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(Color.Black.copy(alpha = 0.87f), Color.Transparent),
-                                ),
-                            )
-                            .statusBarsPadding(),
+                    if (readerSettings.dim > 0f) {
+                        // Night dimming above the pages, below the controls; does not take touches.
+                        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = readerSettings.dim)))
+                    }
+                    AnimatedVisibility(
+                        visible = chromeVisible,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                        enter = Motion.barEnterFromTop,
+                        exit = Motion.barExitToTop,
                     ) {
-                        Row(
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(56.dp)
-                                .padding(horizontal = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color.Black.copy(alpha = 0.87f), Color.Transparent),
+                                    ),
+                                )
+                                // Stable position whether or not the status bar is currently shown.
+                                .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
                         ) {
-                            IconButton(onClick = { nav.popBackStack() }) {
-                                Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = Color.White)
-                            }
-                            Column(
+                            Row(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .clickable(onClick = { openTitle() }),
-                                horizontalAlignment = Alignment.CenterHorizontally,
+                                    .fillMaxWidth()
+                                    .height(56.dp)
+                                    .padding(horizontal = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text(
-                                    text = titleName,
-                                    color = Color.White,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    textAlign = TextAlign.Center,
-                                )
-                                Text(
-                                    text = chapter?.title.orEmpty(),
-                                    color = AppColors.textSecondary,
-                                    fontSize = 12.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    textAlign = TextAlign.Center,
-                                )
-                            }
-                            IconButton(onClick = { settingsOpen = true }) {
-                                Icon(Icons.Outlined.Settings, null, tint = Color.White)
+                                IconButton(onClick = { nav.popBackStack() }) {
+                                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = Color.White)
+                                }
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable(onClick = { openTitle() }),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    Text(
+                                        text = titleName,
+                                        color = Color.White,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        textAlign = TextAlign.Center,
+                                    )
+                                    Text(
+                                        text = chapter?.title.orEmpty(),
+                                        color = AppColors.textSecondary,
+                                        fontSize = 12.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        textAlign = TextAlign.Center,
+                                    )
+                                }
+                                IconButton(onClick = { settingsOpen = true }) {
+                                    Icon(Icons.Outlined.Settings, null, tint = Color.White)
+                                }
                             }
                         }
                     }
-
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.87f)),
-                                ),
-                            )
-                            .navigationBarsPadding()
-                            .padding(bottom = 4.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                    AnimatedVisibility(
+                        visible = chromeVisible,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                        enter = Motion.barEnterFromBottom,
+                        exit = Motion.barExitToBottom,
                     ) {
-                        if (!readerSettings.hidePageNumber && chapterPageCount > 0) {
-                            Text(
-                                text = "${pageIndex + 1} / $chapterPageCount",
-                                color = AppColors.textSecondary,
-                                fontSize = 13.sp,
-                                modifier = Modifier.padding(bottom = 8.dp),
-                            )
-                        }
-                        Row(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp),
-                            horizontalArrangement = Arrangement.SpaceAround,
-                            verticalAlignment = Alignment.CenterVertically,
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.87f)),
+                                    ),
+                                )
+                                .windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility)
+                                .padding(bottom = 4.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            IconButton(onClick = { goChapter(-1) }) {
-                                Icon(Icons.Outlined.SkipPrevious, stringResource(R.string.cd_prev_chapter), tint = Color.White)
-                            }
-                            IconButton(onClick = { nav.navigate(Routes.chapters(sourceId, titleId)) }) {
-                                Icon(Icons.Outlined.FormatListNumbered, stringResource(R.string.cd_chapters), tint = Color.White)
-                            }
-                            IconButton(onClick = { toggleBookmark() }) {
-                                Icon(
-                                    if (bookmarked) Icons.Outlined.Bookmark else Icons.Outlined.BookmarkBorder,
-                                    stringResource(R.string.cd_bookmark),
-                                    tint = if (bookmarked) AppColors.accent else Color.White,
+                            if (!readerSettings.hidePageNumber && chapterPageCount > 0) {
+                                Text(
+                                    text = "${pageIndex + 1} / $chapterPageCount",
+                                    color = AppColors.textSecondary,
+                                    fontSize = 13.sp,
+                                    modifier = Modifier.padding(bottom = 8.dp),
                                 )
                             }
-                            IconButton(onClick = { settingsOpen = true }) {
-                                Icon(Icons.Outlined.Tune, stringResource(R.string.cd_settings), tint = Color.White)
-                            }
-                            IconButton(onClick = { goChapter(1) }) {
-                                Icon(Icons.Outlined.SkipNext, stringResource(R.string.cd_next_chapter), tint = Color.White)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp),
+                                horizontalArrangement = Arrangement.SpaceAround,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                IconButton(onClick = { goChapter(-1) }) {
+                                    Icon(Icons.Outlined.SkipPrevious, stringResource(R.string.cd_prev_chapter), tint = Color.White)
+                                }
+                                IconButton(onClick = { nav.navigate(Routes.chapters(sourceId, titleId)) }) {
+                                    Icon(Icons.Outlined.FormatListNumbered, stringResource(R.string.cd_chapters), tint = Color.White)
+                                }
+                                IconButton(onClick = { toggleBookmark() }) {
+                                    Icon(
+                                        if (bookmarked) Icons.Outlined.Bookmark else Icons.Outlined.BookmarkBorder,
+                                        stringResource(R.string.cd_bookmark),
+                                        tint = if (bookmarked) AppColors.accent else Color.White,
+                                    )
+                                }
+                                IconButton(onClick = { settingsOpen = true }) {
+                                    Icon(Icons.Outlined.Tune, stringResource(R.string.cd_settings), tint = Color.White)
+                                }
+                                IconButton(onClick = { goChapter(1) }) {
+                                    Icon(Icons.Outlined.SkipNext, stringResource(R.string.cd_next_chapter), tint = Color.White)
+                                }
                             }
                         }
                     }
@@ -841,6 +980,8 @@ private fun ReaderPageImage(
     contentScale: ContentScale = ContentScale.FillWidth,
     zoomEnabled: Boolean = false,
     fillViewport: Boolean = false,
+    /** Single tap at (x, width); needed because the double-tap detector consumes taps. */
+    onTap: ((Float, Int) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val model = remember(page.imageUrl) {
@@ -888,8 +1029,9 @@ private fun ReaderPageImage(
                 .then(
                     if (zoomEnabled) {
                         Modifier
-                            .pointerInput(page.imageUrl) {
+                            .pointerInput(page.imageUrl, onTap) {
                                 detectTapGestures(
+                                    onTap = onTap?.let { tap -> { pos -> tap(pos.x, size.width) } },
                                     onDoubleTap = { pos ->
                                         if (state.scale > 1.1f) state.reset()
                                         else state.zoomTo(targetZoom, pos)
@@ -944,6 +1086,7 @@ private fun ReaderSettingsSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
             .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 28.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -988,19 +1131,19 @@ private fun ReaderSettingsSheet(
         Text(stringResource(R.string.reader_theme), color = AppColors.textSecondary, fontSize = 13.sp)
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ThemeChoice(
+            ChoiceChip(
                 label = stringResource(ReaderTheme.Light.labelRes),
                 selected = settings.theme == ReaderTheme.Light,
                 onClick = { onChange(settings.copy(theme = ReaderTheme.Light)) },
                 modifier = Modifier.weight(1f),
             )
-            ThemeChoice(
+            ChoiceChip(
                 label = stringResource(ReaderTheme.Dark.labelRes),
                 selected = settings.theme == ReaderTheme.Dark,
                 onClick = { onChange(settings.copy(theme = ReaderTheme.Dark)) },
                 modifier = Modifier.weight(1f),
             )
-            ThemeChoice(
+            ChoiceChip(
                 label = stringResource(ReaderTheme.System.labelRes),
                 selected = settings.theme == ReaderTheme.System,
                 onClick = { onChange(settings.copy(theme = ReaderTheme.System)) },
@@ -1017,26 +1160,68 @@ private fun ReaderSettingsSheet(
             value = settings.gap,
             onValueChange = { onChange(settings.copy(gap = it)) },
             valueRange = 0f..32f,
-            colors = SliderDefaults.colors(
-                thumbColor = Color.White,
-                activeTrackColor = Color.White,
-                inactiveTrackColor = AppColors.cardHigh,
-            ),
+            colors = lumeSliderColors(),
         )
-        SettingSwitchRow(
+        if (settings.mode == ReaderMode.Webtoon) {
+            Text(
+                stringResource(R.string.reader_side_padding, settings.sidePaddingPercent),
+                color = AppColors.textSecondary,
+                fontSize = 13.sp,
+            )
+            Slider(
+                value = settings.sidePaddingPercent.toFloat(),
+                onValueChange = { onChange(settings.copy(sidePaddingPercent = it.roundToInt())) },
+                valueRange = 0f..AppPreferences.MAX_SIDE_PADDING.toFloat(),
+                steps = AppPreferences.MAX_SIDE_PADDING / 5 - 1,
+                colors = lumeSliderColors(),
+            )
+        }
+        Text(
+            stringResource(R.string.reader_dim, (settings.dim * 100).roundToInt()),
+            color = AppColors.textSecondary,
+            fontSize = 13.sp,
+        )
+        Slider(
+            value = settings.dim,
+            onValueChange = { onChange(settings.copy(dim = it)) },
+            valueRange = 0f..AppPreferences.MAX_DIM,
+            colors = lumeSliderColors(),
+        )
+        SwitchRow(
+            label = stringResource(R.string.reader_immersive),
+            hint = stringResource(R.string.reader_immersive_hint),
+            checked = settings.immersive,
+            onCheckedChange = { onChange(settings.copy(immersive = it)) },
+        )
+        SwitchRow(
+            label = stringResource(R.string.reader_keep_screen_on),
+            checked = settings.keepScreenOn,
+            onCheckedChange = { onChange(settings.copy(keepScreenOn = it)) },
+        )
+        SwitchRow(
             label = stringResource(R.string.reader_double_tap_zoom),
             checked = settings.doubleTapZoom,
             onCheckedChange = { onChange(settings.copy(doubleTapZoom = it)) },
         )
-        SettingSwitchRow(
+        SwitchRow(
             label = stringResource(R.string.reader_hide_page_number),
             checked = settings.hidePageNumber,
             onCheckedChange = { onChange(settings.copy(hidePageNumber = it)) },
         )
-        SettingSwitchRow(
+        SwitchRow(
             label = stringResource(R.string.reader_seamless),
             checked = settings.seamlessReading,
             onCheckedChange = { onChange(settings.copy(seamlessReading = it)) },
+        )
+        SwitchRow(
+            label = stringResource(R.string.reader_volume_keys),
+            checked = settings.volumeKeys,
+            onCheckedChange = { onChange(settings.copy(volumeKeys = it)) },
+        )
+        SwitchRow(
+            label = stringResource(R.string.reader_tap_zones),
+            checked = settings.tapZones,
+            onCheckedChange = { onChange(settings.copy(tapZones = it)) },
         )
         Spacer(Modifier.height(8.dp))
         Text(
@@ -1060,15 +1245,22 @@ private fun ModeCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val background by animateColorAsState(
+        if (selected) AppColors.cardHigh else AppColors.card,
+        Motion.short(),
+        label = "modeBackground",
+    )
+    val border by animateColorAsState(
+        if (selected) AppColors.accent else Color.Transparent,
+        Motion.short(),
+        label = "modeBorder",
+    )
     Column(
         modifier = modifier
             .height(80.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) AppColors.cardHigh else AppColors.card)
-            .then(
-                if (selected) Modifier.border(1.dp, AppColors.accent, RoundedCornerShape(12.dp))
-                else Modifier,
-            )
+            .background(background)
+            .border(1.dp, border, RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1084,45 +1276,3 @@ private fun ModeCard(
     }
 }
 
-@Composable
-private fun ThemeChoice(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (selected) AppColors.cardHigh else AppColors.card)
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, color = AppColors.textPrimary, fontSize = 13.sp)
-    }
-}
-
-@Composable
-private fun SettingSwitchRow(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, color = AppColors.textPrimary, modifier = Modifier.weight(1f))
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = AppColors.accent,
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = AppColors.cardHigh,
-            ),
-        )
-    }
-}

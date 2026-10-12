@@ -12,14 +12,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.lume.app.LumeApp
+import com.lume.app.R
 import com.lume.app.ui.components.TitleListRow
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.theme.AppColors
-import androidx.compose.ui.res.stringResource
-import com.lume.app.R
+import com.lume.app.ui.theme.animatedItem
 
 @Composable
 fun HistoryScreen(nav: NavHostController) {
@@ -42,6 +43,7 @@ fun HistoryScreen(nav: NavHostController) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(history, key = { "${it.sourceId}:${it.titleId}" }) { item ->
                     TitleListRow(
+                        modifier = animatedItem(),
                         title = item.titleName,
                         coverUrl = item.coverUrl,
                         subtitle = item.chapterName,

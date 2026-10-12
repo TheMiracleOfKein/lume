@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.lume.app.LumeApp
 import com.lume.app.R
+import com.lume.app.data.network.AntiBot
 import com.lume.app.ui.theme.AppColors
 import java.net.URI
 
@@ -40,6 +41,14 @@ fun CloudflareChallengeOverlay(
 ) {
     val http = LumeApp.instance.http
     val siteReady = remember { mutableStateOf(value = false) }
+    val sawChallenge = remember { mutableStateOf(value = false) }
+    val finished = remember { mutableStateOf(value = false) }
+    fun finish() {
+        if (finished.value) return
+        finished.value = true
+        http.syncWebViewCookies(uri.toString())
+        onSolved()
+    }
     val hint = if (siteReady.value) {
         stringResource(R.string.cf_ready_hint)
     } else {
@@ -78,20 +87,21 @@ fun CloudflareChallengeOverlay(
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
                     settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+                    // cf_clearance is bound to the UA that solved it: use the app's UA, not the WebView's.
+                    settings.userAgentString = http.userAgent
                     CookieManager.getInstance().setAcceptCookie(true)
                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                     webViewClient = object : WebViewClient() {
                         override fun onPageFinished(view: WebView?, url: String?) {
-                            val title = view?.title.orEmpty().lowercase()
-                            val isChallenge = title.contains("just a moment") ||
-                                title.contains("attention required") ||
-                                title.contains("cloudflare")
-                            if (!isChallenge) {
-                                siteReady.value = true
+                            if (AntiBot.isChallengePageTitle(view?.title)) {
+                                sawChallenge.value = true
+                                return
                             }
+                            siteReady.value = true
+                            // The challenge redirected to the real site: clearance cookie is set.
+                            if (sawChallenge.value) view?.postDelayed({ finish() }, AUTO_CONTINUE_DELAY_MS)
                         }
                     }
-                    http.setUserAgent(settings.userAgentString)
                     loadUrl(origin)
                 }
             },
@@ -106,10 +116,7 @@ fun CloudflareChallengeOverlay(
                 Text(stringResource(R.string.action_cancel), color = AppColors.textSecondary)
             }
             Button(
-                onClick = {
-                    http.syncWebViewCookies(origin)
-                    onSolved()
-                },
+                onClick = { finish() },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AppColors.accent,
                     contentColor = Color.Black,
@@ -118,3 +125,5 @@ fun CloudflareChallengeOverlay(
         }
     }
 }
+
+private const val AUTO_CONTINUE_DELAY_MS = 800L
