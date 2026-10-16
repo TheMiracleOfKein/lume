@@ -34,8 +34,8 @@ android {
         applicationId = "com.lume.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 3
+        versionName = "0.3.0"
 
         // OAuth app credentials for AniList / Shikimori (identify Lume itself).
         // Put values in root local.properties (gitignored), e.g. LUME_SHIKIMORI_CLIENT_ID=...
@@ -47,7 +47,9 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8: smaller, faster release builds. Kept in its own commit so it is easy to revert.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -117,6 +119,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.datastore.preferences)
     implementation(libs.androidx.work.runtime.ktx)
+    // Installs app/src/main/baseline-prof.txt on sideloaded installs too (Play does it itself).
+    implementation(libs.androidx.profileinstaller)
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
 }

@@ -1,0 +1,46 @@
+# Lume baseline profile: code on the startup -> Home -> Title -> Reader path is compiled ahead of
+# time, so first launches and first screen transitions do not run interpreted / JIT code.
+# Hand-written rules (wildcards); regenerate with a Macrobenchmark module for a measured profile.
+
+# App start
+HSPLcom/lume/app/LumeApp;->**(**)**
+HSPLcom/lume/app/MainActivity;->**(**)**
+HSPLcom/lume/app/data/prefs/AppPreferences;->**(**)**
+HSPLcom/lume/app/data/prefs/ReaderSettings;->**(**)**
+HSPLcom/lume/app/data/source/SourceRegistry;->**(**)**
+HSPLcom/lume/app/data/source/DispatchingSource;->**(**)**
+HSPLcom/lume/app/data/source/ImageHostTrackingSource;->**(**)**
+HSPLcom/lume/app/data/network/**;->**(**)**
+HSPLcom/lume/app/data/db/**;->**(**)**
+HSPLcom/lume/app/domain/**;->**(**)**
+
+# Shell, theme, navigation
+HSPLcom/lume/app/ui/shell/**;->**(**)**
+HSPLcom/lume/app/ui/theme/**;->**(**)**
+HSPLcom/lume/app/ui/nav/**;->**(**)**
+HSPLcom/lume/app/ui/components/**;->**(**)**
+
+# Home -> Title -> Chapters -> Reader
+HSPLcom/lume/app/ui/screens/HomeScreen*;->**(**)**
+HSPLcom/lume/app/ui/screens/HomeViewModel;->**(**)**
+HSPLcom/lume/app/ui/screens/CatalogScreen*;->**(**)**
+HSPLcom/lume/app/ui/screens/CatalogViewModel;->**(**)**
+HSPLcom/lume/app/ui/screens/CatalogFeed;->**(**)**
+HSPLcom/lume/app/ui/screens/LibraryScreen*;->**(**)**
+HSPLcom/lume/app/ui/screens/TitleScreen*;->**(**)**
+HSPLcom/lume/app/ui/screens/TitleViewModel;->**(**)**
+HSPLcom/lume/app/ui/screens/TitleBackedViewModel;->**(**)**
+HSPLcom/lume/app/ui/screens/ChaptersScreen*;->**(**)**
+HSPLcom/lume/app/ui/screens/ChaptersViewModel;->**(**)**
+HSPLcom/lume/app/ui/screens/ReaderScreen*;->**(**)**
+HSPLcom/lume/app/ui/screens/ReaderViewModel;->**(**)**
+HSPLcom/lume/app/ui/screens/ReaderPosition*;->**(**)**
+HSPLcom/lume/app/data/title/**;->**(**)**
+HSPLcom/lume/app/data/offline/**;->**(**)**
+HSPLcom/lume/app/data/downloads/**;->**(**)**
+
+# Classes loaded at startup
+Lcom/lume/app/LumeApp;
+Lcom/lume/app/MainActivity;
+Lcom/lume/app/ui/shell/**;
+Lcom/lume/app/ui/theme/**;
