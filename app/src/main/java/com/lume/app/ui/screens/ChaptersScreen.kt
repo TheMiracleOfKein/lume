@@ -53,7 +53,7 @@ import com.lume.app.ui.components.ErrorRetryBox
 import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
 import com.lume.app.ui.components.loadStateOf
-import com.lume.app.ui.nav.Routes
+import com.lume.app.ui.nav.openReader
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.animatedItem
 
@@ -66,6 +66,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
     val readIds by vm.readIds.collectAsState()
     val downloadedIds by vm.downloadedIds.collectAsState()
     val currentChapterId by vm.currentChapterId.collectAsState()
+    val partialProgress by vm.partialProgress.collectAsState()
     var selectMode by rememberSaveable { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     val queueItems by LumeApp.instance.downloadQueue.items.collectAsState()
@@ -193,7 +194,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                             selectedIds + chapter.id
                                         }
                                     } else {
-                                        nav.navigate(Routes.reader(sourceId, titleId, chapter.id))
+                                        nav.openReader(sourceId, titleId, chapter.id)
                                     }
                                 }
                                 .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -215,8 +216,13 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                             }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(chapter.title, color = AppColors.textPrimary, fontSize = 14.sp)
-                                chapter.dateLabel?.let {
-                                    Text(it, color = AppColors.textTertiary, fontSize = 11.sp)
+                                val partial = partialProgress[chapter.id]
+                                val meta = listOfNotNull(
+                                    chapter.dateLabel,
+                                    partial?.let { stringResource(R.string.chapter_progress_pages, it.pageIndex + 1, it.pageCount) },
+                                ).joinToString(" · ")
+                                if (meta.isNotEmpty()) {
+                                    Text(meta, color = AppColors.textTertiary, fontSize = 11.sp)
                                 }
                             }
                             when {

@@ -73,7 +73,7 @@ class LumeApp : Application(), ImageLoaderFactory {
         database = Room.databaseBuilder(this, LumeDatabase::class.java, "lume.db")
             // Prefer additive migrations; destructive wipes library/download metadata.
             .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
-            .addMigrations(LumeDatabase.MIGRATION_5_6)
+            .addMigrations(LumeDatabase.MIGRATION_5_6, LumeDatabase.MIGRATION_6_7)
             .build()
         prefs = AppPreferences(this)
         libAuth = LibAuthStore(this)

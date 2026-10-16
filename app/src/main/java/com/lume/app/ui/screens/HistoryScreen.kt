@@ -18,7 +18,7 @@ import androidx.navigation.NavHostController
 import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.ui.components.TitleListRow
-import com.lume.app.ui.nav.Routes
+import com.lume.app.ui.nav.openReader
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.animatedItem
 
@@ -49,7 +49,7 @@ fun HistoryScreen(nav: NavHostController) {
                         subtitle = item.chapterName,
                         typeLabel = item.typeLabel,
                         onClick = {
-                            nav.navigate(Routes.reader(item.sourceId, item.titleId, item.chapterId))
+                            nav.openReader(item.sourceId, item.titleId, item.chapterId, item.pageIndex, item.pageOffset)
                         },
                     )
                 }

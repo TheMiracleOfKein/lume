@@ -59,6 +59,7 @@ import com.lume.app.ui.components.QuickSearchBar
 import com.lume.app.ui.components.SectionHeader
 import com.lume.app.ui.components.TitleListRow
 import com.lume.app.ui.nav.Routes
+import com.lume.app.ui.nav.openReader
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.animatedItem
 import kotlinx.coroutines.launch
@@ -232,8 +233,12 @@ fun HomeScreen(nav: NavHostController) {
                                 ) {
                                     items(history.take(20), key = { "${it.sourceId}:${it.titleId}" }) { item ->
                                         ContinueCard(item) {
-                                            nav.navigate(
-                                                Routes.reader(item.sourceId, item.titleId, item.chapterId),
+                                            nav.openReader(
+                                                item.sourceId,
+                                                item.titleId,
+                                                item.chapterId,
+                                                item.pageIndex,
+                                                item.pageOffset,
                                             )
                                         }
                                     }

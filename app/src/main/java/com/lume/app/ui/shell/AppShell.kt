@@ -196,13 +196,18 @@ fun AppShell(nav: NavHostController) {
                         navArgument("sourceId") { type = NavType.StringType },
                         navArgument("titleId") { type = NavType.StringType },
                         navArgument("chapterId") { type = NavType.StringType },
+                        navArgument("page") { type = NavType.IntType; defaultValue = -1 },
+                        navArgument("offset") { type = NavType.FloatType; defaultValue = -1f },
                     ),
                 ) { entry ->
+                    val args = entry.arguments!!
                     ReaderScreen(
                         nav = nav,
-                        sourceId = entry.arguments!!.getString("sourceId")!!,
-                        titleId = entry.arguments!!.getString("titleId")!!,
-                        chapterId = entry.arguments!!.getString("chapterId")!!,
+                        sourceId = args.getString("sourceId")!!,
+                        titleId = args.getString("titleId")!!,
+                        chapterId = args.getString("chapterId")!!,
+                        page = args.getInt("page").takeIf { it >= 0 },
+                        offset = args.getFloat("offset").takeIf { it >= 0f },
                     )
                 }
             }

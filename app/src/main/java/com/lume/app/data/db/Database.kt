@@ -1,8 +1,10 @@
 package com.lume.app.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
@@ -37,6 +39,45 @@ data class ProgressEntity(
     val pageIndex: Int = 0,
     val pageCount: Int = 0,
     val updatedAt: Long = System.currentTimeMillis(),
+    /** Fraction (0..1) of page [pageIndex]'s height scrolled past; see `ReaderAnchor`. */
+    @ColumnInfo(defaultValue = "0")
+    val pageOffset: Float = 0f,
+)
+
+/**
+ * Where you are inside one chapter. Each chapter keeps its own spot, so peeking at another
+ * chapter no longer erases the one you were reading. [ProgressEntity] stays the title-level
+ * "Continue" pointer.
+ */
+@Entity(tableName = "chapter_progress", primaryKeys = ["sourceId", "titleId", "chapterId"])
+data class ChapterProgressEntity(
+    val sourceId: String,
+    val titleId: String,
+    val chapterId: String,
+    val pageIndex: Int = 0,
+    /** Fraction (0..1) of the page's height scrolled past. */
+    val pageOffset: Float = 0f,
+    val pageCount: Int = 0,
+    /** The position is at the end of the chapter (opening it again starts from the top). */
+    val completed: Boolean = false,
+    /** JSON array of width/height per page (0 = not measured yet), so placeholders get real sizes. */
+    val pageAspectsJson: String = "[]",
+    val updatedAt: Long = System.currentTimeMillis(),
+)
+
+/** A spot the reader pinned by hand, with an optional note. */
+@Entity(tableName = "page_bookmarks", indices = [Index("sourceId", "titleId")])
+data class PageBookmarkEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val sourceId: String,
+    val titleId: String,
+    val chapterId: String,
+    val chapterName: String,
+    val pageIndex: Int,
+    val pageOffset: Float = 0f,
+    val pageImageUrl: String? = null,
+    val note: String? = null,
+    val createdAt: Long = System.currentTimeMillis(),
 )
 
 @Entity(tableName = "chapter_read", primaryKeys = ["sourceId", "titleId", "chapterId"])
@@ -182,6 +223,38 @@ interface LibraryDao {
     @Query("SELECT chapterId FROM chapter_read WHERE sourceId = :sourceId AND titleId = :titleId")
     fun observeReadChapterIds(sourceId: String, titleId: String): Flow<List<String>>
 
+    @Query("SELECT * FROM chapter_read")
+    suspend fun allChapterRead(): List<ChapterReadEntity>
+
+    // Per-chapter progress
+    @Query("SELECT * FROM chapter_progress WHERE sourceId = :sourceId AND titleId = :titleId AND chapterId = :chapterId LIMIT 1")
+    suspend fun getChapterProgress(sourceId: String, titleId: String, chapterId: String): ChapterProgressEntity?
+
+    @Query("SELECT * FROM chapter_progress WHERE sourceId = :sourceId AND titleId = :titleId")
+    fun observeChapterProgress(sourceId: String, titleId: String): Flow<List<ChapterProgressEntity>>
+
+    @Query("SELECT * FROM chapter_progress")
+    suspend fun allChapterProgress(): List<ChapterProgressEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertChapterProgress(item: ChapterProgressEntity)
+
+    // Page bookmarks
+    @Query("SELECT * FROM page_bookmarks WHERE sourceId = :sourceId AND titleId = :titleId ORDER BY createdAt DESC")
+    fun observePageBookmarks(sourceId: String, titleId: String): Flow<List<PageBookmarkEntity>>
+
+    @Query("SELECT * FROM page_bookmarks ORDER BY createdAt ASC")
+    suspend fun allPageBookmarks(): List<PageBookmarkEntity>
+
+    @Insert
+    suspend fun insertPageBookmark(item: PageBookmarkEntity): Long
+
+    @Query("UPDATE page_bookmarks SET note = :note WHERE id = :id")
+    suspend fun updatePageBookmarkNote(id: Long, note: String?)
+
+    @Query("DELETE FROM page_bookmarks WHERE id = :id")
+    suspend fun deletePageBookmark(id: Long)
+
     @Query("SELECT * FROM downloads ORDER BY downloadedAt DESC")
     fun observeDownloads(): Flow<List<DownloadEntity>>
 
@@ -322,9 +395,11 @@ interface LibraryDao {
         TrackerLinkEntity::class,
         DownloadQueueEntity::class,
         OfflineTitleCacheEntity::class,
+        ChapterProgressEntity::class,
+        PageBookmarkEntity::class,
     ],
-    version = 6,
-    exportSchema = false,
+    version = 7,
+    exportSchema = true,
 )
 abstract class LumeDatabase : RoomDatabase() {
     abstract fun libraryDao(): LibraryDao
@@ -342,6 +417,56 @@ abstract class LumeDatabase : RoomDatabase() {
                         updatedAt INTEGER NOT NULL,
                         PRIMARY KEY(sourceId, titleId)
                     )
+                    """.trimIndent(),
+                )
+            }
+        }
+
+        /** Exact in-chapter resume and page bookmarks. Additive; existing progress is kept. */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE reading_progress ADD COLUMN pageOffset REAL NOT NULL DEFAULT 0")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS chapter_progress (
+                        sourceId TEXT NOT NULL,
+                        titleId TEXT NOT NULL,
+                        chapterId TEXT NOT NULL,
+                        pageIndex INTEGER NOT NULL,
+                        pageOffset REAL NOT NULL,
+                        pageCount INTEGER NOT NULL,
+                        completed INTEGER NOT NULL,
+                        pageAspectsJson TEXT NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        PRIMARY KEY(sourceId, titleId, chapterId)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS page_bookmarks (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        sourceId TEXT NOT NULL,
+                        titleId TEXT NOT NULL,
+                        chapterId TEXT NOT NULL,
+                        chapterName TEXT NOT NULL,
+                        pageIndex INTEGER NOT NULL,
+                        pageOffset REAL NOT NULL,
+                        pageImageUrl TEXT,
+                        note TEXT,
+                        createdAt INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_page_bookmarks_sourceId_titleId ON page_bookmarks (sourceId, titleId)",
+                )
+                // The chapter each title was last read in keeps its page.
+                db.execSQL(
+                    """
+                    INSERT OR IGNORE INTO chapter_progress
+                        (sourceId, titleId, chapterId, pageIndex, pageOffset, pageCount, completed, pageAspectsJson, updatedAt)
+                    SELECT sourceId, titleId, chapterId, pageIndex, 0, pageCount, 0, '[]', updatedAt FROM reading_progress
                     """.trimIndent(),
                 )
             }

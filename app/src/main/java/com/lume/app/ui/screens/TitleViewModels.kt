@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.BookmarkEntity
+import com.lume.app.data.db.ChapterProgressEntity
+import com.lume.app.data.db.PageBookmarkEntity
 import com.lume.app.data.db.ProgressEntity
 import com.lume.app.data.db.TrackerLinkEntity
 import com.lume.app.data.locale.appString
@@ -116,6 +118,11 @@ class TitleViewModel(sourceId: String, titleId: String) : TitleBackedViewModel(s
     val inLibrary: StateFlow<Boolean> = dao.observeIsBookmarked(sourceId, titleId).state(false)
     val progress: StateFlow<ProgressEntity?> = dao.observeProgress(sourceId, titleId).state(null)
     val trackerLinks: StateFlow<List<TrackerLinkEntity>> = dao.observeTrackerLinks(sourceId, titleId).state(emptyList())
+    val pageBookmarks: StateFlow<List<PageBookmarkEntity>> = dao.observePageBookmarks(sourceId, titleId).state(emptyList())
+
+    fun deletePageBookmark(id: Long) {
+        viewModelScope.launch { dao.deletePageBookmark(id) }
+    }
 
     init {
         viewModelScope.launch {
@@ -151,6 +158,15 @@ class ChaptersViewModel(sourceId: String, titleId: String) : TitleBackedViewMode
         dao.observeReadChapterIds(sourceId, titleId).map { it.toSet() }.state(emptySet())
     val currentChapterId: StateFlow<String?> =
         dao.observeProgress(sourceId, titleId).map { it?.chapterId }.state(null)
+
+    /** Chapters started but not finished, for the "p. 12 / 40" hint. */
+    val partialProgress: StateFlow<Map<String, ChapterProgressEntity>> =
+        dao.observeChapterProgress(sourceId, titleId)
+            .map { rows ->
+                rows.filter { !it.completed && it.pageCount > 0 && (it.pageIndex > 0 || it.pageOffset > 0.02f) }
+                    .associateBy { it.chapterId }
+            }
+            .state(emptyMap())
 
     /** Re-read whenever the queue changes, so finished downloads get their tick. */
     val downloadedIds: StateFlow<Set<String>> =

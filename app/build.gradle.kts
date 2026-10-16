@@ -88,6 +88,11 @@ android {
     }
 }
 
+// Exported Room schemas (app/schemas) make future migrations reviewable and testable.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

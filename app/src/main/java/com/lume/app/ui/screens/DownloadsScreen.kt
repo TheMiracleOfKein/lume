@@ -51,6 +51,7 @@ import com.lume.app.data.db.DownloadEntity
 import com.lume.app.data.db.DownloadQueueEntity
 import com.lume.app.ui.components.CoverImage
 import com.lume.app.ui.nav.Routes
+import com.lume.app.ui.nav.openReader
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 import com.lume.app.ui.theme.animatedItem
@@ -266,13 +267,7 @@ fun DownloadsScreen(nav: NavHostController) {
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clickable {
-                                                    nav.navigate(
-                                                        Routes.reader(
-                                                            item.sourceId,
-                                                            item.titleId,
-                                                            item.chapterId,
-                                                        ),
-                                                    )
+                                                    nav.openReader(item.sourceId, item.titleId, item.chapterId)
                                                 }
                                                 .padding(start = 76.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
                                             verticalAlignment = Alignment.CenterVertically,

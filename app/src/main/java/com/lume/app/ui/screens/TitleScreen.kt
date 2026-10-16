@@ -40,6 +40,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,7 +69,9 @@ import com.lume.app.ui.components.LoadingBox
 import com.lume.app.ui.components.loadStateOf
 import com.lume.app.ui.components.openInBrowser
 import com.lume.app.ui.components.shareLink
+import com.lume.app.ui.components.PageBookmarkRow
 import com.lume.app.ui.nav.Routes
+import com.lume.app.ui.nav.openReader
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 import kotlinx.coroutines.launch
@@ -83,6 +86,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
     val bookmarked by vm.inLibrary.collectAsState()
     val progressState by vm.progress.collectAsState()
     val links by vm.trackerLinks.collectAsState()
+    val pageBookmarks by vm.pageBookmarks.collectAsState()
     var showTrackers by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -194,11 +198,15 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                 Spacer(Modifier.height(12.dp))
                                 Button(
                                     onClick = {
-                                        // No progress yet: start from the first chapter, not the newest one.
-                                        val chId = progressState?.chapterId
-                                            ?: chapters.inReadingOrder().firstOrNull()?.id
-                                        if (chId != null) {
-                                            nav.navigate(Routes.reader(sourceId, titleId, chId))
+                                        val p = progressState
+                                        if (p != null) {
+                                            // The exact spot, even if that chapter's own row says "finished".
+                                            nav.openReader(sourceId, titleId, p.chapterId, p.pageIndex, p.pageOffset)
+                                        } else {
+                                            // No progress yet: start from the first chapter, not the newest one.
+                                            chapters.inReadingOrder().firstOrNull()?.let {
+                                                nav.openReader(sourceId, titleId, it.id)
+                                            }
                                         }
                                     },
                                     colors = ButtonDefaults.buttonColors(
@@ -253,6 +261,34 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                             .background(AppColors.card)
                                             .padding(horizontal = 10.dp, vertical = 6.dp),
                                     )
+                                }
+                            }
+                        }
+                        if (pageBookmarks.isNotEmpty()) {
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                stringResource(R.string.bookmarks_title),
+                                color = AppColors.textPrimary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Column {
+                                pageBookmarks.forEach { bookmark ->
+                                    key(bookmark.id) {
+                                        PageBookmarkRow(
+                                            bookmark = bookmark,
+                                            onOpen = {
+                                                nav.openReader(
+                                                    sourceId,
+                                                    titleId,
+                                                    bookmark.chapterId,
+                                                    bookmark.pageIndex,
+                                                    bookmark.pageOffset,
+                                                )
+                                            },
+                                            onDelete = { vm.deletePageBookmark(bookmark.id) },
+                                        )
+                                    }
                                 }
                             }
                         }
