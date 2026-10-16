@@ -1,6 +1,14 @@
 package com.lume.app.ui.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.togetherWith
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -361,6 +369,10 @@ fun loadStateOf(loading: Boolean, error: String?, isEmpty: Boolean = false): Loa
 /**
  * Cross-fades between loading / error / empty / content with the app-wide [Motion] spec, so
  * every screen swaps state the same way instead of popping.
+ *
+ * During the first [Motion.MEDIUM] ms (while the screen itself is still sliding in) a loading
+ * state shows nothing and a change is instant: content that is ready almost at once — cached
+ * data, a ViewModel kept across Back — appears without a spinner flash or a second animation.
  */
 @Composable
 fun AnimatedLoadState(
@@ -368,12 +380,20 @@ fun AnimatedLoadState(
     modifier: Modifier = Modifier,
     content: @Composable (LoadState) -> Unit,
 ) {
+    var settled by remember { mutableStateOf(state != LoadState.Loading) }
+    LaunchedEffect(Unit) {
+        delay(Motion.MEDIUM.toLong())
+        settled = true
+    }
+    val swap = Motion.contentSwap<LoadState>()
     AnimatedContent(
         targetState = state,
         modifier = modifier,
-        transitionSpec = Motion.contentSwap(),
+        transitionSpec = { if (settled) swap() else EnterTransition.None togetherWith ExitTransition.None },
         label = "loadState",
-    ) { target -> content(target) }
+    ) { target ->
+        if (target == LoadState.Loading && !settled) Box(Modifier.fillMaxSize()) else content(target)
+    }
 }
 
 /** Small empty-state message, centered. */

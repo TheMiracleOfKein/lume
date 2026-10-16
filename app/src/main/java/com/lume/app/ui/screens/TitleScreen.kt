@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.lume.app.ui.components.LumeInsets
 import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.tracker.TrackerSearchResult
@@ -91,6 +92,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
 
     Scaffold(
         containerColor = AppColors.background,
+        contentWindowInsets = LumeInsets.scaffold,
         topBar = {
             TopAppBar(
                 title = {
@@ -135,6 +137,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         )
                     }
                 },
+                windowInsets = LumeInsets.topBar,
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),
             )
         },

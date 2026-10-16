@@ -1,5 +1,8 @@
 package com.lume.app.ui.screens
 
+import androidx.compose.foundation.layout.PaddingValues
+import com.lume.app.ui.components.LumeInsets
+import com.lume.app.ui.components.LocalShellBottomPadding
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,7 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -84,7 +87,7 @@ fun LibraryScreen(nav: NavHostController) {
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.background)
-            .statusBarsPadding(),
+            .windowInsetsPadding(LumeInsets.statusBar),
     ) {
         if (!online) {
             Text(
@@ -135,7 +138,7 @@ fun LibraryScreen(nav: NavHostController) {
                     fontSize = 15.sp,
                 )
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalShellBottomPadding.current)) {
                     items(filtered, key = { "${it.sourceId}:${it.titleId}" }) { item ->
                         val meta = metaMap["${item.sourceId}:${item.titleId}"]
                         val showNew = (meta?.unreadNewCount ?: 0) > 0
@@ -224,7 +227,8 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
     Text(
         text = label,
         color = color,
-        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+        // Same weight either way: a bolder label is wider and would shove the chips beside it.
+        fontWeight = FontWeight.Medium,
         fontSize = 13.sp,
         modifier = Modifier
             .padding(end = 8.dp)

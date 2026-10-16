@@ -25,6 +25,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -42,6 +45,7 @@ import coil.compose.AsyncImage
 import com.lume.app.R
 import com.lume.app.data.db.PageBookmarkEntity
 import com.lume.app.ui.theme.AppColors
+import kotlinx.coroutines.flow.first
 import java.io.File
 
 /**
@@ -79,12 +83,13 @@ fun PageBookmarkRow(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val dismiss = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value != SwipeToDismissBoxValue.Settled) onDelete()
-            value != SwipeToDismissBoxValue.Settled
-        },
-    )
+    val dismiss = rememberSwipeToDismissBoxState()
+    val currentOnDelete by rememberUpdatedState(onDelete)
+    LaunchedEffect(dismiss) {
+        snapshotFlow { dismiss.currentValue }
+            .first { it != SwipeToDismissBoxValue.Settled }
+        currentOnDelete()
+    }
     SwipeToDismissBox(
         state = dismiss,
         modifier = modifier,

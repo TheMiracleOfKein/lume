@@ -1,6 +1,7 @@
 package com.lume.app.data.prefs
 
 import android.content.Context
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -9,8 +10,13 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.lume.app.domain.ReaderMode
 import com.lume.app.domain.ReaderTheme
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.runBlocking
 
 private val Context.appDataStore by preferencesDataStore("lume_prefs")
 
@@ -38,7 +44,12 @@ data class ReaderSettings(
     val dim: Float = 0f,
 )
 
-class AppPreferences(private val context: Context) {
+/**
+ * Every preference is a [StateFlow] that already holds the stored value: the file is read once,
+ * synchronously, when the app starts. Screens read `.value` on their first frame, so switches,
+ * expanded sections and the theme never start from a default and then animate to the real value.
+ */
+class AppPreferences(private val context: Context, private val scope: CoroutineScope) {
     private val darkThemeKey = booleanPreferencesKey("dark_theme")
     private val activeSourceKey = stringPreferencesKey("active_source_id")
     private val readerModeKey = intPreferencesKey("reader_mode")
@@ -69,26 +80,31 @@ class AppPreferences(private val context: Context) {
     private val shikiClientIdKey = stringPreferencesKey("shikimori_client_id")
     private val shikiClientSecretKey = stringPreferencesKey("shikimori_client_secret")
 
-    val darkTheme: Flow<Boolean> = context.appDataStore.data.map { it[darkThemeKey] ?: true }
+    private val initial: Preferences = runBlocking { context.appDataStore.data.first() }
+    private val current: StateFlow<Preferences> =
+        context.appDataStore.data.stateIn(scope, SharingStarted.Eagerly, initial)
 
-    val activeSourceId: Flow<String?> = context.appDataStore.data.map { it[activeSourceKey] }
+    private fun <T> state(read: (Preferences) -> T): StateFlow<T> =
+        current.map(read).stateIn(scope, SharingStarted.Eagerly, read(initial))
 
-    val libraryUpdatesEnabled: Flow<Boolean> =
-        context.appDataStore.data.map { it[libraryUpdatesKey] ?: false }
+    val darkTheme: StateFlow<Boolean> = state { it[darkThemeKey] ?: true }
+
+    val activeSourceId: StateFlow<String?> = state { it[activeSourceKey] }
+
+    val libraryUpdatesEnabled: StateFlow<Boolean> = state { it[libraryUpdatesKey] ?: false }
 
     /** "system" | "en" | "ru" | … — see [com.lume.app.data.locale.AppLanguage]. */
-    val appLanguage: Flow<String> =
-        context.appDataStore.data.map { it[appLanguageKey] ?: "system" }
+    val appLanguage: StateFlow<String> = state { it[appLanguageKey] ?: "system" }
 
-    val anilistAccessToken: Flow<String?> = context.appDataStore.data.map { it[anilistTokenKey] }
-    val anilistClientId: Flow<String?> = context.appDataStore.data.map { it[anilistClientIdKey] }
-    val anilistClientSecret: Flow<String?> = context.appDataStore.data.map { it[anilistClientSecretKey] }
-    val shikimoriAccessToken: Flow<String?> = context.appDataStore.data.map { it[shikiTokenKey] }
-    val shikimoriUserId: Flow<String?> = context.appDataStore.data.map { it[shikiUserIdKey] }
-    val shikimoriClientId: Flow<String?> = context.appDataStore.data.map { it[shikiClientIdKey] }
-    val shikimoriClientSecret: Flow<String?> = context.appDataStore.data.map { it[shikiClientSecretKey] }
+    val anilistAccessToken: StateFlow<String?> = state { it[anilistTokenKey] }
+    val anilistClientId: StateFlow<String?> = state { it[anilistClientIdKey] }
+    val anilistClientSecret: StateFlow<String?> = state { it[anilistClientSecretKey] }
+    val shikimoriAccessToken: StateFlow<String?> = state { it[shikiTokenKey] }
+    val shikimoriUserId: StateFlow<String?> = state { it[shikiUserIdKey] }
+    val shikimoriClientId: StateFlow<String?> = state { it[shikiClientIdKey] }
+    val shikimoriClientSecret: StateFlow<String?> = state { it[shikiClientSecretKey] }
 
-    val readerSettings: Flow<ReaderSettings> = context.appDataStore.data.map { prefs ->
+    val readerSettings: StateFlow<ReaderSettings> = state { prefs ->
         val modeIndex = prefs[readerModeKey] ?: ReaderMode.Webtoon.prefsIndex
         val themeIndex = prefs[readerThemeKey] ?: ReaderTheme.Dark.ordinal
         ReaderSettings(
@@ -108,11 +124,10 @@ class AppPreferences(private val context: Context) {
     }
 
     /** Hours between background library checks (one of [LIBRARY_INTERVALS]). */
-    val libraryUpdateIntervalHours: Flow<Int> =
-        context.appDataStore.data.map { it[libraryIntervalKey]?.takeIf { h -> h in LIBRARY_INTERVALS } ?: 6 }
-    val libraryUpdateWifiOnly: Flow<Boolean> = context.appDataStore.data.map { it[libraryWifiOnlyKey] ?: false }
-    val downloadsWifiOnly: Flow<Boolean> = context.appDataStore.data.map { it[downloadsWifiOnlyKey] ?: false }
-    val globalSearchNsfw: Flow<Boolean> = context.appDataStore.data.map { it[globalSearchNsfwKey] ?: true }
+    val libraryUpdateIntervalHours: StateFlow<Int> = state { it[libraryIntervalKey]?.takeIf { h -> h in LIBRARY_INTERVALS } ?: 6 }
+    val libraryUpdateWifiOnly: StateFlow<Boolean> = state { it[libraryWifiOnlyKey] ?: false }
+    val downloadsWifiOnly: StateFlow<Boolean> = state { it[downloadsWifiOnlyKey] ?: false }
+    val globalSearchNsfw: StateFlow<Boolean> = state { it[globalSearchNsfwKey] ?: true }
 
     suspend fun setLibraryUpdateIntervalHours(hours: Int) {
         context.appDataStore.edit { it[libraryIntervalKey] = hours }

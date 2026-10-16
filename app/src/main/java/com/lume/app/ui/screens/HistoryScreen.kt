@@ -1,9 +1,12 @@
 package com.lume.app.ui.screens
 
+import androidx.compose.foundation.layout.PaddingValues
+import com.lume.app.ui.components.LumeInsets
+import com.lume.app.ui.components.LocalShellBottomPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
@@ -30,7 +33,7 @@ fun HistoryScreen(nav: NavHostController) {
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.background)
-            .statusBarsPadding(),
+            .windowInsetsPadding(LumeInsets.statusBar),
         contentAlignment = Alignment.Center,
     ) {
         if (history.isEmpty()) {
@@ -40,7 +43,7 @@ fun HistoryScreen(nav: NavHostController) {
                 fontSize = 15.sp,
             )
         } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalShellBottomPadding.current)) {
                 items(history, key = { "${it.sourceId}:${it.titleId}" }) { item ->
                     TitleListRow(
                         modifier = animatedItem(),

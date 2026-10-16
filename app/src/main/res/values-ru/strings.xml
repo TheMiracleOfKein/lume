@@ -290,4 +290,5 @@
     <string name="chapter_progress_pages">стр. %1$d / %2$d</string>
     <string name="action_delete">Удалить</string>
     <string name="page_load_failed">Не удалось загрузить страницу</string>
+    <string name="search_no_results_in">Нет результатов: %1$s</string>
 </resources>

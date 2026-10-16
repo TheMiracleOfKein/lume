@@ -45,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.lume.app.ui.components.LumeInsets
 import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.DownloadEntity
@@ -54,7 +55,7 @@ import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.nav.openReader
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
-import com.lume.app.ui.theme.animatedItem
+import com.lume.app.ui.theme.fadingItem
 import kotlinx.coroutines.launch
 
 private data class DownloadTitleGroup(
@@ -99,6 +100,7 @@ fun DownloadsScreen(nav: NavHostController) {
 
     Scaffold(
         containerColor = AppColors.background,
+        contentWindowInsets = LumeInsets.scaffold,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.downloads_title), color = AppColors.textPrimary) },
@@ -107,6 +109,7 @@ fun DownloadsScreen(nav: NavHostController) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = AppColors.textPrimary)
                     }
                 },
+                windowInsets = LumeInsets.topBar,
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),
             )
         },
@@ -134,7 +137,7 @@ fun DownloadsScreen(nav: NavHostController) {
                         }
                         items(activeQueue, key = { "q-${it.id}" }) { item ->
                             Row(
-                                modifier = animatedItem()
+                                modifier = fadingItem()
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -173,7 +176,7 @@ fun DownloadsScreen(nav: NavHostController) {
                         }
                         items(failedQueue, key = { "f-${it.id}" }) { item ->
                             Row(
-                                modifier = animatedItem()
+                                modifier = fadingItem()
                                     .fillMaxWidth()
                                     .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -199,7 +202,7 @@ fun DownloadsScreen(nav: NavHostController) {
                     items(groups, key = { "${it.sourceId}:${it.titleId}" }) { group ->
                         val key = "${group.sourceId}|${group.titleId}"
                         val isOpen = key in expanded
-                        Column(modifier = animatedItem().fillMaxWidth()) {
+                        Column(modifier = fadingItem().fillMaxWidth()) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()

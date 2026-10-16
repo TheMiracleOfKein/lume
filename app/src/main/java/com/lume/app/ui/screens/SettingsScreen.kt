@@ -55,6 +55,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.lume.app.ui.components.LumeInsets
 import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.library.LibraryUpdateWorker
@@ -75,16 +76,16 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(nav: NavHostController) {
     val prefs = LumeApp.instance.prefs
-    val darkTheme by prefs.darkTheme.collectAsState(initial = true)
-    val libraryUpdates by prefs.libraryUpdatesEnabled.collectAsState(initial = false)
-    val libraryInterval by prefs.libraryUpdateIntervalHours.collectAsState(initial = 6)
-    val libraryWifiOnly by prefs.libraryUpdateWifiOnly.collectAsState(initial = false)
-    val downloadsWifiOnly by prefs.downloadsWifiOnly.collectAsState(initial = false)
-    val searchNsfw by prefs.globalSearchNsfw.collectAsState(initial = true)
-    val reader by prefs.readerSettings.collectAsState(initial = ReaderSettings())
-    val appLanguageTag by prefs.appLanguage.collectAsState(initial = "system")
-    val anilistTokenState by prefs.anilistAccessToken.collectAsState(initial = null)
-    val shikiTokenState by prefs.shikimoriAccessToken.collectAsState(initial = null)
+    val darkTheme by prefs.darkTheme.collectAsState()
+    val libraryUpdates by prefs.libraryUpdatesEnabled.collectAsState()
+    val libraryInterval by prefs.libraryUpdateIntervalHours.collectAsState()
+    val libraryWifiOnly by prefs.libraryUpdateWifiOnly.collectAsState()
+    val downloadsWifiOnly by prefs.downloadsWifiOnly.collectAsState()
+    val searchNsfw by prefs.globalSearchNsfw.collectAsState()
+    val reader by prefs.readerSettings.collectAsState()
+    val appLanguageTag by prefs.appLanguage.collectAsState()
+    val anilistTokenState by prefs.anilistAccessToken.collectAsState()
+    val shikiTokenState by prefs.shikimoriAccessToken.collectAsState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -109,6 +110,7 @@ fun SettingsScreen(nav: NavHostController) {
 
     Scaffold(
         containerColor = AppColors.background,
+        contentWindowInsets = LumeInsets.scaffold,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title), color = AppColors.textPrimary) },
@@ -117,6 +119,7 @@ fun SettingsScreen(nav: NavHostController) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = AppColors.textPrimary)
                     }
                 },
+                windowInsets = LumeInsets.topBar,
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),
             )
         },

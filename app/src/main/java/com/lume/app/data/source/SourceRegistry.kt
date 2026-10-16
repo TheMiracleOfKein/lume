@@ -17,7 +17,8 @@ import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleSummary
 import com.lume.app.domain.SourceManifest
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,7 +39,7 @@ class SourceRegistry(
     private val _sources = MutableStateFlow<List<CatalogSource>>(emptyList())
     val sources: StateFlow<List<CatalogSource>> = _sources.asStateFlow()
 
-    val activeSourceId: Flow<String?> = prefs.activeSourceId
+    val activeSourceId: StateFlow<String?> = prefs.activeSourceId
 
     private val loadedOnce = CompletableDeferred<Unit>()
 
@@ -68,7 +69,7 @@ class SourceRegistry(
                     upsert(loaded, createEngine(manifest))
                 }
             }
-            upsert(loaded, LocalEngine(context))
+            upsert(loaded, DispatchingSource(LocalEngine(context)))
             bundledIds += "local"
             _sources.value = loaded
         } finally {
@@ -149,7 +150,8 @@ class SourceRegistry(
             if (host != null) http.setRateLimit(host, perSecond)
         }
         val engine = buildEngine(manifest)
-        return if (referers != null) ImageHostTrackingSource(engine, referers) else engine
+        val tracked = if (referers != null) ImageHostTrackingSource(engine, referers) else engine
+        return DispatchingSource(tracked)
     }
 
     private fun buildEngine(manifest: SourceManifest): CatalogSource =
@@ -182,4 +184,25 @@ private class ImageHostTrackingSource(
 
     override suspend fun getPages(chapter: Chapter): List<ComicPage> =
         delegate.getPages(chapter).also { pages -> pages.firstOrNull()?.let { learn(it.imageUrl) } }
+}
+
+/**
+ * Runs every network/parse call of a source on [Dispatchers.IO]. Engines call `AppHttp.execute`
+ * and then parse JSON / HTML in the caller's context, which for screens was the main thread —
+ * right in the middle of screen transitions. One wrapper covers every engine.
+ */
+private class DispatchingSource(private val delegate: CatalogSource) : CatalogSource by delegate {
+    override suspend fun getHome(): HomeFeed = withContext(Dispatchers.IO) { delegate.getHome() }
+    override suspend fun getLatest(page: Int) = withContext(Dispatchers.IO) { delegate.getLatest(page) }
+    override suspend fun getPopular(page: Int) = withContext(Dispatchers.IO) { delegate.getPopular(page) }
+
+    override suspend fun search(query: String, page: Int, filters: FilterList) =
+        withContext(Dispatchers.IO) { delegate.search(query, page, filters) }
+
+    override suspend fun getTitle(id: String): TitleDetails = withContext(Dispatchers.IO) { delegate.getTitle(id) }
+    override suspend fun getChapters(titleId: String): List<Chapter> =
+        withContext(Dispatchers.IO) { delegate.getChapters(titleId) }
+
+    override suspend fun getPages(chapter: Chapter): List<ComicPage> =
+        withContext(Dispatchers.IO) { delegate.getPages(chapter) }
 }

@@ -1,6 +1,13 @@
 package com.lume.app.ui.screens
 
 import androidx.activity.compose.LocalActivity
+import androidx.compose.animation.core.animate
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.aspectRatio
@@ -23,6 +30,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lume.app.ui.components.BookmarkNoteDialog
+import com.lume.app.ui.components.LocalNavExiting
 import com.lume.app.ui.components.PageBookmarkRow
 import com.lume.app.ui.nav.openTitleFromReader
 import kotlinx.coroutines.flow.filterNotNull
@@ -197,7 +205,10 @@ fun ReaderScreen(
     val insetsController = remember(window, view) {
         window?.let { WindowCompat.getInsetsController(it, view) }
     }
-    val hideSystemBars = settings.immersive && !chromeVisible && !settingsOpen && !bookmarksOpen
+    // Leaving (Back, or a back gesture in progress): bars come back before the next screen shows,
+    // and since the shell no longer pads for them, nothing resizes either way.
+    val exiting = LocalNavExiting.current
+    val hideSystemBars = settings.immersive && !chromeVisible && !settingsOpen && !bookmarksOpen && !exiting
     LaunchedEffect(insetsController, hideSystemBars) {
         insetsController?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         if (hideSystemBars) {
@@ -470,18 +481,17 @@ private fun WebtoonReader(
             listState.animateScrollBy(delta * viewport * 0.85f)
         }
     }
-    LaunchedEffect(listState, settings.immersive) {
-        if (!settings.immersive) return@LaunchedEffect
-        listState.interactionSource.interactions.collect { interaction ->
-            if (interaction is DragInteraction.Start) onUserScroll()
-        }
-    }
+    val chromeHider = rememberChromeHider(settings.immersive, onUserScroll)
     ReaderZoomFrame(
         zoomEnabled = settings.doubleTapZoom,
         resetKey = vm.session,
         onSingleTap = onSingleTap,
-        modifier = Modifier.fillMaxSize(),
-    ) { zoomModifier, scale ->
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(chromeHider),
+    ) { zoomModifier, isZoomed ->
+        // Recomposes only when crossing 1x, not on every pinch frame.
+        val scrollEnabled by remember { derivedStateOf { !isZoomed() } }
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -489,7 +499,7 @@ private fun WebtoonReader(
                 .then(zoomModifier),
             verticalArrangement = Arrangement.spacedBy(settings.gap.dp),
             contentPadding = PaddingValues(horizontal = sideMargin),
-            userScrollEnabled = scale <= 1.01f,
+            userScrollEnabled = scrollEnabled,
         ) {
             itemsIndexed(vm.strip, key = { _, item -> item.key() }) { _, item ->
                 when (item) {
@@ -531,12 +541,7 @@ private fun PagedReader(
                 vm.onPosition(session, anchor, finished, page)
             }
     }
-    LaunchedEffect(pagerState, settings.immersive) {
-        if (!settings.immersive) return@LaunchedEffect
-        pagerState.interactionSource.interactions.collect { interaction ->
-            if (interaction is DragInteraction.Start) onUserScroll()
-        }
-    }
+    val chromeHider = rememberChromeHider(settings.immersive, onUserScroll)
     LaunchedEffect(pagerState) {
         pageTurns.collect { delta ->
             onUserScroll()
@@ -561,6 +566,7 @@ private fun PagedReader(
         reverseLayout = rtl,
         modifier = Modifier
             .fillMaxSize()
+            .nestedScroll(chromeHider)
             .pointerInput(settings.tapZones, rtl) {
                 detectTapGestures(onTap = { offset -> onPagerTap(offset.x, size.width) })
             },
@@ -806,22 +812,32 @@ private class ReaderZoomState {
         offset = clamp(offset, next)
     }
 
-    fun zoomTo(target: Float, focal: Offset) {
-        val old = scale
-        val next = target.coerceIn(1f, 5f)
-        if (next <= 1.01f) {
-            reset()
-            return
-        }
+    /** Read through this (not [scale]) in composition: it changes only when crossing 1x. */
+    val isZoomed: Boolean by derivedStateOf { scale > 1.01f }
+
+    /** Double tap: glide to [target] around [focal] (or back to 1x) instead of jumping. */
+    suspend fun animateZoomTo(target: Float, focal: Offset) {
+        val fromScale = scale
+        val fromOffset = offset
+        val toScale = target.coerceIn(1f, 5f)
         val center = Offset(viewport.width / 2f, viewport.height / 2f)
-        offset = if (old <= 1.01f) {
-            (center - focal) * (next - 1f)
-        } else {
-            val ratio = next / old
-            offset * ratio + (focal - center) * (1f - ratio)
+        val toOffset = when {
+            toScale <= 1.01f -> Offset.Zero
+            fromScale <= 1.01f -> clamp((center - focal) * (toScale - 1f), toScale)
+            else -> {
+                val ratio = toScale / fromScale
+                clamp(fromOffset * ratio + (focal - center) * (1f - ratio), toScale)
+            }
         }
-        scale = next
-        offset = clamp(offset, next)
+        animate(0f, 1f, animationSpec = Motion.medium()) { t, _ ->
+            scale = fromScale + (toScale - fromScale) * t
+            offset = fromOffset + (toOffset - fromOffset) * t
+        }
+        if (toScale <= 1.01f) reset()
+    }
+
+    suspend fun toggleZoom(focal: Offset, target: Float = 2.5f) {
+        animateZoomTo(if (scale > 1.1f) 1f else target, focal)
     }
 }
 
@@ -831,10 +847,10 @@ private fun ReaderZoomFrame(
     resetKey: Any?,
     onSingleTap: () -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable (zoomModifier: Modifier, scale: Float) -> Unit,
+    content: @Composable (zoomModifier: Modifier, isZoomed: () -> Boolean) -> Unit,
 ) {
     val state = remember { ReaderZoomState() }
-    val targetZoom = 2.5f
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(resetKey) { state.reset() }
 
@@ -843,14 +859,15 @@ private fun ReaderZoomFrame(
             .onSizeChanged { state.viewport = it }
             // Keys must NOT include scale — restarting mid-pinch makes zoom weak/jerky.
             .pointerInput(zoomEnabled) {
-                detectTapGestures(
-                    onTap = { onSingleTap() },
-                    onDoubleTap = { pos ->
-                        if (!zoomEnabled) return@detectTapGestures
-                        if (state.scale > 1.1f) state.reset()
-                        else state.zoomTo(targetZoom, pos)
-                    },
-                )
+                if (zoomEnabled) {
+                    detectTapGestures(
+                        onTap = { onSingleTap() },
+                        onDoubleTap = { pos -> scope.launch { state.toggleZoom(pos) } },
+                    )
+                } else {
+                    // Without a double-tap handler a single tap fires at once (no ~300 ms wait).
+                    detectTapGestures(onTap = { onSingleTap() })
+                }
             }
             .pointerInput(zoomEnabled) {
                 if (!zoomEnabled) return@pointerInput
@@ -881,6 +898,8 @@ private fun ReaderZoomFrame(
                 }
             },
     ) {
+        // Scale and offset are read only inside graphicsLayer, so pinching redraws the layer
+        // without recomposing the list underneath.
         content(
             Modifier.graphicsLayer {
                 scaleX = state.scale
@@ -889,8 +908,40 @@ private fun ReaderZoomFrame(
                 translationY = state.offset.y
                 transformOrigin = TransformOrigin.Center
             },
-            state.scale,
+            { state.isZoomed },
         )
+    }
+}
+
+/**
+ * Hides the reader chrome after real scrolling (about 24 dp), not on every touch that starts a
+ * drag; a sloppy tap or a tiny nudge leaves the controls alone.
+ */
+@Composable
+private fun rememberChromeHider(enabled: Boolean, onHide: () -> Unit): NestedScrollConnection {
+    val thresholdPx = with(LocalDensity.current) { 24.dp.toPx() }
+    val currentOnHide by rememberUpdatedState(onHide)
+    val currentEnabled by rememberUpdatedState(enabled)
+    return remember(thresholdPx) {
+        object : NestedScrollConnection {
+            private var travelled = 0f
+
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (source == NestedScrollSource.UserInput && currentEnabled) {
+                    travelled += kotlin.math.abs(consumed.x) + kotlin.math.abs(consumed.y)
+                    if (travelled >= thresholdPx) {
+                        travelled = 0f
+                        currentOnHide()
+                    }
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                travelled = 0f
+                return Velocity.Zero
+            }
+        }
     }
 }
 
@@ -920,7 +971,7 @@ private fun ReaderPageImage(
             .build()
     }
     val state = remember(page.imageUrl) { ReaderZoomState() }
-    val targetZoom = 2.5f
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -962,10 +1013,7 @@ private fun ReaderPageImage(
                             .pointerInput(page.imageUrl, onTap) {
                                 detectTapGestures(
                                     onTap = onTap?.let { tap -> { pos -> tap(pos.x, size.width) } },
-                                    onDoubleTap = { pos ->
-                                        if (state.scale > 1.1f) state.reset()
-                                        else state.zoomTo(targetZoom, pos)
-                                    },
+                                    onDoubleTap = { pos -> scope.launch { state.toggleZoom(pos) } },
                                 )
                             }
                             .pointerInput(page.imageUrl) {

@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.lume.app.ui.components.LumeInsets
 import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.DownloadQueueEntity
@@ -55,7 +56,7 @@ import com.lume.app.ui.components.LoadingBox
 import com.lume.app.ui.components.loadStateOf
 import com.lume.app.ui.nav.openReader
 import com.lume.app.ui.theme.AppColors
-import com.lume.app.ui.theme.animatedItem
+import com.lume.app.ui.theme.fadingItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,6 +83,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
 
     Scaffold(
         containerColor = AppColors.background,
+        contentWindowInsets = LumeInsets.scaffold,
         topBar = {
             TopAppBar(
                 title = {
@@ -140,6 +142,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         }
                     }
                 },
+                windowInsets = LumeInsets.topBar,
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),
             )
         },
@@ -183,7 +186,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         val isCurrent = chapter.id == currentChapterId
                         val selected = chapter.id in selectedIds
                         Row(
-                            modifier = animatedItem()
+                            modifier = fadingItem()
                                 .fillMaxWidth()
                                 .clickable {
                                     if (selectMode) {
@@ -225,22 +228,26 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                     Text(meta, color = AppColors.textTertiary, fontSize = 11.sp)
                                 }
                             }
-                            when {
-                                isCurrent -> Icon(
-                                    Icons.Outlined.PlayArrow,
-                                    contentDescription = stringResource(R.string.cd_current),
-                                    tint = AppColors.accent,
-                                    modifier = Modifier.size(20.dp).padding(end = 4.dp),
-                                )
-                                isRead -> Icon(
-                                    Icons.Outlined.CheckCircle,
-                                    contentDescription = stringResource(R.string.cd_read),
-                                    tint = AppColors.textSecondary,
-                                    modifier = Modifier.size(18.dp).padding(end = 4.dp),
-                                )
-                            }
-                            if (!selectMode) {
+                            // Fixed-width slots: a row never changes width as its status or download
+                            // state changes, so titles don't re-wrap and the list doesn't twitch.
+                            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
                                 when {
+                                    isCurrent -> Icon(
+                                        Icons.Outlined.PlayArrow,
+                                        contentDescription = stringResource(R.string.cd_current),
+                                        tint = AppColors.accent,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                    isRead -> Icon(
+                                        Icons.Outlined.CheckCircle,
+                                        contentDescription = stringResource(R.string.cd_read),
+                                        tint = AppColors.textSecondary,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                }
+                            }
+                            Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                                if (!selectMode) when {
                                     queueItem != null &&
                                         (queueItem.status == DownloadQueueEntity.STATUS_PENDING ||
                                             queueItem.status == DownloadQueueEntity.STATUS_RUNNING) -> {
@@ -278,9 +285,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                         Icons.Outlined.DownloadDone,
                                         contentDescription = stringResource(R.string.cd_downloaded),
                                         tint = AppColors.accent,
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .padding(8.dp),
+                                        modifier = Modifier.size(24.dp),
                                     )
                                     else -> IconButton(
                                         onClick = {

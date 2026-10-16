@@ -1,5 +1,8 @@
 package com.lume.app.ui.screens
 
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lume.app.ui.components.LumeInsets
+import com.lume.app.ui.components.LocalShellBottomPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,7 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -28,16 +31,13 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,8 +47,6 @@ import androidx.navigation.NavHostController
 import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.ProgressEntity
-import com.lume.app.domain.CloudflareException
-import com.lume.app.domain.HomeFeed
 import com.lume.app.ui.components.AnimatedLoadState
 import com.lume.app.ui.components.CoverCard
 import com.lume.app.ui.components.CoverImage
@@ -67,16 +65,13 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(nav: NavHostController) {
-    val resources = LocalResources.current
-    var feed by remember { mutableStateOf<HomeFeed?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var cloudflareUri by remember { mutableStateOf<java.net.URI?>(null) }
-    var loading by remember { mutableStateOf(true) }
-    var sourceId by remember { mutableStateOf("") }
-    var refreshEpoch by remember { mutableIntStateOf(0) }
+    val vm: HomeViewModel = viewModel()
+    val feed = vm.feed
+    val sourceId = vm.sourceId
+    val loading = vm.loading
+    val error = vm.error
     var confirmClear by remember { mutableStateOf(false) }
     val history by LumeApp.instance.dao.observeHistory().collectAsState(initial = emptyList())
-    val networkEpoch by LumeApp.instance.http.networkEpoch.collectAsState()
     val online by LumeApp.instance.network.online.collectAsState()
     val downloads by LumeApp.instance.dao.observeDownloads().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
@@ -90,41 +85,11 @@ fun HomeScreen(nav: NavHostController) {
             .sortedBy { it.third.titleName.lowercase() }
     }
 
-    LaunchedEffect(networkEpoch, refreshEpoch, online) {
-        if (!online) {
-            loading = false
-            error = null
-            feed = null
-            return@LaunchedEffect
-        }
-        loading = true
-        error = null
-        cloudflareUri = null
-        runCatching {
-            val source = LumeApp.instance.sources.activeSource()
-                ?: error(resources.getString(R.string.error_no_active_sources))
-            sourceId = source.manifest.id
-            source.getHome()
-        }.onSuccess {
-            feed = it
-            loading = false
-        }.onFailure { e ->
-            loading = false
-            if (e is CloudflareException) {
-                cloudflareUri = e.uri
-                scope.launch { LumeApp.instance.http.requestChallenge(e.uri) }
-                error = resources.getString(R.string.error_cloudflare_needed)
-            } else {
-                error = e.message ?: e.toString()
-            }
-        }
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.background)
-            .statusBarsPadding(),
+            .windowInsetsPadding(LumeInsets.statusBar),
     ) {
         QuickSearchBar(
             value = "",
@@ -156,7 +121,7 @@ fun HomeScreen(nav: NavHostController) {
                             Text(stringResource(R.string.home_no_downloaded), color = AppColors.textSecondary, fontSize = 15.sp)
                         }
                     } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalShellBottomPadding.current)) {
                             items(offlineTitles, key = { "${it.first}:${it.second}" }) { (sid, tid, item) ->
                                 TitleListRow(
                                     modifier = animatedItem(),
@@ -172,20 +137,18 @@ fun HomeScreen(nav: NavHostController) {
                 LoadState.Loading -> LoadingBox()
                 LoadState.Error -> ErrorRetryBox(
                     message = error.orEmpty(),
-                    onRetry = { refreshEpoch++ },
-                    onCloudflare = cloudflareUri?.let { uri ->
-                        { scope.launch { LumeApp.instance.http.requestChallenge(uri) } }
-                    },
+                    onRetry = vm::refresh,
+                    onCloudflare = vm.cloudflareUri?.let { { vm.solveChallenge() } },
                 )
                 else -> {
                     val ptrState = rememberPullToRefreshState()
                     PullToRefreshBox(
                         isRefreshing = loading,
-                        onRefresh = { refreshEpoch++ },
+                        onRefresh = vm::refresh,
                         state = ptrState,
                         modifier = Modifier.fillMaxSize(),
                     ) {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalShellBottomPadding.current)) {
                         item {
                             val spotlight = feed?.spotlight.orEmpty()
                             if (spotlight.isNotEmpty()) {

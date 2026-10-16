@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.lume.app.ui.components.LumeInsets
 import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.ui.components.AnimatedLoadState
@@ -63,6 +64,7 @@ import com.lume.app.ui.screens.SearchViewModel.SourceState
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 import com.lume.app.ui.theme.animatedItem
+import com.lume.app.ui.theme.fadingItem
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,6 +80,7 @@ fun SearchScreen(nav: NavHostController, vm: SearchViewModel = viewModel()) {
 
     Scaffold(
         containerColor = AppColors.background,
+        contentWindowInsets = LumeInsets.scaffold,
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.search_title), color = AppColors.textPrimary) },
@@ -86,6 +89,7 @@ fun SearchScreen(nav: NavHostController, vm: SearchViewModel = viewModel()) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = AppColors.textPrimary)
                     }
                 },
+                windowInsets = LumeInsets.topBar,
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),
             )
         },
@@ -194,16 +198,16 @@ private fun GlobalResults(
         return
     }
     val rows = vm.globalRows
-    // Sources with hits first, then the ones still searching, then empty / failed. Within each
-    // group the original order (active source first) is kept; animateItem smooths the moves.
-    val ordered = remember(rows) {
-        rows.sortedBy { row ->
-            when (val s = row.state) {
-                is SourceState.Done -> if (s.items.isNotEmpty()) 0 else 2
-                SourceState.Loading -> 1
-                is SourceState.Failed -> 3
-            }
-        }
+    val finished = vm.globalPending == 0
+    // Rows stay in one fixed order (active source first) while results stream in, so nothing
+    // jumps around under your finger. Once every source answered, the empty ones fold into a
+    // one-line footer.
+    val emptyNames = remember(rows, finished) {
+        if (!finished) emptyList()
+        else rows.filter { (it.state as? SourceState.Done)?.items?.isEmpty() == true }.map { it.sourceName }
+    }
+    val shown = remember(rows, finished) {
+        if (!finished) rows else rows.filterNot { (it.state as? SourceState.Done)?.items?.isEmpty() == true }
     }
     val total = rows.size
     val done = total - vm.globalPending
@@ -227,16 +231,26 @@ private fun GlobalResults(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 16.dp),
         ) {
-            items(ordered, key = { it.sourceId }) { row ->
+            items(shown, key = { it.sourceId }) { row ->
                 SourceResultRow(
                     row = row,
-                    modifier = animatedItem(),
+                    modifier = fadingItem(),
                     onOpen = { titleId -> nav.navigate(Routes.title(row.sourceId, titleId)) },
                     onRetry = {
                         (row.state as? SourceState.Failed)?.challenge?.let(onChallenge)
                         vm.retrySource(row.sourceId)
                     },
                 )
+            }
+            if (emptyNames.isNotEmpty()) {
+                item(key = "empty-sources") {
+                    Text(
+                        stringResource(R.string.search_no_results_in, emptyNames.joinToString()),
+                        color = AppColors.textTertiary,
+                        fontSize = 12.sp,
+                        modifier = fadingItem().padding(horizontal = 16.dp, vertical = 12.dp),
+                    )
+                }
             }
         }
     }

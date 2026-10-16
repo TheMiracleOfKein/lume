@@ -75,13 +75,12 @@ class LumeApp : Application(), ImageLoaderFactory {
             .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
             .addMigrations(LumeDatabase.MIGRATION_5_6, LumeDatabase.MIGRATION_6_7)
             .build()
-        prefs = AppPreferences(this)
+        // Reads the preferences file once, so every screen's first frame has the stored values.
+        prefs = AppPreferences(this, appScope)
         libAuth = LibAuthStore(this)
         // Per-app language: empty list = follow system (see AppLanguage.SYSTEM).
         runCatching {
-            kotlinx.coroutines.runBlocking {
-                com.lume.app.data.locale.AppLocaleController.applyStoredTag(prefs.appLanguage.first())
-            }
+            com.lume.app.data.locale.AppLocaleController.applyStoredTag(prefs.appLanguage.value)
         }
         sources = SourceRegistry(this, http, prefs, dao, libAuth, imageReferers)
         downloads = DownloadStore(this, dao, http)

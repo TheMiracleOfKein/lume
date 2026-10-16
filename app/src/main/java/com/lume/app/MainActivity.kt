@@ -27,7 +27,7 @@ class MainActivity : AppCompatActivity() {
         // After rotation the same intent comes back; only a fresh launch opens its route.
         if (savedInstanceState == null) AppLinks.handle(intent)
         setContent {
-            val darkTheme by LumeApp.instance.prefs.darkTheme.collectAsState(initial = true)
+            val darkTheme by LumeApp.instance.prefs.darkTheme.collectAsState()
             LumeTheme(darkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),

@@ -2,6 +2,7 @@ package com.lume.app.ui.shell
 
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,13 +12,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -27,9 +27,9 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
@@ -56,9 +56,11 @@ import androidx.navigation.navArgument
 import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.ui.components.CloudflareChallengeOverlay
+import com.lume.app.ui.components.LocalNavExiting
+import com.lume.app.ui.components.LocalShellBottomPadding
+import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.LumeLogo
 import com.lume.app.ui.nav.AppLinks
-import com.lume.app.ui.nav.PredictiveBackClip
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.screens.CatalogScreen
 import com.lume.app.ui.screens.ChaptersScreen
@@ -119,98 +121,92 @@ fun AppShell(nav: NavHostController) {
     }
 
     Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
-        Scaffold(
-            containerColor = AppColors.background,
-            // Only consume bottom insets for the nav bar; screens with TopAppBar
-            // handle status bars themselves (avoids double top gap on Title etc.).
-            contentWindowInsets = WindowInsets.navigationBars.only(WindowInsetsSides.Bottom),
-            bottomBar = {
-                AnimatedVisibility(
-                    visible = showBottomBar,
-                    enter = Motion.barEnterFromBottom,
-                    exit = Motion.barExitToBottom,
-                ) {
-                    BottomNavBar(
-                        currentRoute = route,
-                        onSelect = { target ->
-                            if (target == null) {
-                                menuOpen = true
-                            } else {
-                                nav.navigateToTab(target)
-                            }
-                        },
-                    )
-                }
-            },
-        ) { padding ->
-            NavHost(
-                navController = nav,
-                startDestination = Routes.Home,
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .background(AppColors.background),
-                // Tabs fade through; drilling into a title / reader slides. Same specs everywhere.
-                enterTransition = { if (isTabSwitch()) Motion.tabEnter else Motion.screenEnter },
-                exitTransition = { if (isTabSwitch()) Motion.tabExit else Motion.screenExit },
-                popEnterTransition = { if (isTabSwitch()) Motion.tabEnter else Motion.screenPopEnter },
-                popExitTransition = { if (isTabSwitch()) Motion.tabExit else Motion.screenPopExit },
-            ) {
-                lumeComposable(Routes.Home) { HomeScreen(nav) }
-                lumeComposable(Routes.Catalog) { CatalogScreen(nav) }
-                lumeComposable(Routes.Library) { LibraryScreen(nav) }
-                lumeComposable(Routes.History) { HistoryScreen(nav) }
-                lumeComposable(Routes.Search) { SearchScreen(nav) }
-                lumeComposable(Routes.Sources) { SourcesScreen(nav) }
-                lumeComposable(Routes.Settings) { SettingsScreen(nav) }
-                lumeComposable(Routes.Downloads) { DownloadsScreen(nav) }
-                lumeComposable(
-                    route = Routes.Title,
-                    arguments = listOf(
-                        navArgument("sourceId") { type = NavType.StringType },
-                        navArgument("titleId") { type = NavType.StringType },
-                    ),
-                ) { entry ->
-                    TitleScreen(
-                        nav = nav,
-                        sourceId = entry.arguments!!.getString("sourceId")!!,
-                        titleId = entry.arguments!!.getString("titleId")!!,
-                    )
-                }
-                lumeComposable(
-                    route = Routes.Chapters,
-                    arguments = listOf(
-                        navArgument("sourceId") { type = NavType.StringType },
-                        navArgument("titleId") { type = NavType.StringType },
-                    ),
-                ) { entry ->
-                    ChaptersScreen(
-                        nav = nav,
-                        sourceId = entry.arguments!!.getString("sourceId")!!,
-                        titleId = entry.arguments!!.getString("titleId")!!,
-                    )
-                }
-                lumeComposable(
-                    route = Routes.Reader,
-                    arguments = listOf(
-                        navArgument("sourceId") { type = NavType.StringType },
-                        navArgument("titleId") { type = NavType.StringType },
-                        navArgument("chapterId") { type = NavType.StringType },
-                        navArgument("page") { type = NavType.IntType; defaultValue = -1 },
-                        navArgument("offset") { type = NavType.FloatType; defaultValue = -1f },
-                    ),
-                ) { entry ->
-                    val args = entry.arguments!!
-                    ReaderScreen(
-                        nav = nav,
-                        sourceId = args.getString("sourceId")!!,
-                        titleId = args.getString("titleId")!!,
-                        chapterId = args.getString("chapterId")!!,
-                        page = args.getInt("page").takeIf { it >= 0 },
-                        offset = args.getFloat("offset").takeIf { it >= 0f },
-                    )
-                }
+        // No shell padding at all: each destination pads itself (see lumeComposable), so the
+        // bottom bar sliding in or out never re-lays-out a screen mid-transition.
+        NavHost(
+            navController = nav,
+            startDestination = Routes.Home,
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppColors.background),
+            // Tabs fade through; drilling into a title / reader slides. Same specs everywhere.
+            enterTransition = { if (isTabSwitch()) Motion.tabEnter else Motion.screenEnter },
+            exitTransition = { if (isTabSwitch()) Motion.tabExit else Motion.screenExit },
+            popEnterTransition = { if (isTabSwitch()) Motion.tabEnter else Motion.screenPopEnter },
+            popExitTransition = { if (isTabSwitch()) Motion.tabExit else Motion.screenPopExit },
+        ) {
+            lumeComposable(Routes.Home) { HomeScreen(nav) }
+            lumeComposable(Routes.Catalog) { CatalogScreen(nav) }
+            lumeComposable(Routes.Library) { LibraryScreen(nav) }
+            lumeComposable(Routes.History) { HistoryScreen(nav) }
+            lumeComposable(Routes.Search) { SearchScreen(nav) }
+            lumeComposable(Routes.Sources) { SourcesScreen(nav) }
+            lumeComposable(Routes.Settings) { SettingsScreen(nav) }
+            lumeComposable(Routes.Downloads) { DownloadsScreen(nav) }
+            lumeComposable(
+                route = Routes.Title,
+                arguments = listOf(
+                    navArgument("sourceId") { type = NavType.StringType },
+                    navArgument("titleId") { type = NavType.StringType },
+                ),
+            ) { entry ->
+                TitleScreen(
+                    nav = nav,
+                    sourceId = entry.arguments!!.getString("sourceId")!!,
+                    titleId = entry.arguments!!.getString("titleId")!!,
+                )
             }
+            lumeComposable(
+                route = Routes.Chapters,
+                arguments = listOf(
+                    navArgument("sourceId") { type = NavType.StringType },
+                    navArgument("titleId") { type = NavType.StringType },
+                ),
+            ) { entry ->
+                ChaptersScreen(
+                    nav = nav,
+                    sourceId = entry.arguments!!.getString("sourceId")!!,
+                    titleId = entry.arguments!!.getString("titleId")!!,
+                )
+            }
+            lumeComposable(
+                route = Routes.Reader,
+                arguments = listOf(
+                    navArgument("sourceId") { type = NavType.StringType },
+                    navArgument("titleId") { type = NavType.StringType },
+                    navArgument("chapterId") { type = NavType.StringType },
+                    navArgument("page") { type = NavType.IntType; defaultValue = -1 },
+                    navArgument("offset") { type = NavType.FloatType; defaultValue = -1f },
+                ),
+            ) { entry ->
+                val args = entry.arguments!!
+                ReaderScreen(
+                    nav = nav,
+                    sourceId = args.getString("sourceId")!!,
+                    titleId = args.getString("titleId")!!,
+                    chapterId = args.getString("chapterId")!!,
+                    page = args.getInt("page").takeIf { it >= 0 },
+                    offset = args.getFloat("offset").takeIf { it >= 0f },
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showBottomBar,
+            modifier = Modifier.align(Alignment.BottomCenter),
+            enter = Motion.barEnterFromBottom,
+            exit = Motion.barExitToBottom,
+        ) {
+            BottomNavBar(
+                currentRoute = route,
+                onSelect = { target ->
+                    if (target == null) {
+                        menuOpen = true
+                    } else {
+                        nav.navigateToTab(target)
+                    }
+                },
+            )
         }
 
         MainMenu(
@@ -246,7 +242,15 @@ private fun NavGraphBuilder.lumeComposable(
     content: @Composable (NavBackStackEntry) -> Unit,
 ) {
     composable(route = route, arguments = arguments) { entry ->
-        PredictiveBackClip {
+        val navBars = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        val bottomPadding = if (route in MainTabRoutes) LumeInsets.BottomBarHeight + navBars else 0.dp
+        // Flips as soon as this screen starts leaving (also while a back gesture is in progress),
+        // so the reader can bring the system bars back before the next screen is visible.
+        val exiting = transition.targetState == EnterExitState.PostExit
+        CompositionLocalProvider(
+            LocalShellBottomPadding provides bottomPadding,
+            LocalNavExiting provides exiting,
+        ) {
             content(entry)
         }
     }
