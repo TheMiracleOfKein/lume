@@ -35,15 +35,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -53,15 +54,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.lume.app.ui.components.LumeInsets
 import com.lume.app.LumeApp
 import com.lume.app.R
-import com.lume.app.data.db.BookmarkEntity
-import com.lume.app.data.offline.networkOr
 import com.lume.app.data.tracker.TrackerSearchResult
 import com.lume.app.domain.Chapter
-import com.lume.app.domain.CloudflareException
-import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.inReadingOrder
 import com.lume.app.ui.components.AnimatedLoadState
 import com.lume.app.ui.components.CoverImage
@@ -71,7 +70,9 @@ import com.lume.app.ui.components.LoadingBox
 import com.lume.app.ui.components.loadStateOf
 import com.lume.app.ui.components.openInBrowser
 import com.lume.app.ui.components.shareLink
+import com.lume.app.ui.components.PageBookmarkRow
 import com.lume.app.ui.nav.Routes
+import com.lume.app.ui.nav.openReader
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 import kotlinx.coroutines.launch
@@ -79,67 +80,19 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
-    val resources = LocalResources.current
     val context = LocalContext.current
-    var details by remember { mutableStateOf<TitleDetails?>(null) }
-    var chapters by remember { mutableStateOf<List<Chapter>>(emptyList()) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var cloudflareUri by remember { mutableStateOf<java.net.URI?>(null) }
-    var loading by remember { mutableStateOf(true) }
-    var bookmarked by remember { mutableStateOf(false) }
-    var refreshEpoch by remember { mutableIntStateOf(0) }
+    val vm: TitleViewModel = viewModel { TitleViewModel(sourceId, titleId) }
+    val details = vm.details
+    val chapters = vm.chapters
+    val bookmarked by vm.inLibrary.collectAsState()
+    val progressState by vm.progress.collectAsState()
+    val links by vm.trackerLinks.collectAsState()
+    val pageBookmarks by vm.pageBookmarks.collectAsState()
     var showTrackers by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    val dao = LumeApp.instance.dao
-    val networkEpoch by LumeApp.instance.http.networkEpoch.collectAsState()
-    var progressState by remember { mutableStateOf<com.lume.app.data.db.ProgressEntity?>(null) }
-    val links by dao.observeTrackerLinks(sourceId, titleId).collectAsState(initial = emptyList())
-
-    LaunchedEffect(sourceId, titleId, networkEpoch, refreshEpoch) {
-        loading = true
-        error = null
-        cloudflareUri = null
-        runCatching {
-            val offline = LumeApp.instance.offlineCache
-            val cached = offline.get(sourceId, titleId)
-            val source = LumeApp.instance.sources.sourceById(sourceId)
-            val d = cached?.details
-                ?: networkOr(source, { getTitle(titleId) }) {
-                    offline.detailsFromDownloads(sourceId, titleId)
-                }
-                ?: error(resources.getString(R.string.error_no_title_data))
-            val c = cached?.chapters
-                ?: networkOr(source, { getChapters(titleId) }, isUsable = { it.isNotEmpty() }) {
-                    offline.chaptersFromDownloads(sourceId, titleId)
-                }.orEmpty()
-            if (source != null && c.isNotEmpty()) {
-                offline.save(sourceId, titleId, d, c)
-            }
-            bookmarked = dao.getBookmark(sourceId, titleId) != null
-            progressState = dao.getProgress(sourceId, titleId)
-            val meta = dao.getTitleMeta(sourceId, titleId)
-            if (meta != null && meta.unreadNewCount > 0) {
-                dao.upsertTitleMeta(meta.copy(unreadNewCount = 0))
-            }
-            d to c
-        }.onSuccess { (d, c) ->
-            details = d
-            chapters = c
-            loading = false
-        }.onFailure { e ->
-            loading = false
-            if (e is CloudflareException) {
-                cloudflareUri = e.uri
-                scope.launch { LumeApp.instance.http.requestChallenge(e.uri) }
-                error = resources.getString(R.string.error_cloudflare_needed)
-            } else {
-                error = e.message ?: e.toString()
-            }
-        }
-    }
 
     Scaffold(
         containerColor = AppColors.background,
+        contentWindowInsets = LumeInsets.scaffold,
         topBar = {
             TopAppBar(
                 title = {
@@ -175,26 +128,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         }
                     }
                     IconButton(
-                        onClick = {
-                            val d = details ?: return@IconButton
-                            scope.launch {
-                                if (bookmarked) {
-                                    dao.deleteBookmark(sourceId, titleId)
-                                    bookmarked = false
-                                } else {
-                                    dao.upsertBookmark(
-                                        BookmarkEntity(
-                                            sourceId = sourceId,
-                                            titleId = titleId,
-                                            titleName = d.title,
-                                            coverUrl = d.coverUrl,
-                                            typeLabel = d.typeLabel,
-                                        ),
-                                    )
-                                    bookmarked = true
-                                }
-                            }
-                        },
+                        onClick = { vm.toggleLibrary() },
                     ) {
                         Icon(
                             if (bookmarked) Icons.Outlined.Bookmark else Icons.Outlined.BookmarkBorder,
@@ -203,29 +137,33 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         )
                     }
                 },
+                windowInsets = LumeInsets.topBar,
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),
             )
         },
     ) { padding ->
         AnimatedLoadState(
-            state = loadStateOf(loading, error),
+            state = loadStateOf(vm.loading, vm.error),
             modifier = Modifier.fillMaxSize(),
         ) { pane ->
             when (pane) {
                 LoadState.Loading -> LoadingBox(Modifier.padding(padding))
                 LoadState.Error -> ErrorRetryBox(
-                    message = error.orEmpty(),
-                    onRetry = { refreshEpoch++ },
-                    onCloudflare = cloudflareUri?.let { uri ->
-                        { scope.launch { LumeApp.instance.http.requestChallenge(uri) } }
-                    },
+                    message = vm.error.orEmpty(),
+                    onRetry = vm::refresh,
+                    onCloudflare = vm.cloudflareUri?.let { { vm.solveChallenge() } },
                     modifier = Modifier.padding(padding),
                 )
-                else -> {
-                    val d = details!!
+                else -> PullToRefreshBox(
+                    isRefreshing = vm.refreshing,
+                    onRefresh = vm::refresh,
+                    modifier = Modifier
+                        .padding(padding)
+                        .fillMaxSize(),
+                ) {
+                    val d = details ?: return@PullToRefreshBox
                     Column(
                         modifier = Modifier
-                            .padding(padding)
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState())
                             .padding(16.dp),
@@ -263,11 +201,15 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                 Spacer(Modifier.height(12.dp))
                                 Button(
                                     onClick = {
-                                        // No progress yet: start from the first chapter, not the newest one.
-                                        val chId = progressState?.chapterId
-                                            ?: chapters.inReadingOrder().firstOrNull()?.id
-                                        if (chId != null) {
-                                            nav.navigate(Routes.reader(sourceId, titleId, chId))
+                                        val p = progressState
+                                        if (p != null) {
+                                            // The exact spot, even if that chapter's own row says "finished".
+                                            nav.openReader(sourceId, titleId, p.chapterId, p.pageIndex, p.pageOffset)
+                                        } else {
+                                            // No progress yet: start from the first chapter, not the newest one.
+                                            chapters.inReadingOrder().firstOrNull()?.let {
+                                                nav.openReader(sourceId, titleId, it.id)
+                                            }
                                         }
                                     },
                                     colors = ButtonDefaults.buttonColors(
@@ -325,6 +267,34 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                 }
                             }
                         }
+                        if (pageBookmarks.isNotEmpty()) {
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                stringResource(R.string.bookmarks_title),
+                                color = AppColors.textPrimary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Column {
+                                pageBookmarks.forEach { bookmark ->
+                                    key(bookmark.id) {
+                                        PageBookmarkRow(
+                                            bookmark = bookmark,
+                                            onOpen = {
+                                                nav.openReader(
+                                                    sourceId,
+                                                    titleId,
+                                                    bookmark.chapterId,
+                                                    bookmark.pageIndex,
+                                                    bookmark.pageOffset,
+                                                )
+                                            },
+                                            onDelete = { vm.deletePageBookmark(bookmark.id) },
+                                        )
+                                    }
+                                }
+                            }
+                        }
                         d.description?.let {
                             Spacer(Modifier.height(16.dp))
                             Text(
@@ -350,7 +320,6 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
             coverUrl = details?.coverUrl,
             typeLabel = details?.typeLabel,
             onDismiss = { showTrackers = false },
-            onSynced = { progressState = dao.getProgress(sourceId, titleId) },
         )
     }
 }

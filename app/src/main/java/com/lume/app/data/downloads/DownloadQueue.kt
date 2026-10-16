@@ -4,8 +4,8 @@ import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.DownloadQueueEntity
 import com.lume.app.data.db.LibraryDao
-import com.lume.app.data.offline.OfflineTitleCache
 import com.lume.app.data.source.SourceRegistry
+import com.lume.app.data.title.TitleRepository
 import com.lume.app.domain.Chapter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,13 +29,14 @@ class DownloadQueue(
     private val dao: LibraryDao,
     private val store: DownloadStore,
     private val sources: SourceRegistry,
-    private val offlineCache: OfflineTitleCache,
+    private val titles: TitleRepository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mutex = Mutex()
     private var processing = false
     private var activeJob: Job? = null
     private var activeQueueId: Long? = null
+    private var strandedReset = false
 
     private val _items = MutableStateFlow<List<DownloadQueueEntity>>(emptyList())
     val items: StateFlow<List<DownloadQueueEntity>> = _items.asStateFlow()
@@ -102,6 +103,16 @@ class DownloadQueue(
         }
     }
 
+    /** Put a failed download back in the queue. */
+    fun retry(id: Long) {
+        scope.launch {
+            val item = dao.getDownloadQueueItem(id) ?: return@launch
+            if (item.status != DownloadQueueEntity.STATUS_ERROR) return@launch
+            dao.updateDownloadQueueStatus(id, DownloadQueueEntity.STATUS_PENDING, 0f)
+            pump()
+        }
+    }
+
     private suspend fun cancelItem(item: DownloadQueueEntity) {
         if (item.id == activeQueueId) {
             activeJob?.cancel()
@@ -115,11 +126,19 @@ class DownloadQueue(
 
     private fun pump() {
         scope.launch {
-            mutex.withLock {
-                if (processing) return@withLock
-                processing = true
+            // Only one pump at a time (a bare `return@withLock` used to let a second one through).
+            val claimed = mutex.withLock {
+                if (processing) false else true.also { processing = true }
             }
+            if (!claimed) return@launch
             try {
+                if (!strandedReset) {
+                    // A download killed with the process stays "running" forever unless re-queued.
+                    // Done here, inside the single active pump, so it never races a live download.
+                    dao.resetRunningDownloads()
+                    strandedReset = true
+                }
+                sources.awaitLoaded()
                 while (coroutineContext.isActive) {
                     val next = dao.pendingDownloadQueue()
                         .firstOrNull { it.status == DownloadQueueEntity.STATUS_PENDING }
@@ -130,6 +149,8 @@ class DownloadQueue(
             } finally {
                 mutex.withLock { processing = false }
             }
+            // Something enqueued while this pump was finishing was turned away above; pick it up.
+            if (dao.pendingDownloadQueue().any { it.status == DownloadQueueEntity.STATUS_PENDING }) pump()
         }
     }
 
@@ -147,11 +168,10 @@ class DownloadQueue(
                 ensureActive()
                 val source = sources.sourceById(item.sourceId)
                     ?: error(LumeApp.instance.getString(R.string.error_source_not_found))
-                val title = runCatching { source.getTitle(item.titleId) }.getOrNull()
-                val chapters = runCatching { source.getChapters(item.titleId) }.getOrNull().orEmpty()
-                if (title != null && chapters.isNotEmpty()) {
-                    offlineCache.save(item.sourceId, item.titleId, title, chapters)
-                }
+                val known = runCatching { titles.refresh(item.sourceId, item.titleId) }.getOrNull()
+                    ?: titles.cached(item.sourceId, item.titleId)
+                val title = known?.details
+                val chapters = known?.chapters.orEmpty()
                 val chapter = chapters.firstOrNull { it.id == item.chapterId }
                     ?: Chapter(
                         id = item.chapterId,

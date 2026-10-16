@@ -13,6 +13,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
+import com.lume.app.ui.nav.AppLinks
 import com.lume.app.ui.shell.LumeRoot
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.LumeTheme
@@ -23,8 +24,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         handleOAuthIntent(intent)
+        // After rotation the same intent comes back; only a fresh launch opens its route.
+        if (savedInstanceState == null) AppLinks.handle(intent)
         setContent {
-            val darkTheme by LumeApp.instance.prefs.darkTheme.collectAsState(initial = true)
+            val darkTheme by LumeApp.instance.prefs.darkTheme.collectAsState()
             LumeTheme(darkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -39,6 +42,7 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleOAuthIntent(intent)
+        AppLinks.handle(intent)
     }
 
     private fun handleOAuthIntent(intent: Intent?) {

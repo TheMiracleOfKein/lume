@@ -5,6 +5,7 @@ import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -32,14 +33,14 @@ object Motion {
     /** Screen transitions and drawers. */
     const val LONG = 350
 
-    val Emphasized = CubicBezierEasing(0.2f, 0f, 0f, 1f)
     val EmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
     val EmphasizedAccelerate = CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f)
+    /** Material 3 standard curve (it was also declared a second time as "Emphasized"). */
     val Standard = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
     fun <T> short(): FiniteAnimationSpec<T> = tween(SHORT, easing = Standard)
     fun <T> medium(): FiniteAnimationSpec<T> = tween(MEDIUM, easing = Standard)
-    fun <T> long(): FiniteAnimationSpec<T> = tween(LONG, easing = Emphasized)
+    fun <T> long(): FiniteAnimationSpec<T> = tween(LONG, easing = Standard)
 
     // --- Screen transitions -------------------------------------------------------------
 
@@ -52,13 +53,15 @@ object Motion {
         slideOutHorizontally(tween(LONG, easing = EmphasizedAccelerate)) { -it / 20 } +
             fadeOut(tween(SHORT, easing = Standard))
 
+    // Pops are also what a predictive-back gesture scrubs through, so they must track the
+    // finger: linear slides, and the leaving screen only fades in the last 40 % of the way.
     val screenPopEnter: EnterTransition =
-        slideInHorizontally(tween(LONG, easing = EmphasizedDecelerate)) { -it / 20 } +
-            fadeIn(tween(MEDIUM, easing = Standard))
+        slideInHorizontally(tween(LONG, easing = LinearEasing)) { -it / 20 } +
+            fadeIn(tween(MEDIUM, easing = LinearEasing))
 
     val screenPopExit: ExitTransition =
-        slideOutHorizontally(tween(LONG, easing = EmphasizedAccelerate)) { it / 10 } +
-            fadeOut(tween(MEDIUM, easing = Standard))
+        slideOutHorizontally(tween(LONG, easing = LinearEasing)) { it / 10 } +
+            fadeOut(tween(durationMillis = LONG * 4 / 10, delayMillis = LONG * 6 / 10, easing = LinearEasing))
 
     /** Switching between bottom-bar tabs: fade-through, no directional slide. */
     val tabEnter: EnterTransition = fadeIn(tween(MEDIUM, delayMillis = 60, easing = Standard))
@@ -91,9 +94,19 @@ object Motion {
     }
 
     /** Spec for `Modifier.animateItem()` so list inserts/moves match the rest of the app. */
-    fun itemPlacement(): FiniteAnimationSpec<IntOffset> = tween(MEDIUM, easing = Emphasized)
+    fun itemPlacement(): FiniteAnimationSpec<IntOffset> = tween(MEDIUM, easing = Standard)
     fun <T> itemFade(): FiniteAnimationSpec<T> = tween(MEDIUM, easing = Standard)
 }
+
+/**
+ * Fade in / out only, no placement animation: for rows that expand or change height, where a
+ * sliding neighbour would look like the list is wobbling.
+ */
+fun LazyItemScope.fadingItem(): Modifier = Modifier.animateItem(
+    fadeInSpec = Motion.itemFade(),
+    placementSpec = null,
+    fadeOutSpec = Motion.itemFade(),
+)
 
 /** List item insert / move / remove animation with the shared [Motion] specs. */
 fun LazyItemScope.animatedItem(): Modifier = Modifier.animateItem(

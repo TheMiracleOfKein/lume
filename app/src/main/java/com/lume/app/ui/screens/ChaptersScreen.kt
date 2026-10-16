@@ -32,102 +32,45 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.lume.app.ui.components.LumeInsets
 import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.DownloadQueueEntity
-import com.lume.app.data.offline.networkOr
-import com.lume.app.domain.Chapter
-import com.lume.app.domain.CloudflareException
-import com.lume.app.domain.TitleDetails
 import com.lume.app.ui.components.AnimatedLoadState
 import com.lume.app.ui.components.ErrorRetryBox
 import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
 import com.lume.app.ui.components.loadStateOf
-import com.lume.app.ui.nav.Routes
+import com.lume.app.ui.nav.openReader
 import com.lume.app.ui.theme.AppColors
-import com.lume.app.ui.theme.animatedItem
-import kotlinx.coroutines.launch
+import com.lume.app.ui.theme.fadingItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
-    val resources = LocalResources.current
-    var chapters by remember { mutableStateOf<List<Chapter>>(emptyList()) }
-    var details by remember { mutableStateOf<TitleDetails?>(null) }
-    var loading by remember { mutableStateOf(true) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var cloudflareUri by remember { mutableStateOf<java.net.URI?>(null) }
-    var ascending by remember { mutableStateOf(false) }
-    var readIds by remember { mutableStateOf<Set<String>>(emptySet()) }
-    var downloadedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
-    var currentChapterId by remember { mutableStateOf<String?>(null) }
-    var refreshEpoch by remember { mutableIntStateOf(0) }
-    var selectMode by remember { mutableStateOf(false) }
+    val vm: ChaptersViewModel = viewModel { ChaptersViewModel(sourceId, titleId) }
+    val chapters = vm.chapters
+    var ascending by rememberSaveable { mutableStateOf(false) }
+    val readIds by vm.readIds.collectAsState()
+    val downloadedIds by vm.downloadedIds.collectAsState()
+    val currentChapterId by vm.currentChapterId.collectAsState()
+    val partialProgress by vm.partialProgress.collectAsState()
+    var selectMode by rememberSaveable { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
-    val scope = rememberCoroutineScope()
-    val networkEpoch by LumeApp.instance.http.networkEpoch.collectAsState()
     val queueItems by LumeApp.instance.downloadQueue.items.collectAsState()
-    val online by LumeApp.instance.network.online.collectAsState()
-
-    LaunchedEffect(sourceId, titleId, networkEpoch, refreshEpoch, online) {
-        loading = true
-        error = null
-        cloudflareUri = null
-        runCatching {
-            val offline = LumeApp.instance.offlineCache
-            val cached = offline.get(sourceId, titleId)
-            val source = LumeApp.instance.sources.sourceById(sourceId)
-            val d = cached?.details
-                ?: networkOr(source, { getTitle(titleId) }) {
-                    offline.detailsFromDownloads(sourceId, titleId)
-                }
-                ?: error(resources.getString(R.string.error_no_title_data))
-            details = d
-            val list = cached?.chapters
-                ?: networkOr(source, { getChapters(titleId) }, isUsable = { it.isNotEmpty() }) {
-                    offline.chaptersFromDownloads(sourceId, titleId)
-                }.orEmpty()
-            if (source != null && list.isNotEmpty()) {
-                offline.save(sourceId, titleId, d, list)
-            }
-            readIds = LumeApp.instance.dao.readChapterIds(sourceId, titleId).toSet()
-            downloadedIds = LumeApp.instance.downloads.downloadedChapterIds(sourceId, titleId)
-            currentChapterId = LumeApp.instance.dao.getProgress(sourceId, titleId)?.chapterId
-            list
-        }.onSuccess {
-            chapters = it
-            loading = false
-        }.onFailure { e ->
-            loading = false
-            if (e is CloudflareException) {
-                cloudflareUri = e.uri
-                scope.launch { LumeApp.instance.http.requestChallenge(e.uri) }
-                error = resources.getString(R.string.error_cloudflare_needed)
-            } else {
-                error = e.message ?: e.toString()
-            }
-        }
-    }
-
-    LaunchedEffect(queueItems, sourceId, titleId) {
-        downloadedIds = LumeApp.instance.downloads.downloadedChapterIds(sourceId, titleId)
-    }
 
     val displayed = remember(chapters, ascending) {
         if (ascending) chapters else chapters.asReversed()
@@ -140,6 +83,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
 
     Scaffold(
         containerColor = AppColors.background,
+        contentWindowInsets = LumeInsets.scaffold,
         topBar = {
             TopAppBar(
                 title = {
@@ -182,14 +126,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         }
                         TextButton(
                             onClick = {
-                                val chosen = displayed.filter { it.id in selectedIds }
-                                LumeApp.instance.downloadQueue.enqueueAll(
-                                    sourceId = sourceId,
-                                    titleId = titleId,
-                                    chapters = chosen,
-                                    titleName = details?.title ?: titleId,
-                                    coverUrl = details?.coverUrl,
-                                )
+                                vm.enqueue(displayed.filter { it.id in selectedIds })
                                 selectMode = false
                                 selectedIds = emptySet()
                             },
@@ -205,6 +142,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         }
                     }
                 },
+                windowInsets = LumeInsets.topBar,
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),
             )
         },
@@ -212,14 +150,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
             if (selectMode && selectedIds.isNotEmpty()) {
                 FloatingActionButton(
                     onClick = {
-                        val chosen = displayed.filter { it.id in selectedIds }
-                        LumeApp.instance.downloadQueue.enqueueAll(
-                            sourceId = sourceId,
-                            titleId = titleId,
-                            chapters = chosen,
-                            titleName = details?.title ?: titleId,
-                            coverUrl = details?.coverUrl,
-                        )
+                        vm.enqueue(displayed.filter { it.id in selectedIds })
                         selectMode = false
                         selectedIds = emptySet()
                     },
@@ -231,17 +162,15 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
         },
     ) { padding ->
         AnimatedLoadState(
-            state = loadStateOf(loading, error),
+            state = loadStateOf(vm.loading, vm.error),
             modifier = Modifier.fillMaxSize(),
         ) { pane ->
             when (pane) {
                 LoadState.Loading -> LoadingBox(Modifier.padding(padding))
                 LoadState.Error -> ErrorRetryBox(
-                    message = error.orEmpty(),
-                    onRetry = { refreshEpoch++ },
-                    onCloudflare = cloudflareUri?.let { uri ->
-                        { scope.launch { LumeApp.instance.http.requestChallenge(uri) } }
-                    },
+                    message = vm.error.orEmpty(),
+                    onRetry = vm::refresh,
+                    onCloudflare = vm.cloudflareUri?.let { { vm.solveChallenge() } },
                     modifier = Modifier.padding(padding),
                 )
                 else -> LazyColumn(
@@ -257,7 +186,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         val isCurrent = chapter.id == currentChapterId
                         val selected = chapter.id in selectedIds
                         Row(
-                            modifier = animatedItem()
+                            modifier = fadingItem()
                                 .fillMaxWidth()
                                 .clickable {
                                     if (selectMode) {
@@ -268,7 +197,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                             selectedIds + chapter.id
                                         }
                                     } else {
-                                        nav.navigate(Routes.reader(sourceId, titleId, chapter.id))
+                                        nav.openReader(sourceId, titleId, chapter.id)
                                     }
                                 }
                                 .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -290,26 +219,35 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                             }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(chapter.title, color = AppColors.textPrimary, fontSize = 14.sp)
-                                chapter.dateLabel?.let {
-                                    Text(it, color = AppColors.textTertiary, fontSize = 11.sp)
+                                val partial = partialProgress[chapter.id]
+                                val meta = listOfNotNull(
+                                    chapter.dateLabel,
+                                    partial?.let { stringResource(R.string.chapter_progress_pages, it.pageIndex + 1, it.pageCount) },
+                                ).joinToString(" · ")
+                                if (meta.isNotEmpty()) {
+                                    Text(meta, color = AppColors.textTertiary, fontSize = 11.sp)
                                 }
                             }
-                            when {
-                                isCurrent -> Icon(
-                                    Icons.Outlined.PlayArrow,
-                                    contentDescription = stringResource(R.string.cd_current),
-                                    tint = AppColors.accent,
-                                    modifier = Modifier.size(20.dp).padding(end = 4.dp),
-                                )
-                                isRead -> Icon(
-                                    Icons.Outlined.CheckCircle,
-                                    contentDescription = stringResource(R.string.cd_read),
-                                    tint = AppColors.textSecondary,
-                                    modifier = Modifier.size(18.dp).padding(end = 4.dp),
-                                )
-                            }
-                            if (!selectMode) {
+                            // Fixed-width slots: a row never changes width as its status or download
+                            // state changes, so titles don't re-wrap and the list doesn't twitch.
+                            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
                                 when {
+                                    isCurrent -> Icon(
+                                        Icons.Outlined.PlayArrow,
+                                        contentDescription = stringResource(R.string.cd_current),
+                                        tint = AppColors.accent,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                    isRead -> Icon(
+                                        Icons.Outlined.CheckCircle,
+                                        contentDescription = stringResource(R.string.cd_read),
+                                        tint = AppColors.textSecondary,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                }
+                            }
+                            Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                                if (!selectMode) when {
                                     queueItem != null &&
                                         (queueItem.status == DownloadQueueEntity.STATUS_PENDING ||
                                             queueItem.status == DownloadQueueEntity.STATUS_RUNNING) -> {
@@ -347,19 +285,11 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                         Icons.Outlined.DownloadDone,
                                         contentDescription = stringResource(R.string.cd_downloaded),
                                         tint = AppColors.accent,
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .padding(8.dp),
+                                        modifier = Modifier.size(24.dp),
                                     )
                                     else -> IconButton(
                                         onClick = {
-                                            LumeApp.instance.downloadQueue.enqueue(
-                                                sourceId = sourceId,
-                                                titleId = titleId,
-                                                chapter = chapter,
-                                                titleName = details?.title ?: titleId,
-                                                coverUrl = details?.coverUrl,
-                                            )
+                                            vm.enqueue(listOf(chapter))
                                         },
                                     ) {
                                         Icon(Icons.Outlined.Download, null, tint = AppColors.textSecondary)

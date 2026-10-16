@@ -5,6 +5,8 @@ import com.lume.app.data.db.OfflineTitleCacheEntity
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.TitleDetails
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 data class CachedTitle(
@@ -16,28 +18,37 @@ class OfflineTitleCache(
     private val dao: LibraryDao,
     private val json: Json = Json { ignoreUnknownKeys = true; encodeDefaults = true },
 ) {
+    /** Decoding a long chapter list is real work; keep it off the main thread (and out of transitions). */
     suspend fun get(sourceId: String, titleId: String): CachedTitle? {
         val row = dao.getOfflineTitleCache(sourceId, titleId) ?: return null
-        return runCatching {
-            CachedTitle(
-                details = json.decodeFromString(row.titleJson),
-                chapters = json.decodeFromString(row.chaptersJson),
-            )
-        }.getOrNull()
+        return withContext(Dispatchers.Default) {
+            runCatching {
+                CachedTitle(
+                    details = json.decodeFromString(row.titleJson),
+                    chapters = json.decodeFromString(row.chaptersJson),
+                )
+            }.getOrNull()
+        }
     }
 
+    /** Writes only when something changed, so refreshing an unchanged title costs no disk write. */
     suspend fun save(
         sourceId: String,
         titleId: String,
         details: TitleDetails,
         chapters: List<Chapter>,
     ) {
+        val (titleJson, chaptersJson) = withContext(Dispatchers.Default) {
+            json.encodeToString(details) to json.encodeToString(chapters)
+        }
+        val existing = dao.getOfflineTitleCache(sourceId, titleId)
+        if (existing != null && existing.titleJson == titleJson && existing.chaptersJson == chaptersJson) return
         dao.upsertOfflineTitleCache(
             OfflineTitleCacheEntity(
                 sourceId = sourceId,
                 titleId = titleId,
-                titleJson = json.encodeToString(details),
-                chaptersJson = json.encodeToString(chapters),
+                titleJson = titleJson,
+                chaptersJson = chaptersJson,
             ),
         )
     }

@@ -49,6 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.lume.app.ui.components.LumeInsets
 import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.source.SourceEngines
@@ -63,7 +64,7 @@ fun SourcesScreen(nav: NavHostController) {
     val context = LocalContext.current
     val resources = LocalResources.current
     val sources by LumeApp.instance.sources.sources.collectAsState()
-    val activeId by LumeApp.instance.sources.activeSourceId.collectAsState(initial = null)
+    val activeId by LumeApp.instance.sources.activeSourceId.collectAsState()
     val scope = rememberCoroutineScope()
     var importUrl by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
@@ -79,6 +80,7 @@ fun SourcesScreen(nav: NavHostController) {
 
     Scaffold(
         containerColor = AppColors.background,
+        contentWindowInsets = LumeInsets.scaffold,
         snackbarHost = { SnackbarHost(snack) },
         topBar = {
             TopAppBar(
@@ -88,6 +90,7 @@ fun SourcesScreen(nav: NavHostController) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = AppColors.textPrimary)
                     }
                 },
+                windowInsets = LumeInsets.topBar,
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),
             )
         },

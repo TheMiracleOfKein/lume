@@ -1,6 +1,40 @@
 package com.lume.app.ui.screens
 
 import androidx.activity.compose.LocalActivity
+import androidx.compose.animation.core.animate
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.BookmarkAdd
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.key
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.geometry.isSpecified
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lume.app.ui.components.BookmarkNoteDialog
+import com.lume.app.ui.components.LocalNavExiting
+import com.lume.app.ui.components.PageBookmarkRow
+import com.lume.app.ui.nav.openTitleFromReader
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
@@ -34,16 +68,12 @@ import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Bookmark
-import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.outlined.Settings
@@ -61,16 +91,16 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -93,7 +123,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
@@ -108,23 +137,14 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import coil.imageLoader
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import com.lume.app.LumeApp
 import com.lume.app.R
-import com.lume.app.data.db.BookmarkEntity
-import com.lume.app.data.db.ChapterReadEntity
-import com.lume.app.data.db.ProgressEntity
-import com.lume.app.data.offline.networkOr
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.data.prefs.ReaderSettings
-import com.lume.app.domain.Chapter
-import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.ReaderMode
 import com.lume.app.domain.ReaderTheme
-import com.lume.app.domain.inReadingOrder
 import com.lume.app.ui.components.AnimatedLoadState
 import com.lume.app.ui.components.ChoiceChip
 import com.lume.app.ui.components.ErrorRetryBox
@@ -136,13 +156,10 @@ import com.lume.app.ui.components.lumeSliderColors
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -153,37 +170,33 @@ fun ReaderScreen(
     sourceId: String,
     titleId: String,
     chapterId: String,
+    page: Int? = null,
+    offset: Float? = null,
 ) {
-    val context = LocalContext.current
-    val resources = LocalResources.current
-    var loadedChapters by remember { mutableStateOf<List<LoadedChapter>>(emptyList()) }
-    var chapter by remember { mutableStateOf<Chapter?>(null) }
-    var chapters by remember { mutableStateOf<List<Chapter>>(emptyList()) }
-    var loading by remember { mutableStateOf(true) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var cloudflareUri by remember { mutableStateOf<java.net.URI?>(null) }
-    var titleName by remember { mutableStateOf("") }
-    var coverUrl by remember { mutableStateOf<String?>(null) }
-    var typeLabel by remember { mutableStateOf<String?>(null) }
-    var chromeVisible by remember { mutableStateOf(true) }
-    var settingsOpen by remember { mutableStateOf(false) }
-    var bookmarked by remember { mutableStateOf(false) }
-    var pageIndex by remember { mutableIntStateOf(0) }
-    var refreshEpoch by remember { mutableIntStateOf(0) }
-    val prefetchMutex = remember { Mutex() }
+    val vm: ReaderViewModel = viewModel {
+        ReaderViewModel(sourceId, titleId, chapterId, page, offset, createSavedStateHandle())
+    }
+    // Leaving the app or the screen: save now instead of waiting for the debounce.
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.flush() }
+
+    val settings = vm.settings
+    var chromeVisible by rememberSaveable { mutableStateOf(true) }
+    var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    var bookmarksOpen by rememberSaveable { mutableStateOf(false) }
+    var noteFor by rememberSaveable { mutableStateOf<Long?>(null) }
+    val inLibrary by vm.inLibrary.collectAsState()
+    val pageBookmarks by vm.pageBookmarks.collectAsState()
+    val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val dao = LumeApp.instance.dao
-    val networkEpoch by LumeApp.instance.http.networkEpoch.collectAsState()
-    val readerSettingsGlobal by LumeApp.instance.prefs.readerSettings.collectAsState(initial = ReaderSettings())
-    var readerSettings by remember { mutableStateOf(ReaderSettings()) }
     val systemDark = isSystemInDarkTheme()
-    val stripItems = remember(loadedChapters) { buildReaderStrip(loadedChapters) }
     /** +1 = next page, -1 = previous; collected by whichever reader mode is active. */
     val pageTurns = remember { MutableSharedFlow<Int>(extraBufferCapacity = 8) }
     val focusRequester = remember { FocusRequester() }
     val view = LocalView.current
-    DisposableEffect(view, readerSettings.keepScreenOn) {
-        view.keepScreenOn = readerSettings.keepScreenOn
+    val bookmarkAdded = stringResource(R.string.reader_bookmark_added)
+    val addNote = stringResource(R.string.reader_bookmark_add_note)
+    DisposableEffect(view, settings.keepScreenOn) {
+        view.keepScreenOn = settings.keepScreenOn
         onDispose { view.keepScreenOn = false }
     }
     // Fullscreen: when the controls hide, the status and navigation bars hide with them
@@ -192,7 +205,10 @@ fun ReaderScreen(
     val insetsController = remember(window, view) {
         window?.let { WindowCompat.getInsetsController(it, view) }
     }
-    val hideSystemBars = readerSettings.immersive && !chromeVisible && !settingsOpen
+    // Leaving (Back, or a back gesture in progress): bars come back before the next screen shows,
+    // and since the shell no longer pads for them, nothing resizes either way.
+    val exiting = LocalNavExiting.current
+    val hideSystemBars = settings.immersive && !chromeVisible && !settingsOpen && !bookmarksOpen && !exiting
     LaunchedEffect(insetsController, hideSystemBars) {
         insetsController?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         if (hideSystemBars) {
@@ -205,221 +221,17 @@ fun ReaderScreen(
         onDispose { insetsController?.show(WindowInsetsCompat.Type.systemBars()) }
     }
 
-    fun chapterIdsMatch(a: String, b: String): Boolean =
-        a == b || a.trimEnd('/') == b.trimEnd('/')
-
-    fun warmPageImages(pages: List<ComicPage>) {
-        val loader = context.imageLoader
-        pages.forEach { page ->
-            val data: Any = if (page.imageUrl.startsWith("http")) page.imageUrl else File(page.imageUrl)
-            loader.enqueue(
-                ImageRequest.Builder(context)
-                    .data(data)
-                    .memoryCachePolicy(CachePolicy.ENABLED)
-                    .diskCachePolicy(CachePolicy.ENABLED)
-                    .crossfade(false)
-                    .build(),
-            )
-        }
-    }
-
-    LaunchedEffect(readerSettingsGlobal, sourceId, titleId) {
-        val titlePrefs = dao.getTitlePrefs(sourceId, titleId)
-        readerSettings = readerSettingsGlobal.copy(
-            mode = titlePrefs?.readerMode?.let { ReaderMode.fromPrefs(it) } ?: readerSettingsGlobal.mode,
-            theme = titlePrefs?.readerTheme?.let { ReaderTheme.entries.getOrElse(it) { readerSettingsGlobal.theme } }
-                ?: readerSettingsGlobal.theme,
-            gap = titlePrefs?.gap ?: readerSettingsGlobal.gap,
-        )
-    }
-
-    val readerBg = when (readerSettings.theme) {
+    val readerBg = when (settings.theme) {
         ReaderTheme.Light -> Color(0xFFF2F2F2)
         ReaderTheme.Dark -> Color.Black
         ReaderTheme.System -> if (systemDark) Color.Black else Color(0xFFF2F2F2)
     }
 
-    suspend fun loadPagesFor(ch: Chapter): List<ComicPage> = withContext(Dispatchers.IO) {
-        val source = LumeApp.instance.sources.sourceById(sourceId)
-        val local = LumeApp.instance.downloads.localPages(sourceId, titleId, ch.id)
-        local ?: source?.getPages(ch)
-            ?: error(resources.getString(R.string.error_no_pages_offline))
-    }
-
-    /** Keep at least [ahead] chapter(s) after the last loaded one; warm Coil cache. */
-    suspend fun prefetchNextChapter(ahead: Int = 1) {
-        if (!readerSettings.seamlessReading) return
-        prefetchMutex.withLock {
-            repeat(ahead) {
-                val list = chapters
-                val loaded = loadedChapters
-                if (list.isEmpty() || loaded.isEmpty()) return@withLock
-                val lastId = loaded.last().chapter.id
-                val idx = list.indexOfFirst { chapterIdsMatch(it.id, lastId) }
-                if (idx < 0) return@withLock
-                val next = list.getOrNull(idx + 1) ?: return@withLock
-                if (loaded.any { chapterIdsMatch(it.chapter.id, next.id) }) return@withLock
-                val pages = runCatching { loadPagesFor(next) }.getOrNull() ?: return@withLock
-                if (pages.isEmpty()) return@withLock
-                if (loadedChapters.any { chapterIdsMatch(it.chapter.id, next.id) }) return@withLock
-                loadedChapters = loadedChapters + LoadedChapter(next, pages)
-                warmPageImages(pages)
-            }
-        }
-    }
-
-    fun maybePrefetchFromProgress(visibleStripIndex: Int, stripSize: Int) {
-        if (!readerSettings.seamlessReading || stripSize <= 0) return
-        val remaining = stripSize - 1 - visibleStripIndex
-        // Start well before the end so network + decode finish while user still scrolls.
-        if (remaining <= 12) {
-            scope.launch { prefetchNextChapter(ahead = 1) }
-        }
-    }
-
-    LaunchedEffect(sourceId, titleId, chapterId, networkEpoch, refreshEpoch) {
-        loading = true
-        error = null
-        cloudflareUri = null
-        loadedChapters = emptyList()
-        runCatching {
-            val source = LumeApp.instance.sources.sourceById(sourceId)
-            val offline = LumeApp.instance.offlineCache
-            val cached = offline.get(sourceId, titleId)
-            val details = cached?.details
-                ?: networkOr(source, { getTitle(titleId) }) {
-                    offline.detailsFromDownloads(sourceId, titleId)
-                }
-                ?: error(resources.getString(R.string.error_no_title_offline))
-            titleName = details.title
-            coverUrl = details.coverUrl
-            typeLabel = details.typeLabel
-            bookmarked = dao.getBookmark(sourceId, titleId) != null
-            val rawList = cached?.chapters
-                ?: networkOr(source, { getChapters(titleId) }, isUsable = { it.isNotEmpty() }) {
-                    offline.chaptersFromDownloads(sourceId, titleId)
-                }.orEmpty()
-            if (rawList.isEmpty()) error(resources.getString(R.string.error_no_chapters))
-            // Keep source order in cache; reader always uses oldest → newest.
-            if (source != null && cached == null) {
-                offline.save(sourceId, titleId, details, rawList)
-            }
-            val list = rawList.inReadingOrder()
-            chapters = list
-            val ch = list.firstOrNull { it.id == chapterId }
-                ?: list.firstOrNull { it.id.trimEnd('/') == chapterId.trimEnd('/') }
-                ?: error(resources.getString(R.string.error_chapter_not_found))
-            chapter = ch
-            val loaded = loadPagesFor(ch)
-            val progress = dao.getProgress(sourceId, titleId)
-            if (progress?.chapterId == ch.id) {
-                pageIndex = progress.pageIndex.coerceIn(0, (loaded.size - 1).coerceAtLeast(0))
-            } else {
-                pageIndex = 0
-            }
-            LoadedChapter(ch, loaded)
-        }.onSuccess { first ->
-            loadedChapters = listOf(first)
-            loading = false
-            warmPageImages(first.pages)
+    fun bookmarkHere() {
+        vm.addPageBookmark { id ->
             scope.launch {
-                dao.markChapterRead(
-                    ChapterReadEntity(sourceId = sourceId, titleId = titleId, chapterId = first.chapter.id),
-                )
-                runCatching {
-                    LumeApp.instance.trackerSync.pushProgress(sourceId, titleId, chapters, first.chapter.id)
-                }
-                // Prefetch next chapter + its images while the user still reads this one.
-                if (readerSettings.seamlessReading) {
-                    prefetchNextChapter(ahead = 1)
-                }
-            }
-        }.onFailure { e ->
-            loading = false
-            if (e is CloudflareException) {
-                cloudflareUri = e.uri
-                scope.launch { LumeApp.instance.http.requestChallenge(e.uri) }
-                error = resources.getString(R.string.error_cloudflare_needed)
-            } else {
-                error = e.message ?: e.toString()
-            }
-        }
-    }
-
-    // If user turns seamless on mid-session, kick off prefetch once.
-    LaunchedEffect(readerSettings.seamlessReading) {
-        if (readerSettings.seamlessReading && loadedChapters.isNotEmpty()) {
-            prefetchNextChapter(ahead = 1)
-        }
-    }
-
-    fun onVisiblePage(ch: Chapter, indexInChapter: Int, chapterPageCount: Int) {
-        val chapterChanged = chapter?.id != ch.id
-        if (!chapterChanged && pageIndex == indexInChapter) return
-        pageIndex = indexInChapter
-        chapter = ch
-        // When entering a chapter that is the last loaded one, pull the following chapter.
-        if (readerSettings.seamlessReading &&
-            loadedChapters.lastOrNull()?.let { chapterIdsMatch(it.chapter.id, ch.id) } == true
-        ) {
-            scope.launch { prefetchNextChapter(ahead = 1) }
-        }
-        scope.launch {
-            dao.upsertProgress(
-                ProgressEntity(
-                    sourceId = sourceId,
-                    titleId = titleId,
-                    titleName = titleName,
-                    coverUrl = coverUrl,
-                    typeLabel = typeLabel,
-                    chapterId = ch.id,
-                    chapterName = ch.title,
-                    chapterUrl = ch.url,
-                    pageIndex = indexInChapter,
-                    pageCount = chapterPageCount,
-                ),
-            )
-            if (chapterChanged) {
-                dao.markChapterRead(
-                    ChapterReadEntity(sourceId = sourceId, titleId = titleId, chapterId = ch.id),
-                )
-                runCatching {
-                    LumeApp.instance.trackerSync.pushProgress(sourceId, titleId, chapters, ch.id)
-                }
-            }
-        }
-    }
-
-    fun goChapter(delta: Int) {
-        val ch = chapter ?: return
-        val idx = chapters.indexOfFirst { chapterIdsMatch(it.id, ch.id) }
-        if (idx < 0) return
-        val next = chapters.getOrNull(idx + delta) ?: return
-        nav.navigate(Routes.reader(sourceId, titleId, next.id)) {
-            popUpTo(Routes.reader(sourceId, titleId, chapterId)) { inclusive = true }
-        }
-    }
-
-    fun openTitle() {
-        nav.navigate(Routes.title(sourceId, titleId))
-    }
-
-    fun toggleBookmark() {
-        scope.launch {
-            if (bookmarked) {
-                dao.deleteBookmark(sourceId, titleId)
-                bookmarked = false
-            } else {
-                dao.upsertBookmark(
-                    BookmarkEntity(
-                        sourceId = sourceId,
-                        titleId = titleId,
-                        titleName = titleName,
-                        coverUrl = coverUrl,
-                        typeLabel = typeLabel,
-                    ),
-                )
-                bookmarked = true
+                val result = snackbar.showSnackbar(bookmarkAdded, actionLabel = addNote, duration = SnackbarDuration.Short)
+                if (result == SnackbarResult.ActionPerformed) noteFor = id
             }
         }
     }
@@ -431,7 +243,7 @@ fun ReaderScreen(
             .focusRequester(focusRequester)
             .focusable()
             .onPreviewKeyEvent { event ->
-                if (!readerSettings.volumeKeys || settingsOpen) return@onPreviewKeyEvent false
+                if (!settings.volumeKeys || settingsOpen) return@onPreviewKeyEvent false
                 val delta = when (event.nativeKeyEvent.keyCode) {
                     android.view.KeyEvent.KEYCODE_VOLUME_DOWN -> 1
                     android.view.KeyEvent.KEYCODE_VOLUME_UP -> -1
@@ -442,188 +254,44 @@ fun ReaderScreen(
                 true
             },
     ) {
+        val loading = vm.loading || !vm.settingsReady
         LaunchedEffect(loading, settingsOpen) {
             if (!loading && !settingsOpen) runCatching { focusRequester.requestFocus() }
         }
         AnimatedLoadState(
-            state = loadStateOf(loading, error),
+            state = loadStateOf(loading, vm.error),
             modifier = Modifier.fillMaxSize(),
         ) { pane ->
             when (pane) {
                 LoadState.Loading -> LoadingBox()
                 LoadState.Error -> ErrorRetryBox(
-                    message = error.orEmpty(),
-                    onRetry = { refreshEpoch++ },
-                    onCloudflare = cloudflareUri?.let { uri ->
-                        { scope.launch { LumeApp.instance.http.requestChallenge(uri) } }
-                    },
+                    message = vm.error.orEmpty(),
+                    onRetry = vm::retry,
+                    onCloudflare = vm.cloudflareUri?.let { { vm.solveChallenge() } },
                 )
                 else -> Box(Modifier.fillMaxSize()) {
                     val toggleChrome = { chromeVisible = !chromeVisible }
-                    val chapterPageCount = loadedChapters.firstOrNull { it.chapter.id == chapter?.id }?.pages?.size
-                        ?: stripItems.filterIsInstance<ReaderStripItem.Page>()
-                            .firstOrNull { it.chapter.id == chapter?.id }?.chapterPageCount
-                        ?: 0
-                    when (readerSettings.mode) {
-                        ReaderMode.Webtoon -> {
-                            val sideMargin = with(LocalDensity.current) {
-                                (LocalWindowInfo.current.containerSize.width * readerSettings.sidePaddingPercent / 100).toDp()
-                            }
-                            val listState = rememberLazyListState(
-                                initialFirstVisibleItemIndex = pageIndex.coerceIn(0, (stripItems.size - 1).coerceAtLeast(0)),
-                            )
-                            LaunchedEffect(listState, stripItems) {
-                                snapshotFlow {
-                                    val idx = listState.firstVisibleItemIndex
-                                    val item = stripItems.getOrNull(idx)
-                                    val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: idx
-                                    Triple(item, lastVisible, stripItems.size)
-                                }
-                                    .distinctUntilChanged()
-                                    .collect { (item, lastVisible, total) ->
-                                        when (item) {
-                                            is ReaderStripItem.Page -> onVisiblePage(
-                                                item.chapter,
-                                                item.indexInChapter,
-                                                item.chapterPageCount,
-                                            )
-                                            is ReaderStripItem.Divider -> onVisiblePage(item.chapter, 0, 1)
-                                            null -> Unit
-                                        }
-                                        maybePrefetchFromProgress(lastVisible, total)
-                                    }
-                            }
-                            LaunchedEffect(listState) {
-                                pageTurns.collect { delta ->
-                                    if (readerSettings.immersive) chromeVisible = false
-                                    val viewport = listState.layoutInfo.viewportSize.height
-                                    listState.animateScrollBy(delta * viewport * 0.85f)
-                                }
-                            }
-                            LaunchedEffect(listState, readerSettings.immersive) {
-                                if (!readerSettings.immersive) return@LaunchedEffect
-                                listState.interactionSource.interactions.collect { interaction ->
-                                    if (interaction is DragInteraction.Start) chromeVisible = false
-                                }
-                            }
-                            ReaderZoomFrame(
-                                zoomEnabled = readerSettings.doubleTapZoom,
-                                resetKey = chapterId,
+                    val hideChrome = { if (settings.immersive) chromeVisible = false }
+                    key(vm.session) {
+                        when (settings.mode) {
+                            ReaderMode.Webtoon -> WebtoonReader(
+                                vm = vm,
+                                pageTurns = pageTurns,
                                 onSingleTap = toggleChrome,
-                                modifier = Modifier.fillMaxSize(),
-                            ) { zoomModifier, scale ->
-                                LazyColumn(
-                                    state = listState,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .then(zoomModifier),
-                                    verticalArrangement = Arrangement.spacedBy(readerSettings.gap.dp),
-                                    contentPadding = PaddingValues(horizontal = sideMargin),
-                                    userScrollEnabled = scale <= 1.01f,
-                                ) {
-                                    itemsIndexed(
-                                        stripItems,
-                                        key = { _, item ->
-                                            when (item) {
-                                                is ReaderStripItem.Divider -> "div-${item.chapter.id}"
-                                                is ReaderStripItem.Page ->
-                                                    "p-${item.chapter.id}-${item.page.index}-${item.indexInChapter}"
-                                            }
-                                        },
-                                    ) { _, item ->
-                                        when (item) {
-                                            is ReaderStripItem.Divider -> ChapterDividerBand(item.chapter.title)
-                                            is ReaderStripItem.Page -> ReaderPageImage(item.page, zoomEnabled = false)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        ReaderMode.Ltr, ReaderMode.Rtl -> {
-                            val pagerState = rememberPagerState(
-                                initialPage = pageIndex.coerceIn(0, (stripItems.size - 1).coerceAtLeast(0)),
-                                pageCount = { stripItems.size.coerceAtLeast(1) },
+                                onUserScroll = hideChrome,
                             )
-                            LaunchedEffect(pagerState, stripItems) {
-                                snapshotFlow { pagerState.currentPage to stripItems.size }
-                                    .distinctUntilChanged()
-                                    .collect { (page, total) ->
-                                        when (val item = stripItems.getOrNull(page)) {
-                                            is ReaderStripItem.Page -> onVisiblePage(
-                                                item.chapter,
-                                                item.indexInChapter,
-                                                item.chapterPageCount,
-                                            )
-                                            is ReaderStripItem.Divider -> onVisiblePage(item.chapter, 0, 1)
-                                            null -> Unit
-                                        }
-                                        if (readerSettings.seamlessReading) {
-                                            maybePrefetchFromProgress(page, total)
-                                        }
-                                    }
-                            }
-                            LaunchedEffect(pagerState, readerSettings.immersive) {
-                                if (!readerSettings.immersive) return@LaunchedEffect
-                                pagerState.interactionSource.interactions.collect { interaction ->
-                                    if (interaction is DragInteraction.Start) chromeVisible = false
-                                }
-                            }
-                            LaunchedEffect(pagerState) {
-                                pageTurns.collect { delta ->
-                                    if (readerSettings.immersive) chromeVisible = false
-                                    val target = (pagerState.currentPage + delta).coerceIn(0, pagerState.pageCount - 1)
-                                    pagerState.animateScrollToPage(target)
-                                }
-                            }
-                            val rtl = readerSettings.mode == ReaderMode.Rtl
-                            val onPagerTap: (Float, Int) -> Unit = { x, width ->
-                                val third = width / 3f
-                                val zone = when {
-                                    !readerSettings.tapZones -> 0
-                                    x < third -> -1
-                                    x > width - third -> 1
-                                    else -> 0
-                                }
-                                // In RTL the left side is "forward".
-                                if (zone == 0) toggleChrome() else pageTurns.tryEmit(if (rtl) -zone else zone)
-                            }
-                            HorizontalPager(
-                                state = pagerState,
-                                reverseLayout = rtl,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .pointerInput(readerSettings.tapZones, rtl) {
-                                        detectTapGestures(onTap = { offset -> onPagerTap(offset.x, size.width) })
-                                    },
-                                userScrollEnabled = true,
-                            ) { page ->
-                                when (val item = stripItems.getOrNull(page)) {
-                                    is ReaderStripItem.Page -> Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        ReaderPageImage(
-                                            item.page,
-                                            ContentScale.Fit,
-                                            zoomEnabled = readerSettings.doubleTapZoom,
-                                            fillViewport = true,
-                                            // The zoom gesture consumes taps, so forward single taps.
-                                            onTap = onPagerTap,
-                                        )
-                                    }
-                                    is ReaderStripItem.Divider -> ChapterDividerBand(
-                                        title = item.chapter.title,
-                                        fillViewport = true,
-                                    )
-                                    null -> Box(Modifier.fillMaxSize())
-                                }
-                            }
+                            ReaderMode.Ltr, ReaderMode.Rtl -> PagedReader(
+                                vm = vm,
+                                pageTurns = pageTurns,
+                                onToggleChrome = toggleChrome,
+                                onUserScroll = hideChrome,
+                            )
                         }
                     }
 
-                    if (readerSettings.dim > 0f) {
+                    if (settings.dim > 0f) {
                         // Night dimming above the pages, below the controls; does not take touches.
-                        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = readerSettings.dim)))
+                        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = settings.dim)))
                     }
                     AnimatedVisibility(
                         visible = chromeVisible,
@@ -631,110 +299,36 @@ fun ReaderScreen(
                         enter = Motion.barEnterFromTop,
                         exit = Motion.barExitToTop,
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    Brush.verticalGradient(
-                                        listOf(Color.Black.copy(alpha = 0.87f), Color.Transparent),
-                                    ),
-                                )
-                                // Stable position whether or not the status bar is currently shown.
-                                .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp)
-                                    .padding(horizontal = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                IconButton(onClick = { nav.popBackStack() }) {
-                                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = Color.White)
-                                }
-                                Column(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clickable(onClick = { openTitle() }),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                ) {
-                                    Text(
-                                        text = titleName,
-                                        color = Color.White,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        textAlign = TextAlign.Center,
-                                    )
-                                    Text(
-                                        text = chapter?.title.orEmpty(),
-                                        color = AppColors.textSecondary,
-                                        fontSize = 12.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        textAlign = TextAlign.Center,
-                                    )
-                                }
-                                IconButton(onClick = { settingsOpen = true }) {
-                                    Icon(Icons.Outlined.Settings, null, tint = Color.White)
-                                }
-                            }
-                        }
+                        ReaderTopBar(
+                            titleName = vm.titleName,
+                            chapterTitle = vm.currentChapter?.title.orEmpty(),
+                            inLibrary = inLibrary,
+                            onBack = { nav.popBackStack() },
+                            onOpenTitle = { nav.openTitleFromReader(sourceId, titleId) },
+                            onToggleLibrary = vm::toggleLibrary,
+                            onSettings = { settingsOpen = true },
+                        )
                     }
-                    AnimatedVisibility(
-                        visible = chromeVisible,
+                    Column(
                         modifier = Modifier.align(Alignment.BottomCenter),
-                        enter = Motion.barEnterFromBottom,
-                        exit = Motion.barExitToBottom,
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    Brush.verticalGradient(
-                                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.87f)),
-                                    ),
-                                )
-                                .windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility)
-                                .padding(bottom = 4.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
+                        SnackbarHost(snackbar)
+                        AnimatedVisibility(
+                            visible = chromeVisible,
+                            enter = Motion.barEnterFromBottom,
+                            exit = Motion.barExitToBottom,
                         ) {
-                            if (!readerSettings.hidePageNumber && chapterPageCount > 0) {
-                                Text(
-                                    text = "${pageIndex + 1} / $chapterPageCount",
-                                    color = AppColors.textSecondary,
-                                    fontSize = 13.sp,
-                                    modifier = Modifier.padding(bottom = 8.dp),
-                                )
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(52.dp),
-                                horizontalArrangement = Arrangement.SpaceAround,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                IconButton(onClick = { goChapter(-1) }) {
-                                    Icon(Icons.Outlined.SkipPrevious, stringResource(R.string.cd_prev_chapter), tint = Color.White)
-                                }
-                                IconButton(onClick = { nav.navigate(Routes.chapters(sourceId, titleId)) }) {
-                                    Icon(Icons.Outlined.FormatListNumbered, stringResource(R.string.cd_chapters), tint = Color.White)
-                                }
-                                IconButton(onClick = { toggleBookmark() }) {
-                                    Icon(
-                                        if (bookmarked) Icons.Outlined.Bookmark else Icons.Outlined.BookmarkBorder,
-                                        stringResource(R.string.cd_bookmark),
-                                        tint = if (bookmarked) AppColors.accent else Color.White,
-                                    )
-                                }
-                                IconButton(onClick = { settingsOpen = true }) {
-                                    Icon(Icons.Outlined.Tune, stringResource(R.string.cd_settings), tint = Color.White)
-                                }
-                                IconButton(onClick = { goChapter(1) }) {
-                                    Icon(Icons.Outlined.SkipNext, stringResource(R.string.cd_next_chapter), tint = Color.White)
-                                }
-                            }
+                            ReaderBottomBar(
+                                pageLabel = vm.currentChapterPageCount.takeIf { it > 0 && !settings.hidePageNumber }
+                                    ?.let { "${vm.currentPageIndex + 1} / $it" },
+                                onPrev = { vm.goChapter(-1) },
+                                onNext = { vm.goChapter(1) },
+                                onChapters = { nav.navigate(Routes.chapters(sourceId, titleId)) },
+                                onBookmark = ::bookmarkHere,
+                                onBookmarkList = { bookmarksOpen = true },
+                                onSettings = { settingsOpen = true },
+                            )
                         }
                     }
                 }
@@ -751,55 +345,387 @@ fun ReaderScreen(
             dragHandle = null,
         ) {
             ReaderSettingsSheet(
-                settings = readerSettings,
-                onClose = { settingsOpen = false },
-                onChange = { next ->
-                    readerSettings = next
-                    scope.launch { LumeApp.instance.prefs.setReaderSettings(next) }
+                settings = settings,
+                onClose = {
+                    scope.launch { sheetState.hide() }.invokeOnCompletion { settingsOpen = false }
                 },
-                onSaveForTitle = { next ->
-                    readerSettings = next
-                    scope.launch {
-                        dao.upsertTitlePrefs(
-                            com.lume.app.data.db.TitlePrefsEntity(
-                                sourceId = sourceId,
-                                titleId = titleId,
-                                readerMode = next.mode.prefsIndex,
-                                readerTheme = next.theme.ordinal,
-                                gap = next.gap,
-                            ),
-                        )
-                    }
-                },
+                onChange = { next -> vm.updateSettings(next, commit = false) },
+                onCommit = { next -> vm.updateSettings(next, commit = true) },
+                onSaveForTitle = vm::saveSettingsForTitle,
             )
         }
     }
-}
 
-private data class LoadedChapter(
-    val chapter: Chapter,
-    val pages: List<ComicPage>,
-)
-
-private sealed class ReaderStripItem {
-    data class Divider(val chapter: Chapter) : ReaderStripItem()
-    data class Page(
-        val chapter: Chapter,
-        val page: ComicPage,
-        val indexInChapter: Int,
-        val chapterPageCount: Int,
-    ) : ReaderStripItem()
-}
-
-private fun buildReaderStrip(loaded: List<LoadedChapter>): List<ReaderStripItem> {
-    val out = ArrayList<ReaderStripItem>(loaded.sumOf { it.pages.size + 1 })
-    loaded.forEachIndexed { index, lc ->
-        if (index > 0) out += ReaderStripItem.Divider(lc.chapter)
-        lc.pages.forEachIndexed { pi, page ->
-            out += ReaderStripItem.Page(lc.chapter, page, pi, lc.pages.size)
+    if (bookmarksOpen) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { bookmarksOpen = false },
+            sheetState = sheetState,
+            containerColor = AppColors.surface,
+        ) {
+            Text(
+                stringResource(R.string.bookmarks_title),
+                color = AppColors.textPrimary,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            if (pageBookmarks.isEmpty()) {
+                Text(
+                    stringResource(R.string.bookmarks_empty),
+                    color = AppColors.textSecondary,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+                )
+            } else {
+                LazyColumn(modifier = Modifier.padding(bottom = 16.dp)) {
+                    itemsIndexed(pageBookmarks, key = { _, b -> b.id }) { _, bookmark ->
+                        PageBookmarkRow(
+                            bookmark = bookmark,
+                            onOpen = {
+                                scope.launch { sheetState.hide() }.invokeOnCompletion { bookmarksOpen = false }
+                                vm.jumpTo(bookmark)
+                            },
+                            onDelete = { vm.deletePageBookmark(bookmark.id) },
+                        )
+                    }
+                }
+            }
         }
     }
-    return out
+
+    noteFor?.let { id ->
+        BookmarkNoteDialog(
+            initial = pageBookmarks.firstOrNull { it.id == id }?.note.orEmpty(),
+            onDismiss = { noteFor = null },
+            onSave = { text ->
+                vm.setBookmarkNote(id, text)
+                noteFor = null
+            },
+        )
+    }
+}
+
+/** How long to wait for the anchor page's real height before giving up on the fine restore. */
+private const val RESTORE_WAIT_MS = 4_000L
+
+@Composable
+private fun WebtoonReader(
+    vm: ReaderViewModel,
+    pageTurns: MutableSharedFlow<Int>,
+    onSingleTap: () -> Unit,
+    onUserScroll: () -> Unit,
+) {
+    val settings = vm.settings
+    val density = LocalDensity.current
+    val containerWidth = LocalWindowInfo.current.containerSize.width
+    val sideMarginPx = containerWidth * settings.sidePaddingPercent / 100
+    val sideMargin = with(density) { sideMarginPx.toDp() }
+    // Keyed to the reader session (and recreated with the mode), never saved on its own: the
+    // ViewModel's anchor is the one source of truth, so the two can't fight.
+    val session = remember { vm.session }
+    val target = remember { vm.anchor }
+    // Usually the anchor page's size is known from last time: then the exact spot is part of the
+    // initial state and the very first frame is already right.
+    val knownAspect = remember { vm.aspectOf(target.chapterId, target.pageIndex) }
+    val listState = remember {
+        val initialOffset = knownAspect?.let { (target.pageOffset * (containerWidth - 2 * sideMarginPx) / it).roundToInt() }
+        LazyListState(
+            firstVisibleItemIndex = stripIndexOf(vm.strip, target).coerceAtLeast(0),
+            firstVisibleItemScrollOffset = initialOffset ?: 0,
+        )
+    }
+    var restoring by remember { mutableStateOf(true) }
+
+    // Otherwise, phase 2: once the anchor page reports its real height, scroll inside it.
+    // Saving stays off until this finishes, or until the user drags (which cancels it).
+    LaunchedEffect(listState) {
+        val index = stripIndexOf(vm.strip, target)
+        if (index >= 0 && target.pageOffset > 0f && knownAspect == null) {
+            val restore = launch {
+                val aspect = withTimeoutOrNull(RESTORE_WAIT_MS) {
+                    snapshotFlow { vm.aspectOf(target.chapterId, target.pageIndex) }.filterNotNull().first()
+                } ?: return@launch
+                val itemWidth = (listState.layoutInfo.viewportSize.width.takeIf { it > 0 } ?: containerWidth) -
+                    2 * sideMarginPx
+                val height = itemWidth / aspect
+                listState.scrollToItem(index, (target.pageOffset * height).roundToInt())
+            }
+            val cancelOnDrag = launch {
+                listState.interactionSource.interactions.first { it is DragInteraction.Start }
+                restore.cancel()
+            }
+            restore.join()
+            cancelOnDrag.cancel()
+        }
+        restoring = false
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            if (restoring) return@snapshotFlow null
+            val info = listState.layoutInfo
+            val strip = vm.strip
+            val visible = info.visibleItemsInfo.map { VisibleItem(it.index, it.offset, it.size) }
+            val anchor = anchorFrom(visible, strip) ?: return@snapshotFlow null
+            Triple(anchor, finishedChapters(visible, info.viewportEndOffset, strip), visible.lastOrNull()?.index ?: 0)
+        }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .collect { (anchor, finished, lastVisible) -> vm.onPosition(session, anchor, finished, lastVisible) }
+    }
+    LaunchedEffect(listState) {
+        pageTurns.collect { delta ->
+            onUserScroll()
+            val viewport = listState.layoutInfo.viewportSize.height
+            listState.animateScrollBy(delta * viewport * 0.85f)
+        }
+    }
+    val chromeHider = rememberChromeHider(settings.immersive, onUserScroll)
+    ReaderZoomFrame(
+        zoomEnabled = settings.doubleTapZoom,
+        resetKey = vm.session,
+        onSingleTap = onSingleTap,
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(chromeHider),
+    ) { zoomModifier, isZoomed ->
+        // Recomposes only when crossing 1x, not on every pinch frame.
+        val scrollEnabled by remember { derivedStateOf { !isZoomed() } }
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .then(zoomModifier),
+            verticalArrangement = Arrangement.spacedBy(settings.gap.dp),
+            contentPadding = PaddingValues(horizontal = sideMargin),
+            userScrollEnabled = scrollEnabled,
+        ) {
+            itemsIndexed(vm.strip, key = { _, item -> item.key() }) { _, item ->
+                when (item) {
+                    is ReaderStripItem.Divider -> ChapterDividerBand(item.chapter.title)
+                    is ReaderStripItem.Page -> ReaderPageImage(
+                        page = item.page,
+                        aspect = vm.aspectOf(item.chapter.id, item.indexInChapter),
+                        onAspect = { vm.reportAspect(item.chapter.id, item.indexInChapter, it) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PagedReader(
+    vm: ReaderViewModel,
+    pageTurns: MutableSharedFlow<Int>,
+    onToggleChrome: () -> Unit,
+    onUserScroll: () -> Unit,
+) {
+    val settings = vm.settings
+    val session = remember { vm.session }
+    val pagerState = remember {
+        PagerState(currentPage = stripIndexOf(vm.strip, vm.anchor).coerceAtLeast(0)) { vm.strip.size.coerceAtLeast(1) }
+    }
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage to vm.strip }
+            .distinctUntilChanged()
+            .collect { (page, strip) ->
+                val anchor = anchorAt(strip, page) ?: return@collect
+                val finished = when (val item = strip.getOrNull(page)) {
+                    is ReaderStripItem.Page ->
+                        if (item.indexInChapter == item.chapterPageCount - 1) setOf(item.chapter.id) else emptySet()
+                    is ReaderStripItem.Divider -> setOf(item.previous.id)
+                    null -> emptySet()
+                }
+                vm.onPosition(session, anchor, finished, page)
+            }
+    }
+    val chromeHider = rememberChromeHider(settings.immersive, onUserScroll)
+    LaunchedEffect(pagerState) {
+        pageTurns.collect { delta ->
+            onUserScroll()
+            val target = (pagerState.currentPage + delta).coerceIn(0, pagerState.pageCount - 1)
+            pagerState.animateScrollToPage(target)
+        }
+    }
+    val rtl = settings.mode == ReaderMode.Rtl
+    val onPagerTap: (Float, Int) -> Unit = { x, width ->
+        val third = width / 3f
+        val zone = when {
+            !settings.tapZones -> 0
+            x < third -> -1
+            x > width - third -> 1
+            else -> 0
+        }
+        // In RTL the left side is "forward".
+        if (zone == 0) onToggleChrome() else pageTurns.tryEmit(if (rtl) -zone else zone)
+    }
+    HorizontalPager(
+        state = pagerState,
+        reverseLayout = rtl,
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(chromeHider)
+            .pointerInput(settings.tapZones, rtl) {
+                detectTapGestures(onTap = { offset -> onPagerTap(offset.x, size.width) })
+            },
+        key = { index -> vm.strip.getOrNull(index)?.key() ?: index },
+    ) { index ->
+        when (val item = vm.strip.getOrNull(index)) {
+            is ReaderStripItem.Page -> Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                ReaderPageImage(
+                    page = item.page,
+                    aspect = vm.aspectOf(item.chapter.id, item.indexInChapter),
+                    onAspect = { vm.reportAspect(item.chapter.id, item.indexInChapter, it) },
+                    contentScale = ContentScale.Fit,
+                    zoomEnabled = settings.doubleTapZoom,
+                    fillViewport = true,
+                    // The zoom gesture consumes taps, so forward single taps.
+                    onTap = onPagerTap,
+                )
+            }
+            is ReaderStripItem.Divider -> ChapterDividerBand(
+                title = item.chapter.title,
+                fillViewport = true,
+            )
+            null -> Box(Modifier.fillMaxSize())
+        }
+    }
+}
+
+private fun ReaderStripItem.key(): String = when (this) {
+    is ReaderStripItem.Divider -> "div-${chapter.id}"
+    is ReaderStripItem.Page -> "p-${chapter.id}-${page.index}-$indexInChapter"
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ReaderTopBar(
+    titleName: String,
+    chapterTitle: String,
+    inLibrary: Boolean,
+    onBack: () -> Unit,
+    onOpenTitle: () -> Unit,
+    onToggleLibrary: () -> Unit,
+    onSettings: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.87f), Color.Transparent)))
+            // Stable position whether or not the status bar is currently shown.
+            .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = Color.White)
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onOpenTitle),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = titleName,
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    text = chapterTitle,
+                    color = AppColors.textSecondary,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            IconButton(onClick = onToggleLibrary) {
+                Icon(
+                    if (inLibrary) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    stringResource(if (inLibrary) R.string.cd_remove_from_library else R.string.cd_add_to_library),
+                    tint = if (inLibrary) AppColors.accent else Color.White,
+                )
+            }
+            IconButton(onClick = onSettings) {
+                Icon(Icons.Outlined.Settings, stringResource(R.string.cd_settings), tint = Color.White)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@Composable
+private fun ReaderBottomBar(
+    pageLabel: String?,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+    onChapters: () -> Unit,
+    onBookmark: () -> Unit,
+    onBookmarkList: () -> Unit,
+    onSettings: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.87f))))
+            .windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility)
+            .padding(bottom = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        if (pageLabel != null) {
+            Text(
+                text = pageLabel,
+                color = AppColors.textSecondary,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onPrev) {
+                Icon(Icons.Outlined.SkipPrevious, stringResource(R.string.cd_prev_chapter), tint = Color.White)
+            }
+            IconButton(onClick = onChapters) {
+                Icon(Icons.Outlined.FormatListNumbered, stringResource(R.string.cd_chapters), tint = Color.White)
+            }
+            // Tap pins this spot; long-press lists this title's bookmarks.
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .combinedClickable(onClick = onBookmark, onLongClick = onBookmarkList),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Outlined.BookmarkAdd, stringResource(R.string.cd_bookmark_spot), tint = Color.White)
+            }
+            IconButton(onClick = onSettings) {
+                Icon(Icons.Outlined.Tune, stringResource(R.string.cd_settings), tint = Color.White)
+            }
+            IconButton(onClick = onNext) {
+                Icon(Icons.Outlined.SkipNext, stringResource(R.string.cd_next_chapter), tint = Color.White)
+            }
+        }
+    }
 }
 
 @Composable
@@ -886,22 +812,32 @@ private class ReaderZoomState {
         offset = clamp(offset, next)
     }
 
-    fun zoomTo(target: Float, focal: Offset) {
-        val old = scale
-        val next = target.coerceIn(1f, 5f)
-        if (next <= 1.01f) {
-            reset()
-            return
-        }
+    /** Read through this (not [scale]) in composition: it changes only when crossing 1x. */
+    val isZoomed: Boolean by derivedStateOf { scale > 1.01f }
+
+    /** Double tap: glide to [target] around [focal] (or back to 1x) instead of jumping. */
+    suspend fun animateZoomTo(target: Float, focal: Offset) {
+        val fromScale = scale
+        val fromOffset = offset
+        val toScale = target.coerceIn(1f, 5f)
         val center = Offset(viewport.width / 2f, viewport.height / 2f)
-        offset = if (old <= 1.01f) {
-            (center - focal) * (next - 1f)
-        } else {
-            val ratio = next / old
-            offset * ratio + (focal - center) * (1f - ratio)
+        val toOffset = when {
+            toScale <= 1.01f -> Offset.Zero
+            fromScale <= 1.01f -> clamp((center - focal) * (toScale - 1f), toScale)
+            else -> {
+                val ratio = toScale / fromScale
+                clamp(fromOffset * ratio + (focal - center) * (1f - ratio), toScale)
+            }
         }
-        scale = next
-        offset = clamp(offset, next)
+        animate(0f, 1f, animationSpec = Motion.medium()) { t, _ ->
+            scale = fromScale + (toScale - fromScale) * t
+            offset = fromOffset + (toOffset - fromOffset) * t
+        }
+        if (toScale <= 1.01f) reset()
+    }
+
+    suspend fun toggleZoom(focal: Offset, target: Float = 2.5f) {
+        animateZoomTo(if (scale > 1.1f) 1f else target, focal)
     }
 }
 
@@ -911,10 +847,10 @@ private fun ReaderZoomFrame(
     resetKey: Any?,
     onSingleTap: () -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable (zoomModifier: Modifier, scale: Float) -> Unit,
+    content: @Composable (zoomModifier: Modifier, isZoomed: () -> Boolean) -> Unit,
 ) {
     val state = remember { ReaderZoomState() }
-    val targetZoom = 2.5f
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(resetKey) { state.reset() }
 
@@ -923,14 +859,15 @@ private fun ReaderZoomFrame(
             .onSizeChanged { state.viewport = it }
             // Keys must NOT include scale — restarting mid-pinch makes zoom weak/jerky.
             .pointerInput(zoomEnabled) {
-                detectTapGestures(
-                    onTap = { onSingleTap() },
-                    onDoubleTap = { pos ->
-                        if (!zoomEnabled) return@detectTapGestures
-                        if (state.scale > 1.1f) state.reset()
-                        else state.zoomTo(targetZoom, pos)
-                    },
-                )
+                if (zoomEnabled) {
+                    detectTapGestures(
+                        onTap = { onSingleTap() },
+                        onDoubleTap = { pos -> scope.launch { state.toggleZoom(pos) } },
+                    )
+                } else {
+                    // Without a double-tap handler a single tap fires at once (no ~300 ms wait).
+                    detectTapGestures(onTap = { onSingleTap() })
+                }
             }
             .pointerInput(zoomEnabled) {
                 if (!zoomEnabled) return@pointerInput
@@ -961,6 +898,8 @@ private fun ReaderZoomFrame(
                 }
             },
     ) {
+        // Scale and offset are read only inside graphicsLayer, so pinching redraws the layer
+        // without recomposing the list underneath.
         content(
             Modifier.graphicsLayer {
                 scaleX = state.scale
@@ -969,14 +908,49 @@ private fun ReaderZoomFrame(
                 translationY = state.offset.y
                 transformOrigin = TransformOrigin.Center
             },
-            state.scale,
+            { state.isZoomed },
         )
+    }
+}
+
+/**
+ * Hides the reader chrome after real scrolling (about 24 dp), not on every touch that starts a
+ * drag; a sloppy tap or a tiny nudge leaves the controls alone.
+ */
+@Composable
+private fun rememberChromeHider(enabled: Boolean, onHide: () -> Unit): NestedScrollConnection {
+    val thresholdPx = with(LocalDensity.current) { 24.dp.toPx() }
+    val currentOnHide by rememberUpdatedState(onHide)
+    val currentEnabled by rememberUpdatedState(enabled)
+    return remember(thresholdPx) {
+        object : NestedScrollConnection {
+            private var travelled = 0f
+
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (source == NestedScrollSource.UserInput && currentEnabled) {
+                    travelled += kotlin.math.abs(consumed.x) + kotlin.math.abs(consumed.y)
+                    if (travelled >= thresholdPx) {
+                        travelled = 0f
+                        currentOnHide()
+                    }
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                travelled = 0f
+                return Velocity.Zero
+            }
+        }
     }
 }
 
 @Composable
 private fun ReaderPageImage(
     page: ComicPage,
+    /** Width / height when known (from this session or saved progress); sizes the placeholder. */
+    aspect: Float?,
+    onAspect: (Float) -> Unit,
     contentScale: ContentScale = ContentScale.FillWidth,
     zoomEnabled: Boolean = false,
     fillViewport: Boolean = false,
@@ -984,27 +958,30 @@ private fun ReaderPageImage(
     onTap: ((Float, Int) -> Unit)? = null,
 ) {
     val context = LocalContext.current
-    val model = remember(page.imageUrl) {
+    var attempt by remember(page.imageUrl) { mutableIntStateOf(0) }
+    var failed by remember(page.imageUrl) { mutableStateOf(false) }
+    val model = remember(page.imageUrl, attempt) {
         ImageRequest.Builder(context)
             .data(if (page.imageUrl.startsWith("http")) page.imageUrl else File(page.imageUrl))
             .crossfade(false)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
+            // A new parameter makes Coil treat a retry as a new request.
+            .setParameter("attempt", attempt, memoryCacheKey = null)
             .build()
     }
     val state = remember(page.imageUrl) { ReaderZoomState() }
-    val targetZoom = 2.5f
-    var imageReady by remember(page.imageUrl) { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
-            .then(if (fillViewport) Modifier.fillMaxSize() else Modifier.fillMaxWidth())
-            // Reserve height so LazyColumn doesn't jump when the bitmap arrives mid-fling.
             .then(
-                if (!fillViewport && !imageReady) {
-                    Modifier.heightIn(min = 420.dp)
-                } else {
-                    Modifier
+                when {
+                    fillViewport -> Modifier.fillMaxSize()
+                    // Real height before the bitmap arrives: nothing above the reading spot moves.
+                    aspect != null -> Modifier.fillMaxWidth().aspectRatio(aspect)
+                    // Never seen this page: reserve a typical height (also kept on error).
+                    else -> Modifier.fillMaxWidth().heightIn(min = 420.dp)
                 },
             )
             .background(Color.Black.copy(alpha = 0.12f)),
@@ -1013,11 +990,15 @@ private fun ReaderPageImage(
         AsyncImage(
             model = model,
             contentDescription = null,
-            onSuccess = { imageReady = true },
-            onError = { imageReady = true },
+            onSuccess = { success ->
+                failed = false
+                val size = success.painter.intrinsicSize
+                if (size.isSpecified && size.width > 0f && size.height > 0f) onAspect(size.width / size.height)
+            },
+            onError = { failed = true },
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (fillViewport) Modifier.fillMaxSize() else Modifier)
+                .then(if (fillViewport || aspect != null) Modifier.fillMaxSize() else Modifier)
                 .onSizeChanged { state.viewport = it }
                 .graphicsLayer {
                     scaleX = state.scale
@@ -1032,10 +1013,7 @@ private fun ReaderPageImage(
                             .pointerInput(page.imageUrl, onTap) {
                                 detectTapGestures(
                                     onTap = onTap?.let { tap -> { pos -> tap(pos.x, size.width) } },
-                                    onDoubleTap = { pos ->
-                                        if (state.scale > 1.1f) state.reset()
-                                        else state.zoomTo(targetZoom, pos)
-                                    },
+                                    onDoubleTap = { pos -> scope.launch { state.toggleZoom(pos) } },
                                 )
                             }
                             .pointerInput(page.imageUrl) {
@@ -1073,6 +1051,14 @@ private fun ReaderPageImage(
                 ),
             contentScale = contentScale,
         )
+        if (failed) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(stringResource(R.string.page_load_failed), color = AppColors.textSecondary, fontSize = 13.sp)
+                TextButton(onClick = { failed = false; attempt++ }) {
+                    Text(stringResource(R.string.action_retry), color = AppColors.accent)
+                }
+            }
+        }
     }
 }
 
@@ -1080,7 +1066,10 @@ private fun ReaderPageImage(
 private fun ReaderSettingsSheet(
     settings: ReaderSettings,
     onClose: () -> Unit,
+    /** Live preview while a slider moves; not written anywhere yet. */
     onChange: (ReaderSettings) -> Unit,
+    /** A finished edit: becomes the new default. */
+    onCommit: (ReaderSettings) -> Unit,
     onSaveForTitle: (ReaderSettings) -> Unit,
 ) {
     Column(
@@ -1109,21 +1098,21 @@ private fun ReaderSettingsSheet(
                 selected = settings.mode == ReaderMode.Rtl,
                 icon = Icons.Outlined.SwipeLeft,
                 label = ReaderMode.Rtl.label,
-                onClick = { onChange(settings.copy(mode = ReaderMode.Rtl)) },
+                onClick = { onCommit(settings.copy(mode = ReaderMode.Rtl)) },
                 modifier = Modifier.weight(1f),
             )
             ModeCard(
                 selected = settings.mode == ReaderMode.Webtoon,
                 icon = Icons.Outlined.SwipeVertical,
                 label = ReaderMode.Webtoon.label,
-                onClick = { onChange(settings.copy(mode = ReaderMode.Webtoon)) },
+                onClick = { onCommit(settings.copy(mode = ReaderMode.Webtoon)) },
                 modifier = Modifier.weight(1f),
             )
             ModeCard(
                 selected = settings.mode == ReaderMode.Ltr,
                 icon = Icons.Outlined.SwipeRight,
                 label = ReaderMode.Ltr.label,
-                onClick = { onChange(settings.copy(mode = ReaderMode.Ltr)) },
+                onClick = { onCommit(settings.copy(mode = ReaderMode.Ltr)) },
                 modifier = Modifier.weight(1f),
             )
         }
@@ -1134,19 +1123,19 @@ private fun ReaderSettingsSheet(
             ChoiceChip(
                 label = stringResource(ReaderTheme.Light.labelRes),
                 selected = settings.theme == ReaderTheme.Light,
-                onClick = { onChange(settings.copy(theme = ReaderTheme.Light)) },
+                onClick = { onCommit(settings.copy(theme = ReaderTheme.Light)) },
                 modifier = Modifier.weight(1f),
             )
             ChoiceChip(
                 label = stringResource(ReaderTheme.Dark.labelRes),
                 selected = settings.theme == ReaderTheme.Dark,
-                onClick = { onChange(settings.copy(theme = ReaderTheme.Dark)) },
+                onClick = { onCommit(settings.copy(theme = ReaderTheme.Dark)) },
                 modifier = Modifier.weight(1f),
             )
             ChoiceChip(
                 label = stringResource(ReaderTheme.System.labelRes),
                 selected = settings.theme == ReaderTheme.System,
-                onClick = { onChange(settings.copy(theme = ReaderTheme.System)) },
+                onClick = { onCommit(settings.copy(theme = ReaderTheme.System)) },
                 modifier = Modifier.weight(1f),
             )
         }
@@ -1159,6 +1148,7 @@ private fun ReaderSettingsSheet(
         Slider(
             value = settings.gap,
             onValueChange = { onChange(settings.copy(gap = it)) },
+            onValueChangeFinished = { onCommit(settings) },
             valueRange = 0f..32f,
             colors = lumeSliderColors(),
         )
@@ -1171,6 +1161,7 @@ private fun ReaderSettingsSheet(
             Slider(
                 value = settings.sidePaddingPercent.toFloat(),
                 onValueChange = { onChange(settings.copy(sidePaddingPercent = it.roundToInt())) },
+            onValueChangeFinished = { onCommit(settings) },
                 valueRange = 0f..AppPreferences.MAX_SIDE_PADDING.toFloat(),
                 steps = AppPreferences.MAX_SIDE_PADDING / 5 - 1,
                 colors = lumeSliderColors(),
@@ -1184,6 +1175,7 @@ private fun ReaderSettingsSheet(
         Slider(
             value = settings.dim,
             onValueChange = { onChange(settings.copy(dim = it)) },
+            onValueChangeFinished = { onCommit(settings) },
             valueRange = 0f..AppPreferences.MAX_DIM,
             colors = lumeSliderColors(),
         )
@@ -1191,37 +1183,37 @@ private fun ReaderSettingsSheet(
             label = stringResource(R.string.reader_immersive),
             hint = stringResource(R.string.reader_immersive_hint),
             checked = settings.immersive,
-            onCheckedChange = { onChange(settings.copy(immersive = it)) },
+            onCheckedChange = { onCommit(settings.copy(immersive = it)) },
         )
         SwitchRow(
             label = stringResource(R.string.reader_keep_screen_on),
             checked = settings.keepScreenOn,
-            onCheckedChange = { onChange(settings.copy(keepScreenOn = it)) },
+            onCheckedChange = { onCommit(settings.copy(keepScreenOn = it)) },
         )
         SwitchRow(
             label = stringResource(R.string.reader_double_tap_zoom),
             checked = settings.doubleTapZoom,
-            onCheckedChange = { onChange(settings.copy(doubleTapZoom = it)) },
+            onCheckedChange = { onCommit(settings.copy(doubleTapZoom = it)) },
         )
         SwitchRow(
             label = stringResource(R.string.reader_hide_page_number),
             checked = settings.hidePageNumber,
-            onCheckedChange = { onChange(settings.copy(hidePageNumber = it)) },
+            onCheckedChange = { onCommit(settings.copy(hidePageNumber = it)) },
         )
         SwitchRow(
             label = stringResource(R.string.reader_seamless),
             checked = settings.seamlessReading,
-            onCheckedChange = { onChange(settings.copy(seamlessReading = it)) },
+            onCheckedChange = { onCommit(settings.copy(seamlessReading = it)) },
         )
         SwitchRow(
             label = stringResource(R.string.reader_volume_keys),
             checked = settings.volumeKeys,
-            onCheckedChange = { onChange(settings.copy(volumeKeys = it)) },
+            onCheckedChange = { onCommit(settings.copy(volumeKeys = it)) },
         )
         SwitchRow(
             label = stringResource(R.string.reader_tap_zones),
             checked = settings.tapZones,
-            onCheckedChange = { onChange(settings.copy(tapZones = it)) },
+            onCheckedChange = { onCommit(settings.copy(tapZones = it)) },
         )
         Spacer(Modifier.height(8.dp))
         Text(

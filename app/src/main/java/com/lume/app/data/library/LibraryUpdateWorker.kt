@@ -3,6 +3,7 @@ package com.lume.app.data.library
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -20,6 +21,8 @@ import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.TitleMetaEntity
 import com.lume.app.domain.LibraryUpdateResult
+import com.lume.app.ui.nav.AppLinks
+import com.lume.app.ui.nav.Routes
 import java.util.concurrent.TimeUnit
 
 class LibraryUpdateWorker(
@@ -31,11 +34,15 @@ class LibraryUpdateWorker(
         val app = applicationContext as? LumeApp ?: return Result.success()
         val dao = app.dao
         val results = mutableListOf<LibraryUpdateResult>()
+        // A cold start for this job alone would otherwise see an empty source list and do nothing.
+        app.sources.awaitLoaded()
 
         for (bookmark in dao.allBookmarks()) {
             val source = app.sources.sourceById(bookmark.sourceId) ?: continue
             runCatching {
                 val chapters = source.getChapters(bookmark.titleId)
+                // The title screen shows the cached list first; keep it current.
+                app.titles.updateChapters(bookmark.sourceId, bookmark.titleId, chapters)
                 val count = chapters.size
                 val last = chapters.firstOrNull()
                 val prev = dao.getTitleMeta(bookmark.sourceId, bookmark.titleId)
@@ -97,6 +104,14 @@ class LibraryUpdateWorker(
                 ),
             )
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(
+                PendingIntent.getActivity(
+                    applicationContext,
+                    NOTIF_ID,
+                    AppLinks.intentFor(applicationContext, Routes.Library),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                ),
+            )
             .setAutoCancel(true)
             .build()
         // Lint requires the check to be in the same method as notify().
