@@ -286,4 +286,8 @@
     <string name="settings_wifi_only">Only on Wi-Fi</string>
     <string name="settings_downloads_wifi_only">Download only on Wi-Fi</string>
     <string name="settings_search_nsfw">Include 18+ sources in global search</string>
+    <string name="home_clear_confirm_title">Clear reading history?</string>
+    <string name="home_clear_confirm_text">Continue reading cards and saved positions for every title will be removed.</string>
+    <string name="downloads_failed">Failed</string>
+    <string name="downloads_failed_hint">Tap Retry to try again</string>
 </resources>

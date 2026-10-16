@@ -30,11 +30,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -56,6 +57,7 @@ import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.ui.components.CloudflareChallengeOverlay
 import com.lume.app.ui.components.LumeLogo
+import com.lume.app.ui.nav.AppLinks
 import com.lume.app.ui.nav.PredictiveBackClip
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.screens.CatalogScreen
@@ -108,6 +110,13 @@ fun AppShell(nav: NavHostController) {
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
     val showBottomBar = route in MainTabRoutes
+    val pendingRoute by AppLinks.pendingRoute.collectAsState()
+
+    LaunchedEffect(pendingRoute) {
+        val target = pendingRoute ?: return@LaunchedEffect
+        nav.navigateToTab(target)
+        AppLinks.consumed()
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
         Scaffold(
@@ -127,13 +136,7 @@ fun AppShell(nav: NavHostController) {
                             if (target == null) {
                                 menuOpen = true
                             } else {
-                                nav.navigate(target) {
-                                    popUpTo(nav.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                                nav.navigateToTab(target)
                             }
                         },
                     )
@@ -171,7 +174,7 @@ fun AppShell(nav: NavHostController) {
                     TitleScreen(
                         nav = nav,
                         sourceId = entry.arguments!!.getString("sourceId")!!,
-                        titleId = Routes.decode(entry.arguments!!.getString("titleId")!!),
+                        titleId = entry.arguments!!.getString("titleId")!!,
                     )
                 }
                 lumeComposable(
@@ -184,7 +187,7 @@ fun AppShell(nav: NavHostController) {
                     ChaptersScreen(
                         nav = nav,
                         sourceId = entry.arguments!!.getString("sourceId")!!,
-                        titleId = Routes.decode(entry.arguments!!.getString("titleId")!!),
+                        titleId = entry.arguments!!.getString("titleId")!!,
                     )
                 }
                 lumeComposable(
@@ -198,8 +201,8 @@ fun AppShell(nav: NavHostController) {
                     ReaderScreen(
                         nav = nav,
                         sourceId = entry.arguments!!.getString("sourceId")!!,
-                        titleId = Routes.decode(entry.arguments!!.getString("titleId")!!),
-                        chapterId = Routes.decode(entry.arguments!!.getString("chapterId")!!),
+                        titleId = entry.arguments!!.getString("titleId")!!,
+                        chapterId = entry.arguments!!.getString("chapterId")!!,
                     )
                 }
             }
@@ -211,19 +214,21 @@ fun AppShell(nav: NavHostController) {
             onNavigate = { target ->
                 menuOpen = false
                 when (target) {
-                    Routes.Home, Routes.Catalog, Routes.Library, Routes.History -> {
-                        nav.navigate(target) {
-                            popUpTo(nav.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
+                    Routes.Home, Routes.Catalog, Routes.Library, Routes.History -> nav.navigateToTab(target)
                     else -> nav.navigate(target)
                 }
             },
         )
+    }
+}
+
+private fun NavHostController.navigateToTab(route: String) {
+    navigate(route) {
+        popUpTo(graph.findStartDestination().id) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
     }
 }
 

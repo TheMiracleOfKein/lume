@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
@@ -25,14 +26,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,6 +73,7 @@ fun HomeScreen(nav: NavHostController) {
     var loading by remember { mutableStateOf(true) }
     var sourceId by remember { mutableStateOf("") }
     var refreshEpoch by remember { mutableIntStateOf(0) }
+    var confirmClear by remember { mutableStateOf(false) }
     val history by LumeApp.instance.dao.observeHistory().collectAsState(initial = emptyList())
     val networkEpoch by LumeApp.instance.http.networkEpoch.collectAsState()
     val online by LumeApp.instance.network.online.collectAsState()
@@ -218,11 +220,7 @@ fun HomeScreen(nav: NavHostController) {
                                         fontWeight = FontWeight.SemiBold,
                                         modifier = Modifier.weight(1f),
                                     )
-                                    TextButton(
-                                        onClick = {
-                                            scope.launch { LumeApp.instance.dao.clearAllProgress() }
-                                        },
-                                    ) {
+                                    TextButton(onClick = { confirmClear = true }) {
                                         Text(stringResource(R.string.action_clear), color = AppColors.accent, fontSize = 12.sp)
                                     }
                                 }
@@ -274,6 +272,25 @@ fun HomeScreen(nav: NavHostController) {
                 }
             }
         }
+    }
+
+    if (confirmClear) {
+        AlertDialog(
+            onDismissRequest = { confirmClear = false },
+            title = { Text(stringResource(R.string.home_clear_confirm_title)) },
+            text = { Text(stringResource(R.string.home_clear_confirm_text)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmClear = false
+                        scope.launch { LumeApp.instance.dao.clearAllProgress() }
+                    },
+                ) { Text(stringResource(R.string.action_clear), color = AppColors.danger) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmClear = false }) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
     }
 }
 

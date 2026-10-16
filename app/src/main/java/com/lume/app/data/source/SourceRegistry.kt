@@ -16,6 +16,7 @@ import com.lume.app.domain.PagedResult
 import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleSummary
 import com.lume.app.domain.SourceManifest
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,28 +40,42 @@ class SourceRegistry(
 
     val activeSourceId: Flow<String?> = prefs.activeSourceId
 
+    private val loadedOnce = CompletableDeferred<Unit>()
+
+    /**
+     * Suspends until [load] has run once. Background work (library checks, the download queue)
+     * can start before `LumeApp` finishes loading sources and would otherwise find none.
+     */
+    suspend fun awaitLoaded() = loadedOnce.await()
+
     fun isBundled(id: String): Boolean = id in bundledIds || id == "local"
 
     suspend fun load() {
-        bundledIds.clear()
-        val loaded = mutableListOf<CatalogSource>()
-        val assetNames = context.assets.list("sources").orEmpty().filter { it.endsWith(".json") }
-        for (name in assetNames) {
-            val raw = context.assets.open("sources/$name").bufferedReader().use { it.readText() }
-            val manifest = json.decodeFromString(SourceManifest.serializer(), raw)
-            bundledIds += manifest.id
-            upsert(loaded, createEngine(manifest))
-        }
-        for (pack in dao.allSourcePacks()) {
-            runCatching {
-                val manifest = json.decodeFromString(SourceManifest.serializer(), pack.json)
-                // Legacy packs for non-family engines still load if already installed.
+        try {
+            bundledIds.clear()
+            val loaded = mutableListOf<CatalogSource>()
+            val assetNames = context.assets.list("sources").orEmpty().filter { it.endsWith(".json") }
+            for (name in assetNames) {
+                val raw = context.assets.open("sources/$name").bufferedReader().use { it.readText() }
+                val manifest = json.decodeFromString(SourceManifest.serializer(), raw)
+                bundledIds += manifest.id
                 upsert(loaded, createEngine(manifest))
             }
+            for (pack in dao.allSourcePacks()) {
+                runCatching {
+                    val manifest = json.decodeFromString(SourceManifest.serializer(), pack.json)
+                    // Legacy packs for non-family engines still load if already installed.
+                    upsert(loaded, createEngine(manifest))
+                }
+            }
+            upsert(loaded, LocalEngine(context))
+            bundledIds += "local"
+            _sources.value = loaded
+        } finally {
+            // Even a broken bundled manifest must not leave background work waiting forever.
+            loadedOnce.complete(Unit)
         }
-        upsert(loaded, LocalEngine(context))
-        bundledIds += "local"
-        _sources.value = loaded
+        val loaded = _sources.value
         if (prefs.activeSourceId.first() == null && loaded.isNotEmpty()) {
             val preferred = loaded.firstOrNull { it.manifest.id != "local" } ?: loaded.first()
             setActive(preferred.manifest.id)

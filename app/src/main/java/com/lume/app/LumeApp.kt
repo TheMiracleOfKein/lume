@@ -18,6 +18,7 @@ import com.lume.app.data.offline.OfflineTitleCache
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.data.source.LibAuthStore
 import com.lume.app.data.source.SourceRegistry
+import com.lume.app.data.title.TitleRepository
 import com.lume.app.data.tracker.TrackerRegistry
 import com.lume.app.data.tracker.TrackerSync
 import kotlinx.coroutines.CoroutineScope
@@ -48,6 +49,8 @@ class LumeApp : Application(), ImageLoaderFactory {
         private set
     lateinit var offlineCache: OfflineTitleCache
         private set
+    lateinit var titles: TitleRepository
+        private set
     lateinit var network: NetworkMonitor
         private set
     lateinit var libAuth: LibAuthStore
@@ -56,7 +59,11 @@ class LumeApp : Application(), ImageLoaderFactory {
 
     val dao get() = database.libraryDao()
 
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    /**
+     * Lives as long as the process. Used for work that must finish even when the screen that
+     * started it is gone (for example saving reading progress after Back).
+     */
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     override fun onCreate() {
         super.onCreate()
@@ -79,7 +86,8 @@ class LumeApp : Application(), ImageLoaderFactory {
         sources = SourceRegistry(this, http, prefs, dao, libAuth, imageReferers)
         downloads = DownloadStore(this, dao, http)
         offlineCache = OfflineTitleCache(dao)
-        downloadQueue = DownloadQueue(dao, downloads, sources, offlineCache)
+        titles = TitleRepository(sources, offlineCache)
+        downloadQueue = DownloadQueue(dao, downloads, sources, titles)
         backup = BackupRepository(this, dao, sources)
         trackers = TrackerRegistry(http, dao, prefs)
         trackerSync = TrackerSync(this, dao, trackers)

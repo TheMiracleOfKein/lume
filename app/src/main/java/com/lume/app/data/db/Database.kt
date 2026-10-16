@@ -146,6 +146,9 @@ interface LibraryDao {
     @Query("SELECT * FROM bookmarks ORDER BY createdAt DESC")
     suspend fun allBookmarks(): List<BookmarkEntity>
 
+    @Query("SELECT EXISTS(SELECT 1 FROM bookmarks WHERE sourceId = :sourceId AND titleId = :titleId)")
+    fun observeIsBookmarked(sourceId: String, titleId: String): Flow<Boolean>
+
     @Query("SELECT * FROM bookmarks WHERE sourceId = :sourceId AND titleId = :titleId LIMIT 1")
     suspend fun getBookmark(sourceId: String, titleId: String): BookmarkEntity?
 
@@ -164,6 +167,9 @@ interface LibraryDao {
     @Query("SELECT * FROM reading_progress WHERE sourceId = :sourceId AND titleId = :titleId LIMIT 1")
     suspend fun getProgress(sourceId: String, titleId: String): ProgressEntity?
 
+    @Query("SELECT * FROM reading_progress WHERE sourceId = :sourceId AND titleId = :titleId LIMIT 1")
+    fun observeProgress(sourceId: String, titleId: String): Flow<ProgressEntity?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertProgress(item: ProgressEntity)
 
@@ -172,6 +178,9 @@ interface LibraryDao {
 
     @Query("SELECT chapterId FROM chapter_read WHERE sourceId = :sourceId AND titleId = :titleId")
     suspend fun readChapterIds(sourceId: String, titleId: String): List<String>
+
+    @Query("SELECT chapterId FROM chapter_read WHERE sourceId = :sourceId AND titleId = :titleId")
+    fun observeReadChapterIds(sourceId: String, titleId: String): Flow<List<String>>
 
     @Query("SELECT * FROM downloads ORDER BY downloadedAt DESC")
     fun observeDownloads(): Flow<List<DownloadEntity>>
@@ -294,6 +303,10 @@ interface LibraryDao {
 
     @Query("DELETE FROM download_queue WHERE status = 'done'")
     suspend fun clearDoneDownloadQueue()
+
+    /** Rows left "running" when the process died; they go back to the queue at startup. */
+    @Query("UPDATE download_queue SET status = 'pending', progress = 0 WHERE status = 'running'")
+    suspend fun resetRunningDownloads(): Int
 }
 
 @Database(

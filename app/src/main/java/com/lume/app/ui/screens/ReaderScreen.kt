@@ -61,16 +61,16 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -116,9 +116,9 @@ import com.lume.app.R
 import com.lume.app.data.db.BookmarkEntity
 import com.lume.app.data.db.ChapterReadEntity
 import com.lume.app.data.db.ProgressEntity
-import com.lume.app.data.offline.networkOr
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.data.prefs.ReaderSettings
+import com.lume.app.data.title.TitleLoad
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.ComicPage
@@ -139,6 +139,7 @@ import com.lume.app.ui.theme.Motion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -283,27 +284,18 @@ fun ReaderScreen(
         cloudflareUri = null
         loadedChapters = emptyList()
         runCatching {
-            val source = LumeApp.instance.sources.sourceById(sourceId)
-            val offline = LumeApp.instance.offlineCache
-            val cached = offline.get(sourceId, titleId)
-            val details = cached?.details
-                ?: networkOr(source, { getTitle(titleId) }) {
-                    offline.detailsFromDownloads(sourceId, titleId)
-                }
-                ?: error(resources.getString(R.string.error_no_title_offline))
+            val known = when (val r = LumeApp.instance.titles.stream(sourceId, titleId).first { it !is TitleLoad.Loading }) {
+                is TitleLoad.Ready -> r.title
+                is TitleLoad.Failed -> throw r.error
+                TitleLoad.Loading -> error(resources.getString(R.string.error_no_title_offline))
+            }
+            val details = known.details
             titleName = details.title
             coverUrl = details.coverUrl
             typeLabel = details.typeLabel
             bookmarked = dao.getBookmark(sourceId, titleId) != null
-            val rawList = cached?.chapters
-                ?: networkOr(source, { getChapters(titleId) }, isUsable = { it.isNotEmpty() }) {
-                    offline.chaptersFromDownloads(sourceId, titleId)
-                }.orEmpty()
+            val rawList = known.chapters
             if (rawList.isEmpty()) error(resources.getString(R.string.error_no_chapters))
-            // Keep source order in cache; reader always uses oldest → newest.
-            if (source != null && cached == null) {
-                offline.save(sourceId, titleId, details, rawList)
-            }
             val list = rawList.inReadingOrder()
             chapters = list
             val ch = list.firstOrNull { it.id == chapterId }

@@ -1,5 +1,11 @@
 package com.lume.app.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -89,6 +95,9 @@ fun SettingsScreen(nav: NavHostController) {
     val anilistLoggedIn = !anilistTokenState.isNullOrBlank()
     val shikiLoggedIn = !shikiTokenState.isNullOrBlank()
     val currentLanguage = AppLanguage.fromStored(appLanguageTag)
+
+    // The worker re-checks the permission before every notification, so the answer needs no handling.
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
     fun reschedule(enabled: Boolean = libraryUpdates, hours: Int = libraryInterval, wifi: Boolean = libraryWifiOnly) {
         LibraryUpdateWorker.schedule(LumeApp.instance, enabled, intervalHours = hours, wifiOnly = wifi)
@@ -195,6 +204,12 @@ fun SettingsScreen(nav: NavHostController) {
                     label = stringResource(R.string.settings_library_auto_check),
                     checked = libraryUpdates,
                     onCheckedChange = { value ->
+                        if (value && Build.VERSION.SDK_INT >= 33 &&
+                            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                            PackageManager.PERMISSION_GRANTED
+                        ) {
+                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
                         scope.launch {
                             prefs.setLibraryUpdatesEnabled(value)
                             reschedule(enabled = value)

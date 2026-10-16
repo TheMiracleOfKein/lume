@@ -273,4 +273,8 @@
     <string name="settings_wifi_only">Только по Wi-Fi</string>
     <string name="settings_downloads_wifi_only">Скачивать только по Wi-Fi</string>
     <string name="settings_search_nsfw">Источники 18+ в глобальном поиске</string>
+    <string name="home_clear_confirm_title">Очистить историю чтения?</string>
+    <string name="home_clear_confirm_text">Карточки «Продолжить» и сохранённые позиции всех тайтлов будут удалены.</string>
+    <string name="downloads_failed">Ошибка загрузки</string>
+    <string name="downloads_failed_hint">Нажмите «Повторить», чтобы попробовать снова</string>
 </resources>

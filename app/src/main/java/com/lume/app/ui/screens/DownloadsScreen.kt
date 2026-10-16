@@ -29,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -93,6 +94,8 @@ fun DownloadsScreen(nav: NavHostController) {
         }
     }
 
+    val failedQueue = remember(queue) { queue.filter { it.status == DownloadQueueEntity.STATUS_ERROR } }
+
     Scaffold(
         containerColor = AppColors.background,
         topBar = {
@@ -113,7 +116,7 @@ fun DownloadsScreen(nav: NavHostController) {
                 .fillMaxSize()
                 .background(AppColors.background),
         ) {
-            if (groups.isEmpty() && activeQueue.isEmpty()) {
+            if (groups.isEmpty() && activeQueue.isEmpty() && failedQueue.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(stringResource(R.string.downloads_empty), color = AppColors.textSecondary, fontSize = 15.sp)
                 }
@@ -154,6 +157,40 @@ fun DownloadsScreen(nav: NavHostController) {
                                 }
                                 IconButton(onClick = { LumeApp.instance.downloadQueue.cancel(item.id) }) {
                                     Icon(Icons.Outlined.Close, stringResource(R.string.action_cancel), tint = AppColors.danger)
+                                }
+                            }
+                        }
+                    }
+                    if (failedQueue.isNotEmpty()) {
+                        item(key = "failed-header") {
+                            Text(
+                                stringResource(R.string.downloads_failed),
+                                color = AppColors.danger,
+                                fontSize = 13.sp,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            )
+                        }
+                        items(failedQueue, key = { "f-${it.id}" }) { item ->
+                            Row(
+                                modifier = animatedItem()
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(item.titleName, color = AppColors.textPrimary, fontSize = 14.sp)
+                                    Text(item.chapterName, color = AppColors.textSecondary, fontSize = 12.sp)
+                                    Text(
+                                        stringResource(R.string.downloads_failed_hint),
+                                        color = AppColors.textTertiary,
+                                        fontSize = 11.sp,
+                                    )
+                                }
+                                TextButton(onClick = { LumeApp.instance.downloadQueue.retry(item.id) }) {
+                                    Text(stringResource(R.string.action_retry), color = AppColors.accent)
+                                }
+                                IconButton(onClick = { LumeApp.instance.downloadQueue.cancel(item.id) }) {
+                                    Icon(Icons.Outlined.Close, stringResource(R.string.action_cancel), tint = AppColors.textSecondary)
                                 }
                             }
                         }
