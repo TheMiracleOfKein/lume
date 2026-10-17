@@ -17,6 +17,19 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
+import com.lume.app.ui.components.FilterPanel
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -76,9 +89,30 @@ fun SearchScreen(nav: NavHostController) {
     val keyboard = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val networkEpoch by container.http.networkEpoch.collectAsState()
+    val history by vm.history.collectAsState()
+    var filtersOpen by remember { mutableStateOf(false) }
 
     // A solved Cloudflare check bumps the epoch: refill the sources it was blocking.
     LaunchedEffect(networkEpoch) { if (networkEpoch > 0) vm.retryChallenged() }
+
+    if (filtersOpen) {
+        ModalBottomSheet(
+            onDismissRequest = { filtersOpen = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = AppColors.surface,
+        ) {
+            FilterPanel(
+                initial = vm.filters,
+                defaults = vm.defaultFilters,
+                onApply = { next ->
+                    filtersOpen = false
+                    keyboard?.hide()
+                    focusManager.clearFocus()
+                    vm.applyFilters(next)
+                },
+            )
+        }
+    }
 
     Scaffold(
         containerColor = AppColors.background,
@@ -116,18 +150,61 @@ fun SearchScreen(nav: NavHostController) {
                     }
                 }
             }
-            QuickSearchBar(
-                value = vm.query,
-                onValueChange = { vm.query = it },
-                onSubmit = {
-                    // Give the results the whole screen.
-                    keyboard?.hide()
-                    focusManager.clearFocus()
-                    vm.search()
-                },
-                hint = stringResource(R.string.search_hint_title),
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                QuickSearchBar(
+                    value = vm.query,
+                    onValueChange = { vm.query = it },
+                    onSubmit = {
+                        // Give the results the whole screen.
+                        keyboard?.hide()
+                        focusManager.clearFocus()
+                        vm.search()
+                    },
+                    hint = stringResource(R.string.search_hint_title),
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = {
+                    scope.launch {
+                        vm.prepareFilters()
+                        filtersOpen = true
+                    }
+                }) {
+                    Box {
+                        Icon(
+                            Icons.Outlined.Tune,
+                            contentDescription = stringResource(R.string.filters_title),
+                            tint = if (vm.filtersActive) AppColors.accent else AppColors.textSecondary,
+                        )
+                        if (vm.filtersActive) {
+                            Box(
+                                Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(AppColors.accent),
+                            )
+                        }
+                    }
+                }
+            }
+            val showHistory = vm.query.isBlank() && history.isNotEmpty() &&
+                !(vm.searched && vm.mode == Mode.Current && vm.filtersActive)
+            if (showHistory) {
+                SearchHistory(
+                    items = history,
+                    onPick = { q ->
+                        keyboard?.hide()
+                        focusManager.clearFocus()
+                        vm.searchFromHistory(q)
+                    },
+                    onRemove = vm::forget,
+                    onClear = vm::clearHistory,
+                )
+                return@Column
+            }
             AnimatedContent(
                 targetState = vm.mode,
                 modifier = Modifier.fillMaxSize(),
@@ -173,15 +250,89 @@ private fun CurrentSourceResults(
                 )
             }
             LoadState.Empty -> if (vm.searched) EmptyBox(stringResource(R.string.search_empty)) else Box(Modifier.fillMaxSize())
-            LoadState.Content -> LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items((state as? SourceState.Done)?.items.orEmpty(), key = { it.id }) { item ->
-                    TitleListRow(
-                        title = item.title,
-                        coverUrl = item.coverUrl,
-                        subtitle = item.latestChapter,
-                        typeLabel = item.typeLabel,
-                        modifier = animatedItem(),
-                        onClick = { nav.navigate(Routes.title(vm.currentSourceId, item.id)) },
+            LoadState.Content -> {
+                val items = (state as? SourceState.Done)?.items.orEmpty()
+                val listState = rememberLazyListState()
+                val nearEnd by remember(listState) {
+                    derivedStateOf {
+                        val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                        last >= listState.layoutInfo.totalItemsCount - 4
+                    }
+                }
+                LaunchedEffect(nearEnd, items.size, vm.currentHasNext) {
+                    if (nearEnd && vm.currentHasNext) vm.loadMore()
+                }
+                LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                    items(items, key = { it.id }) { item ->
+                        TitleListRow(
+                            title = item.title,
+                            coverUrl = item.coverUrl,
+                            subtitle = item.latestChapter,
+                            typeLabel = item.typeLabel,
+                            modifier = animatedItem(),
+                            onClick = { nav.navigate(Routes.title(vm.currentSourceId, item.id)) },
+                        )
+                    }
+                    if (vm.loadingMore) {
+                        item(key = "loading-more") {
+                            Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = AppColors.accent)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchHistory(
+    items: List<String>,
+    onPick: (String) -> Unit,
+    onRemove: (String) -> Unit,
+    onClear: () -> Unit,
+) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
+        item(key = "history-header") {
+            Row(
+                Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.search_history),
+                    color = AppColors.textSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onClear) {
+                    Text(stringResource(R.string.search_history_clear), color = AppColors.accent, fontSize = 13.sp)
+                }
+            }
+        }
+        items(items, key = { "h-$it" }) { q ->
+            Row(
+                modifier = animatedItem()
+                    .fillMaxWidth()
+                    .clickable { onPick(q) }
+                    .padding(start = 16.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Outlined.History, null, tint = AppColors.textTertiary, modifier = Modifier.size(18.dp))
+                Text(
+                    q,
+                    color = AppColors.textPrimary,
+                    fontSize = 15.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 12.dp),
+                )
+                IconButton(onClick = { onRemove(q) }) {
+                    Icon(
+                        Icons.Outlined.Close,
+                        contentDescription = stringResource(R.string.search_history_remove),
+                        tint = AppColors.textTertiary,
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }

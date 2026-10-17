@@ -28,6 +28,11 @@ object AppLinks {
         _pendingRoute.value = route
     }
 
+    /** Opens [route] as soon as the nav host is ready (a shared website link). */
+    fun open(route: String) {
+        _pendingRoute.value = route
+    }
+
     fun consumed() {
         _pendingRoute.value = null
     }

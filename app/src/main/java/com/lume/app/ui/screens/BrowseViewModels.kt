@@ -18,6 +18,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 import java.net.URI
@@ -140,17 +141,25 @@ class CatalogFeed(
     }
 }
 
-class CatalogViewModel(private val app: AppContainer) : ViewModel() {
+/**
+ * Popular / latest of a catalogue. [fixedSourceId] browses that source without making it the
+ * active one (Sources → Browse); null follows the active source.
+ */
+class CatalogViewModel(private val app: AppContainer, private val fixedSourceId: String? = null) : ViewModel() {
 
     val popular = CatalogFeed(app.http) { getPopular(it) }
     val latest = CatalogFeed(app.http) { getLatest(it) }
 
-    var sourceId by mutableStateOf("")
+    var sourceId by mutableStateOf(fixedSourceId.orEmpty())
         private set
+
+    private suspend fun source(): CatalogSource? =
+        if (fixedSourceId != null) app.sources.sourceById(fixedSourceId) else app.sources.activeSource()
 
     init {
         viewModelScope.launch {
-            merge(app.http.networkEpoch.drop(1), app.prefs.activeSourceId.drop(1)).collect {
+            val activeChanges = if (fixedSourceId == null) app.prefs.activeSourceId.drop(1) else emptyFlow()
+            merge(app.http.networkEpoch.drop(1), activeChanges).collect {
                 listOf(popular, latest).forEach { it.loadedOnce = false }
                 ensureLoaded(popular, force = true)
                 ensureLoaded(latest, force = latest.items.isNotEmpty())
@@ -172,7 +181,8 @@ class CatalogViewModel(private val app: AppContainer) : ViewModel() {
     private fun start(feed: CatalogFeed, reset: Boolean) {
         feed.job?.cancel()
         feed.job = viewModelScope.launch {
-            val source = app.sources.activeSource()
+            app.sources.awaitLoaded()
+            val source = source()
             if (source == null) {
                 feed.error = appString(R.string.error_no_sources)
                 return@launch

@@ -46,6 +46,11 @@ class AsuraEngine(
                 id = "sort",
                 name = appString(R.string.filter_sort),
                 options = listOf("popular", "latest", "rating"),
+                labels = listOf(
+                    appString(R.string.filter_sort_popular),
+                    appString(R.string.filter_sort_latest),
+                    appString(R.string.filter_sort_rating),
+                ),
             ),
         ),
     )
@@ -125,6 +130,12 @@ class AsuraEngine(
     }
 
     override fun webUrl(titleId: String): String = "$siteBase/comics/${publicSlug(titleId)}"
+
+    override fun titleIdFromUrl(url: String): String? {
+        val parts = com.lume.app.domain.SourceLinks.segments(url, manifest.baseUrl) ?: return null
+        val i = parts.indexOfFirst { it == "comics" || it == "series" }
+        return parts.getOrNull(i + 1)?.takeIf { i >= 0 }
+    }
 
     private suspend fun fetchList(url: String, page: Int): PagedResult<TitleSummary> {
         val root = apiObject(url)

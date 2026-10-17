@@ -148,6 +148,12 @@ fun AppShell(nav: NavHostController) {
             lumeComposable(Routes.Downloads) { DownloadsScreen(nav) }
             lumeComposable(Routes.Categories) { CategoriesScreen(nav) }
             lumeComposable(
+                route = Routes.Browse,
+                arguments = listOf(navArgument("sourceId") { type = NavType.StringType }),
+            ) { entry ->
+                CatalogScreen(nav, browseSourceId = entry.arguments!!.getString("sourceId")!!)
+            }
+            lumeComposable(
                 route = Routes.Title,
                 arguments = listOf(
                     navArgument("sourceId") { type = NavType.StringType },

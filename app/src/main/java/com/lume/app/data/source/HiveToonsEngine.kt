@@ -47,9 +47,20 @@ class HiveToonsEngine(
                 id = "orderBy",
                 name = appString(R.string.filter_sort),
                 options = listOf("totalViews", "updatedAt", "createdAt"),
+                labels = listOf(
+                    appString(R.string.filter_sort_popular),
+                    appString(R.string.filter_sort_latest),
+                    appString(R.string.filter_sort_new),
+                ),
             ),
         ),
     )
+
+    override fun titleIdFromUrl(url: String): String? {
+        val parts = com.lume.app.domain.SourceLinks.segments(url, manifest.baseUrl) ?: return null
+        val i = parts.indexOf("series")
+        return parts.getOrNull(i + 1)?.takeIf { i >= 0 }?.let { "/series/$it" }
+    }
 
     override suspend fun search(query: String, page: Int, filters: FilterList): PagedResult<TitleSummary> {
         val order = filters.filters.filterIsInstance<SourceFilter.Select>()

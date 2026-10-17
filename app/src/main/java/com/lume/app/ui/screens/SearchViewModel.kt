@@ -12,6 +12,9 @@ import com.lume.app.data.locale.appString
 import com.lume.app.data.source.SourceEngines
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.CloudflareException
+import com.lume.app.domain.FilterList
+import com.lume.app.domain.PagedResult
+import kotlinx.coroutines.flow.StateFlow
 import com.lume.app.domain.TitleSummary
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -59,6 +62,24 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
     var currentState by mutableStateOf<SourceState?>(null)
         private set
 
+    /** Current-source paging: the last page loaded and whether the source has more. */
+    var currentHasNext by mutableStateOf(false)
+        private set
+    var loadingMore by mutableStateOf(false)
+        private set
+    private var currentPage = 1
+
+    /** The active source's filters as set in the panel, and that source's defaults. */
+    var filters by mutableStateOf(FilterList())
+        private set
+    var defaultFilters by mutableStateOf(FilterList())
+        private set
+    private var filtersSourceId: String? = null
+
+    val filtersActive: Boolean get() = !filters.sameAs(defaultFilters)
+
+    val history: StateFlow<List<String>> = app.prefs.searchHistory
+
     // Global mode, in display order
     var globalRows by mutableStateOf<List<SourceRow>>(emptyList())
         private set
@@ -69,9 +90,11 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
 
     fun search() {
         val q = query.trim()
-        if (q.isEmpty()) return
+        // Filters alone are a search too ("all completed titles"), in the current source.
+        if (q.isEmpty() && !(mode == Mode.Current && filtersActive)) return
         job?.cancel()
         searched = true
+        if (q.isNotEmpty()) remember(q)
         job = when (mode) {
             Mode.Current -> viewModelScope.launch { searchCurrent(q) }
             Mode.Global -> viewModelScope.launch { searchGlobal(q) }
@@ -102,25 +125,100 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
 
     private suspend fun searchCurrent(q: String) {
         currentState = SourceState.Loading
+        currentPage = 1
+        currentHasNext = false
         val source = app.sources.activeSource()
         if (source == null) {
             currentState = SourceState.Failed(appString(R.string.error_no_sources))
             return
         }
         currentSourceId = source.manifest.id
-        currentState = runSource(source, q, timeoutMs = CURRENT_TIMEOUT_MS)
+        ensureFilters(source)
+        currentState = runSource(source, q, timeoutMs = CURRENT_TIMEOUT_MS, filters = filters, onPage = { currentHasNext = it.hasNext })
+    }
+
+    /** Next results page of the current source, appended below. */
+    fun loadMore() {
+        val done = currentState as? SourceState.Done ?: return
+        if (!currentHasNext || loadingMore || mode != Mode.Current) return
+        val source = app.sources.sourceById(currentSourceId) ?: return
+        val q = query.trim()
+        loadingMore = true
+        job = viewModelScope.launch {
+            try {
+                val result = withTimeout(CURRENT_TIMEOUT_MS.milliseconds) { source.search(q, currentPage + 1, filters) }
+                val known = done.items.mapTo(HashSet()) { it.id }
+                currentState = SourceState.Done(done.items + result.items.filter { it.id !in known })
+                currentPage = result.page
+                // A page with nothing new means the source repeats itself: stop asking.
+                currentHasNext = result.hasNext && result.items.any { it.id !in known }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                currentHasNext = false
+            } finally {
+                loadingMore = false
+            }
+        }
+    }
+
+    /** Loads the active source's filters into the panel (keeps them while the source stays the same). */
+    suspend fun prepareFilters() {
+        val source = app.sources.activeSource() ?: return
+        ensureFilters(source)
+    }
+
+    private fun ensureFilters(source: CatalogSource) {
+        if (filtersSourceId == source.manifest.id) return
+        filtersSourceId = source.manifest.id
+        defaultFilters = runCatching { source.getFilters() }.getOrDefault(FilterList())
+        filters = defaultFilters
+    }
+
+    fun applyFilters(next: FilterList) {
+        filters = next
+        mode = Mode.Current
+        search()
+    }
+
+    fun resetFilters() {
+        filters = defaultFilters
+    }
+
+    private fun remember(q: String) {
+        viewModelScope.launch {
+            val now = app.prefs.searchHistory.value
+            app.prefs.setSearchHistory(listOf(q) + now.filterNot { it.equals(q, ignoreCase = true) })
+        }
+    }
+
+    fun forget(q: String) {
+        viewModelScope.launch { app.prefs.setSearchHistory(app.prefs.searchHistory.value - q) }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch { app.prefs.setSearchHistory(emptyList()) }
+    }
+
+    fun searchFromHistory(q: String) {
+        query = q
+        search()
     }
 
     private suspend fun searchGlobal(q: String) {
         val registry = app.sources
         val includeNsfw = app.prefs.globalSearchNsfw.first()
+        val disabled = app.prefs.disabledSources.value
+        val pinned = app.prefs.pinnedSources.value
         val activeId = registry.activeSource()?.manifest?.id
         val sources = registry.sources.value
             .filter { includeNsfw || !it.manifest.nsfw }
+            .filter { it.manifest.id !in disabled || it.manifest.id == activeId }
             // Active source first, local files last, the rest alphabetically.
             .sortedWith(
                 compareBy<CatalogSource>(
                     { it.manifest.id != activeId },
+                    { it.manifest.id !in pinned },
                     { it.manifest.engine == SourceEngines.LOCAL },
                     { it.manifest.name.lowercase() },
                 ),
@@ -144,8 +242,14 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         source: CatalogSource,
         q: String,
         timeoutMs: Long = GLOBAL_TIMEOUT_MS,
+        filters: FilterList = FilterList(),
+        onPage: (PagedResult<TitleSummary>) -> Unit = {},
     ): SourceState = try {
-        withTimeout(timeoutMs.milliseconds) { SourceState.Done(source.search(q).items) }
+        withTimeout(timeoutMs.milliseconds) {
+            val result = source.search(q, 1, filters)
+            onPage(result)
+            SourceState.Done(result.items)
+        }
     } catch (e: TimeoutCancellationException) {
         SourceState.Failed(appString(R.string.search_source_timeout))
     } catch (e: CancellationException) {

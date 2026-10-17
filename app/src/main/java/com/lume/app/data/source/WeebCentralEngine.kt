@@ -27,8 +27,32 @@ class WeebCentralEngine(
     override suspend fun getLatest(page: Int) =
         searchData(page = page, text = "", sort = "Latest Updates", order = "Descending")
 
-    override suspend fun search(query: String, page: Int, filters: FilterList): PagedResult<TitleSummary> =
-        searchData(page = page, text = query, sort = "Popularity", order = "Descending")
+    override suspend fun search(query: String, page: Int, filters: FilterList): PagedResult<TitleSummary> {
+        val sort = filters.sort("sort")
+        return searchData(
+            page = page,
+            text = query,
+            sort = sort?.selectedValue ?: if (query.isBlank()) "Popularity" else "Best Match",
+            order = if (sort?.ascending == true) "Ascending" else "Descending",
+        )
+    }
+
+    override fun getFilters(): FilterList = FilterList(
+        listOf(
+            com.lume.app.domain.SourceFilter.Sort(
+                id = "sort",
+                name = com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort),
+                options = listOf("Best Match", "Popularity", "Latest Updates", "Recently Added", "Alphabet"),
+                labels = listOf(
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_relevance),
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_popular),
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_latest),
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_new),
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_title),
+                ),
+            ),
+        ),
+    )
 
     private suspend fun searchData(
         page: Int,

@@ -1,5 +1,7 @@
 package com.lume.app.data.source
 
+import com.lume.app.R
+import com.lume.app.data.locale.appString
 import com.lume.app.data.network.AppHttp
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
@@ -8,7 +10,9 @@ import com.lume.app.domain.FilterList
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
 import com.lume.app.domain.SourceFilter
+import com.lume.app.domain.SourceLinks
 import com.lume.app.domain.SourceManifest
+import com.lume.app.domain.SourceSetting
 import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleSummary
 import kotlinx.serialization.json.Json
@@ -39,48 +43,50 @@ class MangaDexEngine(
     /** `engineConfig.dataSaver = true` serves compressed pages (smaller downloads, lower quality). */
     private val dataSaver get() = manifest.configBool("dataSaver")
 
+    /** Content ratings shown in lists and search (Sources → MangaDex → Settings). */
+    private val contentRatings: List<String>
+        get() = (manifest.configString("contentRating") ?: DEFAULT_RATINGS.joinToString(","))
+            .split(',')
+            .map { it.trim() }
+            .filter { it in ALL_RATINGS }
+            .ifEmpty { DEFAULT_RATINGS }
+
     override suspend fun getPopular(page: Int) =
-        mangaList(page, orderKey = "followedCount")
+        mangaList(page, query = "", filters = FilterList(), orderKey = "followedCount")
 
     override suspend fun getLatest(page: Int) =
-        mangaList(page, orderKey = "latestUploadedChapter")
-
-    private suspend fun mangaList(page: Int, orderKey: String): PagedResult<TitleSummary> {
-        val offset = (page - 1) * PAGE_SIZE
-        val query = buildString {
-            append("limit=$PAGE_SIZE&offset=$offset")
-            append("&order[$orderKey]=desc")
-            append("&includes[]=cover_art")
-            for (rating in listOf("safe", "suggestive", "erotica")) {
-                append("&contentRating[]=$rating")
-            }
-            for (lang in languages) {
-                append("&availableTranslatedLanguage[]=${enc(lang)}")
-            }
-            append("&hasAvailableChapters=true")
-        }
-        val response = http.get(URI("$apiBase/manga?$query"), source = manifest, checkCloudflare = false)
-        return parseMangaList(response.body, page)
-    }
+        mangaList(page, query = "", filters = FilterList(), orderKey = "latestUploadedChapter")
 
     override suspend fun search(query: String, page: Int, filters: FilterList): PagedResult<TitleSummary> {
-        if (query.isBlank()) return getPopular(page)
-        val langs = filters.filters.filterIsInstance<SourceFilter.Select>()
-            .firstOrNull { it.id == "lang" }?.selectedValue
+        val sort = filters.sort("sort")
+        val orderKey = sort?.selectedValue ?: if (query.isBlank()) "followedCount" else "relevance"
+        return mangaList(page, query, filters, orderKey, ascending = sort?.ascending == true)
+    }
+
+    private suspend fun mangaList(
+        page: Int,
+        query: String,
+        filters: FilterList,
+        orderKey: String,
+        ascending: Boolean = false,
+    ): PagedResult<TitleSummary> {
+        val offset = (page - 1) * PAGE_SIZE
+        val langs = filters.selected("lang")
             ?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }
             ?: languages
-        val offset = (page - 1) * PAGE_SIZE
+        val ratings = filters.checked("rating").ifEmpty { contentRatings }
+        // Relevance only means something with a search text.
+        val order = if (orderKey == "relevance" && query.isBlank()) "followedCount" else orderKey
         val q = buildString {
             append("limit=$PAGE_SIZE&offset=$offset")
-            append("&title=${enc(query)}")
+            if (query.isNotBlank()) append("&title=${enc(query.trim())}")
+            append("&order[$order]=${if (ascending) "asc" else "desc"}")
             append("&includes[]=cover_art")
-            append("&order[relevance]=desc")
-            for (rating in listOf("safe", "suggestive", "erotica")) {
-                append("&contentRating[]=$rating")
-            }
-            for (lang in langs) {
-                append("&availableTranslatedLanguage[]=${enc(lang)}")
-            }
+            for (rating in ratings) append("&contentRating[]=$rating")
+            for (lang in langs) append("&availableTranslatedLanguage[]=${enc(lang)}")
+            for (status in filters.checked("status")) append("&status[]=$status")
+            for (demo in filters.checked("demographic")) append("&publicationDemographic[]=$demo")
+            if (query.isBlank()) append("&hasAvailableChapters=true")
         }
         val response = http.get(URI("$apiBase/manga?$q"), source = manifest, checkCloudflare = false)
         return parseMangaList(response.body, page)
@@ -88,13 +94,84 @@ class MangaDexEngine(
 
     override fun getFilters(): FilterList = FilterList(
         listOf(
+            SourceFilter.Sort(
+                id = "sort",
+                name = appString(R.string.filter_sort),
+                options = listOf("relevance", "followedCount", "latestUploadedChapter", "rating", "createdAt", "title", "year"),
+                labels = listOf(
+                    appString(R.string.filter_sort_relevance),
+                    appString(R.string.filter_sort_popular),
+                    appString(R.string.filter_sort_latest),
+                    appString(R.string.filter_sort_rating),
+                    appString(R.string.filter_sort_new),
+                    appString(R.string.filter_sort_title),
+                    appString(R.string.filter_sort_year),
+                ),
+            ),
             SourceFilter.Select(
                 id = "lang",
-                name = com.lume.app.data.locale.appString(com.lume.app.R.string.filter_language),
-                options = listOf(languages.joinToString(","), "en", "ru").distinct(),
+                name = appString(R.string.filter_language),
+                options = (listOf(languages.joinToString(",")) + CHAPTER_LANGUAGES).distinct(),
+                labels = (listOf(languages.joinToString(", ")) + CHAPTER_LANGUAGES).distinct().map { it.uppercase() },
+            ),
+            SourceFilter.Group(
+                id = "status",
+                name = appString(R.string.filter_status),
+                filters = listOf(
+                    SourceFilter.Check("ongoing", appString(R.string.filter_status_ongoing)),
+                    SourceFilter.Check("completed", appString(R.string.filter_status_completed)),
+                    SourceFilter.Check("hiatus", appString(R.string.filter_status_hiatus)),
+                    SourceFilter.Check("cancelled", appString(R.string.filter_status_cancelled)),
+                ),
+            ),
+            SourceFilter.Group(
+                id = "demographic",
+                name = appString(R.string.filter_demographic),
+                filters = listOf("shounen", "shoujo", "seinen", "josei").map {
+                    SourceFilter.Check(it, it.replaceFirstChar(Char::uppercase))
+                } + SourceFilter.Check("none", appString(R.string.filter_none)),
+            ),
+            SourceFilter.Group(
+                id = "rating",
+                name = appString(R.string.filter_content_rating),
+                filters = ALL_RATINGS.map { SourceFilter.Check(it, ratingLabel(it), state = it in contentRatings) },
             ),
         ),
     )
+
+    override fun settings(): List<SourceSetting> = listOf(
+        SourceSetting.MultiChoice(
+            key = "languages",
+            title = appString(R.string.source_setting_languages),
+            options = CHAPTER_LANGUAGES.map { it to it.uppercase() },
+            default = setOf("en", "ru"),
+        ),
+        SourceSetting.MultiChoice(
+            key = "contentRating",
+            title = appString(R.string.filter_content_rating),
+            options = ALL_RATINGS.map { it to ratingLabel(it) },
+            default = DEFAULT_RATINGS.toSet(),
+        ),
+        SourceSetting.Toggle(
+            key = "dataSaver",
+            title = appString(R.string.source_setting_data_saver),
+            default = false,
+        ),
+    )
+
+    override fun titleIdFromUrl(url: String): String? {
+        val parts = SourceLinks.segments(url, manifest.baseUrl) ?: return null
+        val i = parts.indexOf("title")
+        if (i < 0) return null
+        return parts.getOrNull(i + 1)?.takeIf { UUID.matches(it) }
+    }
+
+    private fun ratingLabel(rating: String): String = when (rating) {
+        "safe" -> appString(R.string.filter_rating_safe)
+        "suggestive" -> appString(R.string.filter_rating_suggestive)
+        "erotica" -> appString(R.string.filter_rating_erotica)
+        else -> appString(R.string.filter_rating_pornographic)
+    }
 
     override suspend fun getTitle(id: String): TitleDetails {
         val mangaId = id.trim('/')
@@ -139,9 +216,7 @@ class MangaDexEngine(
                 append("&order[chapter]=desc&order[volume]=desc")
                 append("&includeEmptyPages=0&includeFuturePublishAt=0&includeExternalUrl=0")
                 for (lang in languages) append("&translatedLanguage[]=${enc(lang)}")
-                for (rating in listOf("safe", "suggestive", "erotica", "pornographic")) {
-                    append("&contentRating[]=$rating")
-                }
+                for (rating in ALL_RATINGS) append("&contentRating[]=$rating")
             }
             val response = http.get(
                 URI("$apiBase/manga/$mangaId/feed?$q"),
@@ -263,6 +338,11 @@ class MangaDexEngine(
     companion object {
         private const val PAGE_SIZE = 20
         private const val MAX_FEED = 10_000
+        private val ALL_RATINGS = listOf("safe", "suggestive", "erotica", "pornographic")
+        private val DEFAULT_RATINGS = listOf("safe", "suggestive", "erotica")
+        private val CHAPTER_LANGUAGES =
+            listOf("en", "ru", "uk", "ja", "ko", "zh", "es", "es-la", "pt-br", "fr", "de", "it", "id", "vi", "tr", "pl")
+        private val UUID = Regex("[0-9a-fA-F-]{36}")
     }
 
     override fun webUrl(titleId: String): String = "${manifest.baseUrl.trimEnd('/')}/title/${titleId.trim('/')}"

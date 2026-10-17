@@ -13,6 +13,10 @@ import com.lume.app.data.library.LibraryUpdateWorker
 import com.lume.app.data.prefs.ReaderSettings
 import com.lume.app.data.source.LibAuthToken
 import com.lume.app.domain.CatalogSource
+import com.lume.app.domain.PackEntry
+import com.lume.app.domain.PackState
+import com.lume.app.domain.packState
+import com.lume.app.data.source.SourceEngines
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -202,10 +206,23 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
 class SourcesViewModel(private val app: AppContainer) : ViewModel() {
     val sources: StateFlow<List<CatalogSource>> = app.sources.sources
     val activeId: StateFlow<String?> = app.sources.activeSourceId
+    val disabled: StateFlow<Set<String>> = app.prefs.disabledSources
+    val pinned: StateFlow<Set<String>> = app.prefs.pinnedSources
 
     var importUrl by mutableStateOf("")
     var busy by mutableStateOf(false)
         private set
+
+    /** One row of the pack catalogue. */
+    data class PackRow(val entry: PackEntry, val state: PackState)
+
+    var packs by mutableStateOf<List<PackRow>?>(null)
+        private set
+    var packsLoading by mutableStateOf(false)
+        private set
+    var packsError by mutableStateOf<String?>(null)
+        private set
+    private var packIndexUrl = app.prefs.packIndexUrl.value
 
     private val _messages = Channel<String>(Channel.BUFFERED)
 
@@ -222,6 +239,12 @@ class SourcesViewModel(private val app: AppContainer) : ViewModel() {
     fun import() {
         val url = importUrl.trim()
         if (url.isEmpty() || busy) return
+        // A catalogue link fills the pack list instead of installing one pack.
+        if (url.substringBefore('?').endsWith("index.json")) {
+            importUrl = ""
+            checkPacks(url)
+            return
+        }
         viewModelScope.launch {
             busy = true
             runCatching {
@@ -231,6 +254,7 @@ class SourcesViewModel(private val app: AppContainer) : ViewModel() {
             }.onSuccess {
                 importUrl = ""
                 _messages.send(app.app.getString(R.string.sources_pack_added, it.name, it.engine))
+                refreshPackStates()
             }.onFailure {
                 _messages.send(it.message ?: it.toString())
             }
@@ -238,12 +262,89 @@ class SourcesViewModel(private val app: AppContainer) : ViewModel() {
         }
     }
 
+    fun checkPacks(url: String = packIndexUrl) {
+        if (packsLoading) return
+        packIndexUrl = url
+        viewModelScope.launch {
+            packsLoading = true
+            packsError = null
+            runCatching { app.sources.fetchPackIndex(url) }
+                .onSuccess { index ->
+                    packs = index.packs
+                        .filter { SourceEngines.isPackImportable(it.engine) }
+                        .map { PackRow(it, packState(it, app.sources.installedVersion(it.id))) }
+                }
+                .onFailure { packsError = app.app.getString(R.string.sources_packs_error, it.message ?: it.toString()) }
+            packsLoading = false
+        }
+    }
+
+    fun installPack(entry: PackEntry) {
+        if (busy) return
+        viewModelScope.launch {
+            busy = true
+            val wasInstalled = app.sources.installedVersion(entry.id) != null
+            runCatching { app.sources.installPack(packIndexUrl, entry) }
+                .onSuccess { manifest ->
+                    _messages.send(
+                        if (wasInstalled) app.app.getString(R.string.sources_pack_updated, manifest.name, manifest.version)
+                        else app.app.getString(R.string.sources_pack_added, manifest.name, manifest.engine),
+                    )
+                }
+                .onFailure { _messages.send(it.message ?: it.toString()) }
+            refreshPackStates()
+            busy = false
+        }
+    }
+
+    fun updateAllPacks() {
+        if (busy) return
+        val outdated = packs.orEmpty().filter { it.state == PackState.UpdateAvailable }.map { it.entry }
+        viewModelScope.launch {
+            busy = true
+            for (entry in outdated) {
+                runCatching { app.sources.installPack(packIndexUrl, entry) }
+                    .onFailure { _messages.send("${entry.name}: ${it.message ?: it}") }
+            }
+            refreshPackStates()
+            busy = false
+        }
+    }
+
+    private fun refreshPackStates() {
+        packs = packs?.map { it.copy(state = packState(it.entry, app.sources.installedVersion(it.entry.id))) }
+    }
+
     fun setActive(id: String) {
-        viewModelScope.launch { app.sources.setActive(id) }
+        viewModelScope.launch {
+            // Using a disabled source turns it back on.
+            app.prefs.setSourceDisabled(id, false)
+            app.sources.setActive(id)
+        }
+    }
+
+    fun setPinned(id: String, pinned: Boolean) {
+        viewModelScope.launch { app.prefs.setSourcePinned(id, pinned) }
+    }
+
+    fun setDisabled(id: String, disabled: Boolean) {
+        viewModelScope.launch { app.prefs.setSourceDisabled(id, disabled) }
+    }
+
+    fun settingsOf(id: String): Map<String, String> = app.sources.settingsOf(id)
+
+    fun saveSettings(id: String, values: Map<String, String>) {
+        viewModelScope.launch {
+            app.sources.saveSettings(id, values)
+            _messages.send(app.app.getString(R.string.source_settings_saved))
+        }
     }
 
     fun remove(id: String) {
-        viewModelScope.launch { app.sources.remove(id) }
+        viewModelScope.launch {
+            app.sources.remove(id)
+            refreshPackStates()
+        }
     }
 
     fun logout(sourceId: String) {

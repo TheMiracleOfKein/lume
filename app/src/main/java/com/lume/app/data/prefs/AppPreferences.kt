@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.lume.app.domain.LibraryDisplay
 import com.lume.app.domain.LibrarySettings
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 
 private val Context.appDataStore by preferencesDataStore("lume_prefs")
 
@@ -94,6 +96,12 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val libraryDownloadedBadgeKey = booleanPreferencesKey("library_badge_downloaded")
     private val defaultCategoryKey = longPreferencesKey("default_category_id")
     private val libraryLastCheckedKey = longPreferencesKey("library_last_checked_at")
+
+    private val sourceSettingsKey = stringPreferencesKey("source_settings")
+    private val disabledSourcesKey = stringSetPreferencesKey("disabled_sources")
+    private val pinnedSourcesKey = stringSetPreferencesKey("pinned_sources")
+    private val searchHistoryKey = stringPreferencesKey("search_history")
+    private val packIndexUrlKey = stringPreferencesKey("pack_index_url")
 
     private val initial: Preferences = runBlocking { context.appDataStore.data.first() }
     private val current: StateFlow<Preferences> =
@@ -171,6 +179,56 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
 
     /** When the last library check finished (0 = never). */
     val libraryLastCheckedAt: StateFlow<Long> = state { it[libraryLastCheckedKey] ?: 0L }
+
+    /** Per-source setting values (source id → setting key → value); see [com.lume.app.domain.SourceSetting]. */
+    val sourceSettings: StateFlow<Map<String, Map<String, String>>> = state { prefs ->
+        prefs[sourceSettingsKey]?.let { raw ->
+            runCatching { prefsJson.decodeFromString<Map<String, Map<String, String>>>(raw) }.getOrNull()
+        }.orEmpty()
+    }
+
+    suspend fun setSourceSettings(sourceId: String, values: Map<String, String>) {
+        context.appDataStore.edit {
+            val all = it[sourceSettingsKey]?.let { raw ->
+                runCatching { prefsJson.decodeFromString<Map<String, Map<String, String>>>(raw) }.getOrNull()
+            }.orEmpty().toMutableMap()
+            if (values.isEmpty()) all.remove(sourceId) else all[sourceId] = values
+            it[sourceSettingsKey] = prefsJson.encodeToString(all)
+        }
+    }
+
+    /** Sources hidden from global search and the browse lists. */
+    val disabledSources: StateFlow<Set<String>> = state { it[disabledSourcesKey].orEmpty() }
+
+    /** Sources listed first. */
+    val pinnedSources: StateFlow<Set<String>> = state { it[pinnedSourcesKey].orEmpty() }
+
+    suspend fun setSourceDisabled(id: String, disabled: Boolean) {
+        context.appDataStore.edit {
+            val now = it[disabledSourcesKey].orEmpty()
+            it[disabledSourcesKey] = if (disabled) now + id else now - id
+        }
+    }
+
+    suspend fun setSourcePinned(id: String, pinned: Boolean) {
+        context.appDataStore.edit {
+            val now = it[pinnedSourcesKey].orEmpty()
+            it[pinnedSourcesKey] = if (pinned) now + id else now - id
+        }
+    }
+
+    /** Recent search texts, newest first. */
+    val searchHistory: StateFlow<List<String>> = state { prefs ->
+        prefs[searchHistoryKey]?.let { raw -> runCatching { prefsJson.decodeFromString<List<String>>(raw) }.getOrNull() }
+            .orEmpty()
+    }
+
+    suspend fun setSearchHistory(items: List<String>) {
+        context.appDataStore.edit { it[searchHistoryKey] = prefsJson.encodeToString(items.take(MAX_SEARCH_HISTORY)) }
+    }
+
+    /** Where the pack catalogue is read from; see `docs/packs/index.json`. */
+    val packIndexUrl: StateFlow<String> = state { it[packIndexUrlKey]?.takeIf(String::isNotBlank) ?: DEFAULT_PACK_INDEX }
 
     suspend fun setLibraryLastCheckedAt(time: Long) {
         context.appDataStore.edit { it[libraryLastCheckedKey] = time }
@@ -275,5 +333,8 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
         val LIBRARY_INTERVALS = listOf(3, 6, 12, 24, 48)
         const val MAX_SIDE_PADDING = 30
         const val MAX_DIM = 0.8f
+        const val MAX_SEARCH_HISTORY = 15
+        const val DEFAULT_PACK_INDEX = "https://raw.githubusercontent.com/TheMiracleOfKein/lume/main/docs/packs/index.json"
+        private val prefsJson = Json { ignoreUnknownKeys = true }
     }
 }

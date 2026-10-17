@@ -12,6 +12,10 @@ import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.FilterList
 import com.lume.app.domain.HomeFeed
+import com.lume.app.domain.PackEntry
+import com.lume.app.domain.PackIndex
+import com.lume.app.domain.resolvePackUrl
+import com.lume.app.domain.withSettings
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleSummary
@@ -36,6 +40,9 @@ class SourceRegistry(
     private val json: Json = Json { ignoreUnknownKeys = true; isLenient = true },
 ) {
     private val bundledIds = mutableSetOf<String>()
+
+    /** Manifests as installed, before per-source settings are merged in. */
+    private val baseManifests = java.util.concurrent.ConcurrentHashMap<String, SourceManifest>()
     private val _sources = MutableStateFlow<List<CatalogSource>>(emptyList())
     val sources: StateFlow<List<CatalogSource>> = _sources.asStateFlow()
 
@@ -54,6 +61,7 @@ class SourceRegistry(
     suspend fun load() {
         try {
             bundledIds.clear()
+            baseManifests.clear()
             val loaded = mutableListOf<CatalogSource>()
             val assetNames = context.assets.list("sources").orEmpty().filter { it.endsWith(".json") }
             for (name in assetNames) {
@@ -127,9 +135,48 @@ class SourceRegistry(
         return importJson(response.body)
     }
 
+    /** The version of an installed pack, or null when [id] is not installed. */
+    fun installedVersion(id: String): String? = baseManifests[id]?.version
+
+    /** Reads the pack catalogue at [url] (defaults to the one in the preferences). */
+    suspend fun fetchPackIndex(url: String = prefs.packIndexUrl.value): PackIndex = withContext(Dispatchers.IO) {
+        val response = http.get(URI(url), checkCloudflare = false)
+        json.decodeFromString(PackIndex.serializer(), response.body)
+    }
+
+    suspend fun installPack(indexUrl: String, entry: PackEntry): SourceManifest =
+        importUrl(resolvePackUrl(indexUrl, entry.url))
+
+    /** Rebuilds [id]'s engine after its settings changed. */
+    suspend fun saveSettings(id: String, values: Map<String, String>) {
+        prefs.setSourceSettings(id, values)
+        val base = baseManifests[id] ?: return
+        val next = _sources.value.toMutableList()
+        upsert(next, createEngine(base, values))
+        _sources.value = next
+    }
+
+    /** Current setting values of [id] (only the ones changed from the defaults are stored). */
+    fun settingsOf(id: String): Map<String, String> = prefs.sourceSettings.value[id].orEmpty()
+
+    /**
+     * Finds the source and title behind a website link. Bundled sources are asked first, so an
+     * imported pack for the same site never wins over the app's own engine.
+     */
+    fun resolveLink(url: String): Pair<String, String>? {
+        val ordered = _sources.value.sortedBy { !isBundled(it.manifest.id) }
+        for (source in ordered) {
+            if (source.manifest.id == "local") continue
+            val titleId = runCatching { source.titleIdFromUrl(url) }.getOrNull() ?: continue
+            return source.manifest.id to titleId
+        }
+        return null
+    }
+
     suspend fun remove(id: String) {
         if (id in bundledIds) return
         dao.deleteSourcePack(id)
+        baseManifests.remove(id)
         _sources.value = _sources.value.filterNot { it.manifest.id == id }
         val active = prefs.activeSourceId.first()
         if (active == id && _sources.value.isNotEmpty()) {
@@ -142,7 +189,12 @@ class SourceRegistry(
         list += source
     }
 
-    private fun createEngine(manifest: SourceManifest): CatalogSource {
+    private fun createEngine(
+        base: SourceManifest,
+        settings: Map<String, String>? = prefs.sourceSettings.value[base.id],
+    ): CatalogSource {
+        baseManifests[base.id] = base
+        val manifest = base.withSettings(settings)
         referers?.register(manifest)
         // engineConfig.rateLimit = requests/second for the API host (or the site when no apiBase).
         manifest.configString("rateLimit")?.toDoubleOrNull()?.let { perSecond ->

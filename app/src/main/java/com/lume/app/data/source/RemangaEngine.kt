@@ -73,6 +73,12 @@ class RemangaEngine(
                 id = "ordering",
                 name = com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort),
                 options = listOf("-rating", "-chapter_date", "-views", "-id"),
+                labels = listOf(
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_rating),
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_latest),
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_popular),
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_new),
+                ),
             ),
         ),
     )
@@ -232,6 +238,12 @@ class RemangaEngine(
     private fun asObject(el: JsonElement): JsonObject = el as? JsonObject ?: JsonObject(emptyMap())
 
     override fun webUrl(titleId: String): String = "$siteBase/manga/${pathSegment(slug(titleId))}"
+
+    override fun titleIdFromUrl(url: String): String? {
+        val parts = com.lume.app.domain.SourceLinks.segments(url, manifest.baseUrl) ?: return null
+        val i = parts.indexOf("manga")
+        return parts.getOrNull(i + 1)?.takeIf { i >= 0 }?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+    }
 
     private companion object {
         const val PAGE_SIZE = 30

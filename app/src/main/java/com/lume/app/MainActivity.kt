@@ -14,7 +14,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
+import com.lume.app.domain.SourceLinks
 import com.lume.app.ui.nav.AppLinks
+import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.shell.LumeRoot
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.LumeTheme
@@ -26,7 +28,10 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         handleOAuthIntent(intent)
         // After rotation the same intent comes back; only a fresh launch opens its route.
-        if (savedInstanceState == null) AppLinks.handle(intent)
+        if (savedInstanceState == null) {
+            AppLinks.handle(intent)
+            handleSiteLink(intent)
+        }
         val container = (application as LumeApp).container
         setContent {
             val darkTheme by container.prefs.darkTheme.collectAsState()
@@ -47,6 +52,32 @@ class MainActivity : AppCompatActivity() {
         super.onNewIntent(intent)
         handleOAuthIntent(intent)
         AppLinks.handle(intent)
+        handleSiteLink(intent)
+    }
+
+    /**
+     * A title link opened from the browser (VIEW) or shared to Lume (SEND): find the source and
+     * title it points at and open the title screen.
+     */
+    private fun handleSiteLink(intent: Intent?) {
+        if (intent == null) return
+        val link = when (intent.action) {
+            Intent.ACTION_VIEW -> intent.dataString?.takeIf { it.startsWith("http") }
+            Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)?.let(SourceLinks::firstLink)
+            else -> null
+        } ?: return
+        // Handled once, like the notification route.
+        intent.action = Intent.ACTION_MAIN
+        val container = (application as LumeApp).container
+        lifecycleScope.launch {
+            container.sources.awaitLoaded()
+            val target = container.sources.resolveLink(link)
+            if (target == null) {
+                Toast.makeText(this@MainActivity, R.string.link_open_failed, Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            AppLinks.open(Routes.title(target.first, target.second))
+        }
     }
 
     private fun handleOAuthIntent(intent: Intent?) {
