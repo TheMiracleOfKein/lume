@@ -13,10 +13,13 @@ import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.TitleMetaEntity
@@ -31,23 +34,24 @@ class LibraryUpdateWorker(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        val app = applicationContext as? LumeApp ?: return Result.success()
+        val app = (applicationContext as? LumeApp)?.container ?: return Result.success()
         val dao = app.dao
         val results = mutableListOf<LibraryUpdateResult>()
         // A cold start for this job alone would otherwise see an empty source list and do nothing.
         app.sources.awaitLoaded()
 
-        for (bookmark in dao.allBookmarks()) {
-            val source = app.sources.sourceById(bookmark.sourceId) ?: continue
-            runCatching {
+        val bookmarks = dao.allBookmarks()
+        setProgress(workDataOf(KEY_DONE to 0, KEY_TOTAL to bookmarks.size))
+        for ((index, bookmark) in bookmarks.withIndex()) {
+            val source = app.sources.sourceById(bookmark.sourceId)
+            if (source != null) runCatching {
                 val chapters = source.getChapters(bookmark.titleId)
                 // The title screen shows the cached list first; keep it current.
                 app.titles.updateChapters(bookmark.sourceId, bookmark.titleId, chapters)
-                val count = chapters.size
-                val last = chapters.firstOrNull()
+                // New = ids never seen before (not "more chapters than last time"), one per chapter.
+                val fresh = app.libraryChapters.sync(bookmark.sourceId, bookmark.titleId, chapters)
                 val prev = dao.getTitleMeta(bookmark.sourceId, bookmark.titleId)
-                val prevCount = prev?.knownChapterCount ?: count
-                val newCount = if (prev == null) 0 else (count - prevCount).coerceAtLeast(0)
+                val last = chapters.firstOrNull()
                 dao.upsertTitleMeta(
                     TitleMetaEntity(
                         sourceId = bookmark.sourceId,
@@ -55,20 +59,22 @@ class LibraryUpdateWorker(
                         lastChapterId = last?.id,
                         lastChapterName = last?.title,
                         lastCheckedAt = System.currentTimeMillis(),
-                        knownChapterCount = count,
-                        unreadNewCount = (prev?.unreadNewCount ?: 0) + newCount,
+                        knownChapterCount = chapters.size,
+                        unreadNewCount = (prev?.unreadNewCount ?: 0) + fresh.size,
                     ),
                 )
-                if (newCount > 0) {
+                if (fresh.isNotEmpty()) {
                     results += LibraryUpdateResult(
                         sourceId = bookmark.sourceId,
                         titleId = bookmark.titleId,
                         titleName = bookmark.titleName,
-                        newChapterCount = newCount,
+                        newChapterCount = fresh.size,
                     )
                 }
             }
+            setProgress(workDataOf(KEY_DONE to index + 1, KEY_TOTAL to bookmarks.size))
         }
+        app.prefs.setLibraryLastCheckedAt(System.currentTimeMillis())
 
         if (results.isNotEmpty()) {
             notifyUpdates(results)
@@ -108,7 +114,7 @@ class LibraryUpdateWorker(
                 PendingIntent.getActivity(
                     applicationContext,
                     NOTIF_ID,
-                    AppLinks.intentFor(applicationContext, Routes.Library),
+                    AppLinks.intentFor(applicationContext, Routes.Updates),
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                 ),
             )
@@ -141,7 +147,18 @@ class LibraryUpdateWorker(
     }
 
     companion object {
-        private const val WORK_NAME = "library_update"
+        const val WORK_NAME = "library_update"
+        const val NOW_WORK_NAME = "library_update_now"
+        const val KEY_DONE = "done"
+        const val KEY_TOTAL = "total"
+
+        /** "Update now": one run right away, whatever the schedule says. A run in progress is kept. */
+        fun runNow(context: Context) {
+            val request = OneTimeWorkRequestBuilder<LibraryUpdateWorker>()
+                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .build()
+            WorkManager.getInstance(context).enqueueUniqueWork(NOW_WORK_NAME, ExistingWorkPolicy.KEEP, request)
+        }
         private const val CHANNEL_ID = "library_updates"
         private const val NOTIF_ID = 42
 

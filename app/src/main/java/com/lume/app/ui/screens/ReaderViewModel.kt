@@ -11,9 +11,8 @@ import androidx.lifecycle.viewModelScope
 import coil.imageLoader
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import com.lume.app.LumeApp
+import com.lume.app.AppContainer
 import com.lume.app.R
-import com.lume.app.data.db.BookmarkEntity
 import com.lume.app.data.db.ChapterProgressEntity
 import com.lume.app.data.db.ChapterReadEntity
 import com.lume.app.data.db.PageBookmarkEntity
@@ -27,6 +26,7 @@ import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.ReaderMode
 import com.lume.app.domain.ReaderTheme
+import com.lume.app.domain.dedupeChapters
 import com.lume.app.domain.inReadingOrder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -57,6 +57,7 @@ import java.net.URI
  */
 @OptIn(FlowPreview::class)
 class ReaderViewModel(
+    private val app: AppContainer,
     val sourceId: String,
     val titleId: String,
     routeChapterId: String,
@@ -65,7 +66,6 @@ class ReaderViewModel(
     routeOffset: Float?,
     private val savedState: SavedStateHandle,
 ) : ViewModel() {
-    private val app = LumeApp.instance
     private val dao = app.dao
 
     // ---- Title ----------------------------------------------------------------------------
@@ -229,7 +229,16 @@ class ReaderViewModel(
         coverUrl = known.details.coverUrl
         typeLabel = known.details.typeLabel
         if (known.chapters.isEmpty()) error(appString(R.string.error_no_chapters))
-        chapters = known.chapters.inReadingOrder()
+        // Next / previous follow the chapter list: one copy per chapter, continuing with the team
+        // of the chapter that was opened.
+        val prefs = dao.getTitlePrefs(sourceId, titleId)
+        val opened = known.chapters.firstOrNull { chapterIdsMatch(it.id, currentChapterId) }
+        chapters = if (prefs?.showDuplicates == true) {
+            known.chapters.inReadingOrder()
+        } else {
+            val deduped = dedupeChapters(known.chapters, opened?.branchId ?: prefs?.branch)
+            (if (opened != null && deduped.none { it.id == opened.id }) deduped + opened else deduped).inReadingOrder()
+        }
     }
 
     private suspend fun loadPagesFor(ch: Chapter): List<ComicPage> = withContext(Dispatchers.IO) {
@@ -264,7 +273,7 @@ class ReaderViewModel(
         val loader = app.imageLoader
         pages.forEach { page ->
             loader.enqueue(
-                ImageRequest.Builder(app)
+                ImageRequest.Builder(app.app)
                     .data(if (page.imageUrl.startsWith("http")) page.imageUrl else File(page.imageUrl))
                     .memoryCachePolicy(CachePolicy.ENABLED)
                     .diskCachePolicy(CachePolicy.ENABLED)
@@ -422,17 +431,9 @@ class ReaderViewModel(
     fun toggleLibrary() {
         viewModelScope.launch {
             if (inLibrary.value) {
-                dao.deleteBookmark(sourceId, titleId)
+                app.library.remove(sourceId, titleId)
             } else {
-                dao.upsertBookmark(
-                    BookmarkEntity(
-                        sourceId = sourceId,
-                        titleId = titleId,
-                        titleName = titleName,
-                        coverUrl = coverUrl,
-                        typeLabel = typeLabel,
-                    ),
-                )
+                app.library.add(sourceId, titleId, titleName, coverUrl, typeLabel)
             }
         }
     }
@@ -494,10 +495,10 @@ class ReaderViewModel(
     fun saveSettingsForTitle(next: ReaderSettings) {
         settings = next
         viewModelScope.launch {
+            // Keep the chapter list settings stored in the same row.
+            val base = dao.getTitlePrefs(sourceId, titleId) ?: TitlePrefsEntity(sourceId = sourceId, titleId = titleId)
             dao.upsertTitlePrefs(
-                TitlePrefsEntity(
-                    sourceId = sourceId,
-                    titleId = titleId,
+                base.copy(
                     readerMode = next.mode.prefsIndex,
                     readerTheme = next.theme.ordinal,
                     gap = next.gap,

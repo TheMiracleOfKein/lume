@@ -304,4 +304,76 @@
     <string name="action_delete">Delete</string>
     <string name="page_load_failed">Page failed to load</string>
     <string name="search_no_results_in">No results in: %1$s</string>
+
+    <!-- Library (v0.4) -->
+    <string name="library_search_hint">Search library</string>
+    <string name="library_no_results">Nothing matches</string>
+    <string name="cd_library_options">Sort, filter and display</string>
+    <string name="cd_edit_categories">Edit categories</string>
+    <string name="cd_invert_selection">Invert selection</string>
+    <string name="library_selected">%d selected</string>
+    <string name="library_tab_filter">Filter</string>
+    <string name="library_tab_sort">Sort</string>
+    <string name="library_tab_display">Display</string>
+    <string name="library_filter_unread">Unread</string>
+    <string name="library_filter_downloaded">Downloaded</string>
+    <string name="library_filter_started">Started</string>
+    <string name="library_filter_tracking">Tracking</string>
+    <string name="library_filter_completed">Completed</string>
+    <string name="library_sort_title">Title</string>
+    <string name="library_sort_last_read">Last read</string>
+    <string name="library_sort_date_added">Date added</string>
+    <string name="library_sort_unread">Unread chapters</string>
+    <string name="library_sort_latest">Latest chapter</string>
+    <string name="library_layout">Layout</string>
+    <string name="library_display_grid">Grid</string>
+    <string name="library_display_compact">Compact</string>
+    <string name="library_display_list">List</string>
+    <string name="library_badge_unread">Show unread count</string>
+    <string name="library_badge_downloaded">Show downloaded count</string>
+    <string name="action_mark_read">Mark as read</string>
+    <string name="action_mark_unread">Mark as unread</string>
+    <string name="action_download_unread">Download unread</string>
+    <string name="action_remove">Remove</string>
+    <string name="action_rename">Rename</string>
+    <string name="dialog_remove_titles_title">Remove from library?</string>
+    <string name="dialog_remove_titles_text">Titles selected: %d. Downloads and reading progress stay.</string>
+    <string name="categories_title">Categories</string>
+    <string name="categories_default">Default category</string>
+    <string name="categories_default_hint">Titles you add to the library go here.</string>
+    <string name="categories_default_none">None</string>
+    <string name="categories_empty">No categories yet. Tap + to add one.</string>
+    <string name="dialog_rename_category">Rename category</string>
+    <string name="dialog_delete_category_title">Delete category?</string>
+    <string name="dialog_delete_category_text">Titles in “%s” stay in the library.</string>
+    <string name="cd_move_up">Move up</string>
+    <string name="cd_move_down">Move down</string>
+
+    <!-- Updates (v0.4) -->
+    <string name="nav_updates">Updates</string>
+    <string name="menu_updates">Updates</string>
+    <string name="updates_empty">No new chapters yet. Pull down to check your library.</string>
+    <string name="updates_last_checked">Checked %s</string>
+    <string name="updates_today">Today</string>
+    <string name="updates_yesterday">Yesterday</string>
+    <string name="action_update_now">Update now</string>
+    <string name="action_open_title">Open title</string>
+
+    <!-- Chapters (v0.4) -->
+    <string name="cd_download_menu">Download</string>
+    <string name="chapters_download_next">Next %d unread</string>
+    <string name="chapters_delete_downloads">Delete downloaded chapters</string>
+    <string name="cd_chapter_filters">Filter and sort</string>
+    <string name="chapters_none_match">No chapters match the filters</string>
+    <string name="chapters_team_auto">Any team</string>
+    <string name="chapters_team_all">Show all copies</string>
+    <string name="action_mark_previous_read">Mark previous as read</string>
+    <string name="cd_delete_download">Delete download</string>
+    <string name="dialog_delete_downloads_title">Delete downloads?</string>
+    <string name="dialog_delete_downloads_text">Downloaded chapters of this title: %d. They will be removed from the device.</string>
+    <string name="chapters_sort_oldest">Oldest first</string>
+    <string name="chapters_sort_newest">Newest first</string>
+    <string name="chapters_filter_unread">Unread</string>
+    <string name="chapters_filter_read">Read</string>
+    <string name="chapters_filter_bookmarked">With page bookmarks</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.lume.app.data.title
 
 import com.lume.app.R
+import com.lume.app.data.library.LibraryChapters
 import com.lume.app.data.locale.appString
 import com.lume.app.data.offline.CachedTitle
 import com.lume.app.data.offline.OfflineTitleCache
@@ -42,6 +43,7 @@ sealed interface TitleLoad {
 class TitleRepository(
     private val sources: SourceRegistry,
     private val offline: OfflineTitleCache,
+    private val libraryChapters: LibraryChapters,
 ) {
     private val memory = ConcurrentHashMap<String, CachedTitle>()
     private val refreshedAt = ConcurrentHashMap<String, Long>()
@@ -110,7 +112,11 @@ class TitleRepository(
             } else {
                 fresh
             }
-            if (result.chapters.isNotEmpty()) offline.save(sourceId, titleId, result.details, result.chapters)
+            if (result.chapters.isNotEmpty()) {
+                offline.save(sourceId, titleId, result.details, result.chapters)
+                // A refresh on the title screen finds new chapters too; they belong in Updates.
+                runCatching { libraryChapters.syncIfInLibrary(sourceId, titleId, fresh.chapters) }
+            }
             memory[k] = result
             refreshedAt[k] = System.currentTimeMillis()
             result

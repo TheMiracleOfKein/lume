@@ -134,6 +134,63 @@ data class TitlePrefsEntity(
     val readerMode: Int? = null,
     val readerTheme: Int? = null,
     val gap: Float? = null,
+    /** Chapter list filters, a [com.lume.app.domain.ChapterFilter] bitmask. */
+    @ColumnInfo(defaultValue = "0")
+    val chapterFilter: Int = 0,
+    @ColumnInfo(defaultValue = "0")
+    val chapterSortAsc: Boolean = false,
+    /** Preferred translation team (branch id); null = the team with the most chapters. */
+    val branch: String? = null,
+    /** Show every team's copy of a chapter instead of one row per chapter. */
+    @ColumnInfo(defaultValue = "0")
+    val showDuplicates: Boolean = false,
+)
+
+/**
+ * Every known chapter of a library title. New chapters are found by comparing ids with these
+ * rows; rows found that way get [discoveredAt] and make up the Updates screen.
+ */
+@Entity(
+    tableName = "library_chapters",
+    primaryKeys = ["sourceId", "titleId", "chapterId"],
+    indices = [Index("discoveredAt")],
+)
+data class LibraryChapterEntity(
+    val sourceId: String,
+    val titleId: String,
+    val chapterId: String,
+    /** Same value for every team's copy of one chapter; see `domain/ChapterDedupe.kt`. */
+    val dedupeKey: String,
+    val name: String,
+    val branchId: String? = null,
+    val branchName: String? = null,
+    /** Position in the source's list (0 = first, usually the newest). */
+    val sourceOrder: Int = 0,
+    /** When a library check found it; null for chapters known from the start. */
+    val discoveredAt: Long? = null,
+)
+
+/** One row of the Updates screen. */
+data class UpdateRow(
+    val sourceId: String,
+    val titleId: String,
+    val chapterId: String,
+    val chapterName: String,
+    val discoveredAt: Long,
+    val titleName: String,
+    val coverUrl: String?,
+    val read: Boolean,
+)
+
+/** Per-title numbers for the library badges, filters and sorting. */
+data class LibraryTitleStats(
+    val sourceId: String,
+    val titleId: String,
+    val total: Int,
+    val unread: Int,
+    val downloaded: Int,
+    val lastReadAt: Long?,
+    val latestFoundAt: Long?,
 )
 
 @Entity(tableName = "tracker_links", primaryKeys = ["sourceId", "titleId", "tracker"])
@@ -380,7 +437,105 @@ interface LibraryDao {
     /** Rows left "running" when the process died; they go back to the queue at startup. */
     @Query("UPDATE download_queue SET status = 'pending', progress = 0 WHERE status = 'running'")
     suspend fun resetRunningDownloads(): Int
+
+    // Library chapters
+    @Query("SELECT * FROM library_chapters WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun libraryChapters(sourceId: String, titleId: String): List<LibraryChapterEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertLibraryChapters(items: List<LibraryChapterEntity>)
+
+    @Query("DELETE FROM library_chapters WHERE sourceId = :sourceId AND titleId = :titleId AND chapterId IN (:chapterIds)")
+    suspend fun deleteLibraryChapters(sourceId: String, titleId: String, chapterIds: List<String>)
+
+    @Query("DELETE FROM library_chapters WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun deleteLibraryChaptersForTitle(sourceId: String, titleId: String)
+
+    @Query(
+        """
+        SELECT c.sourceId, c.titleId, c.chapterId, c.name AS chapterName, c.discoveredAt,
+               b.titleName, b.coverUrl,
+               EXISTS(SELECT 1 FROM library_chapters o
+                      JOIN chapter_read r ON r.sourceId = o.sourceId AND r.titleId = o.titleId
+                           AND r.chapterId = o.chapterId
+                      WHERE o.sourceId = c.sourceId AND o.titleId = c.titleId
+                           AND o.dedupeKey = c.dedupeKey) AS read
+        FROM library_chapters c
+        JOIN bookmarks b ON b.sourceId = c.sourceId AND b.titleId = c.titleId
+        WHERE c.discoveredAt IS NOT NULL
+        ORDER BY c.discoveredAt DESC, c.sourceOrder ASC
+        LIMIT :limit
+        """,
+    )
+    fun observeUpdates(limit: Int): Flow<List<UpdateRow>>
+
+    /**
+     * Unread = chapters (one per [LibraryChapterEntity.dedupeKey], so a chapter several teams
+     * translated counts once) with no read copy.
+     */
+    @Query(
+        """
+        SELECT b.sourceId, b.titleId,
+            (SELECT COUNT(DISTINCT c.dedupeKey) FROM library_chapters c
+                WHERE c.sourceId = b.sourceId AND c.titleId = b.titleId) AS total,
+            (SELECT COUNT(DISTINCT c.dedupeKey) FROM library_chapters c
+                WHERE c.sourceId = b.sourceId AND c.titleId = b.titleId
+                AND c.dedupeKey NOT IN (
+                    SELECT o.dedupeKey FROM library_chapters o
+                    JOIN chapter_read r ON r.sourceId = o.sourceId AND r.titleId = o.titleId
+                        AND r.chapterId = o.chapterId
+                    WHERE o.sourceId = b.sourceId AND o.titleId = b.titleId)) AS unread,
+            (SELECT COUNT(*) FROM downloads d
+                WHERE d.sourceId = b.sourceId AND d.titleId = b.titleId) AS downloaded,
+            (SELECT p.updatedAt FROM reading_progress p
+                WHERE p.sourceId = b.sourceId AND p.titleId = b.titleId) AS lastReadAt,
+            (SELECT MAX(c.discoveredAt) FROM library_chapters c
+                WHERE c.sourceId = b.sourceId AND c.titleId = b.titleId) AS latestFoundAt
+        FROM bookmarks b
+        """,
+    )
+    fun observeLibraryStats(): Flow<List<LibraryTitleStats>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun markChaptersRead(items: List<ChapterReadEntity>)
+
+    @Query("DELETE FROM chapter_read WHERE sourceId = :sourceId AND titleId = :titleId AND chapterId IN (:chapterIds)")
+    suspend fun markChaptersUnread(sourceId: String, titleId: String, chapterIds: List<String>)
+
+    @Query("DELETE FROM chapter_progress WHERE sourceId = :sourceId AND titleId = :titleId AND chapterId IN (:chapterIds)")
+    suspend fun deleteChapterProgress(sourceId: String, titleId: String, chapterIds: List<String>)
+
+    @Query("SELECT DISTINCT sourceId, titleId FROM tracker_links")
+    fun observeTrackedTitles(): Flow<List<TitleKey>>
+
+    @Query("SELECT * FROM title_prefs WHERE sourceId = :sourceId AND titleId = :titleId LIMIT 1")
+    fun observeTitlePrefs(sourceId: String, titleId: String): Flow<TitlePrefsEntity?>
+
+    @Query("UPDATE categories SET name = :name WHERE id = :id")
+    suspend fun renameCategory(id: Long, name: String)
+
+    @Query("UPDATE categories SET sortOrder = :sortOrder WHERE id = :id")
+    suspend fun setCategoryOrder(id: Long, sortOrder: Int)
+
+    @Query("SELECT * FROM offline_title_cache")
+    suspend fun allOfflineTitleCache(): List<OfflineTitleCacheEntity>
+
+    /** Cached details of library titles (status, alternative title) without the chapter lists. */
+    @Query(
+        """
+        SELECT o.sourceId, o.titleId, o.titleJson FROM offline_title_cache o
+        JOIN bookmarks b ON b.sourceId = o.sourceId AND b.titleId = o.titleId
+        """,
+    )
+    fun observeLibraryTitleJson(): Flow<List<TitleJsonRow>>
+
+    @Query("SELECT DISTINCT chapterId FROM page_bookmarks WHERE sourceId = :sourceId AND titleId = :titleId")
+    fun observePageBookmarkChapterIds(sourceId: String, titleId: String): Flow<List<String>>
 }
+
+data class TitleKey(val sourceId: String, val titleId: String)
+
+data class TitleJsonRow(val sourceId: String, val titleId: String, val titleJson: String)
 
 @Database(
     entities = [
@@ -397,8 +552,9 @@ interface LibraryDao {
         OfflineTitleCacheEntity::class,
         ChapterProgressEntity::class,
         PageBookmarkEntity::class,
+        LibraryChapterEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class LumeDatabase : RoomDatabase() {
@@ -471,5 +627,35 @@ abstract class LumeDatabase : RoomDatabase() {
                 )
             }
         }
+        /** Library chapters (updates, unread counts) and per-title chapter list settings. Additive. */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS library_chapters (
+                        sourceId TEXT NOT NULL,
+                        titleId TEXT NOT NULL,
+                        chapterId TEXT NOT NULL,
+                        dedupeKey TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        branchId TEXT,
+                        branchName TEXT,
+                        sourceOrder INTEGER NOT NULL,
+                        discoveredAt INTEGER,
+                        PRIMARY KEY(sourceId, titleId, chapterId)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_library_chapters_discoveredAt ON library_chapters (discoveredAt)",
+                )
+                db.execSQL("ALTER TABLE title_prefs ADD COLUMN chapterFilter INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE title_prefs ADD COLUMN chapterSortAsc INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE title_prefs ADD COLUMN branch TEXT")
+                db.execSQL("ALTER TABLE title_prefs ADD COLUMN showDuplicates INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATIONS: Array<Migration> get() = arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
     }
 }

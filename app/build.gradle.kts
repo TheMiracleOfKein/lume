@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.baselineprofile)
 }
 
 // Must stay outside android { defaultConfig } — nested mapNotNull/return@ confuses the IDE
@@ -34,8 +35,9 @@ android {
         applicationId = "com.lume.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // OAuth app credentials for AniList / Shikimori (identify Lume itself).
         // Put values in root local.properties (gitignored), e.g. LUME_SHIKIMORI_CLIENT_ID=...
@@ -45,8 +47,24 @@ android {
         buildConfigField("String", "SHIKIMORI_CLIENT_SECRET", oauthBuildConfig("LUME_SHIKIMORI_CLIENT_SECRET"))
     }
 
+    // Release signing from the user's ~/.gradle/gradle.properties (never in the repository).
+    // Without all four values the release build stays unsigned, as on CI.
+    val signingProps = listOf("LUME_STORE_FILE", "LUME_STORE_PASSWORD", "LUME_KEY_ALIAS", "LUME_KEY_PASSWORD")
+        .associateWith { providers.gradleProperty(it).orNull?.takeIf(String::isNotBlank) }
+    val releaseSigning = if (signingProps.values.all { it != null }) {
+        signingConfigs.create("release") {
+            storeFile = file(signingProps.getValue("LUME_STORE_FILE")!!)
+            storePassword = signingProps.getValue("LUME_STORE_PASSWORD")
+            keyAlias = signingProps.getValue("LUME_KEY_ALIAS")
+            keyPassword = signingProps.getValue("LUME_KEY_PASSWORD")
+        }
+    } else {
+        null
+    }
+
     buildTypes {
         release {
+            releaseSigning?.let { signingConfig = it }
             // R8: smaller, faster release builds. Kept in its own commit so it is easy to revert.
             isMinifyEnabled = true
             isShrinkResources = true
@@ -81,6 +99,8 @@ android {
     testOptions {
         // Engines touch android.webkit / Context only through runCatching fallbacks.
         unitTests.isReturnDefaultValues = true
+        // Robolectric (Room migration tests) needs the merged assets and resources.
+        unitTests.isIncludeAndroidResources = true
         unitTests.all { test ->
             // Live catalogue checks hit real sites: ./gradlew :app:testDebugUnitTest -Plume.live
             test.systemProperty("lume.live", project.hasProperty("lume.live").toString())
@@ -89,6 +109,14 @@ android {
         }
     }
 }
+
+// Tests that run both on the JVM (Robolectric) and on a device live in src/sharedTest.
+// The migration tests read the exported schemas as assets. JVM tests only see the tested
+// variant's assets, so they also go into debug builds; release APKs don't carry them.
+android.sourceSets.getByName("test").kotlin.directories.add("src/sharedTest/java")
+android.sourceSets.getByName("androidTest").kotlin.directories.add("src/sharedTest/java")
+android.sourceSets.getByName("androidTest").assets.directories.add("$projectDir/schemas")
+android.sourceSets.getByName("debug").assets.directories.add("$projectDir/schemas")
 
 // Exported Room schemas (app/schemas) make future migrations reviewable and testable.
 ksp {
@@ -119,8 +147,19 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.datastore.preferences)
     implementation(libs.androidx.work.runtime.ktx)
-    // Installs app/src/main/baseline-prof.txt on sideloaded installs too (Play does it itself).
+    // Installs the baseline profile on sideloaded installs too (Play does it itself).
     implementation(libs.androidx.profileinstaller)
+    // Measured profile from :baselineprofile (./gradlew :app:generateBaselineProfile with a device attached).
+    baselineProfile(project(":baselineprofile"))
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
+    testImplementation(libs.room.testing)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.room.testing)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
 }

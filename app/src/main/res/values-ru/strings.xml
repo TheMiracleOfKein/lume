@@ -291,4 +291,76 @@
     <string name="action_delete">Удалить</string>
     <string name="page_load_failed">Не удалось загрузить страницу</string>
     <string name="search_no_results_in">Нет результатов: %1$s</string>
+
+    <!-- Library (v0.4) -->
+    <string name="library_search_hint">Поиск в библиотеке</string>
+    <string name="library_no_results">Ничего не найдено</string>
+    <string name="cd_library_options">Сортировка, фильтры и вид</string>
+    <string name="cd_edit_categories">Изменить категории</string>
+    <string name="cd_invert_selection">Инвертировать выбор</string>
+    <string name="library_selected">Выбрано: %d</string>
+    <string name="library_tab_filter">Фильтр</string>
+    <string name="library_tab_sort">Сортировка</string>
+    <string name="library_tab_display">Вид</string>
+    <string name="library_filter_unread">Есть непрочитанное</string>
+    <string name="library_filter_downloaded">Скачанные</string>
+    <string name="library_filter_started">Начатые</string>
+    <string name="library_filter_tracking">В трекерах</string>
+    <string name="library_filter_completed">Завершённые</string>
+    <string name="library_sort_title">По названию</string>
+    <string name="library_sort_last_read">Последнее чтение</string>
+    <string name="library_sort_date_added">Дата добавления</string>
+    <string name="library_sort_unread">Непрочитанные главы</string>
+    <string name="library_sort_latest">Последняя глава</string>
+    <string name="library_layout">Макет</string>
+    <string name="library_display_grid">Сетка</string>
+    <string name="library_display_compact">Компактно</string>
+    <string name="library_display_list">Список</string>
+    <string name="library_badge_unread">Число непрочитанных</string>
+    <string name="library_badge_downloaded">Число скачанных</string>
+    <string name="action_mark_read">Отметить прочитанным</string>
+    <string name="action_mark_unread">Отметить непрочитанным</string>
+    <string name="action_download_unread">Скачать непрочитанное</string>
+    <string name="action_remove">Убрать</string>
+    <string name="action_rename">Переименовать</string>
+    <string name="dialog_remove_titles_title">Убрать из библиотеки?</string>
+    <string name="dialog_remove_titles_text">Выбрано тайтлов: %d. Загрузки и прогресс чтения останутся.</string>
+    <string name="categories_title">Категории</string>
+    <string name="categories_default">Категория по умолчанию</string>
+    <string name="categories_default_hint">Сюда попадают тайтлы, добавленные в библиотеку.</string>
+    <string name="categories_default_none">Без категории</string>
+    <string name="categories_empty">Категорий пока нет. Нажмите +, чтобы добавить.</string>
+    <string name="dialog_rename_category">Переименовать категорию</string>
+    <string name="dialog_delete_category_title">Удалить категорию?</string>
+    <string name="dialog_delete_category_text">Тайтлы из «%s» останутся в библиотеке.</string>
+    <string name="cd_move_up">Выше</string>
+    <string name="cd_move_down">Ниже</string>
+
+    <!-- Updates (v0.4) -->
+    <string name="nav_updates">Обновления</string>
+    <string name="menu_updates">Обновления</string>
+    <string name="updates_empty">Новых глав пока нет. Потяните вниз, чтобы проверить библиотеку.</string>
+    <string name="updates_last_checked">Проверено %s</string>
+    <string name="updates_today">Сегодня</string>
+    <string name="updates_yesterday">Вчера</string>
+    <string name="action_update_now">Обновить сейчас</string>
+    <string name="action_open_title">Открыть тайтл</string>
+
+    <!-- Chapters (v0.4) -->
+    <string name="cd_download_menu">Скачать</string>
+    <string name="chapters_download_next">Следующие %d непрочитанных</string>
+    <string name="chapters_delete_downloads">Удалить скачанные главы</string>
+    <string name="cd_chapter_filters">Фильтры и сортировка</string>
+    <string name="chapters_none_match">Нет глав, подходящих под фильтры</string>
+    <string name="chapters_team_auto">Любая команда</string>
+    <string name="chapters_team_all">Все переводы</string>
+    <string name="action_mark_previous_read">Отметить предыдущие прочитанными</string>
+    <string name="cd_delete_download">Удалить загрузку</string>
+    <string name="dialog_delete_downloads_title">Удалить загрузки?</string>
+    <string name="dialog_delete_downloads_text">Скачанных глав этого тайтла: %d. Они будут удалены с устройства.</string>
+    <string name="chapters_sort_oldest">Сначала старые</string>
+    <string name="chapters_sort_newest">Сначала новые</string>
+    <string name="chapters_filter_unread">Непрочитанные</string>
+    <string name="chapters_filter_read">Прочитанные</string>
+    <string name="chapters_filter_bookmarked">С закладками</string>
 </resources>

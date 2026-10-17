@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lume.app.LumeApp
+import com.lume.app.AppContainer
 import com.lume.app.R
 import com.lume.app.data.locale.appString
 import com.lume.app.data.source.SourceEngines
@@ -33,7 +33,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * answers. A slow or blocked site can no longer hold the whole screen on a spinner — each
  * source has a hard timeout and only a few run at once.
  */
-class SearchViewModel : ViewModel() {
+class SearchViewModel(private val app: AppContainer) : ViewModel() {
     enum class Mode { Current, Global }
 
     sealed interface SourceState {
@@ -81,7 +81,7 @@ class SearchViewModel : ViewModel() {
     /** Retry a single source in global mode (e.g. after solving its Cloudflare check). */
     fun retrySource(sourceId: String) {
         val q = query.trim().ifEmpty { return }
-        val source = LumeApp.instance.sources.sourceById(sourceId) ?: return
+        val source = app.sources.sourceById(sourceId) ?: return
         viewModelScope.launch {
             update(sourceId, SourceState.Loading)
             globalPending++
@@ -102,7 +102,7 @@ class SearchViewModel : ViewModel() {
 
     private suspend fun searchCurrent(q: String) {
         currentState = SourceState.Loading
-        val source = LumeApp.instance.sources.activeSource()
+        val source = app.sources.activeSource()
         if (source == null) {
             currentState = SourceState.Failed(appString(R.string.error_no_sources))
             return
@@ -112,8 +112,8 @@ class SearchViewModel : ViewModel() {
     }
 
     private suspend fun searchGlobal(q: String) {
-        val registry = LumeApp.instance.sources
-        val includeNsfw = LumeApp.instance.prefs.globalSearchNsfw.first()
+        val registry = app.sources
+        val includeNsfw = app.prefs.globalSearchNsfw.first()
         val activeId = registry.activeSource()?.manifest?.id
         val sources = registry.sources.value
             .filter { includeNsfw || !it.manifest.nsfw }

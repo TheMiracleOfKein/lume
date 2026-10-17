@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -43,6 +44,7 @@ import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
@@ -50,7 +52,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -63,7 +64,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lume.app.LumeApp
+import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.theme.AppColors
@@ -84,9 +85,10 @@ fun MainMenu(
     onNavigate: (String) -> Unit,
 ) {
     // Read up here, before the panel exists, so its labels are right on its first frame.
-    val darkTheme by LumeApp.instance.prefs.darkTheme.collectAsState()
-    val sources by LumeApp.instance.sources.sources.collectAsState()
-    val activeId by LumeApp.instance.prefs.activeSourceId.collectAsState()
+    val container = LocalAppContainer.current
+    val darkTheme by container.prefs.darkTheme.collectAsState()
+    val sources by container.sources.sources.collectAsState()
+    val activeId by container.prefs.activeSourceId.collectAsState()
     val activeName = sources.firstOrNull { it.manifest.id == activeId }?.manifest?.name
         ?: sources.firstOrNull()?.manifest?.name
         ?: stringResource(R.string.none_short)
@@ -173,6 +175,7 @@ private fun MenuPanel(
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
+    val prefs = LocalAppContainer.current.prefs
     Column(
         modifier = modifier
             .fillMaxHeight()
@@ -192,7 +195,7 @@ private fun MenuPanel(
                 icon = if (darkTheme) Icons.Outlined.DarkMode else Icons.Outlined.LightMode,
                 label = stringResource(R.string.menu_theme),
                 onClick = {
-                    scope.launch { LumeApp.instance.prefs.setDarkTheme(!darkTheme) }
+                    scope.launch { prefs.setDarkTheme(!darkTheme) }
                 },
             )
             Spacer(Modifier.weight(1f))
@@ -235,6 +238,14 @@ private fun MenuPanel(
                 onClick = {
                     onClose()
                     onNavigate(Routes.Downloads)
+                },
+            )
+            MenuTile(
+                icon = Icons.Outlined.NewReleases,
+                title = stringResource(R.string.menu_updates),
+                onClick = {
+                    onClose()
+                    onNavigate(Routes.Updates)
                 },
             )
             MenuTile(

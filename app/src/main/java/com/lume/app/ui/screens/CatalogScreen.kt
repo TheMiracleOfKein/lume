@@ -1,7 +1,9 @@
 package com.lume.app.ui.screens
 
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.PaddingValues
 import com.lume.app.ui.components.LumeInsets
@@ -24,16 +26,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.lume.app.LumeApp
+import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.ui.components.AnimatedLoadState
 import com.lume.app.ui.components.ErrorRetryBox
@@ -49,9 +49,10 @@ import com.lume.app.ui.theme.animatedItem
 
 @Composable
 fun CatalogScreen(nav: NavHostController) {
-    val vm: CatalogViewModel = viewModel()
+    val container = LocalAppContainer.current
+    val vm: CatalogViewModel = viewModel { CatalogViewModel(container) }
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    val bookmarks by LumeApp.instance.dao.observeBookmarks().collectAsState(initial = emptyList())
+    val bookmarks by container.dao.observeBookmarks().collectAsState(initial = emptyList())
     // One list state per tab: switching tabs keeps each list's scroll position.
     val popularList = rememberLazyListState()
     val latestList = rememberLazyListState()

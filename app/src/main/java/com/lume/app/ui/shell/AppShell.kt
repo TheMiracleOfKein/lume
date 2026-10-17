@@ -23,19 +23,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.GridView
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -53,7 +53,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.lume.app.LumeApp
+import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.ui.components.CloudflareChallengeOverlay
 import com.lume.app.ui.components.LocalNavExiting
@@ -63,6 +63,7 @@ import com.lume.app.ui.components.LumeLogo
 import com.lume.app.ui.nav.AppLinks
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.screens.CatalogScreen
+import com.lume.app.ui.screens.CategoriesScreen
 import com.lume.app.ui.screens.ChaptersScreen
 import com.lume.app.ui.screens.DownloadsScreen
 import com.lume.app.ui.screens.HistoryScreen
@@ -73,6 +74,7 @@ import com.lume.app.ui.screens.SearchScreen
 import com.lume.app.ui.screens.SettingsScreen
 import com.lume.app.ui.screens.SourcesScreen
 import com.lume.app.ui.screens.TitleScreen
+import com.lume.app.ui.screens.UpdatesScreen
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 import java.net.URI
@@ -81,14 +83,14 @@ private val MainTabRoutes = setOf(
     Routes.Library,
     Routes.Catalog,
     Routes.Home,
-    Routes.History,
+    Routes.Updates,
 )
 
 @Composable
 fun LumeRoot() {
     val nav = rememberNavController()
     var challengeUri by remember { mutableStateOf<URI?>(null) }
-    val http = LumeApp.instance.http
+    val http = LocalAppContainer.current.http
 
     LaunchedEffect(Unit) {
         http.challengeRequests.collect { challengeUri = it }
@@ -138,11 +140,13 @@ fun AppShell(nav: NavHostController) {
             lumeComposable(Routes.Home) { HomeScreen(nav) }
             lumeComposable(Routes.Catalog) { CatalogScreen(nav) }
             lumeComposable(Routes.Library) { LibraryScreen(nav) }
+            lumeComposable(Routes.Updates) { UpdatesScreen(nav) }
             lumeComposable(Routes.History) { HistoryScreen(nav) }
             lumeComposable(Routes.Search) { SearchScreen(nav) }
             lumeComposable(Routes.Sources) { SourcesScreen(nav) }
             lumeComposable(Routes.Settings) { SettingsScreen(nav) }
             lumeComposable(Routes.Downloads) { DownloadsScreen(nav) }
+            lumeComposable(Routes.Categories) { CategoriesScreen(nav) }
             lumeComposable(
                 route = Routes.Title,
                 arguments = listOf(
@@ -215,7 +219,7 @@ fun AppShell(nav: NavHostController) {
             onNavigate = { target ->
                 menuOpen = false
                 when (target) {
-                    Routes.Home, Routes.Catalog, Routes.Library, Routes.History -> nav.navigateToTab(target)
+                    in MainTabRoutes -> nav.navigateToTab(target)
                     else -> nav.navigate(target)
                 }
             },
@@ -298,11 +302,11 @@ private fun BottomNavBar(
                 LumeLogo(selected = currentRoute == Routes.Home, size = 30.dp)
             }
             NavSlot(
-                selected = currentRoute == Routes.History,
-                label = stringResource(R.string.nav_history),
-                icon = Icons.Outlined.History,
+                selected = currentRoute == Routes.Updates,
+                label = stringResource(R.string.nav_updates),
+                icon = Icons.Outlined.NewReleases,
                 modifier = Modifier.weight(1f),
-                onClick = { onSelect(Routes.History) },
+                onClick = { onSelect(Routes.Updates) },
             )
             NavSlot(
                 selected = false,

@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -26,14 +27,17 @@ class MainActivity : AppCompatActivity() {
         handleOAuthIntent(intent)
         // After rotation the same intent comes back; only a fresh launch opens its route.
         if (savedInstanceState == null) AppLinks.handle(intent)
+        val container = (application as LumeApp).container
         setContent {
-            val darkTheme by LumeApp.instance.prefs.darkTheme.collectAsState()
-            LumeTheme(darkTheme = darkTheme) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = AppColors.background,
-                ) {
-                    LumeRoot()
+            val darkTheme by container.prefs.darkTheme.collectAsState()
+            CompositionLocalProvider(LocalAppContainer provides container) {
+                LumeTheme(darkTheme = darkTheme) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = AppColors.background,
+                    ) {
+                        LumeRoot()
+                    }
                 }
             }
         }
@@ -51,9 +55,10 @@ class MainActivity : AppCompatActivity() {
         val code = data.getQueryParameter("code") ?: return
         val tracker = data.pathSegments.firstOrNull() ?: return
         lifecycleScope.launch {
+            val trackers = (application as LumeApp).container.trackers
             val ok = when (tracker) {
-                "anilist" -> LumeApp.instance.trackers.anilist.exchangeCode(code)
-                "shikimori" -> LumeApp.instance.trackers.shikimori.exchangeCode(code)
+                "anilist" -> trackers.anilist.exchangeCode(code)
+                "shikimori" -> trackers.shikimori.exchangeCode(code)
                 else -> false
             }
             Toast.makeText(

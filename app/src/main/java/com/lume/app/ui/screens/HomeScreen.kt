@@ -1,5 +1,7 @@
 package com.lume.app.ui.screens
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.LocalShellBottomPadding
@@ -29,8 +31,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,7 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.lume.app.LumeApp
+import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.db.ProgressEntity
 import com.lume.app.ui.components.AnimatedLoadState
@@ -65,15 +65,16 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(nav: NavHostController) {
-    val vm: HomeViewModel = viewModel()
+    val container = LocalAppContainer.current
+    val vm: HomeViewModel = viewModel { HomeViewModel(container) }
     val feed = vm.feed
     val sourceId = vm.sourceId
     val loading = vm.loading
     val error = vm.error
     var confirmClear by remember { mutableStateOf(false) }
-    val history by LumeApp.instance.dao.observeHistory().collectAsState(initial = emptyList())
-    val online by LumeApp.instance.network.online.collectAsState()
-    val downloads by LumeApp.instance.dao.observeDownloads().collectAsState(initial = emptyList())
+    val history by container.dao.observeHistory().collectAsState(initial = emptyList())
+    val online by container.network.online.collectAsState()
+    val downloads by container.dao.observeDownloads().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     val offlineTitles = remember(downloads) {
         downloads
@@ -251,7 +252,7 @@ fun HomeScreen(nav: NavHostController) {
                 TextButton(
                     onClick = {
                         confirmClear = false
-                        scope.launch { LumeApp.instance.dao.clearAllProgress() }
+                        scope.launch { container.dao.clearAllProgress() }
                     },
                 ) { Text(stringResource(R.string.action_clear), color = AppColors.danger) }
             },
