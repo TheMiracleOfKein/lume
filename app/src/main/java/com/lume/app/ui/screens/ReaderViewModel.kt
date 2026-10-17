@@ -13,7 +13,6 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.lume.app.AppContainer
 import com.lume.app.R
-import com.lume.app.data.db.BookmarkEntity
 import com.lume.app.data.db.ChapterProgressEntity
 import com.lume.app.data.db.ChapterReadEntity
 import com.lume.app.data.db.PageBookmarkEntity
@@ -422,17 +421,9 @@ class ReaderViewModel(
     fun toggleLibrary() {
         viewModelScope.launch {
             if (inLibrary.value) {
-                dao.deleteBookmark(sourceId, titleId)
+                app.library.remove(sourceId, titleId)
             } else {
-                dao.upsertBookmark(
-                    BookmarkEntity(
-                        sourceId = sourceId,
-                        titleId = titleId,
-                        titleName = titleName,
-                        coverUrl = coverUrl,
-                        typeLabel = typeLabel,
-                    ),
-                )
+                app.library.add(sourceId, titleId, titleName, coverUrl, typeLabel)
             }
         }
     }

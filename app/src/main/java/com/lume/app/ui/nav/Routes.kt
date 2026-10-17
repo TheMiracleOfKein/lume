@@ -12,6 +12,7 @@ object Routes {
     const val Sources = "sources"
     const val Settings = "settings"
     const val Downloads = "downloads"
+    const val Categories = "categories"
     const val Title = "title/{sourceId}/{titleId}"
     const val Chapters = "title/{sourceId}/{titleId}/chapters"
     const val Reader = "read/{sourceId}/{titleId}/{chapterId}?page={page}&offset={offset}"

@@ -520,11 +520,22 @@ interface LibraryDao {
     @Query("SELECT * FROM offline_title_cache")
     suspend fun allOfflineTitleCache(): List<OfflineTitleCacheEntity>
 
+    /** Cached details of library titles (status, alternative title) without the chapter lists. */
+    @Query(
+        """
+        SELECT o.sourceId, o.titleId, o.titleJson FROM offline_title_cache o
+        JOIN bookmarks b ON b.sourceId = o.sourceId AND b.titleId = o.titleId
+        """,
+    )
+    fun observeLibraryTitleJson(): Flow<List<TitleJsonRow>>
+
     @Query("SELECT DISTINCT chapterId FROM page_bookmarks WHERE sourceId = :sourceId AND titleId = :titleId")
     fun observePageBookmarkChapterIds(sourceId: String, titleId: String): Flow<List<String>>
 }
 
 data class TitleKey(val sourceId: String, val titleId: String)
+
+data class TitleJsonRow(val sourceId: String, val titleId: String, val titleJson: String)
 
 @Database(
     entities = [

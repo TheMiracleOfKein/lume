@@ -11,6 +11,7 @@ import com.lume.app.data.db.LumeDatabase
 import com.lume.app.data.downloads.DownloadQueue
 import com.lume.app.data.downloads.DownloadStore
 import com.lume.app.data.library.LibraryChapters
+import com.lume.app.data.library.LibraryRepository
 import com.lume.app.data.library.LibraryUpdateWorker
 import com.lume.app.data.network.AppHttp
 import com.lume.app.data.network.ImageReferers
@@ -61,6 +62,7 @@ class AppContainer(val app: Application) {
     val backup = BackupRepository(app, dao, sources)
     val trackers = TrackerRegistry(http, dao, prefs)
     val trackerSync = TrackerSync(app, dao, trackers)
+    val library = LibraryRepository(database, dao, prefs, titles, libraryChapters, trackerSync, appScope)
 
     val imageLoader: ImageLoader get() = app.imageLoader
 

@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lume.app.AppContainer
 import com.lume.app.R
-import com.lume.app.data.db.BookmarkEntity
 import com.lume.app.data.db.ChapterProgressEntity
 import com.lume.app.data.db.PageBookmarkEntity
 import com.lume.app.data.db.ProgressEntity
@@ -137,17 +136,9 @@ class TitleViewModel(app: AppContainer, sourceId: String, titleId: String) : Tit
         val d = details ?: return
         viewModelScope.launch {
             if (inLibrary.value) {
-                dao.deleteBookmark(sourceId, titleId)
+                app.library.remove(sourceId, titleId)
             } else {
-                dao.upsertBookmark(
-                    BookmarkEntity(
-                        sourceId = sourceId,
-                        titleId = titleId,
-                        titleName = d.title,
-                        coverUrl = d.coverUrl,
-                        typeLabel = d.typeLabel,
-                    ),
-                )
+                app.library.add(sourceId, titleId, d.title, d.coverUrl, d.typeLabel)
             }
         }
     }

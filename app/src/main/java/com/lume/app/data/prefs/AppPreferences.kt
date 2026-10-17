@@ -6,10 +6,16 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.lume.app.domain.LibraryDisplay
+import com.lume.app.domain.LibrarySettings
+import com.lume.app.domain.LibrarySort
 import com.lume.app.domain.ReaderMode
 import com.lume.app.domain.ReaderTheme
+import com.lume.app.domain.decodeLibraryFilters
+import com.lume.app.domain.encodeLibraryFilters
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -80,6 +86,14 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val shikiClientIdKey = stringPreferencesKey("shikimori_client_id")
     private val shikiClientSecretKey = stringPreferencesKey("shikimori_client_secret")
 
+    private val libraryDisplayKey = stringPreferencesKey("library_display")
+    private val librarySortKey = stringPreferencesKey("library_sort")
+    private val librarySortAscKey = booleanPreferencesKey("library_sort_asc")
+    private val libraryFiltersKey = stringPreferencesKey("library_filters")
+    private val libraryUnreadBadgeKey = booleanPreferencesKey("library_badge_unread")
+    private val libraryDownloadedBadgeKey = booleanPreferencesKey("library_badge_downloaded")
+    private val defaultCategoryKey = longPreferencesKey("default_category_id")
+
     private val initial: Preferences = runBlocking { context.appDataStore.data.first() }
     private val current: StateFlow<Preferences> =
         context.appDataStore.data.stateIn(scope, SharingStarted.Eagerly, initial)
@@ -128,6 +142,37 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     val libraryUpdateWifiOnly: StateFlow<Boolean> = state { it[libraryWifiOnlyKey] ?: false }
     val downloadsWifiOnly: StateFlow<Boolean> = state { it[downloadsWifiOnlyKey] ?: false }
     val globalSearchNsfw: StateFlow<Boolean> = state { it[globalSearchNsfwKey] ?: true }
+
+    val librarySettings: StateFlow<LibrarySettings> = state { prefs ->
+        LibrarySettings(
+            display = LibraryDisplay.entries.firstOrNull { it.name == prefs[libraryDisplayKey] } ?: LibraryDisplay.Grid,
+            sort = LibrarySort.entries.firstOrNull { it.name == prefs[librarySortKey] } ?: LibrarySort.Title,
+            ascending = prefs[librarySortAscKey] ?: true,
+            filters = decodeLibraryFilters(prefs[libraryFiltersKey]),
+            unreadBadge = prefs[libraryUnreadBadgeKey] ?: true,
+            downloadedBadge = prefs[libraryDownloadedBadgeKey] ?: true,
+        )
+    }
+
+    /** Category that titles added to the library go into; null = none. */
+    val defaultCategoryId: StateFlow<Long?> = state { it[defaultCategoryKey] }
+
+    suspend fun setLibrarySettings(settings: LibrarySettings) {
+        context.appDataStore.edit {
+            it[libraryDisplayKey] = settings.display.name
+            it[librarySortKey] = settings.sort.name
+            it[librarySortAscKey] = settings.ascending
+            it[libraryFiltersKey] = encodeLibraryFilters(settings.filters)
+            it[libraryUnreadBadgeKey] = settings.unreadBadge
+            it[libraryDownloadedBadgeKey] = settings.downloadedBadge
+        }
+    }
+
+    suspend fun setDefaultCategoryId(id: Long?) {
+        context.appDataStore.edit {
+            if (id == null) it.remove(defaultCategoryKey) else it[defaultCategoryKey] = id
+        }
+    }
 
     suspend fun setLibraryUpdateIntervalHours(hours: Int) {
         context.appDataStore.edit { it[libraryIntervalKey] = hours }
