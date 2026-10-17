@@ -145,6 +145,8 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
     implementation(libs.kotlinx.serialization.json)
+    // Reads Mihon / Tachiyomi backups (.tachibk is gzipped protobuf).
+    implementation(libs.kotlinx.serialization.protobuf)
     implementation(libs.datastore.preferences)
     implementation(libs.androidx.work.runtime.ktx)
     // Installs the baseline profile on sideloaded installs too (Play does it itself).

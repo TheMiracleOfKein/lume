@@ -60,7 +60,7 @@ class AppContainer(val app: Application) {
     val libraryChapters = LibraryChapters(database, dao)
     val titles = TitleRepository(sources, offlineCache, libraryChapters)
     val downloadQueue = DownloadQueue(app, dao, downloads, sources, titles, prefs, network)
-    val backup = BackupRepository(app, dao, sources)
+    val backup = BackupRepository(app, dao, sources, prefs, titles, libraryChapters)
     val trackers = TrackerRegistry(http, dao, prefs)
     val trackerSync = TrackerSync(app, dao, trackers)
     val library = LibraryRepository(database, dao, prefs, titles, libraryChapters, trackerSync, appScope)
@@ -84,6 +84,7 @@ class AppContainer(val app: Application) {
             // After the v8 upgrade: know the chapters of every library title, so the first check
             // reports only chapters that are really new.
             runCatching { libraryChapters.seedFromCache(offlineCache) }
+            com.lume.app.data.backup.BackupWorker.schedule(app, prefs.autoBackupDays.value)
             LibraryUpdateWorker.schedule(
                 app,
                 enabled = prefs.libraryUpdatesEnabled.value,

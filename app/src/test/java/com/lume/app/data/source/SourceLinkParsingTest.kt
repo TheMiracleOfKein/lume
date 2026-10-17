@@ -19,6 +19,7 @@ class SourceLinkParsingTest {
         val engine = MangaDexEngine(manifest("mangadex", "https://mangadex.org"), http)
         val id = "a1c7c817-4e59-43b7-9365-09675a149a6f"
         assertEquals(id, engine.titleIdFromUrl("https://mangadex.org/title/$id/one-piece"))
+        assertEquals(id, engine.titleIdFromUrl("https://mangadex.org/manga/$id"))
         assertNull(engine.titleIdFromUrl("https://mangadex.org/chapter/$id"))
         assertNull(engine.titleIdFromUrl("https://example.org/title/$id"))
     }

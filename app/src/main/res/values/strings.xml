@@ -482,4 +482,24 @@
     <string name="local_import_empty">No chapters found in that folder</string>
     <string name="local_import_failed">Import failed: %1$s</string>
     <string name="local_clean_done">Freed %1$s</string>
+    <string name="error_backup_write">Couldn’t write the backup file</string>
+    <string name="backup_save_to">Save a backup to…</string>
+    <string name="backup_restore_file">Restore from a file…</string>
+    <string name="backup_restore_file_hint">A Lume backup or a Mihon / Tachiyomi backup (.tachibk)</string>
+    <string name="backup_saved_to">Backup saved: %1$s</string>
+    <string name="backup_restore_failed">Restore failed: %1$s</string>
+    <string name="backup_mihon_progress">Reading chapter lists: %1$d of %2$d titles</string>
+    <string name="backup_mihon_done">Mihon import: %1$d added, %2$d already in the library, %3$d chapters marked read</string>
+    <string name="backup_mihon_unmatched">%1$d title(s) skipped (source not in Lume): %2$s</string>
+    <string name="backup_mihon_read_failed">Read marks of %1$d title(s) are missing: their chapter lists didn’t load.</string>
+    <string name="backup_auto">Automatic backups</string>
+    <string name="backup_auto_off">Off</string>
+    <plurals name="backup_auto_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="backup_auto_keep">Keep the newest</string>
+    <string name="backup_auto_folder_pick">Also copy to a folder…</string>
+    <string name="backup_auto_folder">Copied to: %1$s</string>
+    <string name="backup_auto_folder_clear">Stop copying to the folder</string>
 </resources>

@@ -263,6 +263,80 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         }
     }
 
+    /** Titles done / total while a Mihon backup is imported; null when idle. */
+    var importProgress by mutableStateOf<Pair<Int, Int>?>(null)
+        private set
+
+    fun suggestedBackupName(): String = app.backup.suggestedFileName()
+
+    fun saveBackupTo(uri: android.net.Uri) {
+        viewModelScope.launch {
+            runCatching { app.backup.writeBackup(uri) }
+                .onSuccess { statusMessage = string(R.string.backup_saved_to, folderName(uri.toString())) }
+                .onFailure { statusMessage = it.message ?: string(R.string.backup_error) }
+        }
+    }
+
+    /** Restores a picked file: a Lume backup or a Mihon / Tachiyomi one. */
+    fun restoreFrom(uri: android.net.Uri) {
+        if (importProgress != null) return
+        viewModelScope.launch {
+            importProgress = 0 to 0
+            runCatching { app.backup.restoreFromUri(uri) { done, total -> importProgress = done to total } }
+                .onSuccess { result ->
+                    statusMessage = when (result) {
+                        is com.lume.app.data.backup.BackupRepository.RestoreResult.Lume -> {
+                            reschedule()
+                            com.lume.app.data.backup.BackupWorker.schedule(app.app, prefs.autoBackupDays.value)
+                            string(R.string.backup_restored, folderName(uri.toString()))
+                        }
+                        is com.lume.app.data.backup.BackupRepository.RestoreResult.Mihon -> {
+                            val r = result.result
+                            buildString {
+                                append(string(R.string.backup_mihon_done, r.added, r.alreadyInLibrary, r.chaptersMarkedRead))
+                                if (r.unmatched.isNotEmpty()) {
+                                    append('\n')
+                                    append(string(R.string.backup_mihon_unmatched, r.unmatched.size, r.unmatched.take(10).joinToString()))
+                                }
+                                if (r.readMarksFailed > 0) {
+                                    append('\n')
+                                    append(string(R.string.backup_mihon_read_failed, r.readMarksFailed))
+                                }
+                            }
+                        }
+                    }
+                }
+                .onFailure { statusMessage = string(R.string.backup_restore_failed, it.message ?: it.toString()) }
+            importProgress = null
+        }
+    }
+
+    fun setAutoBackup(days: Int, keep: Int) {
+        viewModelScope.launch {
+            prefs.setAutoBackup(days, keep)
+            com.lume.app.data.backup.BackupWorker.schedule(app.app, days)
+        }
+    }
+
+    /** Automatic backups are also copied to [uri] (kept across restarts with a persisted permission). */
+    fun setAutoBackupFolder(uri: android.net.Uri?) {
+        viewModelScope.launch {
+            val resolver = app.app.contentResolver
+            val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            prefs.autoBackupFolder.value?.let { old ->
+                runCatching { resolver.releasePersistableUriPermission(android.net.Uri.parse(old), flags) }
+            }
+            if (uri != null) runCatching { resolver.takePersistableUriPermission(uri, flags) }
+            prefs.setAutoBackupFolder(uri?.toString())
+        }
+    }
+
+    /** A readable name for a picked file or folder ("Download/Lume" rather than a content URI). */
+    fun folderName(uri: String): String {
+        val decoded = android.net.Uri.decode(uri)
+        return decoded.substringAfterLast(':').ifBlank { decoded.substringAfterLast('/') }
+    }
+
     fun restoreBackup() {
         viewModelScope.launch {
             runCatching { app.backup.restoreLatest() }

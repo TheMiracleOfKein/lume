@@ -475,4 +475,26 @@
     <string name="local_import_empty">В этой папке не найдено глав</string>
     <string name="local_import_failed">Импорт не удался: %1$s</string>
     <string name="local_clean_done">Освобождено %1$s</string>
+    <string name="error_backup_write">Не удалось записать файл резервной копии</string>
+    <string name="backup_save_to">Сохранить копию в…</string>
+    <string name="backup_restore_file">Восстановить из файла…</string>
+    <string name="backup_restore_file_hint">Копия Lume или Mihon / Tachiyomi (.tachibk)</string>
+    <string name="backup_saved_to">Копия сохранена: %1$s</string>
+    <string name="backup_restore_failed">Не удалось восстановить: %1$s</string>
+    <string name="backup_mihon_progress">Загрузка списков глав: %1$d из %2$d тайтлов</string>
+    <string name="backup_mihon_done">Импорт из Mihon: добавлено %1$d, уже в библиотеке %2$d, отмечено прочитанными глав: %3$d</string>
+    <string name="backup_mihon_unmatched">Пропущено тайтлов: %1$d (источника нет в Lume): %2$s</string>
+    <string name="backup_mihon_read_failed">Для %1$d тайтлов не перенесены отметки: не загрузились списки глав.</string>
+    <string name="backup_auto">Автоматические копии</string>
+    <string name="backup_auto_off">Выкл.</string>
+    <plurals name="backup_auto_days">
+        <item quantity="one">%d день</item>
+        <item quantity="few">%d дня</item>
+        <item quantity="many">%d дней</item>
+        <item quantity="other">%d дня</item>
+    </plurals>
+    <string name="backup_auto_keep">Хранить последние</string>
+    <string name="backup_auto_folder_pick">Также копировать в папку…</string>
+    <string name="backup_auto_folder">Копируются в: %1$s</string>
+    <string name="backup_auto_folder_clear">Не копировать в папку</string>
 </resources>

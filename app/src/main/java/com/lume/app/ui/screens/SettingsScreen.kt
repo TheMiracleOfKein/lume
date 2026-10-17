@@ -35,6 +35,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
@@ -106,6 +108,18 @@ fun SettingsScreen(nav: NavHostController) {
     val pickLocalFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) vm.importLocalFolder(uri)
     }
+    val saveBackupTo = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) vm.saveBackupTo(uri)
+    }
+    val openBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) vm.restoreFrom(uri)
+    }
+    val pickBackupFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) vm.setAutoBackupFolder(uri)
+    }
+    val autoBackupDays by prefs.autoBackupDays.collectAsState()
+    val autoBackupKeep by prefs.autoBackupKeep.collectAsState()
+    val autoBackupFolder by prefs.autoBackupFolder.collectAsState()
 
     fun updateReader(next: ReaderSettings) = vm.updateReader(next)
 
@@ -395,7 +409,79 @@ fun SettingsScreen(nav: NavHostController) {
             Spacer(Modifier.height(10.dp))
             SettingsGroup {
                 SettingsLink(stringResource(R.string.settings_create_backup), onClick = vm::createBackup)
+                SettingsLink(stringResource(R.string.backup_save_to)) { saveBackupTo.launch(vm.suggestedBackupName()) }
                 SettingsLink(stringResource(R.string.settings_restore_backup), onClick = vm::restoreBackup)
+                SettingsLink(stringResource(R.string.backup_restore_file)) {
+                    if (vm.importProgress == null) openBackup.launch(arrayOf("*/*"))
+                }
+                Text(
+                    stringResource(R.string.backup_restore_file_hint),
+                    color = AppColors.textTertiary,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp),
+                )
+                vm.importProgress?.let { (done, total) ->
+                    Text(
+                        stringResource(R.string.backup_mihon_progress, done, total),
+                        color = AppColors.accent,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp),
+                    )
+                    LinearProgressIndicator(
+                        progress = { if (total > 0) done.toFloat() / total else 0f },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                        color = AppColors.accent,
+                        trackColor = AppColors.card,
+                    )
+                }
+                Text(
+                    stringResource(R.string.backup_auto),
+                    color = AppColors.textSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 8.dp),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    AppPreferences.AUTO_BACKUP_DAYS.forEach { days ->
+                        ChoiceChip(
+                            label = if (days == 0) stringResource(R.string.backup_auto_off)
+                            else pluralStringResource(R.plurals.backup_auto_days, days, days),
+                            selected = days == autoBackupDays,
+                            modifier = Modifier.weight(1f),
+                            onClick = { vm.setAutoBackup(days, autoBackupKeep) },
+                        )
+                    }
+                }
+                AnimatedVisibility(
+                    visible = autoBackupDays > 0,
+                    enter = expandVertically(Motion.medium()) + fadeIn(Motion.medium()),
+                    exit = shrinkVertically(Motion.medium()) + fadeOut(Motion.short()),
+                ) {
+                    Column {
+                        Text(
+                            stringResource(R.string.backup_auto_keep),
+                            color = AppColors.textSecondary,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 8.dp),
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            AppPreferences.AUTO_BACKUP_KEEP.forEach { n ->
+                                ChoiceChip(
+                                    label = n.toString(),
+                                    selected = n == autoBackupKeep,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { vm.setAutoBackup(autoBackupDays, n) },
+                                )
+                            }
+                        }
+                        SettingsLink(
+                            if (autoBackupFolder == null) stringResource(R.string.backup_auto_folder_pick)
+                            else stringResource(R.string.backup_auto_folder, vm.folderName(autoBackupFolder.orEmpty())),
+                        ) { pickBackupFolder.launch(null) }
+                        if (autoBackupFolder != null) {
+                            SettingsLink(stringResource(R.string.backup_auto_folder_clear)) { vm.setAutoBackupFolder(null) }
+                        }
+                    }
+                }
             }
             AnimatedVisibility(
                 visible = statusMessage != null,

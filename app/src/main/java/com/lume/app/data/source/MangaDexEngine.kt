@@ -161,7 +161,8 @@ class MangaDexEngine(
 
     override fun titleIdFromUrl(url: String): String? {
         val parts = SourceLinks.segments(url, manifest.baseUrl) ?: return null
-        val i = parts.indexOf("title")
+        // Website links use /title/<id>; Mihon backups store /manga/<id>.
+        val i = parts.indexOfFirst { it == "title" || it == "manga" }
         if (i < 0) return null
         return parts.getOrNull(i + 1)?.takeIf { UUID.matches(it) }
     }

@@ -110,6 +110,10 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val autoDownloadNewKey = booleanPreferencesKey("downloads_auto_new")
     private val deleteAfterReadKey = booleanPreferencesKey("downloads_delete_after_read")
 
+    private val autoBackupDaysKey = intPreferencesKey("auto_backup_days")
+    private val autoBackupKeepKey = intPreferencesKey("auto_backup_keep")
+    private val autoBackupFolderKey = stringPreferencesKey("auto_backup_folder")
+
     private val initial: Preferences = runBlocking { context.appDataStore.data.first() }
     private val current: StateFlow<Preferences> =
         context.appDataStore.data.stateIn(scope, SharingStarted.Eagerly, initial)
@@ -276,6 +280,67 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
         context.appDataStore.edit { it[deleteAfterReadKey] = value }
     }
 
+    /** Days between automatic backups; 0 = off. */
+    val autoBackupDays: StateFlow<Int> = state { it[autoBackupDaysKey]?.takeIf { d -> d in AUTO_BACKUP_DAYS } ?: 0 }
+
+    /** How many automatic backups are kept (older ones are deleted). */
+    val autoBackupKeep: StateFlow<Int> = state { it[autoBackupKeepKey]?.takeIf { n -> n in AUTO_BACKUP_KEEP } ?: 5 }
+
+    /** A folder picked with the file picker (tree URI) that automatic backups are copied to. */
+    val autoBackupFolder: StateFlow<String?> = state { it[autoBackupFolderKey]?.takeIf(String::isNotBlank) }
+
+    suspend fun setAutoBackup(days: Int, keep: Int) {
+        context.appDataStore.edit {
+            it[autoBackupDaysKey] = days
+            it[autoBackupKeepKey] = keep
+        }
+    }
+
+    suspend fun setAutoBackupFolder(uri: String?) {
+        context.appDataStore.edit { if (uri.isNullOrBlank()) it.remove(autoBackupFolderKey) else it[autoBackupFolderKey] = uri }
+    }
+
+    /**
+     * Every stored preference as (key, type, value) for backups. Account tokens, app keys and
+     * the backup folder (a permission that only this install holds) stay out.
+     */
+    fun exportSettings(): List<Triple<String, String, String>> = current.value.asMap().mapNotNull { (key, value) ->
+        if (isPrivateKey(key.name)) return@mapNotNull null
+        when (value) {
+            is Boolean -> Triple(key.name, "bool", value.toString())
+            is Int -> Triple(key.name, "int", value.toString())
+            is Long -> Triple(key.name, "long", value.toString())
+            is Double -> Triple(key.name, "double", value.toString())
+            is Float -> Triple(key.name, "float", value.toString())
+            is String -> Triple(key.name, "string", value)
+            is Set<*> -> Triple(key.name, "set", prefsJson.encodeToString(value.map { it.toString() }))
+            else -> null
+        }
+    }
+
+    /** Writes settings from a backup back; unknown types and private keys are skipped. */
+    suspend fun importSettings(values: List<Triple<String, String, String>>) {
+        context.appDataStore.edit { prefs ->
+            for ((name, type, raw) in values) {
+                if (isPrivateKey(name)) continue
+                runCatching {
+                    when (type) {
+                        "bool" -> prefs[booleanPreferencesKey(name)] = raw.toBooleanStrict()
+                        "int" -> prefs[intPreferencesKey(name)] = raw.toInt()
+                        "long" -> prefs[longPreferencesKey(name)] = raw.toLong()
+                        "double" -> prefs[doublePreferencesKey(name)] = raw.toDouble()
+                        "float" -> prefs[androidx.datastore.preferences.core.floatPreferencesKey(name)] = raw.toFloat()
+                        "string" -> prefs[stringPreferencesKey(name)] = raw
+                        "set" -> prefs[stringSetPreferencesKey(name)] = prefsJson.decodeFromString<List<String>>(raw).toSet()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun isPrivateKey(name: String): Boolean =
+        PRIVATE_KEY_PARTS.any { name.contains(it) } || name == "auto_backup_folder"
+
     /** Where the pack catalogue is read from; see `docs/packs/index.json`. */
     val packIndexUrl: StateFlow<String> = state { it[packIndexUrlKey]?.takeIf(String::isNotBlank) ?: DEFAULT_PACK_INDEX }
 
@@ -384,6 +449,9 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
         const val MAX_DIM = 0.8f
         const val MAX_SEARCH_HISTORY = 15
         const val MAX_PARALLEL_PAGES = 4
+        val AUTO_BACKUP_DAYS = listOf(0, 1, 3, 7)
+        val AUTO_BACKUP_KEEP = listOf(3, 5, 10)
+        private val PRIVATE_KEY_PARTS = listOf("token", "secret", "client_id", "user_id", "password")
         const val DEFAULT_PACK_INDEX = "https://raw.githubusercontent.com/TheMiracleOfKein/lume/main/docs/packs/index.json"
         private val prefsJson = Json { ignoreUnknownKeys = true }
     }
