@@ -137,19 +137,17 @@ class LibSocialEngine(
                 ?: stringOrNull(item["chapter_name"])
                 ?: "").trim()
             val branches = (item["branches"] as? JsonArray).orEmpty()
-            val branchIds: List<String?> = if (branches.isEmpty()) {
-                listOf(null)
-            } else {
-                // Prefer explicit branch_id; fall back to a single null entry (omit param).
-                // Do NOT use branches[].id — that is the chapter row id, not a branch.
-                val ids = branches.map { branchEl ->
-                    val branch = branchEl as? JsonObject ?: return@map null
-                    stringOrNull(branch["branch_id"])
-                }.distinct()
-                if (ids.any { it != null }) ids.filterNotNull().ifEmpty { listOf(null) }
-                else listOf(null)
-            }
-            branchIds.map { branchId ->
+            // One entry per translation team (branch). Do NOT use branches[].id — that is the
+            // chapter row id, not a branch.
+            val branchIds: List<Pair<String?, String?>> = branches.mapNotNull { branchEl ->
+                val branch = branchEl as? JsonObject ?: return@mapNotNull null
+                val id = stringOrNull(branch["branch_id"]) ?: return@mapNotNull null
+                val teams = (branch["teams"] as? JsonArray).orEmpty().mapNotNull { team ->
+                    (team as? JsonObject)?.let { stringOrNull(it["name"]) }?.trim()?.takeIf { it.isNotEmpty() }
+                }
+                id to teams.joinToString(", ").ifEmpty { null }
+            }.distinctBy { it.first }.ifEmpty { listOf(null to null) }
+            branchIds.map { (branchId, teamName) ->
                 val bidSuffix = if (branchId.isNullOrBlank()) "" else "?bid=$branchId"
                 Chapter(
                     id = "/$slug/v$volume/c$number$bidSuffix",
@@ -166,6 +164,7 @@ class LibSocialEngine(
                     number = number.takeIf { it.isNotEmpty() && it != "null" },
                     volume = volume.takeIf { it.isNotEmpty() && it != "null" },
                     branchId = branchId?.takeIf { it.isNotBlank() },
+                    branchName = teamName,
                 )
             }
         }

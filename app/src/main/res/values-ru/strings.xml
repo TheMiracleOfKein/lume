@@ -345,4 +345,22 @@
     <string name="updates_yesterday">Вчера</string>
     <string name="action_update_now">Обновить сейчас</string>
     <string name="action_open_title">Открыть тайтл</string>
+
+    <!-- Chapters (v0.4) -->
+    <string name="cd_download_menu">Скачать</string>
+    <string name="chapters_download_next">Следующие %d непрочитанных</string>
+    <string name="chapters_delete_downloads">Удалить скачанные главы</string>
+    <string name="cd_chapter_filters">Фильтры и сортировка</string>
+    <string name="chapters_none_match">Нет глав, подходящих под фильтры</string>
+    <string name="chapters_team_auto">Любая команда</string>
+    <string name="chapters_team_all">Все переводы</string>
+    <string name="action_mark_previous_read">Отметить предыдущие прочитанными</string>
+    <string name="cd_delete_download">Удалить загрузку</string>
+    <string name="dialog_delete_downloads_title">Удалить загрузки?</string>
+    <string name="dialog_delete_downloads_text">Скачанных глав этого тайтла: %d. Они будут удалены с устройства.</string>
+    <string name="chapters_sort_oldest">Сначала старые</string>
+    <string name="chapters_sort_newest">Сначала новые</string>
+    <string name="chapters_filter_unread">Непрочитанные</string>
+    <string name="chapters_filter_read">Прочитанные</string>
+    <string name="chapters_filter_bookmarked">С закладками</string>
 </resources>

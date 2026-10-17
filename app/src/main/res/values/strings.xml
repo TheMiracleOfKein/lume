@@ -358,4 +358,22 @@
     <string name="updates_yesterday">Yesterday</string>
     <string name="action_update_now">Update now</string>
     <string name="action_open_title">Open title</string>
+
+    <!-- Chapters (v0.4) -->
+    <string name="cd_download_menu">Download</string>
+    <string name="chapters_download_next">Next %d unread</string>
+    <string name="chapters_delete_downloads">Delete downloaded chapters</string>
+    <string name="cd_chapter_filters">Filter and sort</string>
+    <string name="chapters_none_match">No chapters match the filters</string>
+    <string name="chapters_team_auto">Any team</string>
+    <string name="chapters_team_all">Show all copies</string>
+    <string name="action_mark_previous_read">Mark previous as read</string>
+    <string name="cd_delete_download">Delete download</string>
+    <string name="dialog_delete_downloads_title">Delete downloads?</string>
+    <string name="dialog_delete_downloads_text">Downloaded chapters of this title: %d. They will be removed from the device.</string>
+    <string name="chapters_sort_oldest">Oldest first</string>
+    <string name="chapters_sort_newest">Newest first</string>
+    <string name="chapters_filter_unread">Unread</string>
+    <string name="chapters_filter_read">Read</string>
+    <string name="chapters_filter_bookmarked">With page bookmarks</string>
 </resources>

@@ -26,6 +26,7 @@ import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.ReaderMode
 import com.lume.app.domain.ReaderTheme
+import com.lume.app.domain.dedupeChapters
 import com.lume.app.domain.inReadingOrder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -228,7 +229,16 @@ class ReaderViewModel(
         coverUrl = known.details.coverUrl
         typeLabel = known.details.typeLabel
         if (known.chapters.isEmpty()) error(appString(R.string.error_no_chapters))
-        chapters = known.chapters.inReadingOrder()
+        // Next / previous follow the chapter list: one copy per chapter, continuing with the team
+        // of the chapter that was opened.
+        val prefs = dao.getTitlePrefs(sourceId, titleId)
+        val opened = known.chapters.firstOrNull { chapterIdsMatch(it.id, currentChapterId) }
+        chapters = if (prefs?.showDuplicates == true) {
+            known.chapters.inReadingOrder()
+        } else {
+            val deduped = dedupeChapters(known.chapters, opened?.branchId ?: prefs?.branch)
+            (if (opened != null && deduped.none { it.id == opened.id }) deduped + opened else deduped).inReadingOrder()
+        }
     }
 
     private suspend fun loadPagesFor(ch: Chapter): List<ComicPage> = withContext(Dispatchers.IO) {
