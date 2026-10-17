@@ -9,6 +9,8 @@ bin/
 gen/
 out/
 release/
+# ...but not the release source set: it holds the generated baseline profile.
+!/app/src/release/
 
 # Gradle
 .gradle/
