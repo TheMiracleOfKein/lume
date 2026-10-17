@@ -1,5 +1,16 @@
 package com.lume.app.ui.shell
 
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.VerticalDivider
+import com.lume.app.ui.components.LocalUseRail
+import com.lume.app.ui.screens.AboutScreen
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
@@ -115,6 +126,8 @@ fun AppShell(nav: NavHostController) {
     val route = backStack?.destination?.route
     val showBottomBar = route in MainTabRoutes
     val pendingRoute by AppLinks.pendingRoute.collectAsState()
+    // Tablets and wide windows: a navigation rail on the left instead of the bottom bar.
+    val useRail = LocalConfiguration.current.screenWidthDp >= RAIL_MIN_WIDTH_DP
 
     LaunchedEffect(pendingRoute) {
         val target = pendingRoute ?: return@LaunchedEffect
@@ -122,6 +135,7 @@ fun AppShell(nav: NavHostController) {
         AppLinks.consumed()
     }
 
+    CompositionLocalProvider(LocalUseRail provides useRail) {
     Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
         // No shell padding at all: each destination pads itself (see lumeComposable), so the
         // bottom bar sliding in or out never re-lays-out a screen mid-transition.
@@ -147,6 +161,13 @@ fun AppShell(nav: NavHostController) {
             lumeComposable(Routes.Settings) { SettingsScreen(nav) }
             lumeComposable(Routes.Downloads) { DownloadsScreen(nav) }
             lumeComposable(Routes.Categories) { CategoriesScreen(nav) }
+            lumeComposable(Routes.About) { AboutScreen(nav) }
+            lumeComposable(
+                route = Routes.Browse,
+                arguments = listOf(navArgument("sourceId") { type = NavType.StringType }),
+            ) { entry ->
+                CatalogScreen(nav, browseSourceId = entry.arguments!!.getString("sourceId")!!)
+            }
             lumeComposable(
                 route = Routes.Title,
                 arguments = listOf(
@@ -195,22 +216,28 @@ fun AppShell(nav: NavHostController) {
             }
         }
 
+        val onSelect: (String?) -> Unit = { target ->
+            if (target == null) {
+                menuOpen = true
+            } else {
+                nav.navigateToTab(target)
+            }
+        }
         AnimatedVisibility(
-            visible = showBottomBar,
+            visible = showBottomBar && !useRail,
             modifier = Modifier.align(Alignment.BottomCenter),
             enter = Motion.barEnterFromBottom,
             exit = Motion.barExitToBottom,
         ) {
-            BottomNavBar(
-                currentRoute = route,
-                onSelect = { target ->
-                    if (target == null) {
-                        menuOpen = true
-                    } else {
-                        nav.navigateToTab(target)
-                    }
-                },
-            )
+            BottomNavBar(currentRoute = route, onSelect = onSelect)
+        }
+        AnimatedVisibility(
+            visible = showBottomBar && useRail,
+            modifier = Modifier.align(Alignment.CenterStart),
+            enter = slideInHorizontally(Motion.medium()) { -it } + fadeIn(Motion.medium()),
+            exit = slideOutHorizontally(Motion.medium()) { -it } + fadeOut(Motion.short()),
+        ) {
+            NavRail(currentRoute = route, onSelect = onSelect)
         }
 
         MainMenu(
@@ -225,7 +252,10 @@ fun AppShell(nav: NavHostController) {
             },
         )
     }
+    }
 }
+
+private const val RAIL_MIN_WIDTH_DP = 600
 
 private fun NavHostController.navigateToTab(route: String) {
     navigate(route) {
@@ -247,7 +277,13 @@ private fun NavGraphBuilder.lumeComposable(
 ) {
     composable(route = route, arguments = arguments) { entry ->
         val navBars = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-        val bottomPadding = if (route in MainTabRoutes) LumeInsets.BottomBarHeight + navBars else 0.dp
+        val rail = LocalUseRail.current
+        val isTab = route in MainTabRoutes
+        val bottomPadding = when {
+            !isTab -> 0.dp
+            rail -> navBars
+            else -> LumeInsets.BottomBarHeight + navBars
+        }
         // Flips as soon as this screen starts leaving (also while a back gesture is in progress),
         // so the reader can bring the system bars back before the next screen is visible.
         val exiting = transition.targetState == EnterExitState.PostExit
@@ -255,7 +291,11 @@ private fun NavGraphBuilder.lumeComposable(
             LocalShellBottomPadding provides bottomPadding,
             LocalNavExiting provides exiting,
         ) {
-            content(entry)
+            if (isTab && rail) {
+                Box(Modifier.fillMaxSize().padding(start = LumeInsets.RailWidth)) { content(entry) }
+            } else {
+                content(entry)
+            }
         }
     }
 }
@@ -316,6 +356,33 @@ private fun BottomNavBar(
                 onClick = { onSelect(null) },
             )
         }
+    }
+}
+
+/** The bottom bar's destinations, stacked on the left for wide screens. */
+@Composable
+private fun NavRail(currentRoute: String?, onSelect: (String?) -> Unit) {
+    Row(Modifier.fillMaxHeight()) {
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(LumeInsets.RailWidth - 1.dp)
+                .background(AppColors.navBar)
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            val slot = Modifier.fillMaxWidth().height(72.dp)
+            Box(slot.clickable { onSelect(Routes.Home) }, contentAlignment = Alignment.Center) {
+                LumeLogo(selected = currentRoute == Routes.Home, size = 30.dp)
+            }
+            NavSlot(currentRoute == Routes.Library, stringResource(R.string.nav_library), Icons.Outlined.Bookmark, { onSelect(Routes.Library) }, slot)
+            NavSlot(currentRoute == Routes.Catalog, stringResource(R.string.nav_catalog), Icons.Outlined.GridView, { onSelect(Routes.Catalog) }, slot)
+            NavSlot(currentRoute == Routes.Updates, stringResource(R.string.nav_updates), Icons.Outlined.NewReleases, { onSelect(Routes.Updates) }, slot)
+            NavSlot(false, stringResource(R.string.nav_menu), Icons.Outlined.Menu, { onSelect(null) }, slot)
+        }
+        VerticalDivider(color = AppColors.divider, thickness = 1.dp)
     }
 }
 

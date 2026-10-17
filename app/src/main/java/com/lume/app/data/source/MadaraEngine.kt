@@ -1,5 +1,7 @@
 package com.lume.app.data.source
 
+import com.lume.app.R
+import com.lume.app.data.locale.appString
 import com.lume.app.data.network.AppHttp
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
@@ -265,30 +267,34 @@ class MadaraEngine(
         page: Int,
         filters: com.lume.app.domain.FilterList,
     ): PagedResult<TitleSummary> {
-        val sort = (filters.filters.filterIsInstance<com.lume.app.domain.SourceFilter.Select>()
-            .firstOrNull { it.id == "orderby" }?.selectedValue) ?: "latest"
-        val path = if (page > 1) "/page/$page/" else "/"
-        val order = when (sort) {
-            "views", "popular" -> "views"
-            "trending" -> "trending"
-            "new" -> "new-manga"
-            else -> "latest"
-        }
-        // Madara search still uses s=; order applied when query empty via browse fallback
-        if (query.isBlank()) {
+        val order = filters.selected("orderby") ?: "latest"
+        val statuses = filters.checked("status")
+        val adult = filters.selected("adult").orEmpty()
+        // Without a text or a filter the archive pages are faster and sorted the same way.
+        if (query.isBlank() && statuses.isEmpty() && adult.isEmpty() && order in setOf("latest", "views")) {
             return browse(
                 page = page,
-                orderBy = if (order == "views") "views" else "latest",
+                orderBy = order,
                 ajaxMetaKey = if (order == "views") "_wp_manga_views" else "_latest_update",
             )
         }
-        val uri = URI(
-            manifest.baseUri.scheme,
-            manifest.baseUri.authority,
-            path,
-            "s=${urlEncode(query)}&post_type=wp-manga",
-            null,
-        )
+        // The theme's search page takes every filter as a query parameter, with an empty `s=` too.
+        val path = if (page > 1) "/page/$page/" else "/"
+        val params = buildString {
+            append("s=${urlEncode(query.trim())}&post_type=wp-manga")
+            val mOrder = when (order) {
+                "views" -> "views"
+                "trending" -> "trending"
+                "new" -> "new-manga"
+                "rating" -> "rating"
+                "alphabet" -> "alphabet"
+                else -> "latest"
+            }
+            if (query.isBlank() || order != "latest") append("&m_orderby=$mOrder")
+            for (status in statuses) append("&status%5B%5D=$status")
+            if (adult.isNotEmpty()) append("&adult=$adult")
+        }
+        val uri = URI("${manifest.baseUri.scheme}://${manifest.baseUri.rawAuthority}$path?$params")
         val response = http.get(uri, source = manifest)
         return parser.parseTitleList(response.body, page, manifest.baseUrl)
     }
@@ -297,11 +303,46 @@ class MadaraEngine(
         listOf(
             com.lume.app.domain.SourceFilter.Select(
                 id = "orderby",
-                name = com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort),
-                options = listOf("latest", "views", "trending", "new"),
+                name = appString(R.string.filter_sort),
+                options = listOf("latest", "views", "trending", "new", "rating", "alphabet"),
+                labels = listOf(
+                    appString(R.string.filter_sort_latest),
+                    appString(R.string.filter_sort_popular),
+                    appString(R.string.filter_sort_trending),
+                    appString(R.string.filter_sort_new),
+                    appString(R.string.filter_sort_rating),
+                    appString(R.string.filter_sort_title),
+                ),
+            ),
+            com.lume.app.domain.SourceFilter.Group(
+                id = "status",
+                name = appString(R.string.filter_status),
+                filters = listOf(
+                    com.lume.app.domain.SourceFilter.Check("on-going", appString(R.string.filter_status_ongoing)),
+                    com.lume.app.domain.SourceFilter.Check("end", appString(R.string.filter_status_completed)),
+                    com.lume.app.domain.SourceFilter.Check("on-hold", appString(R.string.filter_status_hiatus)),
+                    com.lume.app.domain.SourceFilter.Check("canceled", appString(R.string.filter_status_cancelled)),
+                ),
+            ),
+            com.lume.app.domain.SourceFilter.Select(
+                id = "adult",
+                name = appString(R.string.filter_adult),
+                options = listOf("", "0", "1"),
+                labels = listOf(
+                    appString(R.string.filter_any),
+                    appString(R.string.filter_adult_none),
+                    appString(R.string.filter_adult_only),
+                ),
             ),
         ),
     )
+
+    /** Title pages are `/<manga folder>/<slug>/`; chapter links below them open the title. */
+    override fun titleIdFromUrl(url: String): String? {
+        val parts = com.lume.app.domain.SourceLinks.segments(url, manifest.baseUrl) ?: return null
+        if (parts.size < 2) return null
+        return "/${parts[0]}/${parts[1]}/"
+    }
 
     /**
      * The title screen asks for details and chapters back to back; both come from the same page.

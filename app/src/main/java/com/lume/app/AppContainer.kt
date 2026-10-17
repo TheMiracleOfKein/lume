@@ -54,20 +54,27 @@ class AppContainer(val app: Application) {
     val prefs = AppPreferences(app, appScope)
     val libAuth = LibAuthStore(app)
     val sources = SourceRegistry(app, http, prefs, dao, libAuth, imageReferers)
-    val downloads = DownloadStore(app, dao, http)
+    val downloads = DownloadStore(app, dao, http, prefs)
     val offlineCache = OfflineTitleCache(dao)
+    val localImporter = com.lume.app.data.local.LocalImporter(app)
     val libraryChapters = LibraryChapters(database, dao)
     val titles = TitleRepository(sources, offlineCache, libraryChapters)
     val downloadQueue = DownloadQueue(app, dao, downloads, sources, titles, prefs, network)
-    val backup = BackupRepository(app, dao, sources)
+    val backup = BackupRepository(app, dao, sources, prefs, titles, libraryChapters)
     val trackers = TrackerRegistry(http, dao, prefs)
-    val trackerSync = TrackerSync(app, dao, trackers)
+    val trackerSync = TrackerSync(app, dao, trackers, prefs)
     val library = LibraryRepository(database, dao, prefs, titles, libraryChapters, trackerSync, appScope)
 
     val imageLoader: ImageLoader get() = app.imageLoader
 
     /** Background start-up work: sources, download recovery, the library schedule. */
     fun start() {
+        com.lume.app.domain.ChapterLabels.volume = { com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_volume, it) }
+        com.lume.app.domain.ChapterLabels.chapter = { com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_number, it) }
+        appScope.launch { prefs.translateChapterLabels.collect { com.lume.app.domain.ChapterLabels.enabled = it } }
+        appScope.launch(Dispatchers.IO) {
+            prefs.dnsOverHttps.collect { id -> http.dns.use(com.lume.app.data.network.DohProvider.byId(id)) }
+        }
         appScope.launch(Dispatchers.IO) {
             sources.load()
             val recovered = downloads.recoverFromDisk()
@@ -83,6 +90,7 @@ class AppContainer(val app: Application) {
             // After the v8 upgrade: know the chapters of every library title, so the first check
             // reports only chapters that are really new.
             runCatching { libraryChapters.seedFromCache(offlineCache) }
+            com.lume.app.data.backup.BackupWorker.schedule(app, prefs.autoBackupDays.value)
             LibraryUpdateWorker.schedule(
                 app,
                 enabled = prefs.libraryUpdatesEnabled.value,

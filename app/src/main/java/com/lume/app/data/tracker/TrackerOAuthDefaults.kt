@@ -13,4 +13,5 @@ object TrackerOAuthDefaults {
     val ANILIST_CLIENT_SECRET: String = BuildConfig.ANILIST_CLIENT_SECRET
     val SHIKIMORI_CLIENT_ID: String = BuildConfig.SHIKIMORI_CLIENT_ID
     val SHIKIMORI_CLIENT_SECRET: String = BuildConfig.SHIKIMORI_CLIENT_SECRET
+    val MAL_CLIENT_ID: String = BuildConfig.MAL_CLIENT_ID
 }

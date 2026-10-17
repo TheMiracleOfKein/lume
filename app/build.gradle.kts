@@ -35,8 +35,8 @@ android {
         applicationId = "com.lume.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 4
-        versionName = "0.4.0"
+        versionCode = 5
+        versionName = "0.5.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // OAuth app credentials for AniList / Shikimori (identify Lume itself).
@@ -45,6 +45,8 @@ android {
         buildConfigField("String", "ANILIST_CLIENT_SECRET", oauthBuildConfig("LUME_ANILIST_CLIENT_SECRET"))
         buildConfigField("String", "SHIKIMORI_CLIENT_ID", oauthBuildConfig("LUME_SHIKIMORI_CLIENT_ID"))
         buildConfigField("String", "SHIKIMORI_CLIENT_SECRET", oauthBuildConfig("LUME_SHIKIMORI_CLIENT_SECRET"))
+        // MyAnimeList: register an app with redirect URL lume://oauth/myanimelist (no secret needed).
+        buildConfigField("String", "MAL_CLIENT_ID", oauthBuildConfig("LUME_MAL_CLIENT_ID"))
     }
 
     // Release signing from the user's ~/.gradle/gradle.properties (never in the repository).
@@ -138,6 +140,9 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
+    implementation(libs.okhttp.doh)
+    // App lock: the system screen-lock prompt (fingerprint, face, PIN).
+    implementation(libs.androidx.biometric)
     implementation(libs.jsoup)
     implementation(libs.jspecify)
     implementation(libs.coil.compose)
@@ -145,6 +150,8 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
     implementation(libs.kotlinx.serialization.json)
+    // Reads Mihon / Tachiyomi backups (.tachibk is gzipped protobuf).
+    implementation(libs.kotlinx.serialization.protobuf)
     implementation(libs.datastore.preferences)
     implementation(libs.androidx.work.runtime.ktx)
     // Installs the baseline profile on sideloaded installs too (Play does it itself).

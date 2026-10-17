@@ -196,7 +196,7 @@ fun TitleListRow(
                 if (!badge.isNullOrBlank()) {
                     Text(
                         text = badge,
-                        color = Color.Black,
+                        color = AppColors.onAccent,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier
@@ -277,7 +277,7 @@ fun ErrorRetryBox(
             onClick = onRetry,
             colors = ButtonDefaults.buttonColors(
                 containerColor = AppColors.accent,
-                contentColor = Color.Black,
+                contentColor = AppColors.onAccent,
             ),
         ) {
             Text(stringResource(R.string.action_retry))

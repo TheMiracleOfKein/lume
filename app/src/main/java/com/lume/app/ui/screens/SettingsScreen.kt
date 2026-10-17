@@ -35,6 +35,26 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import com.lume.app.data.network.DohProvider
+import com.lume.app.ui.theme.ThemeMode
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.lume.app.data.tracker.Tracker
+import com.lume.app.data.tracker.TrackerLogin
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -69,22 +89,47 @@ import com.lume.app.ui.theme.Motion
 import com.lume.app.ui.tracker.TrackerAuthActivity
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(nav: NavHostController) {
     val container = LocalAppContainer.current
     val vm: SettingsViewModel = viewModel { SettingsViewModel(container) }
     val prefs = vm.prefs
-    val darkTheme by prefs.darkTheme.collectAsState()
+    val themeMode by prefs.themeMode.collectAsState()
+    val pureBlack by prefs.pureBlack.collectAsState()
+    val dynamicColor by prefs.dynamicColor.collectAsState()
+    val translateLabels by prefs.translateChapterLabels.collectAsState()
+    val incognito by prefs.incognito.collectAsState()
+    val appLock by prefs.appLock.collectAsState()
+    val secureScreen by prefs.secureScreen.collectAsState()
+    val doh by prefs.dnsOverHttps.collectAsState()
     val libraryUpdates by prefs.libraryUpdatesEnabled.collectAsState()
     val libraryInterval by prefs.libraryUpdateIntervalHours.collectAsState()
     val libraryWifiOnly by prefs.libraryUpdateWifiOnly.collectAsState()
     val downloadsWifiOnly by prefs.downloadsWifiOnly.collectAsState()
+    val autoDownloadNew by prefs.autoDownloadNew.collectAsState()
+    val deleteAfterRead by prefs.deleteAfterRead.collectAsState()
+    val downloadsCbz by prefs.downloadsAsCbz.collectAsState()
+    val parallelPages by prefs.downloadParallelPages.collectAsState()
+    val downloadsRoot by prefs.downloadsRoot.collectAsState()
     val searchNsfw by prefs.globalSearchNsfw.collectAsState()
     val reader by prefs.readerSettings.collectAsState()
     val appLanguageTag by prefs.appLanguage.collectAsState()
     val anilistTokenState by prefs.anilistAccessToken.collectAsState()
     val shikiTokenState by prefs.shikimoriAccessToken.collectAsState()
+    val trackerValues by prefs.trackerValues.collectAsState()
+    val trackerAutoLink by prefs.trackerAutoLink.collectAsState()
+    var passwordLogin by remember { mutableStateOf<Tracker?>(null) }
+    passwordLogin?.let { tracker ->
+        PasswordLoginDialog(
+            name = tracker.displayName,
+            onDismiss = { passwordLogin = null },
+            onLogin = { user, password ->
+                passwordLogin = null
+                vm.passwordLogin(tracker, user, password)
+            },
+        )
+    }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -96,6 +141,21 @@ fun SettingsScreen(nav: NavHostController) {
 
     // The worker re-checks the permission before every notification, so the answer needs no handling.
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    val pickLocalFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) vm.importLocalFolder(uri)
+    }
+    val saveBackupTo = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) vm.saveBackupTo(uri)
+    }
+    val openBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) vm.restoreFrom(uri)
+    }
+    val pickBackupFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) vm.setAutoBackupFolder(uri)
+    }
+    val autoBackupDays by prefs.autoBackupDays.collectAsState()
+    val autoBackupKeep by prefs.autoBackupKeep.collectAsState()
+    val autoBackupFolder by prefs.autoBackupFolder.collectAsState()
 
     fun updateReader(next: ReaderSettings) = vm.updateReader(next)
 
@@ -127,10 +187,45 @@ fun SettingsScreen(nav: NavHostController) {
             // ---------------- General ----------------
             SettingsSection(stringResource(R.string.settings_section_general))
             SettingsGroup {
+                Text(
+                    stringResource(R.string.settings_theme),
+                    color = AppColors.textSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        ThemeMode.System to R.string.settings_theme_system,
+                        ThemeMode.Light to R.string.settings_theme_light,
+                        ThemeMode.Dark to R.string.settings_theme_dark,
+                    ).forEach { (mode, label) ->
+                        ChoiceChip(
+                            label = stringResource(label),
+                            selected = themeMode == mode.key,
+                            modifier = Modifier.weight(1f),
+                            onClick = { vm.setThemeMode(mode.key) },
+                        )
+                    }
+                }
                 SwitchRow(
-                    label = stringResource(R.string.settings_dark_theme),
-                    checked = darkTheme,
-                    onCheckedChange = vm::setDarkTheme,
+                    label = stringResource(R.string.settings_pure_black),
+                    hint = stringResource(R.string.settings_pure_black_hint),
+                    checked = pureBlack,
+                    onCheckedChange = vm::setPureBlack,
+                )
+                if (Build.VERSION.SDK_INT >= 31) {
+                    SwitchRow(
+                        label = stringResource(R.string.settings_dynamic_color),
+                        hint = stringResource(R.string.settings_dynamic_color_hint),
+                        checked = dynamicColor,
+                        onCheckedChange = vm::setDynamicColor,
+                    )
+                }
+                SwitchRow(
+                    label = stringResource(R.string.settings_translate_labels),
+                    hint = stringResource(R.string.settings_translate_labels_hint),
+                    checked = translateLabels,
+                    onCheckedChange = vm::setTranslateLabels,
                 )
                 Text(
                     stringResource(R.string.settings_language),
@@ -246,21 +341,147 @@ fun SettingsScreen(nav: NavHostController) {
                     checked = downloadsWifiOnly,
                     onCheckedChange = vm::setDownloadsWifiOnly,
                 )
-                SettingsLink(stringResource(R.string.settings_downloads)) { nav.navigate(Routes.Downloads) }
-                SettingsLink(stringResource(R.string.settings_restore_downloads)) {
-                    vm.recoverDownloads { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
+                SwitchRow(
+                    label = stringResource(R.string.settings_downloads_auto_new),
+                    hint = stringResource(R.string.settings_downloads_auto_new_hint),
+                    checked = autoDownloadNew,
+                    onCheckedChange = vm::setAutoDownloadNew,
+                )
+                SwitchRow(
+                    label = stringResource(R.string.settings_downloads_delete_read),
+                    hint = stringResource(R.string.settings_downloads_delete_read_hint),
+                    checked = deleteAfterRead,
+                    onCheckedChange = vm::setDeleteAfterRead,
+                )
+                SwitchRow(
+                    label = stringResource(R.string.settings_downloads_cbz),
+                    hint = stringResource(R.string.settings_downloads_cbz_hint),
+                    checked = downloadsCbz,
+                    onCheckedChange = vm::setDownloadsCbz,
+                )
+                Text(
+                    stringResource(R.string.settings_downloads_parallel),
+                    color = AppColors.textSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    (1..AppPreferences.MAX_PARALLEL_PAGES).forEach { n ->
+                        ChoiceChip(
+                            label = n.toString(),
+                            selected = n == parallelPages,
+                            modifier = Modifier.weight(1f),
+                            onClick = { vm.setParallelPages(n) },
+                        )
+                    }
                 }
                 Text(
                     stringResource(R.string.settings_download_folder),
                     color = AppColors.textSecondary,
                     fontSize = 13.sp,
-                    modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+                    modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 4.dp),
                 )
+                vm.storageChoices.forEachIndexed { index, choice ->
+                    val label = when {
+                        choice.path.isEmpty() -> stringResource(R.string.settings_storage_internal)
+                        choice.removable -> stringResource(R.string.settings_storage_sd)
+                        else -> stringResource(R.string.settings_storage_external, index)
+                    }
+                    StorageRow(
+                        label = label,
+                        detail = stringResource(
+                            R.string.settings_storage_free,
+                            android.text.format.Formatter.formatShortFileSize(context, choice.freeBytes),
+                        ),
+                        selected = choice.path == downloadsRoot,
+                        onClick = { vm.setDownloadsRoot(choice.path) },
+                    )
+                }
                 Text(
                     text = downloadPath,
                     color = AppColors.textTertiary,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 8.dp),
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 4.dp),
+                )
+                Text(
+                    stringResource(R.string.settings_storage_note),
+                    color = AppColors.textTertiary,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp),
+                )
+                SettingsLink(stringResource(R.string.settings_downloads)) { nav.navigate(Routes.Downloads) }
+                SettingsLink(stringResource(R.string.settings_restore_downloads)) {
+                    vm.recoverDownloads { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
+                }
+            }
+
+            // ---------------- Privacy ----------------
+            SettingsSection(stringResource(R.string.settings_section_privacy))
+            SettingsGroup {
+                SwitchRow(
+                    label = stringResource(R.string.settings_incognito),
+                    hint = stringResource(R.string.settings_incognito_hint),
+                    checked = incognito,
+                    onCheckedChange = vm::setIncognito,
+                )
+                SwitchRow(
+                    label = stringResource(R.string.settings_app_lock),
+                    hint = stringResource(R.string.settings_app_lock_hint),
+                    checked = appLock,
+                    onCheckedChange = vm::setAppLock,
+                )
+                SwitchRow(
+                    label = stringResource(R.string.settings_secure_screen),
+                    hint = stringResource(R.string.settings_secure_screen_hint),
+                    checked = secureScreen,
+                    onCheckedChange = vm::setSecureScreen,
+                )
+            }
+
+            // ---------------- Network & storage ----------------
+            SettingsSection(stringResource(R.string.settings_section_network))
+            SettingsGroup {
+                Text(
+                    stringResource(R.string.settings_doh),
+                    color = AppColors.textSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp),
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ChoiceChip(
+                        label = stringResource(R.string.settings_doh_off),
+                        selected = doh.isEmpty(),
+                        onClick = { vm.setDoh("") },
+                    )
+                    DohProvider.entries.forEach { provider ->
+                        ChoiceChip(label = provider.label, selected = doh == provider.id, onClick = { vm.setDoh(provider.id) })
+                    }
+                }
+                Text(
+                    stringResource(R.string.settings_doh_hint),
+                    color = AppColors.textTertiary,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 4.dp),
+                )
+                SettingsLink(stringResource(R.string.settings_clear_cache)) { vm.clearCache() }
+                SettingsLink(stringResource(R.string.settings_clear_cookies)) { vm.clearCookies() }
+            }
+
+            // ---------------- Local files ----------------
+            SettingsSection(stringResource(R.string.settings_section_local))
+            SettingsGroup {
+                SettingsLink(
+                    if (vm.localBusy) stringResource(R.string.local_importing) else stringResource(R.string.local_import_folder),
+                ) {
+                    if (!vm.localBusy) pickLocalFolder.launch(null)
+                }
+                SettingsLink(stringResource(R.string.local_open_library)) { nav.navigate(Routes.browse("local")) }
+                SettingsLink(stringResource(R.string.local_clean_temp)) { vm.cleanTemporaryFiles() }
+                Text(
+                    stringResource(R.string.local_folder_hint, vm.localPath),
+                    color = AppColors.textTertiary,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 8.dp),
                 )
             }
 
@@ -279,39 +500,119 @@ fun SettingsScreen(nav: NavHostController) {
             SettingsSection(stringResource(R.string.settings_section_data))
             Text(stringResource(R.string.settings_trackers), color = AppColors.textSecondary, fontSize = 13.sp)
             Spacer(Modifier.height(8.dp))
-            TrackerLoginCard(
-                name = "Shikimori",
-                loggedIn = shikiLoggedIn,
-                onLogin = {
-                    scope.launch {
-                        val err = TrackerAuthActivity.start(context, "shikimori")
-                        if (err != null) {
-                            vm.statusMessage = err
-                            Toast.makeText(context, err, Toast.LENGTH_LONG).show()
+            container.trackers.all.forEach { tracker ->
+                // Re-read whenever any stored token changes.
+                val loggedIn by produceState(false, anilistTokenState, shikiTokenState, trackerValues) {
+                    value = tracker.isLoggedIn()
+                }
+                TrackerLoginCard(
+                    name = tracker.displayName,
+                    loggedIn = loggedIn,
+                    onLogin = {
+                        if (tracker.login == TrackerLogin.Password) {
+                            passwordLogin = tracker
+                        } else {
+                            scope.launch {
+                                val err = TrackerAuthActivity.start(context, tracker.id)
+                                if (err != null) {
+                                    vm.statusMessage = err
+                                    Toast.makeText(context, err, Toast.LENGTH_LONG).show()
+                                }
+                            }
                         }
-                    }
-                },
-                onLogout = { vm.logout("shikimori") },
-            )
-            Spacer(Modifier.height(10.dp))
-            TrackerLoginCard(
-                name = "AniList",
-                loggedIn = anilistLoggedIn,
-                onLogin = {
-                    scope.launch {
-                        val err = TrackerAuthActivity.start(context, "anilist")
-                        if (err != null) {
-                            vm.statusMessage = err
-                            Toast.makeText(context, err, Toast.LENGTH_LONG).show()
-                        }
-                    }
-                },
-                onLogout = { vm.logout("anilist") },
-            )
+                    },
+                    onLogout = { vm.logout(tracker.id) },
+                )
+                Spacer(Modifier.height(10.dp))
+            }
+            SettingsGroup {
+                SwitchRow(
+                    label = stringResource(R.string.tracker_auto_link),
+                    hint = stringResource(R.string.tracker_auto_link_hint),
+                    checked = trackerAutoLink,
+                    onCheckedChange = vm::setTrackerAutoLink,
+                )
+            }
             Spacer(Modifier.height(10.dp))
             SettingsGroup {
                 SettingsLink(stringResource(R.string.settings_create_backup), onClick = vm::createBackup)
+                SettingsLink(stringResource(R.string.backup_save_to)) { saveBackupTo.launch(vm.suggestedBackupName()) }
                 SettingsLink(stringResource(R.string.settings_restore_backup), onClick = vm::restoreBackup)
+                SettingsLink(stringResource(R.string.backup_restore_file)) {
+                    if (vm.importProgress == null) openBackup.launch(arrayOf("*/*"))
+                }
+                Text(
+                    stringResource(R.string.backup_restore_file_hint),
+                    color = AppColors.textTertiary,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp),
+                )
+                vm.importProgress?.let { (done, total) ->
+                    Text(
+                        stringResource(R.string.backup_mihon_progress, done, total),
+                        color = AppColors.accent,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp),
+                    )
+                    LinearProgressIndicator(
+                        progress = { if (total > 0) done.toFloat() / total else 0f },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                        color = AppColors.accent,
+                        trackColor = AppColors.card,
+                    )
+                }
+                Text(
+                    stringResource(R.string.backup_auto),
+                    color = AppColors.textSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 8.dp),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    AppPreferences.AUTO_BACKUP_DAYS.forEach { days ->
+                        ChoiceChip(
+                            label = if (days == 0) stringResource(R.string.backup_auto_off)
+                            else pluralStringResource(R.plurals.backup_auto_days, days, days),
+                            selected = days == autoBackupDays,
+                            modifier = Modifier.weight(1f),
+                            onClick = { vm.setAutoBackup(days, autoBackupKeep) },
+                        )
+                    }
+                }
+                AnimatedVisibility(
+                    visible = autoBackupDays > 0,
+                    enter = expandVertically(Motion.medium()) + fadeIn(Motion.medium()),
+                    exit = shrinkVertically(Motion.medium()) + fadeOut(Motion.short()),
+                ) {
+                    Column {
+                        Text(
+                            stringResource(R.string.backup_auto_keep),
+                            color = AppColors.textSecondary,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 8.dp),
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            AppPreferences.AUTO_BACKUP_KEEP.forEach { n ->
+                                ChoiceChip(
+                                    label = n.toString(),
+                                    selected = n == autoBackupKeep,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { vm.setAutoBackup(autoBackupDays, n) },
+                                )
+                            }
+                        }
+                        SettingsLink(
+                            if (autoBackupFolder == null) stringResource(R.string.backup_auto_folder_pick)
+                            else stringResource(R.string.backup_auto_folder, vm.folderName(autoBackupFolder.orEmpty())),
+                        ) { pickBackupFolder.launch(null) }
+                        if (autoBackupFolder != null) {
+                            SettingsLink(stringResource(R.string.backup_auto_folder_clear)) { vm.setAutoBackupFolder(null) }
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            SettingsGroup {
+                SettingsLink(stringResource(R.string.menu_about)) { nav.navigate(Routes.About) }
             }
             AnimatedVisibility(
                 visible = statusMessage != null,
@@ -375,11 +676,70 @@ private fun TrackerLoginCard(
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AppColors.accent,
-                    contentColor = Color.Black,
+                    contentColor = AppColors.onAccent,
                 ),
             ) {
                 Text(stringResource(R.string.action_login))
             }
+        }
+    }
+}
+
+/** Username / e-mail and password for Kitsu and MangaUpdates; only the tracker's token is kept. */
+@Composable
+private fun PasswordLoginDialog(name: String, onDismiss: () -> Unit, onLogin: (String, String) -> Unit) {
+    var user by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.tracker_login_title, name)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = user,
+                    onValueChange = { user = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.tracker_login_user)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.tracker_login_password)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                )
+                Text(stringResource(R.string.tracker_login_note), color = AppColors.textTertiary, fontSize = 12.sp)
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = user.isNotBlank() && password.isNotEmpty(), onClick = { onLogin(user, password) }) {
+                Text(stringResource(R.string.action_login))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
+}
+
+@Composable
+private fun StorageRow(label: String, detail: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+            colors = RadioButtonDefaults.colors(selectedColor = AppColors.accent, unselectedColor = AppColors.textSecondary),
+        )
+        Column {
+            Text(label, color = AppColors.textPrimary, fontSize = 15.sp)
+            Text(detail, color = AppColors.textTertiary, fontSize = 12.sp)
         }
     }
 }

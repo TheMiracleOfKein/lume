@@ -18,6 +18,9 @@ import androidx.compose.ui.unit.dp
  */
 val LocalShellBottomPadding = staticCompositionLocalOf { 0.dp }
 
+/** The shell shows a navigation rail (wide screens) instead of the bottom bar. */
+val LocalUseRail = staticCompositionLocalOf { false }
+
 /** True while this destination is animating out (including a predictive-back gesture). */
 val LocalNavExiting = compositionLocalOf { false }
 
@@ -40,4 +43,7 @@ object LumeInsets {
 
     /** Height of the shell's bottom bar without the navigation-bar inset. */
     val BottomBarHeight: Dp = 59.dp
+
+    /** Navigation rail width on wide screens (divider included). */
+    val RailWidth: Dp = 81.dp
 }

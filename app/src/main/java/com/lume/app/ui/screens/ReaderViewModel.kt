@@ -322,6 +322,8 @@ class ReaderViewModel(
 
     /** A chapter counts as read (and trackers move) only once you reach its end. */
     private fun markFinished(chapterId: String) {
+        // Incognito: nothing about this reading is kept (read marks, trackers, downloads).
+        if (app.prefs.incognito.value) return
         if (!markedRead.add(chapterId)) return
         val lc = loaded.firstOrNull { chapterIdsMatch(it.chapter.id, chapterId) }
         app.appScope.launch {
@@ -370,6 +372,8 @@ class ReaderViewModel(
         savedState[KEY_CHAPTER] = a.chapterId
         savedState[KEY_PAGE] = a.pageIndex
         savedState[KEY_OFFSET] = a.pageOffset
+        // Incognito: the spot survives rotation (saved state) but never reaches history.
+        if (app.prefs.incognito.value) return
         val lc = loaded.firstOrNull { chapterIdsMatch(it.chapter.id, a.chapterId) } ?: return
         val count = lc.pages.size
         writeChapterProgress(a, count, completed = isAtChapterEnd(a, count))
@@ -509,6 +513,13 @@ class ReaderViewModel(
 
     override fun onCleared() {
         flush()
+        // "Delete after reading": chapters finished in this session lose their download.
+        if (app.prefs.deleteAfterRead.value && markedRead.isNotEmpty()) {
+            val finished = markedRead.toList()
+            app.appScope.launch(Dispatchers.IO) {
+                finished.forEach { id -> runCatching { app.downloads.delete(sourceId, titleId, id) } }
+            }
+        }
     }
 
     private companion object {

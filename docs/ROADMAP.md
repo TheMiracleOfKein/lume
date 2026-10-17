@@ -75,38 +75,43 @@ Release notes: [docs/releases/v0.4.0.md](releases/v0.4.0.md).
 
 ## v0.5: sources, downloads, backups, trackers
 
+Release notes: [docs/releases/v0.5.0.md](releases/v0.5.0.md).
+
 **Sources**
-- Filter panel for catalogue search (the filter model already exists in `domain/Filters.kt`) (M)
-- More results pages in search; search history (S)
-- Per-source settings, for example MangaDex languages and content rating (M)
-- Browse any source without changing the active one; enable, disable and pin sources (S)
-- Open a site link shared from the browser directly in Lume (M)
-- A pack index with update checks (M)
+- ✅ Filter panel for catalogue search. MangaDex: sort, language, status, audience, content rating. Madara: sort, status, adult content. Other engines: labelled sort options.
+- ✅ More results pages in search; search history.
+- ✅ Per-source settings: MangaDex chapter languages, content rating and data saver.
+- ✅ Browse any source without changing the active one; enable, disable and pin sources.
+- ✅ Open a site link shared from the browser directly in Lume (bundled hosts open directly; any link can be shared to Lume).
+- ✅ A pack index with update checks (`docs/packs/index.json`).
 
 **Downloads**
-- 🟡 Downloads run as a background job with a notification; pause, resume, reorder and retry (M). Retry for failed downloads, and resuming downloads after the app was closed, came in v0.3.
-- Several downloads at once per source; check that downloaded files are really images (S)
-- Save as CBZ; choose the storage folder (S / M)
-- Download new chapters automatically; delete chapters after reading; storage usage (S)
+- ✅ Downloads run as a background job with a notification; pause, resume, reorder and retry.
+- ✅ Several downloads at once (one chapter per source, sources in parallel, 1–4 pages at once); downloaded files are checked to be images.
+- 🟡 Save as CBZ; choose the storage folder. CBZ is done. Storage is a choice between internal storage, external storage and SD cards; any folder from the file picker is left, because the reader needs plain file paths.
+- ✅ Download new chapters automatically; delete chapters after reading; storage usage.
 
 **Local files**
-- Import a folder from your device; ComicInfo.xml and covers; clean temporary files (M)
+- 🟡 Import a folder from your device; ComicInfo.xml and covers; clean temporary files. Done as a copy into the local library; the picked folder is not watched for later changes.
 
 **Backups**
-- Save and open backups anywhere on the device; automatic backups with rotation; include settings (S). Since v0.3, backups already include per-chapter positions, page bookmarks and read marks.
-- **Import Mihon / Tachiyomi backups (`.tachibk`)** so moving to Lume takes one step (M)
+- ✅ Save and open backups anywhere on the device; automatic backups with rotation; include settings (account sign-ins stay out).
+- ✅ **Import Mihon / Tachiyomi backups (`.tachibk`)**: titles of sources Lume has, categories, tracker links, read chapters (matched by chapter number) and the last chapter read.
 
 **Trackers**
-- Shikimori stays signed in (token refresh) (S)
-- Edit status, score and dates; link automatically when adding to the library (S)
-- MyAnimeList, Kitsu, MangaUpdates (L)
+- ✅ Shikimori stays signed in (token refresh).
+- ✅ Edit status, score and dates; link automatically when adding to the library (exact title match only).
+- 🟡 MyAnimeList, Kitsu, MangaUpdates. All three are built. MyAnimeList needs Lume's client ID (`LUME_MAL_CLIENT_ID` in `local.properties`) before its sign-in works in a release; none of the three has been tried with a real account yet.
 
 **App**
-- Follow the system theme, Material You colors, pure-black AMOLED theme (S)
-- Navigation rail on tablets (M)
-- About and licenses page; clear cache and cookies; DNS over HTTPS (S)
-- Incognito mode, app lock, hide content in the recent-apps screen (S)
-- Translate chapter labels that sources send only in Russian (S)
+- ✅ Follow the system theme, Material You colors, pure-black AMOLED theme.
+- ✅ Navigation rail on tablets (screens 600 dp and wider).
+- ✅ About and licenses page; clear cache and cookies; DNS over HTTPS.
+- ✅ Incognito mode, app lock, hide content in the recent-apps screen.
+- ✅ Translate chapter labels that sources send only in Russian.
+
+**Left over from v0.5**
+- 🟡 **Device testing of v0.5.** Checked on an emulator: search with filters only and paging, a shared MangaDex link, the Sources, Settings and Downloads screens, with no crashes. Tracker sign-ins, Mihon import with a real backup, the download notification, CBZ, local import, app lock and the tablet rail still need real devices and accounts.
 
 ## Reader backlog
 

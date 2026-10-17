@@ -17,3 +17,7 @@ Re-add under `app/src/main/assets/sources/` only if you decide to bundle them ag
 
 - [site/weebcentral.json](site/weebcentral.json)
 - [site/demonicscans.json](site/demonicscans.json)
+
+## Catalogue
+
+[index.json](index.json) lists the importable packs. Lume reads it in **Sources -> Check packs and updates**, installs packs from it and offers updates when a pack's `version` here is newer than the installed one. Pack `url`s are relative to the index.

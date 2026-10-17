@@ -115,6 +115,14 @@ class MangaBuffEngine(
 
     override fun getFilters(): com.lume.app.domain.FilterList = com.lume.app.domain.FilterList()
 
+    override fun webUrl(titleId: String): String = "$siteBase/manga/${titleId.trim('/')}"
+
+    override fun titleIdFromUrl(url: String): String? {
+        val parts = com.lume.app.domain.SourceLinks.segments(url, manifest.baseUrl) ?: return null
+        val i = parts.indexOf("manga")
+        return parts.getOrNull(i + 1)?.takeIf { i >= 0 && it !in setOf("top", "new") }
+    }
+
     override suspend fun getTitle(id: String): TitleDetails {
         val slug = id.trim('/')
         val response = http.get(URI("$siteBase/manga/$slug"), source = manifest, headers = headers)

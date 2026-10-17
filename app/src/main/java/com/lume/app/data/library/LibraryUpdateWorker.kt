@@ -24,6 +24,8 @@ import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.TitleMetaEntity
 import com.lume.app.domain.LibraryUpdateResult
+import com.lume.app.domain.dedupeChapters
+import com.lume.app.domain.inReadingOrder
 import com.lume.app.ui.nav.AppLinks
 import com.lume.app.ui.nav.Routes
 import java.util.concurrent.TimeUnit
@@ -63,6 +65,17 @@ class LibraryUpdateWorker(
                         unreadNewCount = (prev?.unreadNewCount ?: 0) + fresh.size,
                     ),
                 )
+                if (fresh.isNotEmpty() && app.prefs.autoDownloadNew.value) {
+                    // One copy per chapter, in the team this title reads.
+                    val branch = dao.getTitlePrefs(bookmark.sourceId, bookmark.titleId)?.branch
+                    app.downloadQueue.enqueueAll(
+                        bookmark.sourceId,
+                        bookmark.titleId,
+                        dedupeChapters(fresh, branch).inReadingOrder(),
+                        bookmark.titleName,
+                        bookmark.coverUrl,
+                    )
+                }
                 if (fresh.isNotEmpty()) {
                     results += LibraryUpdateResult(
                         sourceId = bookmark.sourceId,

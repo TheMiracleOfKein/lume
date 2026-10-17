@@ -10,3 +10,6 @@ LUME_ANILIST_CLIENT_ID=
 LUME_ANILIST_CLIENT_SECRET=
 LUME_SHIKIMORI_CLIENT_ID=
 LUME_SHIKIMORI_CLIENT_SECRET=
+# MyAnimeList: create an API client at https://myanimelist.net/apiconfig with the
+# redirect URL lume://oauth/myanimelist. Only the client ID is needed.
+LUME_MAL_CLIENT_ID=

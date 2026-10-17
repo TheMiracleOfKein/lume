@@ -11,6 +11,16 @@ import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.TitleDetails
+import com.lume.app.domain.ComicInfo
+import com.lume.app.domain.ImageBytes
+import com.lume.app.domain.SourceFetchException
+import com.lume.app.domain.toXml
+import com.lume.app.data.prefs.AppPreferences
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -44,10 +54,19 @@ data class ChapterDiskMeta(
     val number: String? = null,
 )
 
+/** A place downloads can live (Settings → Downloads → Storage). */
+data class StorageChoice(
+    /** Folder that holds `downloads/`; empty for the internal default. */
+    val path: String,
+    val removable: Boolean,
+    val freeBytes: Long,
+)
+
 class DownloadStore(
     private val context: Context,
     private val dao: LibraryDao,
     private val http: AppHttp,
+    private val prefs: AppPreferences? = null,
 ) {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val progressMap = ConcurrentHashMap<String, Float>()
@@ -60,8 +79,46 @@ class DownloadStore(
     fun safe(value: String) =
         value.replace(Regex("""[<>:"/\\|?*]"""), "_").replace(' ', '_')
 
+    /** `downloads/` in the chosen storage (falls back to internal storage when it is gone). */
+    fun downloadsDir(): File {
+        val chosen = prefs?.downloadsRoot?.value.orEmpty()
+        val base = chosen.takeIf { it.isNotBlank() }?.let(::File)?.takeIf { it.isDirectory || it.mkdirs() } ?: context.filesDir
+        return File(base, "downloads")
+    }
+
+    /** Every `downloads/` folder Lume may have written to, the current one first. */
+    private fun allDownloadDirs(): List<File> =
+        (listOf(downloadsDir(), File(context.filesDir, "downloads")) +
+            context.getExternalFilesDirs(null).filterNotNull().map { File(it, "downloads") })
+            .distinctBy { it.absolutePath }
+
+    /** Internal storage plus every mounted external volume of the app (SD cards included). */
+    fun storageChoices(): List<StorageChoice> {
+        val internal = StorageChoice(path = "", removable = false, freeBytes = context.filesDir.usableSpace)
+        val external = context.getExternalFilesDirs(null).filterNotNull().filter { it.isDirectory || it.mkdirs() }.map { dir ->
+            StorageChoice(
+                path = dir.absolutePath,
+                removable = runCatching { android.os.Environment.isExternalStorageRemovable(dir) }.getOrDefault(false),
+                freeBytes = dir.usableSpace,
+            )
+        }
+        return listOf(internal) + external
+    }
+
+    /** Bytes on disk per title ("sourceId|titleId") and in total. */
+    suspend fun usage(): Pair<Map<String, Long>, Long> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val perTitle = HashMap<String, Long>()
+        for (download in dao.allDownloads()) {
+            val paths = runCatching { json.decodeFromString<List<String>>(download.pagePathsJson) }.getOrDefault(emptyList())
+            val bytes = paths.sumOf { File(it).takeIf(File::isFile)?.length() ?: 0L }
+            val key = "${download.sourceId}|${download.titleId}"
+            perTitle[key] = (perTitle[key] ?: 0L) + bytes
+        }
+        perTitle to perTitle.values.sum()
+    }
+
     private fun titleDir(sourceId: String, titleId: String): File {
-        val dir = File(context.filesDir, "downloads/${safe(sourceId)}/${safe(titleId)}")
+        val dir = File(downloadsDir(), "${safe(sourceId)}/${safe(titleId)}")
         if (!dir.exists()) dir.mkdirs()
         return dir
     }
@@ -82,6 +139,10 @@ class DownloadStore(
             if (paths != null) {
                 val pages = mutableListOf<ComicPage>()
                 var ok = true
+                // A CBZ download stores the archive as its only path.
+                paths.singleOrNull()?.takeIf { it.endsWith(".cbz") }?.let { cbz ->
+                    File(cbz).takeIf(File::isFile)?.let { return pagesFromCbz(it) }
+                }
                 for ((i, path) in paths.withIndex()) {
                     val file = File(path)
                     if (!file.exists()) {
@@ -97,19 +158,18 @@ class DownloadStore(
     }
 
     private fun scanChapterDir(sourceId: String, titleId: String, chapterId: String): List<ComicPage>? {
-        val dir = chapterDir(sourceId, titleId, chapterId)
-        if (!dir.isDirectory) {
+        for (root in allDownloadDirs()) {
+            val titleFolder = File(root, "${safe(sourceId)}/${safe(titleId)}")
             // Recovered rows may already store safe folder names as ids.
-            val alt = File(context.filesDir, "downloads/${safe(sourceId)}/${safe(titleId)}/$chapterId")
-            if (alt.isDirectory) {
-                return listPagesIn(alt)
+            for (dir in listOf(File(titleFolder, safe(chapterId)), File(titleFolder, chapterId))) {
+                if (dir.isDirectory) listPagesIn(dir)?.let { return it }
             }
-            return null
         }
-        return listPagesIn(dir)
+        return null
     }
 
     private fun listPagesIn(dir: File): List<ComicPage>? {
+        File(dir, CBZ_NAME).takeIf { it.isFile }?.let { return pagesFromCbz(it) }
         val files = dir.listFiles()
             ?.filter { it.isFile && it.length() > 0L && it.name != "meta.json" }
             ?.sortedBy { it.name }
@@ -117,6 +177,25 @@ class DownloadStore(
         if (files.isEmpty()) return null
         return files.mapIndexed { i, f -> ComicPage(index = i, imageUrl = f.absolutePath) }
     }
+
+    /** Pages of a CBZ download, unpacked once into the cache (the reader needs plain files). */
+    private fun pagesFromCbz(archive: File): List<ComicPage>? = runCatching {
+        val outDir = File(context.cacheDir, "cbz/${archive.absolutePath.hashCode().toUInt()}_${archive.lastModified()}")
+        java.util.zip.ZipFile(archive).use { zip ->
+            val entries = zip.entries().asSequence()
+                .filter { !it.isDirectory && ImageBytes.isImageName(it.name) }
+                .sortedBy { it.name }
+                .toList()
+            if (!outDir.isDirectory) outDir.mkdirs()
+            entries.mapIndexed { i, entry ->
+                val dest = File(outDir, "%04d.%s".format(i, entry.name.substringAfterLast('.')))
+                if (!dest.isFile || dest.length() == 0L) {
+                    zip.getInputStream(entry).use { input -> dest.outputStream().use { input.copyTo(it) } }
+                }
+                ComicPage(index = i, imageUrl = dest.absolutePath)
+            }
+        }.takeIf { it.isNotEmpty() }
+    }.getOrNull()
 
     private fun writeTitleMeta(sourceId: String, titleId: String, title: TitleDetails?) {
         if (title == null) return
@@ -162,8 +241,14 @@ class DownloadStore(
      * Rebuilds Room download rows from files left on disk after a DB wipe.
      */
     suspend fun recoverFromDisk(): Int {
-        val root = File(context.filesDir, "downloads")
-        if (!root.isDirectory) return 0
+        var recovered = 0
+        for (root in allDownloadDirs()) {
+            if (root.isDirectory) recovered += recoverFrom(root)
+        }
+        return recovered
+    }
+
+    private suspend fun recoverFrom(root: File): Int {
         var recovered = 0
         root.listFiles()?.filter { it.isDirectory }?.forEach { sourceDir ->
             val folderSourceId = sourceDir.name
@@ -186,8 +271,9 @@ class DownloadStore(
                     ) {
                         return@forEach
                     }
+                    val cbz = File(chapterFolder, CBZ_NAME).takeIf { it.isFile }
                     val pages = listPagesIn(chapterFolder) ?: return@forEach
-                    val paths = pages.map { it.imageUrl }
+                    val paths = if (cbz != null) listOf(cbz.absolutePath) else pages.map { it.imageUrl }
                     dao.upsertDownload(
                         DownloadEntity(
                             sourceId = sourceId,
@@ -196,7 +282,7 @@ class DownloadStore(
                             titleName = titleName,
                             coverUrl = coverUrl,
                             chapterName = chapterName,
-                            pageCount = paths.size,
+                            pageCount = pages.size,
                             pagePathsJson = json.encodeToString(paths),
                         ),
                     )
@@ -274,7 +360,8 @@ class DownloadStore(
             }
             // If network failed, still build offline cache from whatever we have on disk meta / rows
             if (details == null) {
-                val titleFolder = File(context.filesDir, "downloads/${safe(sourceId)}/${safe(titleId)}")
+                val titleFolder = allDownloadDirs().map { File(it, "${safe(sourceId)}/${safe(titleId)}") }
+                    .firstOrNull { it.isDirectory } ?: File(downloadsDir(), "${safe(sourceId)}/${safe(titleId)}")
                 val disk = readTitleMeta(titleFolder)
                 val d = TitleDetails(
                     id = titleId,
@@ -336,38 +423,49 @@ class DownloadStore(
 
             writeTitleMeta(sourceId, titleId, title)
             val dir = chapterDir(sourceId, titleId, chapter.id)
-            val paths = mutableListOf<String>()
             val referer = source.manifest.headers["Referer"] ?: "${source.manifest.baseUrl.trimEnd('/')}/"
+            val parallel = prefs?.downloadParallelPages?.value ?: 1
+            val permits = Semaphore(parallel)
+            val done = java.util.concurrent.atomic.AtomicInteger(0)
 
-            for ((i, page) in pages.withIndex()) {
-                currentCoroutineContext().ensureActive()
-                val url = page.imageUrl
-                val bytes = if (url.startsWith("/") || (!url.startsWith("http") && File(url).exists())) {
-                    File(url).readBytes()
-                } else {
-                    http.getBytes(
-                        URI(url),
-                        source = source.manifest,
-                        headers = mapOf(
-                            "Referer" to referer,
-                            "Accept" to "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-                        ),
-                    )
-                }
-                val ext = when {
-                    url.contains(".png", ignoreCase = true) -> "png"
-                    url.contains(".webp", ignoreCase = true) -> "webp"
-                    else -> "jpg"
-                }
-                val file = File(dir, "%04d.%s".format(i, ext))
-                file.writeBytes(bytes)
-                paths += file.absolutePath
-                val p = (i + 1).toFloat() / pages.size
-                setProgress(key, p)
-                onProgress?.invoke(p)
+            // Several pages at once; each is checked to really be an image before it is kept.
+            val files = coroutineScope {
+                pages.mapIndexed { i, page ->
+                    async {
+                        permits.withPermit {
+                            currentCoroutineContext().ensureActive()
+                            val url = page.imageUrl
+                            val bytes = if (url.startsWith("/") || (!url.startsWith("http") && File(url).exists())) {
+                                File(url).readBytes()
+                            } else {
+                                http.getBytes(
+                                    URI(url),
+                                    source = source.manifest,
+                                    headers = mapOf(
+                                        "Referer" to referer,
+                                        "Accept" to "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+                                    ),
+                                )
+                            }
+                            val ext = ImageBytes.extension(bytes)
+                                ?: throw SourceFetchException(context.getString(R.string.error_page_not_image, i + 1))
+                            val file = File(dir, "%04d.%s".format(i, ext))
+                            file.writeBytes(bytes)
+                            val p = done.incrementAndGet().toFloat() / pages.size
+                            setProgress(key, p)
+                            onProgress?.invoke(p)
+                            file
+                        }
+                    }
+                }.awaitAll()
             }
 
             writeChapterMeta(sourceId, titleId, chapter)
+            val paths = if (prefs?.downloadsAsCbz?.value == true) {
+                listOf(packCbz(dir, files, title, chapter, source).absolutePath)
+            } else {
+                files.map { it.absolutePath }
+            }
             dao.upsertDownload(
                 DownloadEntity(
                     sourceId = sourceId,
@@ -376,7 +474,7 @@ class DownloadStore(
                     titleName = title?.title ?: titleId,
                     coverUrl = title?.coverUrl,
                     chapterName = chapter.title,
-                    pageCount = paths.size,
+                    pageCount = files.size,
                     pagePathsJson = json.encodeToString(paths),
                 ),
             )
@@ -389,13 +487,61 @@ class DownloadStore(
         }
     }
 
+    /**
+     * Zips [files] (plus ComicInfo.xml) into the chapter folder as [CBZ_NAME] and removes the
+     * loose pages. Pages are stored uncompressed: images do not shrink and reading stays fast.
+     */
+    private fun packCbz(dir: File, files: List<File>, title: TitleDetails?, chapter: Chapter, source: CatalogSource): File {
+        val target = File(dir, CBZ_NAME)
+        val partial = File(dir, "$CBZ_NAME.part")
+        java.util.zip.ZipOutputStream(partial.outputStream().buffered()).use { zip ->
+            for (file in files) {
+                val bytes = file.readBytes()
+                val entry = java.util.zip.ZipEntry(file.name).apply {
+                    method = java.util.zip.ZipEntry.STORED
+                    size = bytes.size.toLong()
+                    compressedSize = bytes.size.toLong()
+                    crc = java.util.zip.CRC32().apply { update(bytes) }.value
+                }
+                zip.putNextEntry(entry)
+                zip.write(bytes)
+                zip.closeEntry()
+            }
+            val info = ComicInfo(
+                series = title?.title ?: chapter.title,
+                title = chapter.title,
+                number = chapter.number,
+                volume = chapter.volume,
+                summary = title?.description,
+                writer = title?.authors.orEmpty(),
+                penciller = title?.artists.orEmpty(),
+                genre = title?.genres.orEmpty(),
+                pageCount = files.size,
+                web = title?.id?.let { runCatching { source.webUrl(it) }.getOrNull() },
+                status = title?.status,
+            )
+            zip.putNextEntry(java.util.zip.ZipEntry("ComicInfo.xml"))
+            zip.write(info.toXml().toByteArray())
+            zip.closeEntry()
+        }
+        if (!partial.renameTo(target)) {
+            partial.copyTo(target, overwrite = true)
+            partial.delete()
+        }
+        files.forEach { it.delete() }
+        return target
+    }
+
     suspend fun delete(sourceId: String, titleId: String, chapterId: String) {
         val meta = dao.getDownload(sourceId, titleId, chapterId)
         if (meta != null) {
-            runCatching {
-                json.decodeFromString<List<String>>(meta.pagePathsJson).forEach { File(it).delete() }
+            val paths = runCatching { json.decodeFromString<List<String>>(meta.pagePathsJson) }.getOrDefault(emptyList())
+            paths.forEach { File(it).delete() }
+            // The chapter folder sits next to its pages, whichever storage it was saved to.
+            paths.firstOrNull()?.let { File(it).parentFile }?.takeIf { it.name == safe(chapterId) }?.deleteRecursively()
+            for (root in allDownloadDirs()) {
+                File(root, "${safe(sourceId)}/${safe(titleId)}/${safe(chapterId)}").takeIf { it.isDirectory }?.deleteRecursively()
             }
-            chapterDir(sourceId, titleId, chapterId).deleteRecursively()
         }
         dao.deleteDownload(sourceId, titleId, chapterId)
     }
@@ -403,11 +549,22 @@ class DownloadStore(
     suspend fun deleteTitle(sourceId: String, titleId: String) {
         val items = dao.downloadsForTitle(sourceId, titleId)
         items.forEach { delete(it.sourceId, it.titleId, it.chapterId) }
-        titleDir(sourceId, titleId).deleteRecursively()
+        for (root in allDownloadDirs()) {
+            File(root, "${safe(sourceId)}/${safe(titleId)}").takeIf { it.isDirectory }?.deleteRecursively()
+        }
+    }
+
+    /** Removes the unpacked CBZ pages (they come back on the next read). */
+    fun clearUnpackedCache() {
+        File(context.cacheDir, "cbz").deleteRecursively()
     }
 
     private fun setProgress(key: String, value: Float) {
         progressMap[key] = value
         _progress.value = progressMap.toMap()
+    }
+
+    private companion object {
+        const val CBZ_NAME = "chapter.cbz"
     }
 }

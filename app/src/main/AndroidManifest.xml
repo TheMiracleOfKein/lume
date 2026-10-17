@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Downloads run as a foreground job (WorkManager) with a notification. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
         android:name=".LumeApp"
@@ -18,6 +21,13 @@
         android:localeConfig="@xml/locales_config"
         tools:targetApi="33"
         android:usesCleartextTraffic="false">
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
+        <receiver
+            android:name=".data.downloads.DownloadActionReceiver"
+            android:exported="false" />
         <activity
             android:name=".ui.source.SourceLoginActivity"
             android:exported="false"
@@ -47,6 +57,37 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="lume" android:host="oauth" android:pathPrefix="/shikimori" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="lume" android:host="oauth" android:pathPrefix="/myanimelist" />
+            </intent-filter>
+            <!-- Title links of the bundled sources, opened from the browser or another app. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="mangadex.org" />
+                <data android:host="mangalib.me" />
+                <data android:host="hentailib.me" />
+                <data android:host="yaoilib.me" />
+                <data android:host="remanga.org" />
+                <data android:host="mangabuff.ru" />
+                <data android:host="asurascans.com" />
+                <data android:host="hivetoons.org" />
+                <data android:host="vortexscans.org" />
+                <data android:host="mangakatana.com" />
+                <data android:host="www.mangaread.org" />
+                <data android:host="mangaread.org" />
+            </intent-filter>
+            <!-- Any link shared to Lume as text (works for imported packs too). -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
     </application>

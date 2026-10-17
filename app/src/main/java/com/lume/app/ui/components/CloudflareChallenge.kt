@@ -119,7 +119,7 @@ fun CloudflareChallengeOverlay(
                 onClick = { finish() },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AppColors.accent,
-                    contentColor = Color.Black,
+                    contentColor = AppColors.onAccent,
                 ),
             ) { Text(stringResource(R.string.action_continue)) }
         }

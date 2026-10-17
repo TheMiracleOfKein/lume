@@ -84,7 +84,7 @@ fun CategoriesScreen(nav: NavHostController) {
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { creating = true }, containerColor = AppColors.accent) {
-                Icon(Icons.Outlined.Add, stringResource(R.string.dialog_new_category), tint = Color.Black)
+                Icon(Icons.Outlined.Add, stringResource(R.string.dialog_new_category), tint = AppColors.onAccent)
             }
         },
     ) { padding ->

@@ -31,6 +31,8 @@ data class TrackerSearchResult(
     val title: String,
     val url: String? = null,
     val coverUrl: String? = null,
+    /** Other names (romaji, English, native, Russian …), used for automatic linking. */
+    val altTitles: List<String> = emptyList(),
 )
 
 data class TrackerProgress(
@@ -71,6 +73,24 @@ interface Tracker {
     fun authorizeUrl(): String?
     suspend fun exchangeCode(code: String): Boolean
     suspend fun logout()
+
+    val login: TrackerLogin get() = TrackerLogin.OAuth
+
+    /** Username / password sign-in, for trackers with [TrackerLogin.Password]. */
+    suspend fun login(username: String, password: String): Boolean = false
+
+    /** Statuses this tracker knows, in the order the editor shows them. */
+    val statuses: List<TrackStatus> get() = TrackStatus.entries
+
+    /** The tracker keeps start / finish dates. */
+    val supportsDates: Boolean get() = false
+
+    /** The whole list entry; null when signed out or on errors, an empty entry when not in the list. */
+    suspend fun fetchEntry(remoteId: String): TrackerEntry? =
+        fetchProgress(remoteId)?.let { TrackerEntry(chaptersRead = it.chaptersRead, score = it.score ?: 0f) }
+
+    /** Writes status, score, chapters and dates (adds the title to the list when needed). */
+    suspend fun updateEntry(remoteId: String, entry: TrackerEntry): Boolean = updateProgress(remoteId, entry.chaptersRead)
 }
 
 fun chapterProgressNumber(chapters: List<Chapter>, chapterId: String): Int {
@@ -162,12 +182,72 @@ class AniListTracker(
         prefs.setAniListAccessToken(null)
     }
 
+    override val supportsDates: Boolean get() = true
+
+    override val statuses: List<TrackStatus> get() = STATUS.statuses
+
+    private suspend fun graphql(body: String, token: String?): kotlinx.serialization.json.JsonObject? = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url("https://graphql.anilist.co")
+            .post(body.toRequestBody("application/json".toMediaType()))
+            .apply { if (token != null) header("Authorization", "Bearer $token") }
+            .header("Accept", "application/json")
+            .header("Content-Type", "application/json")
+            .build()
+        http.okHttp.newCall(request).execute().use { response ->
+            val text = response.body.string()
+            if (!response.isSuccessful) return@use null
+            json.parseToJsonElement(text).jsonObject["data"]?.jsonObject
+        }
+    }
+
+    override suspend fun fetchEntry(remoteId: String): TrackerEntry? {
+        val token = prefs.anilistAccessToken.first() ?: return null
+        val mediaId = remoteId.toLongOrNull() ?: return null
+        val body =
+            """{"query":"query(${'$'}id:Int){Media(id:${'$'}id,type:MANGA){chapters mediaListEntry{progress status score(format:POINT_10_DECIMAL) startedAt{year month day} completedAt{year month day}}}}","variables":{"id":$mediaId}}"""
+        val media = graphql(body, token)?.get("Media")?.jsonObject ?: return null
+        val total = media["chapters"]?.jsonPrimitive?.content?.toIntOrNull()
+        val entry = media["mediaListEntry"] as? kotlinx.serialization.json.JsonObject
+            ?: return TrackerEntry(totalChapters = total)
+        fun date(key: String): String? {
+            val d = entry[key] as? kotlinx.serialization.json.JsonObject ?: return null
+            return fuzzyDate(
+                d["year"]?.jsonPrimitive?.content?.toIntOrNull(),
+                d["month"]?.jsonPrimitive?.content?.toIntOrNull(),
+                d["day"]?.jsonPrimitive?.content?.toIntOrNull(),
+            )
+        }
+        return TrackerEntry(
+            status = STATUS.fromRemote(entry["status"]?.jsonPrimitive?.content),
+            score = entry["score"]?.jsonPrimitive?.content?.toFloatOrNull() ?: 0f,
+            chaptersRead = entry["progress"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0,
+            totalChapters = total,
+            startDate = date("startedAt"),
+            finishDate = date("completedAt"),
+        )
+    }
+
+    override suspend fun updateEntry(remoteId: String, entry: TrackerEntry): Boolean {
+        val token = prefs.anilistAccessToken.first() ?: return false
+        val mediaId = remoteId.toLongOrNull() ?: return false
+        fun fuzzy(date: String?): String {
+            val parts = cleanDate(date)?.split('-')?.map { it.toInt() } ?: return "{\"year\":null,\"month\":null,\"day\":null}"
+            return "{\"year\":${parts[0]},\"month\":${parts[1]},\"day\":${parts[2]}}"
+        }
+        val status = entry.status?.let(STATUS::toRemote)?.let { "\"$it\"" } ?: "null"
+        // scoreRaw is 0–100 whatever score format the user picked on AniList.
+        val body =
+            """{"query":"mutation(${'$'}id:Int,${'$'}progress:Int,${'$'}status:MediaListStatus,${'$'}score:Int,${'$'}start:FuzzyDateInput,${'$'}end:FuzzyDateInput){SaveMediaListEntry(mediaId:${'$'}id,progress:${'$'}progress,status:${'$'}status,scoreRaw:${'$'}score,startedAt:${'$'}start,completedAt:${'$'}end){id}}","variables":{"id":$mediaId,"progress":${entry.chaptersRead},"status":$status,"score":${(entry.score * 10).toInt()},"start":${fuzzy(entry.startDate)},"end":${fuzzy(entry.finishDate)}}}"""
+        return graphql(body, token)?.get("SaveMediaListEntry") != null
+    }
+
     override suspend fun search(query: String): List<TrackerSearchResult> = withContext(Dispatchers.IO) {
         val q = query.trim()
         if (q.isEmpty()) return@withContext emptyList()
         val escaped = json.encodeToString(q)
         val body =
-            """{"query":"query (${'$'}search:String){Page(perPage:10){media(search:${'$'}search,type:MANGA){id title{romaji english native} siteUrl coverImage{large}}}}","variables":{"search":$escaped}}"""
+            """{"query":"query (${'$'}search:String){Page(perPage:10){media(search:${'$'}search,type:MANGA){id title{romaji english native} synonyms siteUrl coverImage{large}}}}","variables":{"search":$escaped}}"""
         val request = Request.Builder()
             .url("https://graphql.anilist.co")
             .post(body.toRequestBody("application/json".toMediaType()))
@@ -195,6 +275,11 @@ class AniListTracker(
                     title = name,
                     url = obj["siteUrl"]?.jsonPrimitive?.content,
                     coverUrl = obj["coverImage"]?.jsonObject?.get("large")?.jsonPrimitive?.content,
+                    altTitles = listOf("english", "romaji", "native").mapNotNull { key ->
+                        (titles?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content
+                    } + (obj["synonyms"] as? kotlinx.serialization.json.JsonArray).orEmpty().mapNotNull {
+                        (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content
+                    },
                 )
             }
         }
@@ -266,6 +351,16 @@ class AniListTracker(
 
     companion object {
         const val REDIRECT_URI = "lume://oauth/anilist"
+        private val STATUS = StatusMap(
+            listOf(
+                TrackStatus.Reading to "CURRENT",
+                TrackStatus.Completed to "COMPLETED",
+                TrackStatus.OnHold to "PAUSED",
+                TrackStatus.Dropped to "DROPPED",
+                TrackStatus.Planned to "PLANNING",
+                TrackStatus.Rereading to "REPEATING",
+            ),
+        )
     }
 }
 
@@ -324,6 +419,112 @@ class ShikimoriTracker(
         prefs.setShikimoriUserId(null)
     }
 
+    override val statuses: List<TrackStatus> get() = STATUS.statuses
+
+    /**
+     * Runs an API call with the access token. Shikimori tokens last a day: on 401 the refresh
+     * token gets a new pair and the call is made once more, so the account stays signed in.
+     */
+    private suspend fun <T> authed(build: (String) -> Request, read: (okhttp3.Response) -> T): T? = withContext(Dispatchers.IO) {
+        val token = prefs.shikimoriAccessToken.first() ?: return@withContext null
+        val first = http.okHttp.newCall(build(token)).execute()
+        if (first.code != 401) return@withContext first.use(read)
+        first.close()
+        val fresh = refreshTokens() ?: return@withContext null
+        http.okHttp.newCall(build(fresh)).execute().use(read)
+    }
+
+    /** New tokens from the refresh token; null (and signed out) when Shikimori refuses it. */
+    private suspend fun refreshTokens(): String? {
+        val refresh = prefs.shikimoriRefreshToken.first() ?: return null
+        val clientId = TrackerOAuthDefaults.SHIKIMORI_CLIENT_ID.ifBlank { prefs.shikimoriClientId.first().orEmpty() }
+        val clientSecret = TrackerOAuthDefaults.SHIKIMORI_CLIENT_SECRET.ifBlank { prefs.shikimoriClientSecret.first().orEmpty() }
+        if (clientId.isBlank()) return null
+        val body = FormBody.Builder()
+            .add("grant_type", "refresh_token")
+            .add("client_id", clientId)
+            .add("client_secret", clientSecret)
+            .add("refresh_token", refresh)
+            .build()
+        val request = Request.Builder().url("$BASE_URL/oauth/token").post(body)
+            .header("User-Agent", USER_AGENT).header("Accept", "application/json").build()
+        return http.okHttp.newCall(request).execute().use { response ->
+            val text = response.body.string()
+            if (!response.isSuccessful) {
+                // 400/401: the refresh token is gone too. Other errors may pass; keep the tokens.
+                if (response.code in 400..401) prefs.setShikimoriTokens(null, null)
+                return@use null
+            }
+            val obj = json.parseToJsonElement(text).jsonObject
+            val token = obj["access_token"]?.jsonPrimitive?.content ?: return@use null
+            prefs.setShikimoriTokens(token, obj["refresh_token"]?.jsonPrimitive?.content ?: refresh)
+            token
+        }
+    }
+
+    /** The user's rate for a manga; null when it is not in the list (or signed out). Throws on HTTP errors. */
+    private suspend fun userRate(remoteId: String): kotlinx.serialization.json.JsonObject? {
+        val token = prefs.shikimoriAccessToken.first() ?: return null
+        val userId = ensureUserId(token) ?: return null
+        return authed(
+            build = { t ->
+                Request.Builder()
+                    .url("$API_URL/v2/user_rates?user_id=$userId&target_type=Manga&target_id=$remoteId")
+                    .get()
+                    .header("User-Agent", USER_AGENT)
+                    .header("Authorization", "Bearer $t")
+                    .header("Accept", "application/json")
+                    .build()
+            },
+            read = { response ->
+                val text = response.body.string()
+                if (!response.isSuccessful) error("HTTP ${response.code}")
+                json.parseToJsonElement(text).jsonArray.firstOrNull()?.jsonObject
+            },
+        )
+    }
+
+    override suspend fun fetchEntry(remoteId: String): TrackerEntry? {
+        val rate = runCatching { userRate(remoteId) }.getOrElse { return null }
+            ?: return if (prefs.shikimoriAccessToken.first() == null) null else TrackerEntry()
+        return TrackerEntry(
+            status = STATUS.fromRemote(rate["status"]?.jsonPrimitive?.content),
+            score = rate["score"]?.jsonPrimitive?.content?.toFloatOrNull() ?: 0f,
+            chaptersRead = rate["chapters"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0,
+        )
+    }
+
+    override suspend fun updateEntry(remoteId: String, entry: TrackerEntry): Boolean {
+        val token = prefs.shikimoriAccessToken.first() ?: return false
+        val userId = ensureUserId(token) ?: return false
+        val targetId = remoteId.toLongOrNull() ?: return false
+        val rateId = runCatching { userRate(remoteId) }.getOrNull()?.get("id")?.jsonPrimitive?.content
+        val payload = buildJsonObject {
+            put("user_rate", buildJsonObject {
+                put("chapters", JsonPrimitive(entry.chaptersRead))
+                put("score", JsonPrimitive(entry.score.toInt().coerceIn(0, 10)))
+                entry.status?.let(STATUS::toRemote)?.let { put("status", JsonPrimitive(it)) }
+                if (rateId == null) {
+                    put("user_id", JsonPrimitive(userId.toLongOrNull() ?: return false))
+                    put("target_id", JsonPrimitive(targetId))
+                    put("target_type", JsonPrimitive("Manga"))
+                }
+            })
+        }.toString()
+        return authed(
+            build = { t ->
+                Request.Builder()
+                    .url(if (rateId != null) "$API_URL/v2/user_rates/$rateId" else "$API_URL/v2/user_rates")
+                    .method(if (rateId != null) "PATCH" else "POST", payload.toRequestBody("application/json".toMediaType()))
+                    .header("User-Agent", USER_AGENT)
+                    .header("Authorization", "Bearer $t")
+                    .header("Accept", "application/json")
+                    .build()
+            },
+            read = { it.isSuccessful },
+        ) ?: false
+    }
+
     override suspend fun search(query: String): List<TrackerSearchResult> = withContext(Dispatchers.IO) {
         val q = query.trim()
         if (q.isEmpty()) return@withContext emptyList()
@@ -351,6 +552,10 @@ class ShikimoriTracker(
                 title = name,
                 url = "$BASE_URL/mangas/$id",
                 coverUrl = image?.let { if (it.startsWith("http")) it else "$BASE_URL$it" },
+                altTitles = listOfNotNull(
+                    obj["name"]?.jsonPrimitive?.content,
+                    obj["russian"]?.jsonPrimitive?.content,
+                ),
             )
         }
     }
@@ -376,46 +581,22 @@ class ShikimoriTracker(
         dao.deleteTrackerLink(sourceId, titleId, id)
     }
 
-    override suspend fun fetchProgress(remoteId: String): TrackerProgress? = withContext(Dispatchers.IO) {
-        val token = prefs.shikimoriAccessToken.first() ?: return@withContext null
-        val userId = ensureUserId(token) ?: return@withContext null
-        val request = Request.Builder()
-            .url("$API_URL/v2/user_rates?user_id=$userId&target_type=Manga&target_id=$remoteId")
-            .get()
-            .header("User-Agent", USER_AGENT)
-            .header("Authorization", "Bearer $token")
-            .header("Accept", "application/json")
-            .build()
-        http.okHttp.newCall(request).execute().use { response ->
-            val text = response.body.string()
-            if (!response.isSuccessful) return@withContext null
-            val arr = json.parseToJsonElement(text).jsonArray
-            val obj = arr.firstOrNull()?.jsonObject ?: return@withContext TrackerProgress(0)
-            TrackerProgress(
-                chaptersRead = obj["chapters"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0,
-                status = obj["status"]?.jsonPrimitive?.content,
-                score = obj["score"]?.jsonPrimitive?.content?.toFloatOrNull(),
-                libraryId = obj["id"]?.jsonPrimitive?.content,
-            )
-        }
+    override suspend fun fetchProgress(remoteId: String): TrackerProgress? {
+        prefs.shikimoriAccessToken.first() ?: return null
+        val obj = runCatching { userRate(remoteId) }.getOrElse { return null } ?: return TrackerProgress(0)
+        return TrackerProgress(
+            chaptersRead = obj["chapters"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0,
+            status = obj["status"]?.jsonPrimitive?.content,
+            score = obj["score"]?.jsonPrimitive?.content?.toFloatOrNull(),
+            libraryId = obj["id"]?.jsonPrimitive?.content,
+        )
     }
 
     override suspend fun updateProgress(remoteId: String, chaptersRead: Int): Boolean =
         withContext(Dispatchers.IO) {
             val token = prefs.shikimoriAccessToken.first() ?: return@withContext false
             val userId = ensureUserId(token) ?: return@withContext false
-            val listReq = Request.Builder()
-                .url("$API_URL/v2/user_rates?user_id=$userId&target_type=Manga&target_id=$remoteId")
-                .get()
-                .header("User-Agent", USER_AGENT)
-                .header("Authorization", "Bearer $token")
-                .header("Accept", "application/json")
-                .build()
-            val existing = http.okHttp.newCall(listReq).execute().use { response ->
-                val text = response.body.string()
-                if (!response.isSuccessful) return@use null
-                json.parseToJsonElement(text).jsonArray.firstOrNull()?.jsonObject
-            }
+            val existing = runCatching { userRate(remoteId) }.getOrNull()
             val rateId = existing?.get("id")?.jsonPrimitive?.content
             val remoteStatus = existing?.get("status")?.jsonPrimitive?.content
             val targetId = remoteId.toLongOrNull() ?: return@withContext false
@@ -438,23 +619,24 @@ class ShikimoriTracker(
             } else {
                 "$API_URL/v2/user_rates"
             }
-            val request = Request.Builder()
-                .url(url)
-                .method(if (rateId != null) "PATCH" else "POST", payload.toRequestBody("application/json".toMediaType()))
-                .header("User-Agent", USER_AGENT)
-                .header("Authorization", "Bearer $token")
-                .header("Accept", "application/json")
-                .header("Content-Type", "application/json")
-                .build()
-            http.okHttp.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    android.util.Log.w(
-                        "Shikimori",
-                        "updateProgress failed ${response.code}: ${response.body.string()}",
-                    )
-                }
-                response.isSuccessful
-            }
+            authed(
+                build = { t ->
+                    Request.Builder()
+                        .url(url)
+                        .method(if (rateId != null) "PATCH" else "POST", payload.toRequestBody("application/json".toMediaType()))
+                        .header("User-Agent", USER_AGENT)
+                        .header("Authorization", "Bearer $t")
+                        .header("Accept", "application/json")
+                        .header("Content-Type", "application/json")
+                        .build()
+                },
+                read = { response ->
+                    if (!response.isSuccessful) {
+                        android.util.Log.w("Shikimori", "updateProgress failed ${response.code}: ${response.body.string()}")
+                    }
+                    response.isSuccessful
+                },
+            ) ?: false
         }
 
     private suspend fun ensureUserId(token: String): String? {
@@ -486,6 +668,16 @@ class ShikimoriTracker(
         const val BASE_URL = "https://shikimori.io"
         const val API_URL = "$BASE_URL/api"
         const val USER_AGENT = "Lume"
+        private val STATUS = StatusMap(
+            listOf(
+                TrackStatus.Reading to "watching",
+                TrackStatus.Completed to "completed",
+                TrackStatus.OnHold to "on_hold",
+                TrackStatus.Dropped to "dropped",
+                TrackStatus.Planned to "planned",
+                TrackStatus.Rereading to "rewatching",
+            ),
+        )
     }
 }
 
@@ -496,7 +688,10 @@ class TrackerRegistry(
 ) {
     val anilist = AniListTracker(http, dao, prefs)
     val shikimori = ShikimoriTracker(http, dao, prefs)
-    val all: List<Tracker> = listOf(shikimori, anilist)
+    val myAnimeList = MyAnimeListTracker(http, dao, prefs)
+    val kitsu = KitsuTracker(http, dao, prefs)
+    val mangaUpdates = MangaUpdatesTracker(http, dao, prefs)
+    val all: List<Tracker> = listOf(shikimori, anilist, myAnimeList, kitsu, mangaUpdates)
 
     fun byId(id: String): Tracker? = all.firstOrNull { it.id == id }
 }
@@ -505,7 +700,24 @@ class TrackerSync(
     private val context: Context,
     private val dao: LibraryDao,
     private val trackers: TrackerRegistry,
+    private val prefs: AppPreferences? = null,
 ) {
+    /**
+     * Adding a title to the library: every signed-in tracker without a link gets one when its
+     * search finds the title under exactly the same name. Nothing is guessed.
+     */
+    suspend fun autoLink(sourceId: String, titleId: String, names: List<String>) {
+        if (prefs?.trackerAutoLink?.value == false) return
+        val query = names.firstOrNull { it.isNotBlank() } ?: return
+        val linked = dao.getTrackerLinks(sourceId, titleId).map { it.tracker }.toSet()
+        for (tracker in trackers.all) {
+            if (tracker.id in linked || !runCatching { tracker.isLoggedIn() }.getOrDefault(false)) continue
+            val results = runCatching { tracker.search(query) }.getOrDefault(emptyList())
+            val match = exactMatch(names, results) ?: continue
+            runCatching { tracker.link(sourceId, titleId, match.remoteId, match.url) }
+        }
+    }
+
     suspend fun pushProgress(
         sourceId: String,
         titleId: String,

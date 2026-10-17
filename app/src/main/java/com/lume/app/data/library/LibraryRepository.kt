@@ -57,7 +57,11 @@ class LibraryRepository(
             ),
         )
         // Know the chapters right away: unread counts work and the next check only reports new ones.
-        titles.cached(sourceId, titleId)?.chapters?.let { libraryChapters.sync(sourceId, titleId, it) }
+        val known = titles.cached(sourceId, titleId)
+        known?.chapters?.let { libraryChapters.sync(sourceId, titleId, it) }
+        // Signed-in trackers link the title when they find it under the same name.
+        val names = listOfNotNull(titleName, known?.details?.altTitle)
+        appScope.launch(Dispatchers.IO) { runCatching { trackerSync.autoLink(sourceId, titleId, names) } }
     }
 
     suspend fun remove(sourceId: String, titleId: String) {

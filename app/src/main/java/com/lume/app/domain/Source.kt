@@ -81,12 +81,50 @@ interface CatalogSource {
         if (!titleId.startsWith("/")) return null
         return manifest.baseUrl.trimEnd('/') + titleId
     }
+
+    /**
+     * The title id behind a link to this source's website (a link shared from the browser, or a
+     * Mihon backup entry), or null when the link is not a title page of this source.
+     * Default: ids are paths, so any path on the source's host is taken as it is.
+     */
+    fun titleIdFromUrl(url: String): String? {
+        val path = SourceLinks.pathOnHost(url, manifest.baseUrl) ?: return null
+        return path.takeIf { it.length > 1 }
+    }
+
+    /** Settings this source offers (Sources → ⋮ → Settings). Values land in [SourceManifest.engineConfig]. */
+    fun settings(): List<SourceSetting> = emptyList()
 }
 
-/** Optional per-source preferences screen hook. */
-@Suppress("unused")
-interface ConfigurableSource {
-    fun preferenceKeys(): List<String>
+/**
+ * One per-source setting. The chosen value is stored per source and merged into the manifest's
+ * `engineConfig[key]` before the engine is built, so engines read it like any other config value.
+ * Multi-choice values are stored comma-separated.
+ */
+sealed class SourceSetting {
+    abstract val key: String
+    abstract val title: String
+
+    data class Toggle(
+        override val key: String,
+        override val title: String,
+        val default: Boolean = false,
+    ) : SourceSetting()
+
+    data class Choice(
+        override val key: String,
+        override val title: String,
+        /** value → label */
+        val options: List<Pair<String, String>>,
+        val default: String,
+    ) : SourceSetting()
+
+    data class MultiChoice(
+        override val key: String,
+        override val title: String,
+        val options: List<Pair<String, String>>,
+        val default: Set<String>,
+    ) : SourceSetting()
 }
 
 class CloudflareException(val uri: URI) : Exception("Cloudflare challenge: $uri")

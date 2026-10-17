@@ -12,6 +12,14 @@ import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleSummary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.lume.app.domain.ComicInfo
+import com.lume.app.domain.ImageBytes
+import com.lume.app.domain.parseComicInfo
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
 import java.io.File
 import java.util.zip.ZipFile
 
@@ -67,20 +75,76 @@ class LocalEngine(
             ?.sortedBy { it.name.lowercase() }
             .orEmpty()
 
-    private fun isImage(name: String): Boolean {
-        val n = name.lowercase()
-        return n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".png") || n.endsWith(".webp")
-    }
+    private fun isImage(name: String): Boolean = ImageBytes.isImageName(name)
 
+    /** `cover.*` in the series folder, else the first page of the first chapter (folder or archive). */
     private fun coverFor(series: File): String? {
-        val chapters = chapterEntries(series)
-        for (ch in chapters) {
+        series.listFiles()
+            ?.firstOrNull { it.isFile && it.nameWithoutExtension.equals("cover", ignoreCase = true) && isImage(it.name) }
+            ?.let { return it.absolutePath }
+        for (ch in chapterEntries(series)) {
             if (ch.isDirectory) {
-                val img = imageFiles(ch).firstOrNull()
-                if (img != null) return img.absolutePath
+                imageFiles(ch).firstOrNull()?.let { return it.absolutePath }
+            } else if (isArchive(ch)) {
+                firstImageOf(ch)?.let { return it.absolutePath }
             }
         }
         return null
+    }
+
+    /** The first page of an archive, unpacked into the cache once. */
+    private fun firstImageOf(archive: File): File? = runCatching {
+        val out = File(context.cacheDir, "local_covers/${archive.absolutePath.hashCode().toUInt()}_${archive.lastModified()}")
+        out.listFiles()?.firstOrNull()?.let { return@runCatching it }
+        ZipFile(archive).use { zip ->
+            val entry = zip.entries().asSequence()
+                .filter { !it.isDirectory && isImage(it.name) }
+                .minByOrNull { it.name.lowercase() } ?: return@runCatching null
+            out.mkdirs()
+            val dest = File(out, "cover." + entry.name.substringAfterLast('.'))
+            zip.getInputStream(entry).use { input -> dest.outputStream().use { input.copyTo(it) } }
+            dest
+        }
+    }.getOrNull()
+
+    /**
+     * Series details from `ComicInfo.xml` (next to the chapters or inside the first archive) or
+     * Mihon's `details.json`.
+     */
+    private fun metadataFor(series: File): ComicInfo? {
+        File(series, "details.json").takeIf { it.isFile }?.let { file ->
+            runCatching {
+                val obj = Json.parseToJsonElement(file.readText()).jsonObject
+                fun str(key: String) = (obj[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+                val genres = (obj["genre"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+                    ?: str("genre")?.split(',')?.map { it.trim() }.orEmpty()
+                return ComicInfo(
+                    series = str("title") ?: series.name,
+                    summary = str("description"),
+                    writer = listOfNotNull(str("author")),
+                    penciller = listOfNotNull(str("artist")),
+                    genre = genres,
+                    status = when (str("status")) {
+                        "1" -> "Ongoing"
+                        "2", "4" -> "Completed"
+                        "5" -> "Cancelled"
+                        "6" -> "On hiatus"
+                        else -> null
+                    },
+                )
+            }
+        }
+        File(series, "ComicInfo.xml").takeIf { it.isFile }?.let { file ->
+            parseComicInfo(file.readText())?.let { return it }
+        }
+        val archive = chapterEntries(series).firstOrNull { it.isFile && isArchive(it) } ?: return null
+        return runCatching {
+            ZipFile(archive).use { zip ->
+                val entry = zip.entries().asSequence().firstOrNull { it.name.equals("ComicInfo.xml", ignoreCase = true) }
+                    ?: return@use null
+                parseComicInfo(zip.getInputStream(entry).bufferedReader().use { it.readText() })
+            }
+        }.getOrNull()
     }
 
     private fun toSummary(series: File): TitleSummary {
@@ -129,15 +193,20 @@ class LocalEngine(
         if (!series.isDirectory) {
             error(com.lume.app.data.locale.appString(com.lume.app.R.string.error_local_title_missing, id))
         }
+        val meta = metadataFor(series)
         TitleDetails(
             id = id,
-            title = series.name,
+            title = meta?.series ?: series.name,
             coverUrl = coverFor(series),
             typeLabel = "Local",
-            description = com.lume.app.data.locale.appString(
+            description = meta?.summary ?: com.lume.app.data.locale.appString(
                 com.lume.app.R.string.local_files_description,
                 series.absolutePath,
             ),
+            status = meta?.status,
+            authors = meta?.writer.orEmpty(),
+            artists = meta?.penciller.orEmpty(),
+            genres = meta?.genre.orEmpty(),
         )
     }
 
@@ -145,10 +214,12 @@ class LocalEngine(
         val series = File(rootDir(), titleId)
         if (!series.isDirectory) return@withContext emptyList()
         chapterEntries(series).map { file ->
+            val name = if (file.isDirectory) file.name else file.nameWithoutExtension
             Chapter(
                 id = file.name,
-                title = file.nameWithoutExtension,
+                title = name,
                 url = file.absolutePath,
+                number = chapterNumberFrom(name) ?: Regex("""^\D*(\d+(?:[.,]\d+)?)""").find(name)?.groupValues?.get(1)?.replace(',', '.'),
             )
         }.reversed()
     }

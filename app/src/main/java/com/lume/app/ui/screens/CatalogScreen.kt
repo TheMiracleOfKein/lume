@@ -32,6 +32,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.navigation.NavHostController
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
@@ -47,11 +52,15 @@ import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 import com.lume.app.ui.theme.animatedItem
 
+/** [browseSourceId]: browse that source (opened from Sources) instead of the active one. */
 @Composable
-fun CatalogScreen(nav: NavHostController) {
+fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null) {
     val container = LocalAppContainer.current
-    val vm: CatalogViewModel = viewModel { CatalogViewModel(container) }
+    val vm: CatalogViewModel = viewModel { CatalogViewModel(container, browseSourceId) }
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    val browseName = remember(browseSourceId) {
+        browseSourceId?.let { id -> container.sources.sourceById(id)?.manifest?.name ?: id }
+    }
     val bookmarks by container.dao.observeBookmarks().collectAsState(initial = emptyList())
     // One list state per tab: switching tabs keeps each list's scroll position.
     val popularList = rememberLazyListState()
@@ -70,10 +79,24 @@ fun CatalogScreen(nav: NavHostController) {
             .background(AppColors.background)
             .windowInsetsPadding(LumeInsets.statusBar),
     ) {
+        if (browseName != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = { nav.popBackStack() }) {
+                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = AppColors.textPrimary)
+                }
+                Text(browseName, color = AppColors.textPrimary, fontSize = 20.sp, modifier = Modifier.weight(1f))
+            }
+        }
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp)) {
             SegmentTab(stringResource(R.string.catalog_tab_popular), selected = tab == 0, modifier = Modifier.weight(1f)) { tab = 0 }
             SegmentTab(stringResource(R.string.catalog_tab_updates), selected = tab == 1, modifier = Modifier.weight(1f)) { tab = 1 }
-            SegmentTab(stringResource(R.string.catalog_tab_library), selected = tab == 2, modifier = Modifier.weight(1f)) { tab = 2 }
+            // A browsed source has no library tab: the library is the same for every source.
+            if (browseName == null) {
+                SegmentTab(stringResource(R.string.catalog_tab_library), selected = tab == 2, modifier = Modifier.weight(1f)) { tab = 2 }
+            }
         }
 
         AnimatedContent(

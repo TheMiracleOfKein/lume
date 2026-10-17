@@ -23,6 +23,16 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import android.text.format.Formatter
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,7 +71,10 @@ fun DownloadsScreen(nav: NavHostController) {
     val groups by vm.groups.collectAsState()
     val activeQueue by vm.activeQueue.collectAsState()
     val failedQueue by vm.failedQueue.collectAsState()
+    val paused by vm.paused.collectAsState()
     val expanded = vm.expanded
+    val context = LocalContext.current
+    val (usageByTitle, usageTotal) = vm.usage
 
     Scaffold(
         containerColor = AppColors.background,
@@ -72,6 +85,17 @@ fun DownloadsScreen(nav: NavHostController) {
                 navigationIcon = {
                     IconButton(onClick = { nav.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = AppColors.textPrimary)
+                    }
+                },
+                actions = {
+                    if (activeQueue.isNotEmpty() || paused) {
+                        IconButton(onClick = { if (paused) vm.resume() else vm.pause() }) {
+                            Icon(
+                                if (paused) Icons.Outlined.PlayArrow else Icons.Outlined.Pause,
+                                stringResource(if (paused) R.string.downloads_resume else R.string.downloads_pause),
+                                tint = AppColors.textPrimary,
+                            )
+                        }
                     }
                 },
                 windowInsets = LumeInsets.topBar,
@@ -91,14 +115,32 @@ fun DownloadsScreen(nav: NavHostController) {
                 }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    if (activeQueue.isNotEmpty()) {
-                        item {
+                    if (usageTotal > 0) {
+                        item(key = "usage") {
                             Text(
-                                stringResource(R.string.downloads_queued),
-                                color = AppColors.textSecondary,
-                                fontSize = 13.sp,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                stringResource(R.string.downloads_usage, Formatter.formatShortFileSize(context, usageTotal)),
+                                color = AppColors.textTertiary,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                             )
+                        }
+                    }
+                    if (activeQueue.isNotEmpty()) {
+                        item(key = "queue-header") {
+                            Row(
+                                Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    if (paused) stringResource(R.string.downloads_paused) else stringResource(R.string.downloads_queued),
+                                    color = if (paused) AppColors.accent else AppColors.textSecondary,
+                                    fontSize = 13.sp,
+                                    modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+                                )
+                                TextButton(onClick = vm::cancelAll) {
+                                    Text(stringResource(R.string.downloads_cancel_all), color = AppColors.textSecondary, fontSize = 13.sp)
+                                }
+                            }
                         }
                         items(activeQueue, key = { "q-${it.id}" }) { item ->
                             Row(
@@ -124,6 +166,13 @@ fun DownloadsScreen(nav: NavHostController) {
                                         Text(stringResource(R.string.downloads_waiting), color = AppColors.textTertiary, fontSize = 11.sp)
                                     }
                                 }
+                                if (item.status == DownloadQueueEntity.STATUS_PENDING) {
+                                    QueueOrderMenu(
+                                        onTop = { vm.moveToTop(item.id) },
+                                        onUp = { vm.move(item.id, -1) },
+                                        onDown = { vm.move(item.id, 1) },
+                                    )
+                                }
                                 IconButton(onClick = { vm.cancel(item.id) }) {
                                     Icon(Icons.Outlined.Close, stringResource(R.string.action_cancel), tint = AppColors.danger)
                                 }
@@ -132,12 +181,22 @@ fun DownloadsScreen(nav: NavHostController) {
                     }
                     if (failedQueue.isNotEmpty()) {
                         item(key = "failed-header") {
-                            Text(
-                                stringResource(R.string.downloads_failed),
-                                color = AppColors.danger,
-                                fontSize = 13.sp,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                            )
+                            Row(
+                                Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    stringResource(R.string.downloads_failed),
+                                    color = AppColors.danger,
+                                    fontSize = 13.sp,
+                                    modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+                                )
+                                if (failedQueue.size > 1) {
+                                    TextButton(onClick = vm::retryAll) {
+                                        Text(stringResource(R.string.downloads_retry_all), color = AppColors.accent, fontSize = 13.sp)
+                                    }
+                                }
+                            }
                         }
                         items(failedQueue, key = { "f-${it.id}" }) { item ->
                             Row(
@@ -194,8 +253,10 @@ fun DownloadsScreen(nav: NavHostController) {
                                         },
                                 ) {
                                     Text(group.titleName, color = AppColors.textPrimary, fontSize = 15.sp)
+                                    val bytes = usageByTitle[key] ?: 0L
                                     Text(
-                                        stringResource(R.string.chapters_count_short, group.chapters.size),
+                                        stringResource(R.string.chapters_count_short, group.chapters.size) +
+                                            if (bytes > 0) " · " + Formatter.formatShortFileSize(context, bytes) else "",
                                         color = AppColors.textSecondary,
                                         fontSize = 12.sp,
                                     )
@@ -263,6 +324,22 @@ fun DownloadsScreen(nav: NavHostController) {
                     }
                 }
             }
+        }
+    }
+}
+
+/** Move a waiting download: first, up or down. */
+@Composable
+private fun QueueOrderMenu(onTop: () -> Unit, onUp: () -> Unit, onDown: () -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }) {
+            Icon(Icons.Outlined.SwapVert, stringResource(R.string.downloads_reorder), tint = AppColors.textSecondary)
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(text = { Text(stringResource(R.string.downloads_move_top)) }, onClick = { open = false; onTop() })
+            DropdownMenuItem(text = { Text(stringResource(R.string.downloads_move_up)) }, onClick = { open = false; onUp() })
+            DropdownMenuItem(text = { Text(stringResource(R.string.downloads_move_down)) }, onClick = { open = false; onDown() })
         }
     }
 }

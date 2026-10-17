@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "packs": [
+    {
+      "id": "likemanga",
+      "name": "LikeManga",
+      "version": "1.0.0",
+      "engine": "madara",
+      "language": "en",
+      "nsfw": false,
+      "url": "madara/likemanga.json"
+    },
+    {
+      "id": "toongod",
+      "name": "ToonGod",
+      "version": "1.0.0",
+      "engine": "madara",
+      "language": "en",
+      "nsfw": false,
+      "url": "madara/toongod.json"
+    }
+  ]
+}

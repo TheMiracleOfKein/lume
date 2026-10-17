@@ -63,13 +63,28 @@ class LibSocialEngine(
         page: Int,
         filters: com.lume.app.domain.FilterList,
     ): PagedResult<TitleSummary> {
+        val sort = filters.selected("sort_by")
+        if (query.isBlank()) return mangaList(page, sort ?: "rating_score")
         val q = urlEncode(query)
-        val uri = URI("${apiBase.toString().trimEnd('/')}/manga?q=$q&page=$page&site_id[]=$siteId")
+        val sortPart = sort?.let { "&sort_by=$it" }.orEmpty()
+        val uri = URI("${apiBase.toString().trimEnd('/')}/manga?q=$q&page=$page&site_id[]=$siteId$sortPart")
         val response = http.get(uri, source = manifest, headers = apiHeaders(), checkCloudflare = false)
         return parseList(response.body, page)
     }
 
-    override fun getFilters(): com.lume.app.domain.FilterList = com.lume.app.domain.FilterList()
+    override fun getFilters(): com.lume.app.domain.FilterList = com.lume.app.domain.FilterList(
+        listOf(
+            com.lume.app.domain.SourceFilter.Select(
+                id = "sort_by",
+                name = com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort),
+                options = listOf("rating_score", "last_chapter_at"),
+                labels = listOf(
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_rating),
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_latest),
+                ),
+            ),
+        ),
+    )
 
     override suspend fun getTitle(id: String): TitleDetails {
         val slug = slug(id)
@@ -338,6 +353,15 @@ class LibSocialEngine(
     private fun asObject(el: JsonElement): JsonObject = el as? JsonObject ?: JsonObject(emptyMap())
 
     override fun webUrl(titleId: String): String = "${manifest.baseUrl.trimEnd('/')}/ru/manga/${slug(titleId)}"
+
+    /** `/ru/manga/7580--slug`, `/ru/7580--slug/read/…` or `/manga/7580--slug`. */
+    override fun titleIdFromUrl(url: String): String? {
+        val parts = com.lume.app.domain.SourceLinks.segments(url, manifest.baseUrl) ?: return null
+        val slug = parts.firstOrNull { "--" in it }
+            ?: parts.getOrNull(parts.indexOf("manga") + 1)?.takeIf { "manga" in parts }
+            ?: return null
+        return "/$slug"
+    }
 
     private companion object {
         val TITLE_FIELDS = listOf(
