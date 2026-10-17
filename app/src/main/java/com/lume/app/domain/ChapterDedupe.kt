@@ -36,6 +36,14 @@ fun chapterBranches(chapters: List<Chapter>): List<ChapterBranch> {
         ch.branchName?.takeIf { it.isNotBlank() }?.let { names.putIfAbsent(id, it) }
     }
     if (counts.size <= 1) return emptyList()
+    // Only real teams: some chapter must exist in two of them. (Some engines keep other
+    // per-chapter data in branchId, which would otherwise make every chapter its own "team".)
+    val teamsPerKey = HashMap<String, MutableSet<String>>()
+    val shared = chapters.any { ch ->
+        val id = ch.branchId ?: return@any false
+        teamsPerKey.getOrPut(dedupeKey(ch)) { HashSet() }.run { add(id); size > 1 }
+    }
+    if (!shared) return emptyList()
     return counts.entries
         .map { (id, count) -> ChapterBranch(id, names[id] ?: id, count) }
         .sortedByDescending { it.chapterCount }

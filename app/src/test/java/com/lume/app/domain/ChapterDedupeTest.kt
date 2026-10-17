@@ -40,6 +40,14 @@ class ChapterDedupeTest {
     }
 
     @Test
+    fun perChapterBranchIdsAreNotTeams() {
+        // Asura keeps each chapter's slug in branchId: no chapter has two copies, so no teams.
+        val list = listOf(ch("2", "2", "slug-2"), ch("1", "1", "slug-1"))
+        assertTrue(chapterBranches(list).isEmpty())
+        assertEquals(listOf("2", "1"), dedupeChapters(list).map { it.id })
+    }
+
+    @Test
     fun dedupeKeepsOneCopyFromTheBiggestTeam() {
         assertEquals(listOf("3a", "2a", "1a"), dedupeChapters(list).map { it.id })
     }
