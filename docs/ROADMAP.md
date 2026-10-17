@@ -41,7 +41,7 @@ Release notes: [docs/releases/v0.3.0.md](releases/v0.3.0.md).
 - ✅ **Measured baseline profile.** Done in v0.4: the `:baselineprofile` module records it on an emulator.
 - 🟡 **Device testing of v0.3.** v0.3 was released after builds and unit tests only. The device checklist (resume, motion, notifications, R8 build) is still to be worked through on real phones.
 
-## v0.4: foundation, library and chapters ✅
+## v0.4: foundation, library and chapters ✅ released 2026-10-17
 
 Release notes: [docs/releases/v0.4.0.md](releases/v0.4.0.md).
 
@@ -70,7 +70,7 @@ Release notes: [docs/releases/v0.4.0.md](releases/v0.4.0.md).
 - ✅ "Download next N / all unread", delete downloaded chapters, range select.
 
 **Left over from v0.4**
-- 🟡 **Device testing of v0.4.** Checked on an emulator: the app starts, the migration runs, the library grid and its counts, the chapter selection. The rest still needs real phones, together with the v0.3 checklist.
+- 🟡 **Device testing of v0.4.** Checked on an emulator, including the signed R8 release APK: the app starts, the migration runs, the library grid and its counts, chapter selection, the reader, and "Update now". The rest still needs real phones, together with the v0.3 checklist.
 - **Startup numbers.** `StartupBenchmark` exists but has not been run yet; run it on a real phone to measure the profile's gain (S).
 
 ## v0.5: sources, downloads, backups, trackers
