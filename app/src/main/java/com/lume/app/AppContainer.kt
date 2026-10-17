@@ -62,7 +62,7 @@ class AppContainer(val app: Application) {
     val downloadQueue = DownloadQueue(app, dao, downloads, sources, titles, prefs, network)
     val backup = BackupRepository(app, dao, sources, prefs, titles, libraryChapters)
     val trackers = TrackerRegistry(http, dao, prefs)
-    val trackerSync = TrackerSync(app, dao, trackers)
+    val trackerSync = TrackerSync(app, dao, trackers, prefs)
     val library = LibraryRepository(database, dao, prefs, titles, libraryChapters, trackerSync, appScope)
 
     val imageLoader: ImageLoader get() = app.imageLoader

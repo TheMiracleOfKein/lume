@@ -90,6 +90,7 @@ class MainActivity : AppCompatActivity() {
             val ok = when (tracker) {
                 "anilist" -> trackers.anilist.exchangeCode(code)
                 "shikimori" -> trackers.shikimori.exchangeCode(code)
+                "myanimelist" -> trackers.myAnimeList.exchangeCode(code)
                 else -> false
             }
             Toast.makeText(

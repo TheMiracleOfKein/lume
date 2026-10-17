@@ -242,17 +242,21 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
 
     fun logout(trackerId: String) {
         viewModelScope.launch {
-            when (trackerId) {
-                "shikimori" -> {
-                    app.trackers.shikimori.logout()
-                    statusMessage = string(R.string.tracker_logout_shikimori)
-                }
-                "anilist" -> {
-                    app.trackers.anilist.logout()
-                    statusMessage = string(R.string.tracker_logout_anilist)
-                }
-            }
+            val tracker = app.trackers.byId(trackerId) ?: return@launch
+            tracker.logout()
+            statusMessage = string(R.string.tracker_logged_out, tracker.displayName)
         }
+    }
+
+    fun passwordLogin(tracker: com.lume.app.data.tracker.Tracker, user: String, password: String) {
+        viewModelScope.launch {
+            val ok = runCatching { tracker.login(user, password) }.getOrDefault(false)
+            statusMessage = if (ok) string(R.string.tracker_logged_in, tracker.displayName) else string(R.string.auth_failed)
+        }
+    }
+
+    fun setTrackerAutoLink(value: Boolean) {
+        viewModelScope.launch { prefs.setTrackerAutoLink(value) }
     }
 
     fun createBackup() {

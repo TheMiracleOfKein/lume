@@ -110,6 +110,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val autoDownloadNewKey = booleanPreferencesKey("downloads_auto_new")
     private val deleteAfterReadKey = booleanPreferencesKey("downloads_delete_after_read")
 
+    private val trackerAutoLinkKey = booleanPreferencesKey("tracker_auto_link_enabled")
     private val autoBackupDaysKey = intPreferencesKey("auto_backup_days")
     private val autoBackupKeepKey = intPreferencesKey("auto_backup_keep")
     private val autoBackupFolderKey = stringPreferencesKey("auto_backup_folder")
@@ -134,6 +135,31 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     val anilistClientId: StateFlow<String?> = state { it[anilistClientIdKey] }
     val anilistClientSecret: StateFlow<String?> = state { it[anilistClientSecretKey] }
     val shikimoriAccessToken: StateFlow<String?> = state { it[shikiTokenKey] }
+    val shikimoriRefreshToken: StateFlow<String?> = state { it[shikiRefreshKey] }
+
+    /**
+     * Values of the trackers added in v0.5 (MyAnimeList, Kitsu, MangaUpdates), stored as
+     * `tracker_<id>_<name>`. Never part of backups (see [isPrivateKey]).
+     */
+    val trackerValues: StateFlow<Map<String, String>> = state { prefs ->
+        prefs.asMap().mapNotNull { (k, v) ->
+            if (k.name.startsWith(TRACKER_PREFIX) && v is String) k.name.removePrefix(TRACKER_PREFIX) to v else null
+        }.toMap()
+    }
+
+    fun trackerValue(trackerId: String, name: String): String? = trackerValues.value["${trackerId}_$name"]
+
+    suspend fun setTrackerValue(trackerId: String, name: String, value: String?) {
+        val key = stringPreferencesKey("$TRACKER_PREFIX${trackerId}_$name")
+        context.appDataStore.edit { if (value.isNullOrBlank()) it.remove(key) else it[key] = value }
+    }
+
+    /** Link titles to trackers by an exact title match when they are added to the library. */
+    val trackerAutoLink: StateFlow<Boolean> = state { it[trackerAutoLinkKey] ?: true }
+
+    suspend fun setTrackerAutoLink(value: Boolean) {
+        context.appDataStore.edit { it[trackerAutoLinkKey] = value }
+    }
     val shikimoriUserId: StateFlow<String?> = state { it[shikiUserIdKey] }
     val shikimoriClientId: StateFlow<String?> = state { it[shikiClientIdKey] }
     val shikimoriClientSecret: StateFlow<String?> = state { it[shikiClientSecretKey] }
@@ -339,7 +365,8 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     }
 
     private fun isPrivateKey(name: String): Boolean =
-        PRIVATE_KEY_PARTS.any { name.contains(it) } || name == "auto_backup_folder"
+        PRIVATE_KEY_PARTS.any { name.contains(it) } || name == "auto_backup_folder" ||
+            (name.startsWith(TRACKER_PREFIX) && name != "tracker_auto_link_enabled")
 
     /** Where the pack catalogue is read from; see `docs/packs/index.json`. */
     val packIndexUrl: StateFlow<String> = state { it[packIndexUrlKey]?.takeIf(String::isNotBlank) ?: DEFAULT_PACK_INDEX }
@@ -451,7 +478,8 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
         const val MAX_PARALLEL_PAGES = 4
         val AUTO_BACKUP_DAYS = listOf(0, 1, 3, 7)
         val AUTO_BACKUP_KEEP = listOf(3, 5, 10)
-        private val PRIVATE_KEY_PARTS = listOf("token", "secret", "client_id", "user_id", "password")
+        private val PRIVATE_KEY_PARTS = listOf("token", "secret", "client_id", "user_id", "password", "verifier")
+        private const val TRACKER_PREFIX = "tracker_"
         const val DEFAULT_PACK_INDEX = "https://raw.githubusercontent.com/TheMiracleOfKein/lume/main/docs/packs/index.json"
         private val prefsJson = Json { ignoreUnknownKeys = true }
     }

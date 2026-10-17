@@ -45,6 +45,8 @@ android {
         buildConfigField("String", "ANILIST_CLIENT_SECRET", oauthBuildConfig("LUME_ANILIST_CLIENT_SECRET"))
         buildConfigField("String", "SHIKIMORI_CLIENT_ID", oauthBuildConfig("LUME_SHIKIMORI_CLIENT_ID"))
         buildConfigField("String", "SHIKIMORI_CLIENT_SECRET", oauthBuildConfig("LUME_SHIKIMORI_CLIENT_SECRET"))
+        // MyAnimeList: register an app with redirect URL lume://oauth/myanimelist (no secret needed).
+        buildConfigField("String", "MAL_CLIENT_ID", oauthBuildConfig("LUME_MAL_CLIENT_ID"))
     }
 
     // Release signing from the user's ~/.gradle/gradle.properties (never in the repository).

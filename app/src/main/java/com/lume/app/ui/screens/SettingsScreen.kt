@@ -35,6 +35,18 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.lume.app.data.tracker.Tracker
+import com.lume.app.data.tracker.TrackerLogin
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.material3.RadioButton
@@ -94,6 +106,19 @@ fun SettingsScreen(nav: NavHostController) {
     val appLanguageTag by prefs.appLanguage.collectAsState()
     val anilistTokenState by prefs.anilistAccessToken.collectAsState()
     val shikiTokenState by prefs.shikimoriAccessToken.collectAsState()
+    val trackerValues by prefs.trackerValues.collectAsState()
+    val trackerAutoLink by prefs.trackerAutoLink.collectAsState()
+    var passwordLogin by remember { mutableStateOf<Tracker?>(null) }
+    passwordLogin?.let { tracker ->
+        PasswordLoginDialog(
+            name = tracker.displayName,
+            onDismiss = { passwordLogin = null },
+            onLogin = { user, password ->
+                passwordLogin = null
+                vm.passwordLogin(tracker, user, password)
+            },
+        )
+    }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -377,35 +402,39 @@ fun SettingsScreen(nav: NavHostController) {
             SettingsSection(stringResource(R.string.settings_section_data))
             Text(stringResource(R.string.settings_trackers), color = AppColors.textSecondary, fontSize = 13.sp)
             Spacer(Modifier.height(8.dp))
-            TrackerLoginCard(
-                name = "Shikimori",
-                loggedIn = shikiLoggedIn,
-                onLogin = {
-                    scope.launch {
-                        val err = TrackerAuthActivity.start(context, "shikimori")
-                        if (err != null) {
-                            vm.statusMessage = err
-                            Toast.makeText(context, err, Toast.LENGTH_LONG).show()
+            container.trackers.all.forEach { tracker ->
+                // Re-read whenever any stored token changes.
+                val loggedIn by produceState(false, anilistTokenState, shikiTokenState, trackerValues) {
+                    value = tracker.isLoggedIn()
+                }
+                TrackerLoginCard(
+                    name = tracker.displayName,
+                    loggedIn = loggedIn,
+                    onLogin = {
+                        if (tracker.login == TrackerLogin.Password) {
+                            passwordLogin = tracker
+                        } else {
+                            scope.launch {
+                                val err = TrackerAuthActivity.start(context, tracker.id)
+                                if (err != null) {
+                                    vm.statusMessage = err
+                                    Toast.makeText(context, err, Toast.LENGTH_LONG).show()
+                                }
+                            }
                         }
-                    }
-                },
-                onLogout = { vm.logout("shikimori") },
-            )
-            Spacer(Modifier.height(10.dp))
-            TrackerLoginCard(
-                name = "AniList",
-                loggedIn = anilistLoggedIn,
-                onLogin = {
-                    scope.launch {
-                        val err = TrackerAuthActivity.start(context, "anilist")
-                        if (err != null) {
-                            vm.statusMessage = err
-                            Toast.makeText(context, err, Toast.LENGTH_LONG).show()
-                        }
-                    }
-                },
-                onLogout = { vm.logout("anilist") },
-            )
+                    },
+                    onLogout = { vm.logout(tracker.id) },
+                )
+                Spacer(Modifier.height(10.dp))
+            }
+            SettingsGroup {
+                SwitchRow(
+                    label = stringResource(R.string.tracker_auto_link),
+                    hint = stringResource(R.string.tracker_auto_link_hint),
+                    checked = trackerAutoLink,
+                    onCheckedChange = vm::setTrackerAutoLink,
+                )
+            }
             Spacer(Modifier.height(10.dp))
             SettingsGroup {
                 SettingsLink(stringResource(R.string.settings_create_backup), onClick = vm::createBackup)
@@ -552,6 +581,43 @@ private fun TrackerLoginCard(
             }
         }
     }
+}
+
+/** Username / e-mail and password for Kitsu and MangaUpdates; only the tracker's token is kept. */
+@Composable
+private fun PasswordLoginDialog(name: String, onDismiss: () -> Unit, onLogin: (String, String) -> Unit) {
+    var user by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.tracker_login_title, name)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = user,
+                    onValueChange = { user = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.tracker_login_user)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.tracker_login_password)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                )
+                Text(stringResource(R.string.tracker_login_note), color = AppColors.textTertiary, fontSize = 12.sp)
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = user.isNotBlank() && password.isNotEmpty(), onClick = { onLogin(user, password) }) {
+                Text(stringResource(R.string.action_login))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
 }
 
 @Composable

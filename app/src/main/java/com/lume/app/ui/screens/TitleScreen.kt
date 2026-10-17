@@ -60,6 +60,7 @@ import com.lume.app.ui.components.LumeInsets
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.tracker.TrackerSearchResult
+import com.lume.app.ui.components.TrackerEntryDialog
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.inReadingOrder
 import com.lume.app.ui.components.AnimatedLoadState
@@ -347,10 +348,30 @@ private fun TrackersDialog(
     var syncing by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     var remotePreview by remember { mutableStateOf<String?>(null) }
+    var editing by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val links by container.dao.observeTrackerLinks(sourceId, titleId)
         .collectAsState(initial = emptyList())
     val scroll = rememberScrollState()
+    editing?.let { remoteId ->
+        TrackerEntryDialog(
+            tracker = selectedTracker,
+            remoteId = remoteId,
+            onDismiss = { editing = null },
+            onSaved = { saved ->
+                editing = null
+                scope.launch {
+                    container.dao.getTrackerLinks(sourceId, titleId).firstOrNull { it.tracker == selectedTracker.id }?.let { link ->
+                        container.dao.upsertTrackerLink(
+                            link.copy(status = saved.status?.name, score = saved.score, lastSync = System.currentTimeMillis()),
+                        )
+                    }
+                    message = resources.getString(R.string.tracker_edit_saved, selectedTracker.displayName)
+                    remotePreview = resources.getString(R.string.tracker_preview_progress, remoteId, saved.chaptersRead.toString())
+                }
+            },
+        )
+    }
 
     LaunchedEffect(selectedTracker.id, links) {
         val linked = links.firstOrNull { it.tracker == selectedTracker.id }
@@ -423,14 +444,19 @@ private fun TrackersDialog(
                         fontSize = 13.sp,
                         modifier = Modifier.padding(vertical = 6.dp),
                     )
-                    TextButton(
-                        onClick = {
-                            scope.launch {
-                                selectedTracker.unlink(sourceId, titleId)
-                                message = resources.getString(R.string.tracker_unlinked)
-                            }
-                        },
-                    ) { Text(stringResource(R.string.action_unlink)) }
+                    Row {
+                        TextButton(onClick = { editing = linked.remoteId }) {
+                            Text(stringResource(R.string.tracker_edit))
+                        }
+                        TextButton(
+                            onClick = {
+                                scope.launch {
+                                    selectedTracker.unlink(sourceId, titleId)
+                                    message = resources.getString(R.string.tracker_unlinked)
+                                }
+                            },
+                        ) { Text(stringResource(R.string.action_unlink)) }
+                    }
                 } else {
                     Text(
                         stringResource(R.string.tracker_not_linked),

@@ -55,6 +55,7 @@ class TrackerAuthActivity : ComponentActivity() {
         val title = when (trackerId) {
             "anilist" -> getString(R.string.auth_title_anilist)
             "shikimori" -> getString(R.string.auth_title_shikimori)
+            "myanimelist" -> getString(R.string.auth_title_mal)
             else -> getString(R.string.auth_title_generic)
         }
         enableEdgeToEdge()
@@ -147,6 +148,7 @@ class TrackerAuthActivity : ComponentActivity() {
             val ok = when (trackerId) {
                 "anilist" -> completeAniList(url)
                 "shikimori" -> completeShikimori(url)
+                "myanimelist" -> extractFragmentOrQuery(url, "code")?.let { container.trackers.myAnimeList.exchangeCode(it) } ?: false
                 else -> false
             }
             onHandled(ok)
@@ -216,6 +218,10 @@ class TrackerAuthActivity : ComponentActivity() {
                     } else {
                         container.trackers.shikimori.buildAuthorizeUrl(clientId) to null
                     }
+                }
+                "myanimelist" -> {
+                    val u = container.trackers.myAnimeList.buildAuthorizeUrl()
+                    if (u == null) null to context.getString(R.string.auth_missing_mal_client) else u to null
                 }
                 else -> null to context.getString(R.string.auth_unknown_tracker)
             }
