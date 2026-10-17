@@ -111,6 +111,14 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val deleteAfterReadKey = booleanPreferencesKey("downloads_delete_after_read")
 
     private val trackerAutoLinkKey = booleanPreferencesKey("tracker_auto_link_enabled")
+    private val themeModeKey = stringPreferencesKey("theme_mode")
+    private val pureBlackKey = booleanPreferencesKey("theme_pure_black")
+    private val dynamicColorKey = booleanPreferencesKey("theme_dynamic_color")
+    private val incognitoKey = booleanPreferencesKey("incognito")
+    private val appLockKey = booleanPreferencesKey("app_lock")
+    private val secureScreenKey = booleanPreferencesKey("secure_screen")
+    private val dohKey = stringPreferencesKey("dns_over_https")
+    private val translateLabelsKey = booleanPreferencesKey("translate_chapter_labels")
     private val autoBackupDaysKey = intPreferencesKey("auto_backup_days")
     private val autoBackupKeepKey = intPreferencesKey("auto_backup_keep")
     private val autoBackupFolderKey = stringPreferencesKey("auto_backup_folder")
@@ -123,6 +131,63 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
         current.map(read).stateIn(scope, SharingStarted.Eagerly, read(initial))
 
     val darkTheme: StateFlow<Boolean> = state { it[darkThemeKey] ?: true }
+
+    /** "system" | "light" | "dark"; before v0.5 only [darkTheme] existed and still decides. */
+    val themeMode: StateFlow<String> = state {
+        it[themeModeKey] ?: if (it[darkThemeKey] ?: true) "dark" else "light"
+    }
+    val pureBlack: StateFlow<Boolean> = state { it[pureBlackKey] ?: false }
+    val dynamicColor: StateFlow<Boolean> = state { it[dynamicColorKey] ?: false }
+
+    suspend fun setThemeMode(mode: String) {
+        context.appDataStore.edit {
+            it[themeModeKey] = mode
+            if (mode != "system") it[darkThemeKey] = mode == "dark"
+        }
+    }
+
+    suspend fun setPureBlack(value: Boolean) {
+        context.appDataStore.edit { it[pureBlackKey] = value }
+    }
+
+    suspend fun setDynamicColor(value: Boolean) {
+        context.appDataStore.edit { it[dynamicColorKey] = value }
+    }
+
+    /** Incognito: reading leaves no history, progress or read marks. */
+    val incognito: StateFlow<Boolean> = state { it[incognitoKey] ?: false }
+
+    /** Ask for the screen lock (fingerprint, PIN …) when the app opens. */
+    val appLock: StateFlow<Boolean> = state { it[appLockKey] ?: false }
+
+    /** Hide the app's content in the recent-apps screen and block screenshots. */
+    val secureScreen: StateFlow<Boolean> = state { it[secureScreenKey] ?: false }
+
+    /** DNS over HTTPS provider id ("" = the system resolver); see `data/network/Doh.kt`. */
+    val dnsOverHttps: StateFlow<String> = state { it[dohKey].orEmpty() }
+
+    /** Russian-only chapter labels ("Том 1 Глава 5") are shown in the app language. */
+    val translateChapterLabels: StateFlow<Boolean> = state { it[translateLabelsKey] ?: true }
+
+    suspend fun setIncognito(value: Boolean) {
+        context.appDataStore.edit { it[incognitoKey] = value }
+    }
+
+    suspend fun setAppLock(value: Boolean) {
+        context.appDataStore.edit { it[appLockKey] = value }
+    }
+
+    suspend fun setSecureScreen(value: Boolean) {
+        context.appDataStore.edit { it[secureScreenKey] = value }
+    }
+
+    suspend fun setDnsOverHttps(value: String) {
+        context.appDataStore.edit { it[dohKey] = value }
+    }
+
+    suspend fun setTranslateChapterLabels(value: Boolean) {
+        context.appDataStore.edit { it[translateLabelsKey] = value }
+    }
 
     val activeSourceId: StateFlow<String?> = state { it[activeSourceKey] }
 

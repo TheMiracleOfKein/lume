@@ -69,6 +69,12 @@ class AppContainer(val app: Application) {
 
     /** Background start-up work: sources, download recovery, the library schedule. */
     fun start() {
+        com.lume.app.domain.ChapterLabels.volume = { com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_volume, it) }
+        com.lume.app.domain.ChapterLabels.chapter = { com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_number, it) }
+        appScope.launch { prefs.translateChapterLabels.collect { com.lume.app.domain.ChapterLabels.enabled = it } }
+        appScope.launch(Dispatchers.IO) {
+            prefs.dnsOverHttps.collect { id -> http.dns.use(com.lume.app.data.network.DohProvider.byId(id)) }
+        }
         appScope.launch(Dispatchers.IO) {
             sources.load()
             val recovered = downloads.recoverFromDisk()

@@ -229,7 +229,7 @@ private fun ImportSection(vm: SourcesViewModel) {
         Button(
             onClick = vm::import,
             enabled = !vm.busy,
-            colors = ButtonDefaults.buttonColors(containerColor = AppColors.accent, contentColor = Color.Black),
+            colors = ButtonDefaults.buttonColors(containerColor = AppColors.accent, contentColor = AppColors.onAccent),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(

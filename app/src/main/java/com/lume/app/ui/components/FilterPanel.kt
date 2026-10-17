@@ -96,7 +96,7 @@ fun FilterPanel(
             Button(
                 onClick = { onApply(draft) },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = AppColors.accent, contentColor = Color.Black),
+                colors = ButtonDefaults.buttonColors(containerColor = AppColors.accent, contentColor = AppColors.onAccent),
             ) {
                 Text(stringResource(R.string.filters_apply))
             }
@@ -200,5 +200,5 @@ fun CheckRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
 private fun filterCheckboxColors() = CheckboxDefaults.colors(
     checkedColor = AppColors.accent,
     uncheckedColor = AppColors.textSecondary,
-    checkmarkColor = Color.Black,
+    checkmarkColor = AppColors.onAccent,
 )

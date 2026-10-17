@@ -41,6 +41,11 @@ import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
+import com.lume.app.ui.theme.ThemeMode
+import com.lume.app.ui.theme.isDark
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LightMode
@@ -86,7 +91,9 @@ fun MainMenu(
 ) {
     // Read up here, before the panel exists, so its labels are right on its first frame.
     val container = LocalAppContainer.current
-    val darkTheme by container.prefs.darkTheme.collectAsState()
+    val themeMode by container.prefs.themeMode.collectAsState()
+    val darkTheme = isDark(ThemeMode.fromKey(themeMode) ?: ThemeMode.Dark)
+    val incognito by container.prefs.incognito.collectAsState()
     val sources by container.sources.sources.collectAsState()
     val activeId by container.prefs.activeSourceId.collectAsState()
     val activeName = sources.firstOrNull { it.manifest.id == activeId }?.manifest?.name
@@ -132,6 +139,7 @@ fun MainMenu(
         )
         MenuPanel(
             darkTheme = darkTheme,
+            incognito = incognito,
             activeName = activeName,
             onClose = onClose,
             onNavigate = onNavigate,
@@ -169,6 +177,7 @@ fun MainMenu(
 @Composable
 private fun MenuPanel(
     darkTheme: Boolean,
+    incognito: Boolean,
     activeName: String,
     onClose: () -> Unit,
     onNavigate: (String) -> Unit,
@@ -195,8 +204,13 @@ private fun MenuPanel(
                 icon = if (darkTheme) Icons.Outlined.DarkMode else Icons.Outlined.LightMode,
                 label = stringResource(R.string.menu_theme),
                 onClick = {
-                    scope.launch { prefs.setDarkTheme(!darkTheme) }
+                    scope.launch { prefs.setThemeMode(if (darkTheme) ThemeMode.Light.key else ThemeMode.Dark.key) }
                 },
+            )
+            TopChip(
+                icon = if (incognito) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                label = stringResource(if (incognito) R.string.menu_incognito_on else R.string.menu_incognito),
+                onClick = { scope.launch { prefs.setIncognito(!incognito) } },
             )
             Spacer(Modifier.weight(1f))
             TopChip(
@@ -278,6 +292,14 @@ private fun MenuPanel(
                 onClick = {
                     onClose()
                     onNavigate(Routes.Catalog)
+                },
+            )
+            MenuTile(
+                icon = Icons.Outlined.Info,
+                title = stringResource(R.string.menu_about),
+                onClick = {
+                    onClose()
+                    onNavigate(Routes.About)
                 },
             )
         }

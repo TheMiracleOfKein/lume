@@ -19,6 +19,8 @@ data class LumeColors(
     val divider: Color,
     val navBar: Color,
     val search: Color,
+    /** Text and icons drawn on [accent]. */
+    val onAccent: Color = Color.Black,
 )
 
 val DarkLumeColors = LumeColors(
@@ -51,6 +53,17 @@ val LightLumeColors = LumeColors(
     divider = Color(0xFFD8D8DC),
     navBar = Color(0xFFF0F0F2),
     search = Color(0xFFE8E8EA),
+)
+
+/** Dark theme on pure black, for OLED screens. */
+val AmoledLumeColors = DarkLumeColors.copy(
+    background = Color.Black,
+    surface = Color(0xFF0D0D0D),
+    card = Color(0xFF1A1A1A),
+    cardHigh = Color(0xFF262626),
+    divider = Color(0xFF1C1C1C),
+    navBar = Color.Black,
+    search = Color(0xFF1A1A1A),
 )
 
 val LocalLumeColors = staticCompositionLocalOf { DarkLumeColors }
@@ -86,4 +99,6 @@ object AppColors {
         @Composable @ReadOnlyComposable get() = LocalLumeColors.current.navBar
     val search: Color
         @Composable @ReadOnlyComposable get() = LocalLumeColors.current.search
+    val onAccent: Color
+        @Composable @ReadOnlyComposable get() = LocalLumeColors.current.onAccent
 }

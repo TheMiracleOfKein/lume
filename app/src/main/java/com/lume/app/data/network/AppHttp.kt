@@ -41,12 +41,16 @@ data class HttpResult(
 class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
     private val rateLimiter = HostRateLimitInterceptor()
 
+    /** System DNS or DNS over HTTPS (Settings → Network). */
+    val dns = SwitchableDns()
+
     @Volatile
     var userAgent: String = DEFAULT_UA
         private set
 
     private val client: OkHttpClient = OkHttpClient.Builder()
         .cookieJar(cookieJar)
+        .dns(dns)
         .followRedirects(true)
         .followSslRedirects(true)
         .connectTimeout(20, TimeUnit.SECONDS)

@@ -14,6 +14,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
+import android.view.WindowManager
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.compose.runtime.mutableStateOf
+import androidx.core.content.ContextCompat
+import com.lume.app.ui.components.LockScreen
+import com.lume.app.ui.theme.ThemeMode
+import com.lume.app.ui.theme.isDark
 import com.lume.app.domain.SourceLinks
 import com.lume.app.ui.nav.AppLinks
 import com.lume.app.ui.nav.Routes
@@ -23,9 +31,23 @@ import com.lume.app.ui.theme.LumeTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
+    /** App lock: true until the screen lock is confirmed. */
+    private val locked = mutableStateOf(false)
+    private var stoppedAt = 0L
+    private var prompting = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val prefs = (application as LumeApp).container.prefs
+        locked.value = prefs.appLock.value && savedInstanceState?.getBoolean(KEY_UNLOCKED) != true
+        // "Hide content in recent apps": the window is secure (blank thumbnail, no screenshots).
+        lifecycleScope.launch {
+            prefs.secureScreen.collect { secure ->
+                if (secure) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        }
         handleOAuthIntent(intent)
         // After rotation the same intent comes back; only a fresh launch opens its route.
         if (savedInstanceState == null) {
@@ -34,18 +56,82 @@ class MainActivity : AppCompatActivity() {
         }
         val container = (application as LumeApp).container
         setContent {
-            val darkTheme by container.prefs.darkTheme.collectAsState()
+            val themeMode by container.prefs.themeMode.collectAsState()
+            val pureBlack by container.prefs.pureBlack.collectAsState()
+            val dynamicColor by container.prefs.dynamicColor.collectAsState()
             CompositionLocalProvider(LocalAppContainer provides container) {
-                LumeTheme(darkTheme = darkTheme) {
+                LumeTheme(
+                    darkTheme = isDark(ThemeMode.fromKey(themeMode) ?: ThemeMode.Dark),
+                    pureBlack = pureBlack,
+                    dynamicColor = dynamicColor,
+                ) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = AppColors.background,
                     ) {
                         LumeRoot()
+                        if (locked.value) LockScreen(onUnlock = ::promptUnlock)
                     }
                 }
             }
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(KEY_UNLOCKED, !locked.value)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) stoppedAt = System.currentTimeMillis()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Back after a while in the background (a file picker or a sign-in page is quicker).
+        val prefs = (application as LumeApp).container.prefs
+        if (prefs.appLock.value && stoppedAt > 0 && System.currentTimeMillis() - stoppedAt > LOCK_AFTER_MS) {
+            locked.value = true
+        }
+        if (!prefs.appLock.value) locked.value = false
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (locked.value) promptUnlock()
+    }
+
+    /** The system screen-lock prompt: fingerprint, face, PIN, pattern or password. */
+    private fun promptUnlock() {
+        if (prompting) return
+        val authenticators = BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        if (BiometricManager.from(this).canAuthenticate(authenticators) != BiometricManager.BIOMETRIC_SUCCESS) {
+            // No screen lock set on the phone: nothing to check against.
+            locked.value = false
+            return
+        }
+        prompting = true
+        val prompt = BiometricPrompt(
+            this,
+            ContextCompat.getMainExecutor(this),
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    prompting = false
+                    locked.value = false
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    prompting = false
+                }
+            },
+        )
+        prompt.authenticate(
+            BiometricPrompt.PromptInfo.Builder()
+                .setTitle(getString(R.string.app_lock_title))
+                .setAllowedAuthenticators(authenticators)
+                .build(),
+        )
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -78,6 +164,11 @@ class MainActivity : AppCompatActivity() {
             }
             AppLinks.open(Routes.title(target.first, target.second))
         }
+    }
+
+    private companion object {
+        const val KEY_UNLOCKED = "lume.unlocked"
+        const val LOCK_AFTER_MS = 30_000L
     }
 
     private fun handleOAuthIntent(intent: Intent?) {

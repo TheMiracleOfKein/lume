@@ -501,7 +501,7 @@ private fun LazyGridItemScope.LibraryGridCell(
                 Icon(
                     Icons.Outlined.Check,
                     contentDescription = null,
-                    tint = Color.Black,
+                    tint = AppColors.onAccent,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(4.dp)
@@ -536,7 +536,7 @@ private fun CountBadges(item: LibraryItem, settings: LibrarySettings, modifier: 
         unread?.let {
             Text(
                 "$it",
-                color = Color.Black,
+                color = AppColors.onAccent,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier

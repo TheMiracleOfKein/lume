@@ -15,6 +15,7 @@ object Routes {
     const val Downloads = "downloads"
     const val Categories = "categories"
     const val Browse = "browse/{sourceId}"
+    const val About = "about"
     const val Title = "title/{sourceId}/{titleId}"
     const val Chapters = "title/{sourceId}/{titleId}/chapters"
     const val Reader = "read/{sourceId}/{titleId}/{chapterId}?page={page}&offset={offset}"

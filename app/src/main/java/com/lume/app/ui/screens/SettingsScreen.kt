@@ -35,6 +35,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import com.lume.app.data.network.DohProvider
+import com.lume.app.ui.theme.ThemeMode
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
@@ -85,13 +89,20 @@ import com.lume.app.ui.theme.Motion
 import com.lume.app.ui.tracker.TrackerAuthActivity
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(nav: NavHostController) {
     val container = LocalAppContainer.current
     val vm: SettingsViewModel = viewModel { SettingsViewModel(container) }
     val prefs = vm.prefs
-    val darkTheme by prefs.darkTheme.collectAsState()
+    val themeMode by prefs.themeMode.collectAsState()
+    val pureBlack by prefs.pureBlack.collectAsState()
+    val dynamicColor by prefs.dynamicColor.collectAsState()
+    val translateLabels by prefs.translateChapterLabels.collectAsState()
+    val incognito by prefs.incognito.collectAsState()
+    val appLock by prefs.appLock.collectAsState()
+    val secureScreen by prefs.secureScreen.collectAsState()
+    val doh by prefs.dnsOverHttps.collectAsState()
     val libraryUpdates by prefs.libraryUpdatesEnabled.collectAsState()
     val libraryInterval by prefs.libraryUpdateIntervalHours.collectAsState()
     val libraryWifiOnly by prefs.libraryUpdateWifiOnly.collectAsState()
@@ -176,10 +187,45 @@ fun SettingsScreen(nav: NavHostController) {
             // ---------------- General ----------------
             SettingsSection(stringResource(R.string.settings_section_general))
             SettingsGroup {
+                Text(
+                    stringResource(R.string.settings_theme),
+                    color = AppColors.textSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        ThemeMode.System to R.string.settings_theme_system,
+                        ThemeMode.Light to R.string.settings_theme_light,
+                        ThemeMode.Dark to R.string.settings_theme_dark,
+                    ).forEach { (mode, label) ->
+                        ChoiceChip(
+                            label = stringResource(label),
+                            selected = themeMode == mode.key,
+                            modifier = Modifier.weight(1f),
+                            onClick = { vm.setThemeMode(mode.key) },
+                        )
+                    }
+                }
                 SwitchRow(
-                    label = stringResource(R.string.settings_dark_theme),
-                    checked = darkTheme,
-                    onCheckedChange = vm::setDarkTheme,
+                    label = stringResource(R.string.settings_pure_black),
+                    hint = stringResource(R.string.settings_pure_black_hint),
+                    checked = pureBlack,
+                    onCheckedChange = vm::setPureBlack,
+                )
+                if (Build.VERSION.SDK_INT >= 31) {
+                    SwitchRow(
+                        label = stringResource(R.string.settings_dynamic_color),
+                        hint = stringResource(R.string.settings_dynamic_color_hint),
+                        checked = dynamicColor,
+                        onCheckedChange = vm::setDynamicColor,
+                    )
+                }
+                SwitchRow(
+                    label = stringResource(R.string.settings_translate_labels),
+                    hint = stringResource(R.string.settings_translate_labels_hint),
+                    checked = translateLabels,
+                    onCheckedChange = vm::setTranslateLabels,
                 )
                 Text(
                     stringResource(R.string.settings_language),
@@ -369,6 +415,58 @@ fun SettingsScreen(nav: NavHostController) {
                 }
             }
 
+            // ---------------- Privacy ----------------
+            SettingsSection(stringResource(R.string.settings_section_privacy))
+            SettingsGroup {
+                SwitchRow(
+                    label = stringResource(R.string.settings_incognito),
+                    hint = stringResource(R.string.settings_incognito_hint),
+                    checked = incognito,
+                    onCheckedChange = vm::setIncognito,
+                )
+                SwitchRow(
+                    label = stringResource(R.string.settings_app_lock),
+                    hint = stringResource(R.string.settings_app_lock_hint),
+                    checked = appLock,
+                    onCheckedChange = vm::setAppLock,
+                )
+                SwitchRow(
+                    label = stringResource(R.string.settings_secure_screen),
+                    hint = stringResource(R.string.settings_secure_screen_hint),
+                    checked = secureScreen,
+                    onCheckedChange = vm::setSecureScreen,
+                )
+            }
+
+            // ---------------- Network & storage ----------------
+            SettingsSection(stringResource(R.string.settings_section_network))
+            SettingsGroup {
+                Text(
+                    stringResource(R.string.settings_doh),
+                    color = AppColors.textSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp),
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ChoiceChip(
+                        label = stringResource(R.string.settings_doh_off),
+                        selected = doh.isEmpty(),
+                        onClick = { vm.setDoh("") },
+                    )
+                    DohProvider.entries.forEach { provider ->
+                        ChoiceChip(label = provider.label, selected = doh == provider.id, onClick = { vm.setDoh(provider.id) })
+                    }
+                }
+                Text(
+                    stringResource(R.string.settings_doh_hint),
+                    color = AppColors.textTertiary,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 4.dp),
+                )
+                SettingsLink(stringResource(R.string.settings_clear_cache)) { vm.clearCache() }
+                SettingsLink(stringResource(R.string.settings_clear_cookies)) { vm.clearCookies() }
+            }
+
             // ---------------- Local files ----------------
             SettingsSection(stringResource(R.string.settings_section_local))
             SettingsGroup {
@@ -512,6 +610,10 @@ fun SettingsScreen(nav: NavHostController) {
                     }
                 }
             }
+            Spacer(Modifier.height(10.dp))
+            SettingsGroup {
+                SettingsLink(stringResource(R.string.menu_about)) { nav.navigate(Routes.About) }
+            }
             AnimatedVisibility(
                 visible = statusMessage != null,
                 enter = expandVertically(Motion.medium()) + fadeIn(Motion.medium()),
@@ -574,7 +676,7 @@ private fun TrackerLoginCard(
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AppColors.accent,
-                    contentColor = Color.Black,
+                    contentColor = AppColors.onAccent,
                 ),
             ) {
                 Text(stringResource(R.string.action_login))

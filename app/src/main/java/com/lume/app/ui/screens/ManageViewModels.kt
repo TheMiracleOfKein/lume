@@ -133,8 +133,74 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         )
     }
 
-    fun setDarkTheme(value: Boolean) {
-        viewModelScope.launch { prefs.setDarkTheme(value) }
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch { prefs.setThemeMode(mode) }
+    }
+
+    fun setPureBlack(value: Boolean) {
+        viewModelScope.launch { prefs.setPureBlack(value) }
+    }
+
+    fun setDynamicColor(value: Boolean) {
+        viewModelScope.launch { prefs.setDynamicColor(value) }
+    }
+
+    fun setTranslateLabels(value: Boolean) {
+        viewModelScope.launch { prefs.setTranslateChapterLabels(value) }
+    }
+
+    fun setIncognito(value: Boolean) {
+        viewModelScope.launch { prefs.setIncognito(value) }
+    }
+
+    fun setAppLock(value: Boolean) {
+        viewModelScope.launch {
+            val manager = androidx.biometric.BiometricManager.from(app.app)
+            val ok = manager.canAuthenticate(
+                androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                    androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL,
+            ) == androidx.biometric.BiometricManager.BIOMETRIC_SUCCESS
+            if (value && !ok) {
+                statusMessage = string(R.string.app_lock_no_screen_lock)
+                return@launch
+            }
+            prefs.setAppLock(value)
+        }
+    }
+
+    fun setSecureScreen(value: Boolean) {
+        viewModelScope.launch { prefs.setSecureScreen(value) }
+    }
+
+    fun setDoh(id: String) {
+        viewModelScope.launch {
+            prefs.setDnsOverHttps(id)
+            app.http.bumpNetworkEpoch()
+        }
+    }
+
+    /** Cover and page images, unpacked archives and other rebuildable files. */
+    fun clearCache() {
+        viewModelScope.launch {
+            val freed = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val dir = app.app.cacheDir
+                val before = dir.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+                app.imageLoader.memoryCache?.clear()
+                app.imageLoader.diskCache?.clear()
+                dir.listFiles()?.forEach { it.deleteRecursively() }
+                before - dir.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+            }
+
+            statusMessage = string(R.string.cache_cleared, android.text.format.Formatter.formatShortFileSize(app.app, freed))
+        }
+    }
+
+    /** Site cookies (and with them Cloudflare checks and site logins in the WebView). */
+    fun clearCookies() {
+        val manager = android.webkit.CookieManager.getInstance()
+        manager.removeAllCookies { manager.flush() }
+        app.http.bumpNetworkEpoch()
+        statusMessage = string(R.string.cookies_cleared)
     }
 
     fun setAppLanguage(tag: String, apply: () -> Unit) {

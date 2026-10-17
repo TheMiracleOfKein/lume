@@ -253,7 +253,13 @@ private class DispatchingSource(private val delegate: CatalogSource) : CatalogSo
 
     override suspend fun getTitle(id: String): TitleDetails = withContext(Dispatchers.IO) { delegate.getTitle(id) }
     override suspend fun getChapters(titleId: String): List<Chapter> =
-        withContext(Dispatchers.IO) { delegate.getChapters(titleId) }
+        withContext(Dispatchers.IO) {
+            // Russian-only labels in the app language (Settings → General).
+            delegate.getChapters(titleId).map { ch ->
+                val label = com.lume.app.domain.ChapterLabels.localize(ch.title)
+                if (label == ch.title) ch else ch.copy(title = label)
+            }
+        }
 
     override suspend fun getPages(chapter: Chapter): List<ComicPage> =
         withContext(Dispatchers.IO) { delegate.getPages(chapter) }

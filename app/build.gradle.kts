@@ -140,6 +140,9 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
+    implementation(libs.okhttp.doh)
+    // App lock: the system screen-lock prompt (fingerprint, face, PIN).
+    implementation(libs.androidx.biometric)
     implementation(libs.jsoup)
     implementation(libs.jspecify)
     implementation(libs.coil.compose)

@@ -216,7 +216,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                     },
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = AppColors.accent,
-                                        contentColor = Color.Black,
+                                        contentColor = AppColors.onAccent,
                                     ),
                                     enabled = chapters.isNotEmpty(),
                                 ) {
@@ -516,7 +516,7 @@ private fun TrackersDialog(
                     enabled = !syncing && linked != null,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AppColors.accent,
-                        contentColor = Color.Black,
+                        contentColor = AppColors.onAccent,
                     ),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -553,7 +553,7 @@ private fun TrackersDialog(
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AppColors.accent,
-                        contentColor = Color.Black,
+                        contentColor = AppColors.onAccent,
                     ),
                 ) {
                     Text(
