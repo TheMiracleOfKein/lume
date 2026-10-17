@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.baselineprofile)
 }
 
 // Must stay outside android { defaultConfig } — nested mapNotNull/return@ confuses the IDE
@@ -34,8 +35,8 @@ android {
         applicationId = "com.lume.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // OAuth app credentials for AniList / Shikimori (identify Lume itself).
@@ -130,8 +131,10 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.datastore.preferences)
     implementation(libs.androidx.work.runtime.ktx)
-    // Installs app/src/main/baseline-prof.txt on sideloaded installs too (Play does it itself).
+    // Installs the baseline profile on sideloaded installs too (Play does it itself).
     implementation(libs.androidx.profileinstaller)
+    // Measured profile from :baselineprofile (./gradlew :app:generateBaselineProfile with a device attached).
+    baselineProfile(project(":baselineprofile"))
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
     testImplementation(libs.room.testing)
