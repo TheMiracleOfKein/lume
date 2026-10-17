@@ -132,7 +132,6 @@
     <string name="downloads_waiting">Ожидание…</string>
 
     <string name="settings_title">Настройки</string>
-    <string name="settings_dark_theme">Тёмная тема</string>
     <string name="settings_library_auto_check">Автопроверка библиотеки</string>
     <string name="settings_sources">Источники</string>
     <string name="settings_downloads">Загрузки</string>
@@ -148,8 +147,6 @@
     <string name="backup_restored">Восстановлено: %s</string>
     <string name="backup_none">Нет файлов бэкапа в backups/</string>
     <string name="restore_error">Ошибка восстановления</string>
-    <string name="tracker_logout_shikimori">Shikimori: выход</string>
-    <string name="tracker_logout_anilist">AniList: выход</string>
     <string name="tracker_status_logged_in">%s · вход выполнен</string>
     <string name="tracker_status_logged_out">%s · не авторизован</string>
 
@@ -392,7 +389,6 @@
     <string name="filters_apply">Применить</string>
     <string name="filters_reset">Сбросить</string>
     <string name="filters_none">У этого источника нет фильтров</string>
-    <string name="filters_active">Фильтры включены</string>
     <string name="search_history">Недавние запросы</string>
     <string name="search_history_clear">Очистить</string>
     <string name="search_history_remove">Удалить из истории</string>

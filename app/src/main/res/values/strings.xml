@@ -142,7 +142,6 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
-    <string name="settings_dark_theme">Dark theme</string>
     <string name="settings_library_auto_check">Auto-check library</string>
     <string name="settings_sources">Sources</string>
     <string name="settings_downloads">Downloads</string>
@@ -158,8 +157,6 @@
     <string name="backup_restored">Restored: %s</string>
     <string name="backup_none">No backup files in backups/</string>
     <string name="restore_error">Restore failed</string>
-    <string name="tracker_logout_shikimori">Shikimori: signed out</string>
-    <string name="tracker_logout_anilist">AniList: signed out</string>
     <string name="tracker_status_logged_in">%s · signed in</string>
     <string name="tracker_status_logged_out">%s · not signed in</string>
 
@@ -405,7 +402,6 @@
     <string name="filters_apply">Apply</string>
     <string name="filters_reset">Reset</string>
     <string name="filters_none">This source has no filters</string>
-    <string name="filters_active">Filters are on</string>
     <string name="search_history">Recent searches</string>
     <string name="search_history_clear">Clear</string>
     <string name="search_history_remove">Remove from history</string>
