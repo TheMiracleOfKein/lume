@@ -1,9 +1,11 @@
 package com.lume.app.data.downloads
 
-import com.lume.app.LumeApp
+import android.content.Context
 import com.lume.app.R
 import com.lume.app.data.db.DownloadQueueEntity
 import com.lume.app.data.db.LibraryDao
+import com.lume.app.data.network.NetworkMonitor
+import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.data.source.SourceRegistry
 import com.lume.app.data.title.TitleRepository
 import com.lume.app.domain.Chapter
@@ -26,10 +28,13 @@ import kotlinx.coroutines.sync.withLock
  * Sequential download queue backed by Room + [DownloadStore].
  */
 class DownloadQueue(
+    private val context: Context,
     private val dao: LibraryDao,
     private val store: DownloadStore,
     private val sources: SourceRegistry,
     private val titles: TitleRepository,
+    private val prefs: AppPreferences,
+    private val network: NetworkMonitor,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mutex = Mutex()
@@ -156,8 +161,7 @@ class DownloadQueue(
 
     /** "Wi-Fi only": park the queue on metered networks until Wi-Fi returns or the option is turned off. */
     private suspend fun awaitAllowedNetwork() {
-        val app = LumeApp.instance
-        combine(app.prefs.downloadsWifiOnly, app.network.unmetered) { wifiOnly, unmetered -> !wifiOnly || unmetered }
+        combine(prefs.downloadsWifiOnly, network.unmetered) { wifiOnly, unmetered -> !wifiOnly || unmetered }
             .first { it }
     }
 
@@ -167,7 +171,7 @@ class DownloadQueue(
             runCatching {
                 ensureActive()
                 val source = sources.sourceById(item.sourceId)
-                    ?: error(LumeApp.instance.getString(R.string.error_source_not_found))
+                    ?: error(context.getString(R.string.error_source_not_found))
                 val known = runCatching { titles.refresh(item.sourceId, item.titleId) }.getOrNull()
                     ?: titles.cached(item.sourceId, item.titleId)
                 val title = known?.details

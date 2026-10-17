@@ -31,7 +31,7 @@ class LibraryUpdateWorker(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        val app = applicationContext as? LumeApp ?: return Result.success()
+        val app = (applicationContext as? LumeApp)?.container ?: return Result.success()
         val dao = app.dao
         val results = mutableListOf<LibraryUpdateResult>()
         // A cold start for this job alone would otherwise see an empty source list and do nothing.

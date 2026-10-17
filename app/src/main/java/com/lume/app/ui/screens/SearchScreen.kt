@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.lume.app.ui.components.LumeInsets
-import com.lume.app.LumeApp
+import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.ui.components.AnimatedLoadState
 import com.lume.app.ui.components.CoverCard
@@ -69,11 +69,13 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen(nav: NavHostController, vm: SearchViewModel = viewModel()) {
+fun SearchScreen(nav: NavHostController) {
+    val container = LocalAppContainer.current
+    val vm: SearchViewModel = viewModel { SearchViewModel(container) }
     val scope = rememberCoroutineScope()
     val keyboard = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
-    val networkEpoch by LumeApp.instance.http.networkEpoch.collectAsState()
+    val networkEpoch by container.http.networkEpoch.collectAsState()
 
     // A solved Cloudflare check bumps the epoch: refill the sources it was blocking.
     LaunchedEffect(networkEpoch) { if (networkEpoch > 0) vm.retryChallenged() }
@@ -134,11 +136,11 @@ fun SearchScreen(nav: NavHostController, vm: SearchViewModel = viewModel()) {
             ) { pane ->
                 if (pane == Mode.Current) {
                     CurrentSourceResults(vm, nav, onChallenge = { uri ->
-                        scope.launch { LumeApp.instance.http.requestChallenge(uri) }
+                        scope.launch { container.http.requestChallenge(uri) }
                     })
                 } else {
                     GlobalResults(vm, nav, onChallenge = { uri ->
-                        scope.launch { LumeApp.instance.http.requestChallenge(uri) }
+                        scope.launch { container.http.requestChallenge(uri) }
                     })
                 }
             }

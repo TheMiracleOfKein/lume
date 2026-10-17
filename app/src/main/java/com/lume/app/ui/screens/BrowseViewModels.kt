@@ -5,9 +5,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lume.app.LumeApp
+import com.lume.app.AppContainer
 import com.lume.app.R
 import com.lume.app.data.locale.appString
+import com.lume.app.data.network.AppHttp
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.HomeFeed
@@ -22,10 +23,10 @@ import kotlinx.coroutines.launch
 import java.net.URI
 
 /** Error text + optional Cloudflare URI for a failed load (and asks for the challenge). */
-private suspend fun describeFailure(e: Throwable, onChallenge: (URI) -> Unit): String {
+private suspend fun describeFailure(http: AppHttp, e: Throwable, onChallenge: (URI) -> Unit): String {
     if (e is CloudflareException) {
         onChallenge(e.uri)
-        LumeApp.instance.http.requestChallenge(e.uri)
+        http.requestChallenge(e.uri)
         return appString(R.string.error_cloudflare_needed)
     }
     return e.message ?: e.toString()
@@ -35,8 +36,7 @@ private suspend fun describeFailure(e: Throwable, onChallenge: (URI) -> Unit): S
  * Home feed. Kept in a ViewModel so switching tabs or coming back shows the feed at once
  * instead of reloading it behind a spinner.
  */
-class HomeViewModel : ViewModel() {
-    private val app = LumeApp.instance
+class HomeViewModel(private val app: AppContainer) : ViewModel() {
 
     var feed by mutableStateOf<HomeFeed?>(null)
         private set
@@ -80,7 +80,7 @@ class HomeViewModel : ViewModel() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                error = describeFailure(e) { cloudflareUri = it }
+                error = describeFailure(app.http, e) { cloudflareUri = it }
             } finally {
                 loading = false
             }
@@ -94,7 +94,10 @@ class HomeViewModel : ViewModel() {
 }
 
 /** One catalog list (popular or latest), with its own paging and its own in-flight request. */
-class CatalogFeed(private val fetch: suspend CatalogSource.(page: Int) -> PagedResult<TitleSummary>) {
+class CatalogFeed(
+    private val http: AppHttp,
+    private val fetch: suspend CatalogSource.(page: Int) -> PagedResult<TitleSummary>,
+) {
     var items by mutableStateOf<List<TitleSummary>>(emptyList())
         internal set
     var hasNext by mutableStateOf(false)
@@ -129,7 +132,7 @@ class CatalogFeed(private val fetch: suspend CatalogSource.(page: Int) -> PagedR
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            error = describeFailure(e) { cloudflareUri = it }
+            error = describeFailure(http, e) { cloudflareUri = it }
         } finally {
             loading = false
             loadingMore = false
@@ -137,11 +140,10 @@ class CatalogFeed(private val fetch: suspend CatalogSource.(page: Int) -> PagedR
     }
 }
 
-class CatalogViewModel : ViewModel() {
-    private val app = LumeApp.instance
+class CatalogViewModel(private val app: AppContainer) : ViewModel() {
 
-    val popular = CatalogFeed { getPopular(it) }
-    val latest = CatalogFeed { getLatest(it) }
+    val popular = CatalogFeed(app.http) { getPopular(it) }
+    val latest = CatalogFeed(app.http) { getLatest(it) }
 
     var sourceId by mutableStateOf("")
         private set

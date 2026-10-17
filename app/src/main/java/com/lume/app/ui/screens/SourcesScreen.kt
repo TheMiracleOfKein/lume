@@ -33,12 +33,10 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,27 +46,28 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.lume.app.ui.components.LumeInsets
-import com.lume.app.LumeApp
+import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.source.SourceEngines
 import com.lume.app.domain.CatalogSource
 import com.lume.app.ui.source.SourceLoginActivity
 import com.lume.app.ui.theme.AppColors
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SourcesScreen(nav: NavHostController) {
     val context = LocalContext.current
     val resources = LocalResources.current
-    val sources by LumeApp.instance.sources.sources.collectAsState()
-    val activeId by LumeApp.instance.sources.activeSourceId.collectAsState()
-    val scope = rememberCoroutineScope()
-    var importUrl by remember { mutableStateOf("") }
-    var busy by remember { mutableStateOf(false) }
+    val container = LocalAppContainer.current
+    val vm: SourcesViewModel = viewModel { SourcesViewModel(container) }
+    val sources by vm.sources.collectAsState()
+    val activeId by vm.activeId.collectAsState()
+    val busy = vm.busy
     val snack = remember { SnackbarHostState() }
+    LaunchedEffect(vm) { vm.messages.collect { snack.showSnackbar(it) } }
 
     val grouped = remember(sources) {
         sources
@@ -116,8 +115,8 @@ fun SourcesScreen(nav: NavHostController) {
             )
             Spacer(Modifier.height(8.dp))
             TextField(
-                value = importUrl,
-                onValueChange = { importUrl = it },
+                value = vm.importUrl,
+                onValueChange = { vm.importUrl = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 placeholder = {
@@ -135,24 +134,7 @@ fun SourcesScreen(nav: NavHostController) {
             )
             Spacer(Modifier.height(8.dp))
             Button(
-                onClick = {
-                    val url = importUrl.trim()
-                    if (url.isEmpty() || busy) return@Button
-                    scope.launch {
-                        busy = true
-                        runCatching {
-                            val pack = LumeApp.instance.sources.importUrl(url)
-                            LumeApp.instance.sources.setActive(pack.id)
-                            pack
-                        }.onSuccess {
-                            snack.showSnackbar(resources.getString(R.string.sources_pack_added, it.name, it.engine))
-                            importUrl = ""
-                        }.onFailure {
-                            snack.showSnackbar(it.message ?: it.toString())
-                        }
-                        busy = false
-                    }
-                },
+                onClick = vm::import,
                 enabled = !busy,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AppColors.accent,
@@ -173,29 +155,20 @@ fun SourcesScreen(nav: NavHostController) {
                     }
                     items(list, key = { "${langKey}-${it.manifest.id}" }) { source ->
                         val isLib = source.manifest.engine == SourceEngines.LIBSOCIAL
-                        val token by LumeApp.instance.libAuth.tokenFlow(source.manifest.id)
+                        val token by vm.loginToken(source.manifest.id)
                             .collectAsState(initial = null)
                         SourceRow(
                             source = source,
                             selected = source.manifest.id == activeId,
-                            removable = !LumeApp.instance.sources.isBundled(source.manifest.id),
+                            removable = vm.isRemovable(source.manifest.id),
                             loggedIn = token != null,
                             showLogin = isLib,
-                            onSelect = {
-                                scope.launch { LumeApp.instance.sources.setActive(source.manifest.id) }
-                            },
-                            onRemove = {
-                                scope.launch { LumeApp.instance.sources.remove(source.manifest.id) }
-                            },
+                            onSelect = { vm.setActive(source.manifest.id) },
+                            onRemove = { vm.remove(source.manifest.id) },
                             onLogin = {
                                 SourceLoginActivity.start(context, source.manifest.id)
                             },
-                            onLogout = {
-                                scope.launch {
-                                    LumeApp.instance.libAuth.clear(source.manifest.id)
-                                    snack.showSnackbar(resources.getString(R.string.source_logout_ok))
-                                }
-                            },
+                            onLogout = { vm.logout(source.manifest.id) },
                         )
                     }
                     item { Spacer(Modifier.height(8.dp)) }

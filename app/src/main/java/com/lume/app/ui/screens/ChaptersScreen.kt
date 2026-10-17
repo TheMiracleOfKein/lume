@@ -32,12 +32,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.lume.app.ui.components.LumeInsets
-import com.lume.app.LumeApp
+import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.db.DownloadQueueEntity
 import com.lume.app.ui.components.AnimatedLoadState
@@ -61,7 +61,8 @@ import com.lume.app.ui.theme.fadingItem
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
-    val vm: ChaptersViewModel = viewModel { ChaptersViewModel(sourceId, titleId) }
+    val container = LocalAppContainer.current
+    val vm: ChaptersViewModel = viewModel { ChaptersViewModel(container, sourceId, titleId) }
     val chapters = vm.chapters
     var ascending by rememberSaveable { mutableStateOf(false) }
     val readIds by vm.readIds.collectAsState()
@@ -70,7 +71,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
     val partialProgress by vm.partialProgress.collectAsState()
     var selectMode by rememberSaveable { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
-    val queueItems by LumeApp.instance.downloadQueue.items.collectAsState()
+    val queueItems by container.downloadQueue.items.collectAsState()
 
     val displayed = remember(chapters, ascending) {
         if (ascending) chapters else chapters.asReversed()
@@ -253,7 +254,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                             queueItem.status == DownloadQueueEntity.STATUS_RUNNING) -> {
                                         IconButton(
                                             onClick = {
-                                                LumeApp.instance.downloadQueue.cancel(
+                                                container.downloadQueue.cancel(
                                                     sourceId,
                                                     titleId,
                                                     chapter.id,

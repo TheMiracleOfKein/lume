@@ -35,20 +35,16 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.lume.app.ui.components.LumeInsets
-import com.lume.app.LumeApp
+import com.lume.app.LocalAppContainer
 import com.lume.app.R
-import com.lume.app.data.db.DownloadEntity
 import com.lume.app.data.db.DownloadQueueEntity
 import com.lume.app.ui.components.CoverImage
 import com.lume.app.ui.nav.Routes
@@ -56,47 +52,16 @@ import com.lume.app.ui.nav.openReader
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 import com.lume.app.ui.theme.fadingItem
-import kotlinx.coroutines.launch
-
-private data class DownloadTitleGroup(
-    val sourceId: String,
-    val titleId: String,
-    val titleName: String,
-    val coverUrl: String?,
-    val chapters: List<DownloadEntity>,
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadsScreen(nav: NavHostController) {
-    val downloads by LumeApp.instance.dao.observeDownloads().collectAsState(initial = emptyList())
-    val queue by LumeApp.instance.downloadQueue.items.collectAsState()
-    val scope = rememberCoroutineScope()
-    var expanded by remember { mutableStateOf<Set<String>>(emptySet()) }
-
-    val groups = remember(downloads) {
-        downloads
-            .groupBy { "${it.sourceId}|${it.titleId}" }
-            .map { (_, items) ->
-                val first = items.first()
-                DownloadTitleGroup(
-                    sourceId = first.sourceId,
-                    titleId = first.titleId,
-                    titleName = first.titleName,
-                    coverUrl = first.coverUrl,
-                    chapters = items.sortedBy { it.chapterName },
-                )
-            }
-            .sortedBy { it.titleName.lowercase() }
-    }
-    val activeQueue = remember(queue) {
-        queue.filter {
-            it.status == DownloadQueueEntity.STATUS_PENDING ||
-                it.status == DownloadQueueEntity.STATUS_RUNNING
-        }
-    }
-
-    val failedQueue = remember(queue) { queue.filter { it.status == DownloadQueueEntity.STATUS_ERROR } }
+    val container = LocalAppContainer.current
+    val vm: DownloadsViewModel = viewModel { DownloadsViewModel(container) }
+    val groups by vm.groups.collectAsState()
+    val activeQueue by vm.activeQueue.collectAsState()
+    val failedQueue by vm.failedQueue.collectAsState()
+    val expanded = vm.expanded
 
     Scaffold(
         containerColor = AppColors.background,
@@ -159,7 +124,7 @@ fun DownloadsScreen(nav: NavHostController) {
                                         Text(stringResource(R.string.downloads_waiting), color = AppColors.textTertiary, fontSize = 11.sp)
                                     }
                                 }
-                                IconButton(onClick = { LumeApp.instance.downloadQueue.cancel(item.id) }) {
+                                IconButton(onClick = { vm.cancel(item.id) }) {
                                     Icon(Icons.Outlined.Close, stringResource(R.string.action_cancel), tint = AppColors.danger)
                                 }
                             }
@@ -190,10 +155,10 @@ fun DownloadsScreen(nav: NavHostController) {
                                         fontSize = 11.sp,
                                     )
                                 }
-                                TextButton(onClick = { LumeApp.instance.downloadQueue.retry(item.id) }) {
+                                TextButton(onClick = { vm.retry(item.id) }) {
                                     Text(stringResource(R.string.action_retry), color = AppColors.accent)
                                 }
-                                IconButton(onClick = { LumeApp.instance.downloadQueue.cancel(item.id) }) {
+                                IconButton(onClick = { vm.cancel(item.id) }) {
                                     Icon(Icons.Outlined.Close, stringResource(R.string.action_cancel), tint = AppColors.textSecondary)
                                 }
                             }
@@ -237,19 +202,14 @@ fun DownloadsScreen(nav: NavHostController) {
                                 }
                                 IconButton(
                                     onClick = {
-                                        scope.launch {
-                                            LumeApp.instance.downloads.deleteTitle(
-                                                group.sourceId,
-                                                group.titleId,
-                                            )
-                                        }
+                                        vm.deleteTitle(group.sourceId, group.titleId)
                                     },
                                 ) {
                                     Icon(Icons.Outlined.Delete, null, tint = AppColors.danger)
                                 }
                                 IconButton(
                                     onClick = {
-                                        expanded = if (isOpen) expanded - key else expanded + key
+                                        vm.toggle(key)
                                     },
                                 ) {
                                     Icon(
@@ -285,13 +245,7 @@ fun DownloadsScreen(nav: NavHostController) {
                                             }
                                             IconButton(
                                                 onClick = {
-                                                    scope.launch {
-                                                        LumeApp.instance.downloads.delete(
-                                                            item.sourceId,
-                                                            item.titleId,
-                                                            item.chapterId,
-                                                        )
-                                                    }
+                                                    vm.deleteChapter(item.sourceId, item.titleId, item.chapterId)
                                                 },
                                             ) {
                                                 Icon(

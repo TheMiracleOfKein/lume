@@ -131,6 +131,10 @@ data class TitlePrefsDto(
     val readerMode: Int? = null,
     val readerTheme: Int? = null,
     val gap: Float? = null,
+    val chapterFilter: Int = 0,
+    val chapterSortAsc: Boolean = false,
+    val branch: String? = null,
+    val showDuplicates: Boolean = false,
 )
 
 @Serializable
@@ -199,6 +203,10 @@ class BackupRepository(
                     readerMode = it.readerMode,
                     readerTheme = it.readerTheme,
                     gap = it.gap,
+                    chapterFilter = it.chapterFilter,
+                    chapterSortAsc = it.chapterSortAsc,
+                    branch = it.branch,
+                    showDuplicates = it.showDuplicates,
                 )
             },
             trackerLinks = dao.allTrackerLinks().map {
@@ -362,6 +370,10 @@ class BackupRepository(
                     readerMode = t.readerMode,
                     readerTheme = t.readerTheme,
                     gap = t.gap,
+                    chapterFilter = t.chapterFilter,
+                    chapterSortAsc = t.chapterSortAsc,
+                    branch = t.branch,
+                    showDuplicates = t.showDuplicates,
                 ),
             )
         }

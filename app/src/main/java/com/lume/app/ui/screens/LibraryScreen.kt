@@ -1,6 +1,8 @@
 package com.lume.app.ui.screens
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.LocalShellBottomPadding
 import androidx.compose.animation.animateColorAsState
@@ -25,11 +27,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,7 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.lume.app.LumeApp
+import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.db.BookmarkEntity
 import com.lume.app.data.db.CategoryEntity
@@ -58,11 +58,12 @@ import kotlinx.serialization.json.longOrNull
 
 @Composable
 fun LibraryScreen(nav: NavHostController) {
-    val bookmarks by LumeApp.instance.dao.observeBookmarks().collectAsState(initial = emptyList())
-    val categories by LumeApp.instance.dao.observeCategories().collectAsState(initial = emptyList())
-    val titleMeta by LumeApp.instance.dao.observeTitleMeta().collectAsState(initial = emptyList())
-    val downloads by LumeApp.instance.dao.observeDownloads().collectAsState(initial = emptyList())
-    val online by LumeApp.instance.network.online.collectAsState()
+    val container = LocalAppContainer.current
+    val bookmarks by container.dao.observeBookmarks().collectAsState(initial = emptyList())
+    val categories by container.dao.observeCategories().collectAsState(initial = emptyList())
+    val titleMeta by container.dao.observeTitleMeta().collectAsState(initial = emptyList())
+    val downloads by container.dao.observeDownloads().collectAsState(initial = emptyList())
+    val online by container.network.online.collectAsState()
     val metaMap = remember(titleMeta) {
         titleMeta.associateBy { "${it.sourceId}:${it.titleId}" }
     }
@@ -71,7 +72,7 @@ fun LibraryScreen(nav: NavHostController) {
     var showAddCategory by remember { mutableStateOf(false) }
     var newCategoryName by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
-    val dao = LumeApp.instance.dao
+    val dao = container.dao
     val downloadedKeys = remember(downloads) {
         downloads.map { "${it.sourceId}:${it.titleId}" }.toSet()
     }

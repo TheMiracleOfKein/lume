@@ -11,7 +11,7 @@ import androidx.lifecycle.viewModelScope
 import coil.imageLoader
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import com.lume.app.LumeApp
+import com.lume.app.AppContainer
 import com.lume.app.R
 import com.lume.app.data.db.BookmarkEntity
 import com.lume.app.data.db.ChapterProgressEntity
@@ -57,6 +57,7 @@ import java.net.URI
  */
 @OptIn(FlowPreview::class)
 class ReaderViewModel(
+    private val app: AppContainer,
     val sourceId: String,
     val titleId: String,
     routeChapterId: String,
@@ -65,7 +66,6 @@ class ReaderViewModel(
     routeOffset: Float?,
     private val savedState: SavedStateHandle,
 ) : ViewModel() {
-    private val app = LumeApp.instance
     private val dao = app.dao
 
     // ---- Title ----------------------------------------------------------------------------
@@ -264,7 +264,7 @@ class ReaderViewModel(
         val loader = app.imageLoader
         pages.forEach { page ->
             loader.enqueue(
-                ImageRequest.Builder(app)
+                ImageRequest.Builder(app.app)
                     .data(if (page.imageUrl.startsWith("http")) page.imageUrl else File(page.imageUrl))
                     .memoryCachePolicy(CachePolicy.ENABLED)
                     .diskCachePolicy(CachePolicy.ENABLED)
@@ -494,10 +494,10 @@ class ReaderViewModel(
     fun saveSettingsForTitle(next: ReaderSettings) {
         settings = next
         viewModelScope.launch {
+            // Keep the chapter list settings stored in the same row.
+            val base = dao.getTitlePrefs(sourceId, titleId) ?: TitlePrefsEntity(sourceId = sourceId, titleId = titleId)
             dao.upsertTitlePrefs(
-                TitlePrefsEntity(
-                    sourceId = sourceId,
-                    titleId = titleId,
+                base.copy(
                     readerMode = next.mode.prefsIndex,
                     readerTheme = next.theme.ordinal,
                     gap = next.gap,

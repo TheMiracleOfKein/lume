@@ -42,6 +42,8 @@ import kotlinx.coroutines.launch
  * Reads `localStorage.auth` (cdnlibs) after each page load and saves the token.
  */
 class SourceLoginActivity : ComponentActivity() {
+    private val container get() = (application as LumeApp).container
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,7 +51,7 @@ class SourceLoginActivity : ComponentActivity() {
             finish()
             return
         }
-        val source = LumeApp.instance.sources.sourceById(sourceId) ?: run {
+        val source = container.sources.sourceById(sourceId) ?: run {
             finish()
             return
         }
@@ -92,7 +94,7 @@ class SourceLoginActivity : ComponentActivity() {
                             .padding(padding),
                         onAuthJson = { raw ->
                             lifecycleScope.launch {
-                                val saved = LumeApp.instance.libAuth.saveRaw(sourceId, raw)
+                                val saved = container.libAuth.saveRaw(sourceId, raw)
                                 if (saved != null) {
                                     status = getString(R.string.source_login_ok)
                                     Toast.makeText(
@@ -102,7 +104,7 @@ class SourceLoginActivity : ComponentActivity() {
                                     ).show()
                                     // Sync cookies for CDN images / ddos-guard.
                                     CookieManager.getInstance().flush()
-                                    LumeApp.instance.http.syncWebViewCookies(loginUrl)
+                                    container.http.syncWebViewCookies(loginUrl)
                                     finish()
                                 }
                             }
@@ -127,7 +129,7 @@ class SourceLoginActivity : ComponentActivity() {
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
                     // Share the app UA so cookies set during login (incl. anti-bot clearance) stay valid.
-                    settings.userAgentString = LumeApp.instance.http.userAgent
+                    settings.userAgentString = container.http.userAgent
                     CookieManager.getInstance().setAcceptCookie(true)
                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                     webViewClient = object : WebViewClient() {

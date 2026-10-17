@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lume.app.LumeApp
+import com.lume.app.AppContainer
 import com.lume.app.R
 import com.lume.app.data.db.BookmarkEntity
 import com.lume.app.data.db.ChapterProgressEntity
@@ -32,10 +32,10 @@ import java.net.URI
  * to the screen shows the content at once instead of replaying spinner → content.
  */
 abstract class TitleBackedViewModel(
+    protected val app: AppContainer,
     val sourceId: String,
     val titleId: String,
 ) : ViewModel() {
-    protected val app: LumeApp = LumeApp.instance
     protected val dao = app.dao
 
     private val initial = app.titles.peek(sourceId, titleId)
@@ -114,7 +114,7 @@ abstract class TitleBackedViewModel(
         stateIn(viewModelScope, SharingStarted.Eagerly, initial)
 }
 
-class TitleViewModel(sourceId: String, titleId: String) : TitleBackedViewModel(sourceId, titleId) {
+class TitleViewModel(app: AppContainer, sourceId: String, titleId: String) : TitleBackedViewModel(app, sourceId, titleId) {
     val inLibrary: StateFlow<Boolean> = dao.observeIsBookmarked(sourceId, titleId).state(false)
     val progress: StateFlow<ProgressEntity?> = dao.observeProgress(sourceId, titleId).state(null)
     val trackerLinks: StateFlow<List<TrackerLinkEntity>> = dao.observeTrackerLinks(sourceId, titleId).state(emptyList())
@@ -153,7 +153,7 @@ class TitleViewModel(sourceId: String, titleId: String) : TitleBackedViewModel(s
     }
 }
 
-class ChaptersViewModel(sourceId: String, titleId: String) : TitleBackedViewModel(sourceId, titleId) {
+class ChaptersViewModel(app: AppContainer, sourceId: String, titleId: String) : TitleBackedViewModel(app, sourceId, titleId) {
     val readIds: StateFlow<Set<String>> =
         dao.observeReadChapterIds(sourceId, titleId).map { it.toSet() }.state(emptySet())
     val currentChapterId: StateFlow<String?> =

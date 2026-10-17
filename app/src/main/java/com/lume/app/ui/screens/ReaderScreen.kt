@@ -3,7 +3,9 @@ package com.lume.app.ui.screens
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.core.animate
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -91,8 +93,6 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -139,6 +139,7 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.data.prefs.ReaderSettings
@@ -173,8 +174,9 @@ fun ReaderScreen(
     page: Int? = null,
     offset: Float? = null,
 ) {
+    val container = LocalAppContainer.current
     val vm: ReaderViewModel = viewModel {
-        ReaderViewModel(sourceId, titleId, chapterId, page, offset, createSavedStateHandle())
+        ReaderViewModel(container, sourceId, titleId, chapterId, page, offset, createSavedStateHandle())
     }
     // Leaving the app or the screen: save now instead of waiting for the debounce.
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.flush() }

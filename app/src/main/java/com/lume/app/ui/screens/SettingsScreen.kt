@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -40,11 +41,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,11 +51,11 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.lume.app.ui.components.LumeInsets
-import com.lume.app.LumeApp
+import com.lume.app.LocalAppContainer
 import com.lume.app.R
-import com.lume.app.data.library.LibraryUpdateWorker
 import com.lume.app.data.locale.AppLanguage
 import com.lume.app.data.locale.AppLocaleController
 import com.lume.app.data.prefs.AppPreferences
@@ -75,7 +72,9 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(nav: NavHostController) {
-    val prefs = LumeApp.instance.prefs
+    val container = LocalAppContainer.current
+    val vm: SettingsViewModel = viewModel { SettingsViewModel(container) }
+    val prefs = vm.prefs
     val darkTheme by prefs.darkTheme.collectAsState()
     val libraryUpdates by prefs.libraryUpdatesEnabled.collectAsState()
     val libraryInterval by prefs.libraryUpdateIntervalHours.collectAsState()
@@ -89,10 +88,8 @@ fun SettingsScreen(nav: NavHostController) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val resources = LocalResources.current
-    var statusMessage by remember { mutableStateOf<String?>(null) }
-    val downloadPath = remember {
-        LumeApp.instance.filesDir.resolve("downloads").absolutePath
-    }
+    val statusMessage = vm.statusMessage
+    val downloadPath = vm.downloadPath
     val anilistLoggedIn = !anilistTokenState.isNullOrBlank()
     val shikiLoggedIn = !shikiTokenState.isNullOrBlank()
     val currentLanguage = AppLanguage.fromStored(appLanguageTag)
@@ -100,13 +97,7 @@ fun SettingsScreen(nav: NavHostController) {
     // The worker re-checks the permission before every notification, so the answer needs no handling.
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
-    fun reschedule(enabled: Boolean = libraryUpdates, hours: Int = libraryInterval, wifi: Boolean = libraryWifiOnly) {
-        LibraryUpdateWorker.schedule(LumeApp.instance, enabled, intervalHours = hours, wifiOnly = wifi)
-    }
-
-    fun updateReader(next: ReaderSettings) {
-        scope.launch { prefs.setReaderSettings(next) }
-    }
+    fun updateReader(next: ReaderSettings) = vm.updateReader(next)
 
     Scaffold(
         containerColor = AppColors.background,
@@ -139,7 +130,7 @@ fun SettingsScreen(nav: NavHostController) {
                 SwitchRow(
                     label = stringResource(R.string.settings_dark_theme),
                     checked = darkTheme,
-                    onCheckedChange = { value -> scope.launch { prefs.setDarkTheme(value) } },
+                    onCheckedChange = vm::setDarkTheme,
                 )
                 Text(
                     stringResource(R.string.settings_language),
@@ -154,10 +145,7 @@ fun SettingsScreen(nav: NavHostController) {
                             selected = currentLanguage == lang,
                             modifier = Modifier.weight(1f),
                             onClick = {
-                                scope.launch {
-                                    prefs.setAppLanguage(lang.tag)
-                                    AppLocaleController.apply(lang)
-                                }
+                                vm.setAppLanguage(lang.tag) { AppLocaleController.apply(lang) }
                             },
                         )
                     }
@@ -213,10 +201,7 @@ fun SettingsScreen(nav: NavHostController) {
                         ) {
                             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
-                        scope.launch {
-                            prefs.setLibraryUpdatesEnabled(value)
-                            reschedule(enabled = value)
-                        }
+                        vm.setLibraryUpdates(value)
                     },
                 )
                 AnimatedVisibility(
@@ -238,10 +223,7 @@ fun SettingsScreen(nav: NavHostController) {
                                     selected = hours == libraryInterval,
                                     modifier = Modifier.weight(1f),
                                     onClick = {
-                                        scope.launch {
-                                            prefs.setLibraryUpdateIntervalHours(hours)
-                                            reschedule(hours = hours)
-                                        }
+                                        vm.setLibraryInterval(hours)
                                     },
                                 )
                             }
@@ -250,12 +232,7 @@ fun SettingsScreen(nav: NavHostController) {
                             label = stringResource(R.string.settings_wifi_only),
                             checked = libraryWifiOnly,
                             modifier = Modifier.padding(top = 4.dp),
-                            onCheckedChange = { value ->
-                                scope.launch {
-                                    prefs.setLibraryUpdateWifiOnly(value)
-                                    reschedule(wifi = value)
-                                }
-                            },
+                            onCheckedChange = vm::setLibraryWifiOnly,
                         )
                     }
                 }
@@ -267,24 +244,11 @@ fun SettingsScreen(nav: NavHostController) {
                 SwitchRow(
                     label = stringResource(R.string.settings_downloads_wifi_only),
                     checked = downloadsWifiOnly,
-                    onCheckedChange = { value -> scope.launch { prefs.setDownloadsWifiOnly(value) } },
+                    onCheckedChange = vm::setDownloadsWifiOnly,
                 )
                 SettingsLink(stringResource(R.string.settings_downloads)) { nav.navigate(Routes.Downloads) }
                 SettingsLink(stringResource(R.string.settings_restore_downloads)) {
-                    scope.launch {
-                        val n = LumeApp.instance.downloads.recoverFromDisk()
-                        val e = runCatching {
-                            LumeApp.instance.downloads.enrichMetadata(
-                                LumeApp.instance.sources,
-                                LumeApp.instance.offlineCache,
-                            )
-                        }.getOrDefault(0)
-                        statusMessage = when {
-                            n > 0 || e > 0 -> resources.getString(R.string.restore_downloads_done, n, e)
-                            else -> resources.getString(R.string.restore_downloads_empty)
-                        }
-                        Toast.makeText(context, statusMessage, Toast.LENGTH_LONG).show()
-                    }
+                    vm.recoverDownloads { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
                 }
                 Text(
                     stringResource(R.string.settings_download_folder),
@@ -306,7 +270,7 @@ fun SettingsScreen(nav: NavHostController) {
                 SwitchRow(
                     label = stringResource(R.string.settings_search_nsfw),
                     checked = searchNsfw,
-                    onCheckedChange = { value -> scope.launch { prefs.setGlobalSearchNsfw(value) } },
+                    onCheckedChange = vm::setSearchNsfw,
                 )
                 SettingsLink(stringResource(R.string.settings_sources)) { nav.navigate(Routes.Sources) }
             }
@@ -322,17 +286,12 @@ fun SettingsScreen(nav: NavHostController) {
                     scope.launch {
                         val err = TrackerAuthActivity.start(context, "shikimori")
                         if (err != null) {
-                            statusMessage = err
+                            vm.statusMessage = err
                             Toast.makeText(context, err, Toast.LENGTH_LONG).show()
                         }
                     }
                 },
-                onLogout = {
-                    scope.launch {
-                        LumeApp.instance.trackers.shikimori.logout()
-                        statusMessage = resources.getString(R.string.tracker_logout_shikimori)
-                    }
-                },
+                onLogout = { vm.logout("shikimori") },
             )
             Spacer(Modifier.height(10.dp))
             TrackerLoginCard(
@@ -342,46 +301,17 @@ fun SettingsScreen(nav: NavHostController) {
                     scope.launch {
                         val err = TrackerAuthActivity.start(context, "anilist")
                         if (err != null) {
-                            statusMessage = err
+                            vm.statusMessage = err
                             Toast.makeText(context, err, Toast.LENGTH_LONG).show()
                         }
                     }
                 },
-                onLogout = {
-                    scope.launch {
-                        LumeApp.instance.trackers.anilist.logout()
-                        statusMessage = resources.getString(R.string.tracker_logout_anilist)
-                    }
-                },
+                onLogout = { vm.logout("anilist") },
             )
             Spacer(Modifier.height(10.dp))
             SettingsGroup {
-                SettingsLink(stringResource(R.string.settings_create_backup)) {
-                    scope.launch {
-                        runCatching { LumeApp.instance.backup.createBackup() }
-                            .onSuccess {
-                                statusMessage = resources.getString(R.string.backup_created, it.name)
-                            }
-                            .onFailure {
-                                statusMessage = it.message ?: resources.getString(R.string.backup_error)
-                            }
-                    }
-                }
-                SettingsLink(stringResource(R.string.settings_restore_backup)) {
-                    scope.launch {
-                        runCatching { LumeApp.instance.backup.restoreLatest() }
-                            .onSuccess { file ->
-                                statusMessage = if (file != null) {
-                                    resources.getString(R.string.backup_restored, file.name)
-                                } else {
-                                    resources.getString(R.string.backup_none)
-                                }
-                            }
-                            .onFailure {
-                                statusMessage = it.message ?: resources.getString(R.string.restore_error)
-                            }
-                    }
-                }
+                SettingsLink(stringResource(R.string.settings_create_backup), onClick = vm::createBackup)
+                SettingsLink(stringResource(R.string.settings_restore_backup), onClick = vm::restoreBackup)
             }
             AnimatedVisibility(
                 visible = statusMessage != null,

@@ -26,7 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.lume.app.LumeApp
+import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.network.AntiBot
 import com.lume.app.ui.theme.AppColors
@@ -39,7 +39,7 @@ fun CloudflareChallengeOverlay(
     onDismiss: () -> Unit,
     onSolved: () -> Unit,
 ) {
-    val http = LumeApp.instance.http
+    val http = LocalAppContainer.current.http
     val siteReady = remember { mutableStateOf(value = false) }
     val sawChallenge = remember { mutableStateOf(value = false) }
     val finished = remember { mutableStateOf(value = false) }

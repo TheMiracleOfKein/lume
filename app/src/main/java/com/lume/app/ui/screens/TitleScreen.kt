@@ -37,14 +37,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -57,7 +57,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.lume.app.ui.components.LumeInsets
-import com.lume.app.LumeApp
+import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.tracker.TrackerSearchResult
 import com.lume.app.domain.Chapter
@@ -81,7 +81,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
     val context = LocalContext.current
-    val vm: TitleViewModel = viewModel { TitleViewModel(sourceId, titleId) }
+    val container = LocalAppContainer.current
+    val vm: TitleViewModel = viewModel { TitleViewModel(container, sourceId, titleId) }
     val details = vm.details
     val chapters = vm.chapters
     val bookmarked by vm.inLibrary.collectAsState()
@@ -109,7 +110,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                 },
                 actions = {
                     val webUrl = remember(sourceId, titleId) {
-                        LumeApp.instance.sources.sourceById(sourceId)?.webUrl(titleId)
+                        container.sources.sourceById(sourceId)?.webUrl(titleId)
                     }
                     if (webUrl != null) {
                         IconButton(onClick = { openInBrowser(context, webUrl) }) {
@@ -336,7 +337,8 @@ private fun TrackersDialog(
     onSynced: suspend () -> Unit = {},
 ) {
     val resources = LocalResources.current
-    val trackers = LumeApp.instance.trackers.all
+    val container = LocalAppContainer.current
+    val trackers = container.trackers.all
     var selectedTracker by remember { mutableStateOf(trackers.first()) }
     var query by remember { mutableStateOf(titleName) }
     var results by remember { mutableStateOf<List<TrackerSearchResult>>(emptyList()) }
@@ -346,7 +348,7 @@ private fun TrackersDialog(
     var message by remember { mutableStateOf<String?>(null) }
     var remotePreview by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    val links by LumeApp.instance.dao.observeTrackerLinks(sourceId, titleId)
+    val links by container.dao.observeTrackerLinks(sourceId, titleId)
         .collectAsState(initial = emptyList())
     val scroll = rememberScrollState()
 
@@ -443,7 +445,7 @@ private fun TrackersDialog(
                             syncing = true
                             message = resources.getString(R.string.tracker_syncing)
                             val result = runCatching {
-                                LumeApp.instance.trackerSync.syncTitle(
+                                container.trackerSync.syncTitle(
                                     sourceId = sourceId,
                                     titleId = titleId,
                                     chapters = chapters,
@@ -460,7 +462,7 @@ private fun TrackersDialog(
                             )
                             runCatching { onSynced() }
                             syncing = false
-                            val link = LumeApp.instance.dao.getTrackerLinks(sourceId, titleId)
+                            val link = container.dao.getTrackerLinks(sourceId, titleId)
                                 .firstOrNull { it.tracker == selectedTracker.id }
                             if (link != null && selectedTracker.isLoggedIn()) {
                                 val remote = runCatching {

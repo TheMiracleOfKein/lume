@@ -36,6 +36,7 @@ android {
         targetSdk = 37
         versionCode = 3
         versionName = "0.3.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // OAuth app credentials for AniList / Shikimori (identify Lume itself).
         // Put values in root local.properties (gitignored), e.g. LUME_SHIKIMORI_CLIENT_ID=...
@@ -81,6 +82,8 @@ android {
     testOptions {
         // Engines touch android.webkit / Context only through runCatching fallbacks.
         unitTests.isReturnDefaultValues = true
+        // Robolectric (Room migration tests) needs the merged assets and resources.
+        unitTests.isIncludeAndroidResources = true
         unitTests.all { test ->
             // Live catalogue checks hit real sites: ./gradlew :app:testDebugUnitTest -Plume.live
             test.systemProperty("lume.live", project.hasProperty("lume.live").toString())
@@ -89,6 +92,14 @@ android {
         }
     }
 }
+
+// Tests that run both on the JVM (Robolectric) and on a device live in src/sharedTest.
+// The migration tests read the exported schemas as assets. JVM tests only see the tested
+// variant's assets, so they also go into debug builds; release APKs don't carry them.
+android.sourceSets.getByName("test").kotlin.directories.add("src/sharedTest/java")
+android.sourceSets.getByName("androidTest").kotlin.directories.add("src/sharedTest/java")
+android.sourceSets.getByName("androidTest").assets.directories.add("$projectDir/schemas")
+android.sourceSets.getByName("debug").assets.directories.add("$projectDir/schemas")
 
 // Exported Room schemas (app/schemas) make future migrations reviewable and testable.
 ksp {
@@ -123,4 +134,13 @@ dependencies {
     implementation(libs.androidx.profileinstaller)
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
+    testImplementation(libs.room.testing)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.room.testing)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
 }

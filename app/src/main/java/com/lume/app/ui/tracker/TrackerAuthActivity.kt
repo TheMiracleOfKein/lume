@@ -39,6 +39,8 @@ import kotlinx.coroutines.launch
  * In-app WebView OAuth so redirect URLs (including #access_token) are captured reliably.
  */
 class TrackerAuthActivity : ComponentActivity() {
+    private val container get() = (application as LumeApp).container
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -155,16 +157,16 @@ class TrackerAuthActivity : ComponentActivity() {
     private suspend fun completeAniList(url: String): Boolean {
         val token = extractFragmentOrQuery(url, "access_token")
         if (!token.isNullOrBlank()) {
-            LumeApp.instance.prefs.setAniListAccessToken(token)
+            container.prefs.setAniListAccessToken(token)
             return true
         }
         val code = extractFragmentOrQuery(url, "code") ?: return false
-        return LumeApp.instance.trackers.anilist.exchangeCode(code)
+        return container.trackers.anilist.exchangeCode(code)
     }
 
     private suspend fun completeShikimori(url: String): Boolean {
         val code = extractFragmentOrQuery(url, "code") ?: return false
-        return LumeApp.instance.trackers.shikimori.exchangeCode(code)
+        return container.trackers.shikimori.exchangeCode(code)
     }
 
     private fun extractFragmentOrQuery(url: String, key: String): String? {
@@ -191,7 +193,8 @@ class TrackerAuthActivity : ComponentActivity() {
         private const val EXTRA_URL = "url"
 
         suspend fun start(context: Context, trackerId: String): String? {
-            val prefs = LumeApp.instance.prefs
+            val container = (context.applicationContext as LumeApp).container
+            val prefs = container.prefs
             val (url, error) = when (trackerId) {
                 "anilist" -> {
                     val clientId = TrackerOAuthDefaults.ANILIST_CLIENT_ID
@@ -211,7 +214,7 @@ class TrackerAuthActivity : ComponentActivity() {
                     if (clientId.isBlank()) {
                         null to context.getString(R.string.auth_missing_shikimori_client)
                     } else {
-                        LumeApp.instance.trackers.shikimori.buildAuthorizeUrl(clientId) to null
+                        container.trackers.shikimori.buildAuthorizeUrl(clientId) to null
                     }
                 }
                 else -> null to context.getString(R.string.auth_unknown_tracker)
