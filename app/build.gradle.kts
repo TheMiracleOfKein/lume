@@ -47,8 +47,24 @@ android {
         buildConfigField("String", "SHIKIMORI_CLIENT_SECRET", oauthBuildConfig("LUME_SHIKIMORI_CLIENT_SECRET"))
     }
 
+    // Release signing from the user's ~/.gradle/gradle.properties (never in the repository).
+    // Without all four values the release build stays unsigned, as on CI.
+    val signingProps = listOf("LUME_STORE_FILE", "LUME_STORE_PASSWORD", "LUME_KEY_ALIAS", "LUME_KEY_PASSWORD")
+        .associateWith { providers.gradleProperty(it).orNull?.takeIf(String::isNotBlank) }
+    val releaseSigning = if (signingProps.values.all { it != null }) {
+        signingConfigs.create("release") {
+            storeFile = file(signingProps.getValue("LUME_STORE_FILE")!!)
+            storePassword = signingProps.getValue("LUME_STORE_PASSWORD")
+            keyAlias = signingProps.getValue("LUME_KEY_ALIAS")
+            keyPassword = signingProps.getValue("LUME_KEY_PASSWORD")
+        }
+    } else {
+        null
+    }
+
     buildTypes {
         release {
+            releaseSigning?.let { signingConfig = it }
             // R8: smaller, faster release builds. Kept in its own commit so it is easy to revert.
             isMinifyEnabled = true
             isShrinkResources = true
