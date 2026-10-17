@@ -73,7 +73,7 @@ Release notes: [docs/releases/v0.4.0.md](releases/v0.4.0.md).
 - 🟡 **Device testing of v0.4.** Checked on an emulator, including the signed R8 release APK: the app starts, the migration runs, the library grid and its counts, chapter selection, the reader, and "Update now". The rest still needs real phones, together with the v0.3 checklist.
 - **Startup numbers.** `StartupBenchmark` exists but has not been run yet; run it on a real phone to measure the profile's gain (S).
 
-## v0.5: sources, downloads, backups, trackers
+## v0.5: sources, downloads, backups, trackers ✅ released 2026-10-17
 
 Release notes: [docs/releases/v0.5.0.md](releases/v0.5.0.md).
 
@@ -101,7 +101,7 @@ Release notes: [docs/releases/v0.5.0.md](releases/v0.5.0.md).
 **Trackers**
 - ✅ Shikimori stays signed in (token refresh).
 - ✅ Edit status, score and dates; link automatically when adding to the library (exact title match only).
-- 🟡 MyAnimeList, Kitsu, MangaUpdates. All three are built. MyAnimeList needs Lume's client ID (`LUME_MAL_CLIENT_ID` in `local.properties`) before its sign-in works in a release; none of the three has been tried with a real account yet.
+- 🟡 MyAnimeList, Kitsu, MangaUpdates. All three are built, and the v0.5.0 release carries the MyAnimeList client ID (its sign-in page opens). None of the three has been tried with a real account yet.
 
 **App**
 - ✅ Follow the system theme, Material You colors, pure-black AMOLED theme.
