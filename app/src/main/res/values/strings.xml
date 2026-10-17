@@ -472,4 +472,14 @@
     <string name="settings_storage_external">External storage %1$d</string>
     <string name="settings_storage_free">%1$s free</string>
     <string name="settings_storage_note">New downloads go to the chosen place; earlier ones stay where they are.</string>
+    <string name="settings_section_local">Local files</string>
+    <string name="local_import_folder">Import a folder from the device</string>
+    <string name="local_importing">Importing…</string>
+    <string name="local_open_library">Open local titles</string>
+    <string name="local_clean_temp">Clean temporary files</string>
+    <string name="local_folder_hint">Imported titles are copied to %1$s. A folder may hold one series per subfolder, chapter folders, or .cbz / .zip files; cover.jpg, ComicInfo.xml and details.json are read too.</string>
+    <string name="local_import_done">Imported %1$d title(s), %2$d chapter(s)</string>
+    <string name="local_import_empty">No chapters found in that folder</string>
+    <string name="local_import_failed">Import failed: %1$s</string>
+    <string name="local_clean_done">Freed %1$s</string>
 </resources>

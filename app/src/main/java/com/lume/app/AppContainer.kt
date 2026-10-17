@@ -56,6 +56,7 @@ class AppContainer(val app: Application) {
     val sources = SourceRegistry(app, http, prefs, dao, libAuth, imageReferers)
     val downloads = DownloadStore(app, dao, http, prefs)
     val offlineCache = OfflineTitleCache(dao)
+    val localImporter = com.lume.app.data.local.LocalImporter(app)
     val libraryChapters = LibraryChapters(database, dao)
     val titles = TitleRepository(sources, offlineCache, libraryChapters)
     val downloadQueue = DownloadQueue(app, dao, downloads, sources, titles, prefs, network)

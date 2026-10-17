@@ -173,6 +173,31 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         viewModelScope.launch { prefs.setDownloadsWifiOnly(value) }
     }
 
+    val localPath: String = app.localImporter.localRoot().absolutePath
+    var localBusy by mutableStateOf(false)
+        private set
+
+    /** Copies a folder picked in the system file picker into the local library. */
+    fun importLocalFolder(uri: android.net.Uri) {
+        viewModelScope.launch {
+            localBusy = true
+            runCatching { app.localImporter.import(uri) }
+                .onSuccess { r ->
+                    statusMessage = if (r.titles == 0) string(R.string.local_import_empty)
+                    else string(R.string.local_import_done, r.titles, r.chapters)
+                }
+                .onFailure { statusMessage = string(R.string.local_import_failed, it.message ?: it.toString()) }
+            localBusy = false
+        }
+    }
+
+    fun cleanTemporaryFiles() {
+        viewModelScope.launch {
+            val freed = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { app.localImporter.cleanTemporaryFiles() }
+            statusMessage = string(R.string.local_clean_done, android.text.format.Formatter.formatShortFileSize(app.app, freed))
+        }
+    }
+
     fun setAutoDownloadNew(value: Boolean) {
         viewModelScope.launch { prefs.setAutoDownloadNew(value) }
     }

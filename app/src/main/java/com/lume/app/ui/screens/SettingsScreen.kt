@@ -103,6 +103,9 @@ fun SettingsScreen(nav: NavHostController) {
 
     // The worker re-checks the permission before every notification, so the answer needs no handling.
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    val pickLocalFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) vm.importLocalFolder(uri)
+    }
 
     fun updateReader(next: ReaderSettings) = vm.updateReader(next)
 
@@ -325,6 +328,24 @@ fun SettingsScreen(nav: NavHostController) {
                 SettingsLink(stringResource(R.string.settings_restore_downloads)) {
                     vm.recoverDownloads { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
                 }
+            }
+
+            // ---------------- Local files ----------------
+            SettingsSection(stringResource(R.string.settings_section_local))
+            SettingsGroup {
+                SettingsLink(
+                    if (vm.localBusy) stringResource(R.string.local_importing) else stringResource(R.string.local_import_folder),
+                ) {
+                    if (!vm.localBusy) pickLocalFolder.launch(null)
+                }
+                SettingsLink(stringResource(R.string.local_open_library)) { nav.navigate(Routes.browse("local")) }
+                SettingsLink(stringResource(R.string.local_clean_temp)) { vm.cleanTemporaryFiles() }
+                Text(
+                    stringResource(R.string.local_folder_hint, vm.localPath),
+                    color = AppColors.textTertiary,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 8.dp),
+                )
             }
 
             // ---------------- Search & sources ----------------

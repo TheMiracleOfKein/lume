@@ -465,4 +465,14 @@
     <string name="settings_storage_external">Внешняя память %1$d</string>
     <string name="settings_storage_free">Свободно %1$s</string>
     <string name="settings_storage_note">Новые загрузки сохраняются в выбранное место; прежние остаются там, где были.</string>
+    <string name="settings_section_local">Локальные файлы</string>
+    <string name="local_import_folder">Импортировать папку с устройства</string>
+    <string name="local_importing">Импорт…</string>
+    <string name="local_open_library">Открыть локальные тайтлы</string>
+    <string name="local_clean_temp">Очистить временные файлы</string>
+    <string name="local_folder_hint">Импортированные тайтлы копируются в %1$s. В папке могут быть подпапки-серии, папки глав или файлы .cbz / .zip; также читаются cover.jpg, ComicInfo.xml и details.json.</string>
+    <string name="local_import_done">Импортировано тайтлов: %1$d, глав: %2$d</string>
+    <string name="local_import_empty">В этой папке не найдено глав</string>
+    <string name="local_import_failed">Импорт не удался: %1$s</string>
+    <string name="local_clean_done">Освобождено %1$s</string>
 </resources>
