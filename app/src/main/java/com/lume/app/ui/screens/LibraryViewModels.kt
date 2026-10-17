@@ -9,8 +9,12 @@ import androidx.lifecycle.viewModelScope
 import com.lume.app.AppContainer
 import com.lume.app.data.db.CategoryEntity
 import com.lume.app.data.db.ProgressEntity
+import com.lume.app.data.db.DownloadQueueEntity
 import com.lume.app.data.db.TitleJsonRow
+import com.lume.app.data.db.UpdateRow
+import com.lume.app.data.library.LibraryUpdateWorker
 import com.lume.app.data.library.parseCategoryIds
+import com.lume.app.domain.Chapter
 import com.lume.app.domain.LibraryItem
 import com.lume.app.domain.LibrarySettings
 import com.lume.app.domain.TitleDetails
@@ -25,6 +29,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 
 class HistoryViewModel(app: AppContainer) : ViewModel() {
     val history: StateFlow<List<ProgressEntity>> =
@@ -219,5 +225,58 @@ class CategoriesViewModel(private val app: AppContainer) : ViewModel() {
 
     fun setDefault(id: Long?) {
         viewModelScope.launch { app.prefs.setDefaultCategoryId(id) }
+    }
+}
+
+class UpdatesViewModel(private val app: AppContainer) : ViewModel() {
+    val updates: StateFlow<List<UpdateRow>> =
+        app.dao.observeUpdates(limit = 500).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val lastCheckedAt: StateFlow<Long> = app.prefs.libraryLastCheckedAt
+
+    /** `sourceId\u0000titleId\u0000chapterId` of downloaded chapters. */
+    val downloaded: StateFlow<Set<String>> = app.dao.observeDownloads()
+        .map { rows -> rows.mapTo(HashSet()) { "${it.sourceId}\u0000${it.titleId}\u0000${it.chapterId}" } }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    val queued: StateFlow<Set<String>> = app.downloadQueue.items
+        .map { rows ->
+            rows.filter { it.status == DownloadQueueEntity.STATUS_PENDING || it.status == DownloadQueueEntity.STATUS_RUNNING }
+                .mapTo(HashSet()) { "${it.sourceId}\u0000${it.titleId}\u0000${it.chapterId}" }
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    /** Progress of a running check (done, total), or null when none runs. */
+    val checking: StateFlow<Pair<Int, Int>?> = combine(
+        WorkManager.getInstance(app.app).getWorkInfosForUniqueWorkFlow(LibraryUpdateWorker.NOW_WORK_NAME),
+        WorkManager.getInstance(app.app).getWorkInfosForUniqueWorkFlow(LibraryUpdateWorker.WORK_NAME),
+    ) { now, periodic ->
+        val running = (now + periodic).firstOrNull { it.state == WorkInfo.State.RUNNING }
+        val queuedNow = now.any { it.state == WorkInfo.State.ENQUEUED }
+        when {
+            running != null -> running.progress.getInt(LibraryUpdateWorker.KEY_DONE, 0) to
+                running.progress.getInt(LibraryUpdateWorker.KEY_TOTAL, 0)
+            queuedNow -> 0 to 0
+            else -> null
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun updateNow() = LibraryUpdateWorker.runNow(app.app)
+
+    fun download(row: UpdateRow) {
+        app.downloadQueue.enqueue(
+            sourceId = row.sourceId,
+            titleId = row.titleId,
+            chapter = Chapter(id = row.chapterId, title = row.chapterName, url = row.chapterId),
+            titleName = row.titleName,
+            coverUrl = row.coverUrl,
+        )
+    }
+
+    fun setRead(row: UpdateRow, read: Boolean) {
+        viewModelScope.launch {
+            if (read) app.library.markRead(row.sourceId, row.titleId, listOf(row.chapterId))
+            else app.library.markUnread(row.sourceId, row.titleId, listOf(row.chapterId))
+        }
     }
 }

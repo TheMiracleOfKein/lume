@@ -335,4 +335,14 @@
     <string name="dialog_delete_category_text">Тайтлы из «%s» останутся в библиотеке.</string>
     <string name="cd_move_up">Выше</string>
     <string name="cd_move_down">Ниже</string>
+
+    <!-- Updates (v0.4) -->
+    <string name="nav_updates">Обновления</string>
+    <string name="menu_updates">Обновления</string>
+    <string name="updates_empty">Новых глав пока нет. Потяните вниз, чтобы проверить библиотеку.</string>
+    <string name="updates_last_checked">Проверено %s</string>
+    <string name="updates_today">Сегодня</string>
+    <string name="updates_yesterday">Вчера</string>
+    <string name="action_update_now">Обновить сейчас</string>
+    <string name="action_open_title">Открыть тайтл</string>
 </resources>

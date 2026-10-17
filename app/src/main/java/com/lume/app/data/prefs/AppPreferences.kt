@@ -93,6 +93,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val libraryUnreadBadgeKey = booleanPreferencesKey("library_badge_unread")
     private val libraryDownloadedBadgeKey = booleanPreferencesKey("library_badge_downloaded")
     private val defaultCategoryKey = longPreferencesKey("default_category_id")
+    private val libraryLastCheckedKey = longPreferencesKey("library_last_checked_at")
 
     private val initial: Preferences = runBlocking { context.appDataStore.data.first() }
     private val current: StateFlow<Preferences> =
@@ -166,6 +167,13 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             it[libraryUnreadBadgeKey] = settings.unreadBadge
             it[libraryDownloadedBadgeKey] = settings.downloadedBadge
         }
+    }
+
+    /** When the last library check finished (0 = never). */
+    val libraryLastCheckedAt: StateFlow<Long> = state { it[libraryLastCheckedKey] ?: 0L }
+
+    suspend fun setLibraryLastCheckedAt(time: Long) {
+        context.appDataStore.edit { it[libraryLastCheckedKey] = time }
     }
 
     suspend fun setDefaultCategoryId(id: Long?) {

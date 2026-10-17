@@ -8,6 +8,7 @@ object Routes {
     const val Catalog = "catalog"
     const val Home = "home"
     const val History = "history"
+    const val Updates = "updates"
     const val Search = "search"
     const val Sources = "sources"
     const val Settings = "settings"

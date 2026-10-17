@@ -44,6 +44,7 @@ import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
@@ -237,6 +238,14 @@ private fun MenuPanel(
                 onClick = {
                     onClose()
                     onNavigate(Routes.Downloads)
+                },
+            )
+            MenuTile(
+                icon = Icons.Outlined.NewReleases,
+                title = stringResource(R.string.menu_updates),
+                onClick = {
+                    onClose()
+                    onNavigate(Routes.Updates)
                 },
             )
             MenuTile(

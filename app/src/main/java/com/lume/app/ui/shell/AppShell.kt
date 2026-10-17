@@ -23,8 +23,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.GridView
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -74,6 +74,7 @@ import com.lume.app.ui.screens.SearchScreen
 import com.lume.app.ui.screens.SettingsScreen
 import com.lume.app.ui.screens.SourcesScreen
 import com.lume.app.ui.screens.TitleScreen
+import com.lume.app.ui.screens.UpdatesScreen
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 import java.net.URI
@@ -82,7 +83,7 @@ private val MainTabRoutes = setOf(
     Routes.Library,
     Routes.Catalog,
     Routes.Home,
-    Routes.History,
+    Routes.Updates,
 )
 
 @Composable
@@ -139,6 +140,7 @@ fun AppShell(nav: NavHostController) {
             lumeComposable(Routes.Home) { HomeScreen(nav) }
             lumeComposable(Routes.Catalog) { CatalogScreen(nav) }
             lumeComposable(Routes.Library) { LibraryScreen(nav) }
+            lumeComposable(Routes.Updates) { UpdatesScreen(nav) }
             lumeComposable(Routes.History) { HistoryScreen(nav) }
             lumeComposable(Routes.Search) { SearchScreen(nav) }
             lumeComposable(Routes.Sources) { SourcesScreen(nav) }
@@ -217,7 +219,7 @@ fun AppShell(nav: NavHostController) {
             onNavigate = { target ->
                 menuOpen = false
                 when (target) {
-                    Routes.Home, Routes.Catalog, Routes.Library, Routes.History -> nav.navigateToTab(target)
+                    in MainTabRoutes -> nav.navigateToTab(target)
                     else -> nav.navigate(target)
                 }
             },
@@ -300,11 +302,11 @@ private fun BottomNavBar(
                 LumeLogo(selected = currentRoute == Routes.Home, size = 30.dp)
             }
             NavSlot(
-                selected = currentRoute == Routes.History,
-                label = stringResource(R.string.nav_history),
-                icon = Icons.Outlined.History,
+                selected = currentRoute == Routes.Updates,
+                label = stringResource(R.string.nav_updates),
+                icon = Icons.Outlined.NewReleases,
                 modifier = Modifier.weight(1f),
-                onClick = { onSelect(Routes.History) },
+                onClick = { onSelect(Routes.Updates) },
             )
             NavSlot(
                 selected = false,

@@ -348,4 +348,14 @@
     <string name="dialog_delete_category_text">Titles in “%s” stay in the library.</string>
     <string name="cd_move_up">Move up</string>
     <string name="cd_move_down">Move down</string>
+
+    <!-- Updates (v0.4) -->
+    <string name="nav_updates">Updates</string>
+    <string name="menu_updates">Updates</string>
+    <string name="updates_empty">No new chapters yet. Pull down to check your library.</string>
+    <string name="updates_last_checked">Checked %s</string>
+    <string name="updates_today">Today</string>
+    <string name="updates_yesterday">Yesterday</string>
+    <string name="action_update_now">Update now</string>
+    <string name="action_open_title">Open title</string>
 </resources>
