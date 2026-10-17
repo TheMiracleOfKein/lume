@@ -35,6 +35,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -80,6 +82,11 @@ fun SettingsScreen(nav: NavHostController) {
     val libraryInterval by prefs.libraryUpdateIntervalHours.collectAsState()
     val libraryWifiOnly by prefs.libraryUpdateWifiOnly.collectAsState()
     val downloadsWifiOnly by prefs.downloadsWifiOnly.collectAsState()
+    val autoDownloadNew by prefs.autoDownloadNew.collectAsState()
+    val deleteAfterRead by prefs.deleteAfterRead.collectAsState()
+    val downloadsCbz by prefs.downloadsAsCbz.collectAsState()
+    val parallelPages by prefs.downloadParallelPages.collectAsState()
+    val downloadsRoot by prefs.downloadsRoot.collectAsState()
     val searchNsfw by prefs.globalSearchNsfw.collectAsState()
     val reader by prefs.readerSettings.collectAsState()
     val appLanguageTag by prefs.appLanguage.collectAsState()
@@ -246,22 +253,78 @@ fun SettingsScreen(nav: NavHostController) {
                     checked = downloadsWifiOnly,
                     onCheckedChange = vm::setDownloadsWifiOnly,
                 )
-                SettingsLink(stringResource(R.string.settings_downloads)) { nav.navigate(Routes.Downloads) }
-                SettingsLink(stringResource(R.string.settings_restore_downloads)) {
-                    vm.recoverDownloads { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
+                SwitchRow(
+                    label = stringResource(R.string.settings_downloads_auto_new),
+                    hint = stringResource(R.string.settings_downloads_auto_new_hint),
+                    checked = autoDownloadNew,
+                    onCheckedChange = vm::setAutoDownloadNew,
+                )
+                SwitchRow(
+                    label = stringResource(R.string.settings_downloads_delete_read),
+                    hint = stringResource(R.string.settings_downloads_delete_read_hint),
+                    checked = deleteAfterRead,
+                    onCheckedChange = vm::setDeleteAfterRead,
+                )
+                SwitchRow(
+                    label = stringResource(R.string.settings_downloads_cbz),
+                    hint = stringResource(R.string.settings_downloads_cbz_hint),
+                    checked = downloadsCbz,
+                    onCheckedChange = vm::setDownloadsCbz,
+                )
+                Text(
+                    stringResource(R.string.settings_downloads_parallel),
+                    color = AppColors.textSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    (1..AppPreferences.MAX_PARALLEL_PAGES).forEach { n ->
+                        ChoiceChip(
+                            label = n.toString(),
+                            selected = n == parallelPages,
+                            modifier = Modifier.weight(1f),
+                            onClick = { vm.setParallelPages(n) },
+                        )
+                    }
                 }
                 Text(
                     stringResource(R.string.settings_download_folder),
                     color = AppColors.textSecondary,
                     fontSize = 13.sp,
-                    modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+                    modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 4.dp),
                 )
+                vm.storageChoices.forEachIndexed { index, choice ->
+                    val label = when {
+                        choice.path.isEmpty() -> stringResource(R.string.settings_storage_internal)
+                        choice.removable -> stringResource(R.string.settings_storage_sd)
+                        else -> stringResource(R.string.settings_storage_external, index)
+                    }
+                    StorageRow(
+                        label = label,
+                        detail = stringResource(
+                            R.string.settings_storage_free,
+                            android.text.format.Formatter.formatShortFileSize(context, choice.freeBytes),
+                        ),
+                        selected = choice.path == downloadsRoot,
+                        onClick = { vm.setDownloadsRoot(choice.path) },
+                    )
+                }
                 Text(
                     text = downloadPath,
                     color = AppColors.textTertiary,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 8.dp),
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 2.dp, bottom = 4.dp),
                 )
+                Text(
+                    stringResource(R.string.settings_storage_note),
+                    color = AppColors.textTertiary,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp),
+                )
+                SettingsLink(stringResource(R.string.settings_downloads)) { nav.navigate(Routes.Downloads) }
+                SettingsLink(stringResource(R.string.settings_restore_downloads)) {
+                    vm.recoverDownloads { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
+                }
             }
 
             // ---------------- Search & sources ----------------
@@ -380,6 +443,28 @@ private fun TrackerLoginCard(
             ) {
                 Text(stringResource(R.string.action_login))
             }
+        }
+    }
+}
+
+@Composable
+private fun StorageRow(label: String, detail: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+            colors = RadioButtonDefaults.colors(selectedColor = AppColors.accent, unselectedColor = AppColors.textSecondary),
+        )
+        Column {
+            Text(label, color = AppColors.textPrimary, fontSize = 15.sp)
+            Text(detail, color = AppColors.textTertiary, fontSize = 12.sp)
         }
     }
 }

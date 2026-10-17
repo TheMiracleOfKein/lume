@@ -103,6 +103,13 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val searchHistoryKey = stringPreferencesKey("search_history")
     private val packIndexUrlKey = stringPreferencesKey("pack_index_url")
 
+    private val downloadsPausedKey = booleanPreferencesKey("downloads_paused")
+    private val downloadPagesKey = intPreferencesKey("download_parallel_pages")
+    private val downloadsCbzKey = booleanPreferencesKey("downloads_cbz")
+    private val downloadsRootKey = stringPreferencesKey("downloads_root")
+    private val autoDownloadNewKey = booleanPreferencesKey("downloads_auto_new")
+    private val deleteAfterReadKey = booleanPreferencesKey("downloads_delete_after_read")
+
     private val initial: Preferences = runBlocking { context.appDataStore.data.first() }
     private val current: StateFlow<Preferences> =
         context.appDataStore.data.stateIn(scope, SharingStarted.Eagerly, initial)
@@ -227,6 +234,48 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
         context.appDataStore.edit { it[searchHistoryKey] = prefsJson.encodeToString(items.take(MAX_SEARCH_HISTORY)) }
     }
 
+    /** The download queue is on hold (the running chapter goes back to the queue). */
+    val downloadsPaused: StateFlow<Boolean> = state { it[downloadsPausedKey] ?: false }
+
+    /** Pages of one chapter fetched at the same time (1 … [MAX_PARALLEL_PAGES]). */
+    val downloadParallelPages: StateFlow<Int> = state { (it[downloadPagesKey] ?: 2).coerceIn(1, MAX_PARALLEL_PAGES) }
+
+    /** New downloads are packed into one `.cbz` per chapter. */
+    val downloadsAsCbz: StateFlow<Boolean> = state { it[downloadsCbzKey] ?: false }
+
+    /** Folder that holds `downloads/`; empty = the app's internal storage. */
+    val downloadsRoot: StateFlow<String> = state { it[downloadsRootKey].orEmpty() }
+
+    /** Library checks queue new chapters for download. */
+    val autoDownloadNew: StateFlow<Boolean> = state { it[autoDownloadNewKey] ?: false }
+
+    /** Chapters finished in the reader lose their download when the reader closes. */
+    val deleteAfterRead: StateFlow<Boolean> = state { it[deleteAfterReadKey] ?: false }
+
+    suspend fun setDownloadsPaused(value: Boolean) {
+        context.appDataStore.edit { it[downloadsPausedKey] = value }
+    }
+
+    suspend fun setDownloadParallelPages(value: Int) {
+        context.appDataStore.edit { it[downloadPagesKey] = value.coerceIn(1, MAX_PARALLEL_PAGES) }
+    }
+
+    suspend fun setDownloadsAsCbz(value: Boolean) {
+        context.appDataStore.edit { it[downloadsCbzKey] = value }
+    }
+
+    suspend fun setDownloadsRoot(path: String) {
+        context.appDataStore.edit { it[downloadsRootKey] = path }
+    }
+
+    suspend fun setAutoDownloadNew(value: Boolean) {
+        context.appDataStore.edit { it[autoDownloadNewKey] = value }
+    }
+
+    suspend fun setDeleteAfterRead(value: Boolean) {
+        context.appDataStore.edit { it[deleteAfterReadKey] = value }
+    }
+
     /** Where the pack catalogue is read from; see `docs/packs/index.json`. */
     val packIndexUrl: StateFlow<String> = state { it[packIndexUrlKey]?.takeIf(String::isNotBlank) ?: DEFAULT_PACK_INDEX }
 
@@ -334,6 +383,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
         const val MAX_SIDE_PADDING = 30
         const val MAX_DIM = 0.8f
         const val MAX_SEARCH_HISTORY = 15
+        const val MAX_PARALLEL_PAGES = 4
         const val DEFAULT_PACK_INDEX = "https://raw.githubusercontent.com/TheMiracleOfKein/lume/main/docs/packs/index.json"
         private val prefsJson = Json { ignoreUnknownKeys = true }
     }

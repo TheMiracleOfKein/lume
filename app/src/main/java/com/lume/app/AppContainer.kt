@@ -54,7 +54,7 @@ class AppContainer(val app: Application) {
     val prefs = AppPreferences(app, appScope)
     val libAuth = LibAuthStore(app)
     val sources = SourceRegistry(app, http, prefs, dao, libAuth, imageReferers)
-    val downloads = DownloadStore(app, dao, http)
+    val downloads = DownloadStore(app, dao, http, prefs)
     val offlineCache = OfflineTitleCache(dao)
     val libraryChapters = LibraryChapters(database, dao)
     val titles = TitleRepository(sources, offlineCache, libraryChapters)

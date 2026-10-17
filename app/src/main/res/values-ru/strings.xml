@@ -428,4 +428,41 @@
         <item quantity="other">Есть обновления для %d пака</item>
     </plurals>
     <string name="link_open_failed">Lume не может открыть эту ссылку</string>
+    <string name="error_page_not_image">Страница %1$d — не изображение (возможно, сайт показал проверку)</string>
+    <string name="downloads_pause">Пауза</string>
+    <string name="downloads_resume">Продолжить</string>
+    <string name="downloads_paused">На паузе</string>
+    <string name="downloads_cancel_all">Отменить все</string>
+    <string name="downloads_retry_all">Повторить все</string>
+    <string name="downloads_reorder">Изменить порядок</string>
+    <string name="downloads_move_top">Скачать первым</string>
+    <string name="downloads_move_up">Выше</string>
+    <string name="downloads_move_down">Ниже</string>
+    <string name="downloads_usage">Загрузки занимают %1$s</string>
+    <string name="notif_downloads_channel">Загрузки</string>
+    <plurals name="notif_downloads_title">
+        <item quantity="one">Скачивается %d глава</item>
+        <item quantity="few">Скачиваются %d главы</item>
+        <item quantity="many">Скачиваются %d глав</item>
+        <item quantity="other">Скачиваются %d главы</item>
+    </plurals>
+    <plurals name="notif_downloads_failed">
+        <item quantity="one">Не скачалась %d глава</item>
+        <item quantity="few">Не скачались %d главы</item>
+        <item quantity="many">Не скачались %d глав</item>
+        <item quantity="other">Не скачались %d главы</item>
+    </plurals>
+    <string name="notif_downloads_failed_text">Откройте «Загрузки», чтобы повторить</string>
+    <string name="settings_downloads_auto_new">Скачивать новые главы</string>
+    <string name="settings_downloads_auto_new_hint">Проверка библиотеки ставит найденные главы в очередь</string>
+    <string name="settings_downloads_delete_read">Удалять после прочтения</string>
+    <string name="settings_downloads_delete_read_hint">Дочитанные главы удаляются, когда вы закрываете читалку</string>
+    <string name="settings_downloads_cbz">Сохранять в CBZ</string>
+    <string name="settings_downloads_cbz_hint">Один архив на главу с ComicInfo.xml; его откроют и другие читалки</string>
+    <string name="settings_downloads_parallel">Страниц одновременно</string>
+    <string name="settings_storage_internal">Внутренняя память</string>
+    <string name="settings_storage_sd">SD-карта</string>
+    <string name="settings_storage_external">Внешняя память %1$d</string>
+    <string name="settings_storage_free">Свободно %1$s</string>
+    <string name="settings_storage_note">Новые загрузки сохраняются в выбранное место; прежние остаются там, где были.</string>
 </resources>

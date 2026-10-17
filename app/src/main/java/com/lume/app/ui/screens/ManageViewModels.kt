@@ -68,6 +68,30 @@ class DownloadsViewModel(private val app: AppContainer) : ViewModel() {
         .map { queue -> queue.filter { it.status == DownloadQueueEntity.STATUS_ERROR } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
+    val paused: StateFlow<Boolean> = app.downloadQueue.paused
+
+    /** Bytes on disk per title ("sourceId|titleId") and in total; refreshed when downloads change. */
+    var usage by mutableStateOf<Pair<Map<String, Long>, Long>>(emptyMap<String, Long>() to 0L)
+        private set
+
+    init {
+        viewModelScope.launch {
+            app.dao.observeDownloads().collect { usage = app.downloads.usage() }
+        }
+    }
+
+    fun pause() = app.downloadQueue.pause()
+
+    fun resume() = app.downloadQueue.resume()
+
+    fun move(id: Long, delta: Int) = app.downloadQueue.move(id, delta)
+
+    fun moveToTop(id: Long) = app.downloadQueue.moveToTop(id)
+
+    fun retryAll() = app.downloadQueue.retryAllFailed()
+
+    fun cancelAll() = app.downloadQueue.cancelAll()
+
     /** Titles whose chapter list is open, kept here so it survives opening the reader. */
     var expanded by mutableStateOf<Set<String>>(emptySet())
         private set
@@ -91,7 +115,9 @@ class DownloadsViewModel(private val app: AppContainer) : ViewModel() {
 
 class SettingsViewModel(private val app: AppContainer) : ViewModel() {
     val prefs = app.prefs
-    val downloadPath: String = app.app.filesDir.resolve("downloads").absolutePath
+    var downloadPath: String by mutableStateOf(app.downloads.downloadsDir().absolutePath)
+        private set
+    val storageChoices = app.downloads.storageChoices()
 
     /** Result of the last action (backup, restore, logout …), shown under the settings. */
     var statusMessage by mutableStateOf<String?>(null)
@@ -145,6 +171,30 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
 
     fun setDownloadsWifiOnly(value: Boolean) {
         viewModelScope.launch { prefs.setDownloadsWifiOnly(value) }
+    }
+
+    fun setAutoDownloadNew(value: Boolean) {
+        viewModelScope.launch { prefs.setAutoDownloadNew(value) }
+    }
+
+    fun setDeleteAfterRead(value: Boolean) {
+        viewModelScope.launch { prefs.setDeleteAfterRead(value) }
+    }
+
+    fun setDownloadsCbz(value: Boolean) {
+        viewModelScope.launch { prefs.setDownloadsAsCbz(value) }
+    }
+
+    fun setParallelPages(value: Int) {
+        viewModelScope.launch { prefs.setDownloadParallelPages(value) }
+    }
+
+    /** New downloads go to [path]; existing ones stay where they are and keep working. */
+    fun setDownloadsRoot(path: String) {
+        viewModelScope.launch {
+            prefs.setDownloadsRoot(path)
+            downloadPath = app.downloads.downloadsDir().absolutePath
+        }
     }
 
     fun setSearchNsfw(value: Boolean) {

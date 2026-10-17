@@ -509,6 +509,13 @@ class ReaderViewModel(
 
     override fun onCleared() {
         flush()
+        // "Delete after reading": chapters finished in this session lose their download.
+        if (app.prefs.deleteAfterRead.value && markedRead.isNotEmpty()) {
+            val finished = markedRead.toList()
+            app.appScope.launch(Dispatchers.IO) {
+                finished.forEach { id -> runCatching { app.downloads.delete(sourceId, titleId, id) } }
+            }
+        }
     }
 
     private companion object {

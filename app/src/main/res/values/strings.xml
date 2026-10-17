@@ -439,4 +439,37 @@
         <item quantity="other">%d packs have updates</item>
     </plurals>
     <string name="link_open_failed">Lume can’t open this link</string>
+    <string name="error_page_not_image">Page %1$d is not an image (the site may have shown a check page)</string>
+    <string name="downloads_pause">Pause</string>
+    <string name="downloads_resume">Resume</string>
+    <string name="downloads_paused">Paused</string>
+    <string name="downloads_cancel_all">Cancel all</string>
+    <string name="downloads_retry_all">Retry all</string>
+    <string name="downloads_reorder">Change order</string>
+    <string name="downloads_move_top">Download first</string>
+    <string name="downloads_move_up">Move up</string>
+    <string name="downloads_move_down">Move down</string>
+    <string name="downloads_usage">Downloads use %1$s</string>
+    <string name="notif_downloads_channel">Downloads</string>
+    <plurals name="notif_downloads_title">
+        <item quantity="one">Downloading %d chapter</item>
+        <item quantity="other">Downloading %d chapters</item>
+    </plurals>
+    <plurals name="notif_downloads_failed">
+        <item quantity="one">%d download failed</item>
+        <item quantity="other">%d downloads failed</item>
+    </plurals>
+    <string name="notif_downloads_failed_text">Open Downloads to retry</string>
+    <string name="settings_downloads_auto_new">Download new chapters</string>
+    <string name="settings_downloads_auto_new_hint">Library checks queue the chapters they find</string>
+    <string name="settings_downloads_delete_read">Delete after reading</string>
+    <string name="settings_downloads_delete_read_hint">Chapters you finish lose their download when you close the reader</string>
+    <string name="settings_downloads_cbz">Save as CBZ</string>
+    <string name="settings_downloads_cbz_hint">One archive per chapter, with ComicInfo.xml; other readers open it too</string>
+    <string name="settings_downloads_parallel">Pages downloaded at once</string>
+    <string name="settings_storage_internal">Internal storage</string>
+    <string name="settings_storage_sd">SD card</string>
+    <string name="settings_storage_external">External storage %1$d</string>
+    <string name="settings_storage_free">%1$s free</string>
+    <string name="settings_storage_note">New downloads go to the chosen place; earlier ones stay where they are.</string>
 </resources>
