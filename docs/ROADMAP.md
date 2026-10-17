@@ -38,37 +38,40 @@ Release notes: [docs/releases/v0.3.0.md](releases/v0.3.0.md).
 
 **Left over from v0.3**
 - ⏸️ **Rounded screen corners during the back gesture.** Removed in v0.3. Showing them only while a back gesture is in progress needs a Compose API (`Transition.isSeeking`) that Compose 1.12 keeps internal. Bring them back when that API is public.
-- ⏸️ **Measured baseline profile.** v0.3 ships a hand-written profile. A measured one needs a Macrobenchmark module run on a device or emulator. Do it together with CI in v0.4 (S).
+- ✅ **Measured baseline profile.** Done in v0.4: the `:baselineprofile` module records it on an emulator.
 - 🟡 **Device testing of v0.3.** v0.3 was released after builds and unit tests only. The device checklist (resume, motion, notifications, R8 build) is still to be worked through on real phones.
 
-## v0.4: foundation, library and chapters
+## v0.4: foundation, library and chapters ✅
+
+Release notes: [docs/releases/v0.4.0.md](releases/v0.4.0.md).
 
 **Foundation**
-- 🟡 ViewModels for every screen (M).
-  - Done in v0.3: Reader, Title, Chapters, Home, Catalog and Search.
-  - Left: Library, History, Downloads, Settings and Sources.
-- A small app container instead of `LumeApp.instance` lookups (M)
-- 🟡 Room migration tests (S). Room schemas have been exported since v0.3 (`app/schemas`), so every migration from 7 on can be tested. The 6→7 migration can only be checked by hand, because no v6 schema was ever exported.
-- GitHub Actions with build, unit tests and lint (S)
-- 🟡 Tests (S).
-  - Done in v0.3: backup round-trip (v1 and v2 files) and the reader's position math.
-  - Left: reading order and tracker matching.
+- ✅ ViewModels for every screen. Library, Updates, History, Downloads, Settings, Sources and Categories got theirs in v0.4.
+- ✅ A small app container (`AppContainer`) instead of `LumeApp.instance` lookups. Only `appString()` still uses `LumeApp.instance`.
+- 🟡 Room migration tests. 7→8 is tested on Robolectric (CI) and on a device. Left: the test is skipped on Windows JVM runs, because Room's test helper compares paths with "/". The 6→7 migration can only be checked by hand, because no v6 schema was ever exported.
+- ✅ GitHub Actions with build, unit tests and lint.
+- ✅ Tests for reading order and tracker matching, plus the new library, chapter-list and update logic.
+- ✅ Measured baseline profile and a startup benchmark (`:baselineprofile`).
 
 **Library**
-- Grid, compact and list modes; sorting; filters (unread, downloaded, started, tracking, completed); search in the library (M)
-- Unread and downloaded counts on each title (S)
-- Select several titles for bulk actions (M)
-- Rename, delete and reorder categories; default category (S)
+- ✅ Grid, compact and list modes; sorting; filters (unread, downloaded, started, tracking, completed); search in the library.
+- ✅ Unread and downloaded counts on each title.
+- ✅ Select several titles for bulk actions (categories, mark read/unread, download unread, remove), with range select.
+- ✅ Rename, delete and reorder categories; default category for new titles.
 
 **Updates**
-- An Updates screen with new chapters from the whole library (History moves to the menu) (M)
-- "Update now" and pull to refresh on the Updates screen (S). The title screen already got pull to refresh in v0.3.
-- Detect new chapters by id instead of by count (S)
+- ✅ An Updates screen with new chapters from the whole library. History moved to the menu.
+- ✅ "Update now" and pull to refresh on the Updates screen.
+- ✅ New chapters are detected by id instead of by count.
 
 **Chapters**
-- Mark read / unread, "mark previous as read", filters (S)
-- Show and filter by scanlator / translation team; hide duplicate chapters on MangaLib, YaoiLib and HentaiLib (M)
-- "Download next N / all unread", delete downloaded chapters, range select (S)
+- ✅ Mark read / unread, "mark previous as read", filters (unread, read, downloaded, with page bookmarks).
+- ✅ Teams on MangaLib, YaoiLib and HentaiLib: one copy per chapter by default, team chips, "show all copies".
+- ✅ "Download next N / all unread", delete downloaded chapters, range select.
+
+**Left over from v0.4**
+- 🟡 **Device testing of v0.4.** Checked on an emulator: the app starts, the migration runs, the library grid and its counts, the chapter selection. The rest still needs real phones, together with the v0.3 checklist.
+- **Startup numbers.** `StartupBenchmark` exists but has not been run yet; run it on a real phone to measure the profile's gain (S).
 
 ## v0.5: sources, downloads, backups, trackers
 
