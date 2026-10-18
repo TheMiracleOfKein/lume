@@ -26,8 +26,12 @@ fun dedupeKey(chapter: Chapter): String {
     return "v$volume#c$normalized"
 }
 
-/** The title's teams, most chapters first; empty when there is at most one team. */
-fun chapterBranches(chapters: List<Chapter>): List<ChapterBranch> {
+/**
+ * The title's teams, most chapters first; empty when there is at most one team. Chapters from
+ * linked sources have no team and are not counted.
+ */
+fun chapterBranches(all: List<Chapter>): List<ChapterBranch> {
+    val chapters = all.filterNot { LinkedChapterId.isLinked(it.id) }
     val counts = LinkedHashMap<String, Int>()
     val names = HashMap<String, String>()
     for (ch in chapters) {
@@ -50,10 +54,23 @@ fun chapterBranches(chapters: List<Chapter>): List<ChapterBranch> {
 }
 
 /**
- * One chapter per [dedupeKey], in the list's order. Each chapter comes from [preferredBranch]
- * when that team has it, else from the team with the most chapters, else the first copy.
+ * One chapter per [dedupeKey], in the list's order. Each chapter comes from the main source when
+ * it has the chapter: from [preferredBranch] when that team has it, else from the team with the
+ * most chapters, else the first copy. Chapters the main source lacks come from the first linked
+ * source that has them (see [mergeSourceChapters]).
  */
 fun dedupeChapters(chapters: List<Chapter>, preferredBranch: String? = null): List<Chapter> {
+    if (chapters.size <= 1) return chapters
+    if (chapters.any { LinkedChapterId.isLinked(it.id) }) {
+        val (linked, own) = chapters.partition { LinkedChapterId.isLinked(it.id) }
+        val base = dedupeOwnChapters(own, preferredBranch)
+        val taken = base.mapTo(HashSet()) { dedupeKey(it) }
+        return base + linked.filter { taken.add(dedupeKey(it)) }
+    }
+    return dedupeOwnChapters(chapters, preferredBranch)
+}
+
+private fun dedupeOwnChapters(chapters: List<Chapter>, preferredBranch: String?): List<Chapter> {
     if (chapters.size <= 1) return chapters
     val branchRank = chapterBranches(chapters).withIndex().associate { (i, b) -> b.id to i }
     if (branchRank.isEmpty()) {
