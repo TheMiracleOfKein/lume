@@ -24,6 +24,7 @@ import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.TitleMetaEntity
 import com.lume.app.domain.LibraryUpdateResult
+import com.lume.app.domain.LinkedChapterId
 import com.lume.app.domain.dedupeChapters
 import com.lume.app.domain.inReadingOrder
 import com.lume.app.ui.nav.AppLinks
@@ -45,13 +46,12 @@ class LibraryUpdateWorker(
         val bookmarks = dao.allBookmarks()
         setProgress(workDataOf(KEY_DONE to 0, KEY_TOTAL to bookmarks.size))
         for ((index, bookmark) in bookmarks.withIndex()) {
-            val source = app.sources.sourceById(bookmark.sourceId)
-            if (source != null) runCatching {
-                val chapters = source.getChapters(bookmark.titleId)
-                // The title screen shows the cached list first; keep it current.
-                app.titles.updateChapters(bookmark.sourceId, bookmark.titleId, chapters)
+            if (app.sources.sourceById(bookmark.sourceId) != null) runCatching {
+                // The main source and every linked one, merged; the title screen shows it at once.
+                val (chapters, all) = app.titles.fetchChapterLists(bookmark.sourceId, bookmark.titleId)
                 // New = ids never seen before (not "more chapters than last time"), one per chapter.
-                val fresh = app.libraryChapters.sync(bookmark.sourceId, bookmark.titleId, chapters)
+                // With linked sources, the copy found first is the new one.
+                val fresh = app.libraryChapters.sync(bookmark.sourceId, bookmark.titleId, all)
                 val prev = dao.getTitleMeta(bookmark.sourceId, bookmark.titleId)
                 val last = chapters.firstOrNull()
                 dao.upsertTitleMeta(
@@ -77,11 +77,16 @@ class LibraryUpdateWorker(
                     )
                 }
                 if (fresh.isNotEmpty()) {
+                    val multiSource = all.any { LinkedChapterId.isLinked(it.id) }
                     results += LibraryUpdateResult(
                         sourceId = bookmark.sourceId,
                         titleId = bookmark.titleId,
                         titleName = bookmark.titleName,
                         newChapterCount = fresh.size,
+                        firstOn = if (!multiSource) emptyList() else fresh
+                            .map { LinkedChapterId.sourceOf(it.id, bookmark.sourceId) }
+                            .distinct()
+                            .map { id -> app.sources.sourceById(id)?.manifest?.name ?: id },
                     )
                 }
             }
@@ -99,11 +104,7 @@ class LibraryUpdateWorker(
         ensureChannel()
         val title = applicationContext.getString(R.string.notif_library_updates_title)
         val text = if (results.size == 1) {
-            applicationContext.getString(
-                R.string.notif_library_updates_one,
-                results[0].titleName,
-                results[0].newChapterCount,
-            )
+            line(results[0])
         } else {
             applicationContext.getString(R.string.notif_library_updates_many, results.size)
         }
@@ -112,15 +113,7 @@ class LibraryUpdateWorker(
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(
-                NotificationCompat.BigTextStyle().bigText(
-                    results.joinToString("\n") {
-                        applicationContext.getString(
-                            R.string.notif_library_updates_one,
-                            it.titleName,
-                            it.newChapterCount,
-                        )
-                    },
-                ),
+                NotificationCompat.BigTextStyle().bigText(results.joinToString("\n") { line(it) }),
             )
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(
@@ -147,6 +140,13 @@ class LibraryUpdateWorker(
         } catch (_: SecurityException) {
             // User revoked notification permission between check and notify.
         }
+    }
+
+    /** "Title: +2", and for titles with linked sources "Title: +2 · first on MangaDex". */
+    private fun line(result: LibraryUpdateResult): String {
+        val base = applicationContext.getString(R.string.notif_library_updates_one, result.titleName, result.newChapterCount)
+        if (result.firstOn.isEmpty()) return base
+        return applicationContext.getString(R.string.notif_library_updates_first_on, base, result.firstOn.joinToString())
     }
 
     private fun ensureChannel() {

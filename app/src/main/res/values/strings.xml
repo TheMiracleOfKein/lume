@@ -562,4 +562,38 @@
     <string name="settings_clear_cookies">Clear cookies</string>
     <string name="cache_cleared">Cache cleared: %1$s</string>
     <string name="cookies_cleared">Cookies cleared; site checks and site logins start over</string>
+
+    <!-- v0.6: one title, many sources -->
+    <string name="title_sources">Sources (%s)</string>
+    <string name="title_also_on">Also on %s</string>
+    <string name="title_also_on_hint">Link them to fill gaps in the chapter list and to read a chapter from another source when one fails</string>
+    <string name="action_link">Link</string>
+    <string name="action_not_now">Not now</string>
+    <string name="dialog_sources">Sources</string>
+    <string name="sources_main">Main source</string>
+    <string name="sources_linked">Linked sources</string>
+    <string name="sources_linked_hint">Chapters the main source doesn\'t have come from these, in this order. When a chapter fails to load, Lume reads it from another source.</string>
+    <string name="sources_suggested">Found for you</string>
+    <string name="sources_find">Find on other sources</string>
+    <string name="sources_finding">Searching…</string>
+    <string name="sources_searching_one">searching…</string>
+    <string name="sources_not_found">not found</string>
+    <string name="sources_match_same">Same title</string>
+    <string name="sources_match_maybe">Maybe the same title</string>
+    <string name="sources_match_other">Similar name</string>
+    <string name="sources_linked_label">Linked</string>
+    <string name="sources_make_main">Make main</string>
+    <string name="sources_move_here">Move here</string>
+    <string name="dialog_make_main_title">Make %s the main source?</string>
+    <string name="dialog_make_main_text">Progress, page bookmarks, read chapters, categories, tracker links and downloads move with the title. %s stays linked, so nothing is lost.</string>
+    <string name="dialog_move_here_title">Move to %s?</string>
+    <string name="dialog_move_here_text">Progress, page bookmarks, read chapters, categories, tracker links and downloads move to %1$s. %2$s is unlinked: chapters only it has leave the title, with their downloads.</string>
+    <string name="dialog_unlink_source_title">Unlink %s?</string>
+    <string name="dialog_unlink_source_text">Its chapters leave this title. Read marks, positions, page bookmarks and downloads move to another source\'s copy where there is one; downloads of chapters no other source has are deleted.</string>
+    <string name="chapters_source_auto">One per chapter</string>
+    <string name="reader_loaded_from">The chapter didn\'t load from its source; it came from %s</string>
+    <string name="notif_library_updates_first_on">%1$s · first on %2$s</string>
+    <string name="updates_first_on">%1$s · first on %2$s</string>
+    <string name="settings_find_other_sources">Find titles on other sources</string>
+    <string name="settings_find_other_sources_hint">When you add a title, Lume looks for it on your other sources and suggests linking them</string>
 </resources>

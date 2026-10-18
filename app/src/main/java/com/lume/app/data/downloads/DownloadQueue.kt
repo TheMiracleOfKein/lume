@@ -287,6 +287,11 @@ class DownloadQueue(
                 titleId = item.titleId,
                 title = known?.details,
                 chapter = chapter,
+                // A linked source's chapter comes from that source; a failing one from another copy.
+                fetchPages = {
+                    titles.loadPages(item.sourceId, item.titleId, chapter, known?.chapters.orEmpty())
+                        .let { it.source to it.pages }
+                },
                 onProgress = { p ->
                     // Progress rows are for the list and the notification; a few per second is plenty.
                     val now = System.currentTimeMillis()

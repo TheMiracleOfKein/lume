@@ -79,6 +79,20 @@ class ReaderViewModel(
     var chapters by mutableStateOf<List<Chapter>>(emptyList())
         private set
 
+    /** Every copy of every chapter (all teams and linked sources), for falling back. */
+    private var allCopies: List<Chapter> = emptyList()
+
+    /**
+     * Set when a chapter came from another source than its own because its own failed
+     * ("Loaded from MangaDex"); the screen shows it once and clears it.
+     */
+    var fallbackNotice by mutableStateOf<String?>(null)
+        private set
+
+    fun clearFallbackNotice() {
+        fallbackNotice = null
+    }
+
     // ---- Load state -----------------------------------------------------------------------
     var loading by mutableStateOf(true)
         private set
@@ -229,6 +243,7 @@ class ReaderViewModel(
         coverUrl = known.details.coverUrl
         typeLabel = known.details.typeLabel
         if (known.chapters.isEmpty()) error(appString(R.string.error_no_chapters))
+        allCopies = known.chapters
         // Next / previous follow the chapter list: one copy per chapter, continuing with the team
         // of the chapter that was opened.
         val prefs = dao.getTitlePrefs(sourceId, titleId)
@@ -241,10 +256,18 @@ class ReaderViewModel(
         }
     }
 
-    private suspend fun loadPagesFor(ch: Chapter): List<ComicPage> = withContext(Dispatchers.IO) {
-        app.downloads.localPages(sourceId, titleId, ch.id)
-            ?: app.sources.sourceById(sourceId)?.getPages(ch)
-            ?: error(appString(R.string.error_no_pages_offline))
+    /**
+     * Downloaded pages first. Otherwise the chapter's own source (a linked source for its
+     * chapters); when that fails, another source's or team's copy of the same chapter. The
+     * chapter keeps its id either way, so the position and read mark stay where they are.
+     */
+    private suspend fun loadPagesFor(ch: Chapter, notice: Boolean = true): List<ComicPage> {
+        withContext(Dispatchers.IO) { app.downloads.localPages(sourceId, titleId, ch.id) }?.let { return it }
+        val served = app.titles.loadPages(sourceId, titleId, ch, allCopies)
+        if (served.fallback && notice) {
+            fallbackNotice = appString(R.string.reader_loaded_from, served.source.manifest.name)
+        }
+        return served.pages
     }
 
     private fun replaceLoaded(list: List<LoadedChapter>) {
@@ -260,7 +283,7 @@ class ReaderViewModel(
             val idx = chapters.indexOfFirst { chapterIdsMatch(it.id, last.chapter.id) }
             val next = chapters.getOrNull(idx + 1) ?: return
             if (loaded.any { chapterIdsMatch(it.chapter.id, next.id) }) return
-            val pages = runCatching { loadPagesFor(next) }.getOrNull()?.takeIf { it.isNotEmpty() } ?: return
+            val pages = runCatching { loadPagesFor(next, notice = false) }.getOrNull()?.takeIf { it.isNotEmpty() } ?: return
             dao.getChapterProgress(sourceId, titleId, next.id)?.let { loadAspects(next.id, it.pageAspectsJson) }
             // The strip may have been replaced (another chapter opened) while this loaded.
             if (loaded.lastOrNull()?.chapter?.id != last.chapter.id) return

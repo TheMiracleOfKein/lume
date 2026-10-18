@@ -557,4 +557,38 @@
     <string name="settings_clear_cookies">Очистить cookie</string>
     <string name="cache_cleared">Кэш очищен: %1$s</string>
     <string name="cookies_cleared">Cookie удалены; проверки и входы на сайтах начнутся заново</string>
+
+    <!-- v0.6: один тайтл, много источников -->
+    <string name="title_sources">Источники (%s)</string>
+    <string name="title_also_on">Есть также на %s</string>
+    <string name="title_also_on_hint">Привяжите их: они заполнят пропуски в списке глав, а главу, которая не открылась, можно будет прочитать с другого источника</string>
+    <string name="action_link">Привязать</string>
+    <string name="action_not_now">Не сейчас</string>
+    <string name="dialog_sources">Источники</string>
+    <string name="sources_main">Основной источник</string>
+    <string name="sources_linked">Привязанные источники</string>
+    <string name="sources_linked_hint">Главы, которых нет у основного источника, берутся отсюда, в этом порядке. Если глава не загрузилась, Lume берёт её с другого источника.</string>
+    <string name="sources_suggested">Найдено для вас</string>
+    <string name="sources_find">Найти на других источниках</string>
+    <string name="sources_finding">Поиск…</string>
+    <string name="sources_searching_one">поиск…</string>
+    <string name="sources_not_found">не найдено</string>
+    <string name="sources_match_same">Тот же тайтл</string>
+    <string name="sources_match_maybe">Возможно, тот же тайтл</string>
+    <string name="sources_match_other">Похожее название</string>
+    <string name="sources_linked_label">Привязан</string>
+    <string name="sources_make_main">Сделать основным</string>
+    <string name="sources_move_here">Перенести сюда</string>
+    <string name="dialog_make_main_title">Сделать %s основным источником?</string>
+    <string name="dialog_make_main_text">Прогресс, закладки страниц, прочитанные главы, категории, привязки трекеров и загрузки переходят вместе с тайтлом. %s остаётся привязанным, так что ничего не теряется.</string>
+    <string name="dialog_move_here_title">Перенести на %s?</string>
+    <string name="dialog_move_here_text">Прогресс, закладки страниц, прочитанные главы, категории, привязки трекеров и загрузки переходят на %1$s. %2$s отвязывается: главы, которые есть только у него, уходят из тайтла вместе с загрузками.</string>
+    <string name="dialog_unlink_source_title">Отвязать %s?</string>
+    <string name="dialog_unlink_source_text">Его главы уходят из тайтла. Отметки о прочтении, позиции, закладки страниц и загрузки переходят на копию главы с другого источника, если она есть; загрузки глав, которых нет больше нигде, удаляются.</string>
+    <string name="chapters_source_auto">По одной на главу</string>
+    <string name="reader_loaded_from">Глава не загрузилась со своего источника и открыта с %s</string>
+    <string name="notif_library_updates_first_on">%1$s · раньше всех на %2$s</string>
+    <string name="updates_first_on">%1$s · раньше всех на %2$s</string>
+    <string name="settings_find_other_sources">Искать тайтлы на других источниках</string>
+    <string name="settings_find_other_sources_hint">При добавлении тайтла Lume ищет его на других ваших источниках и предлагает их привязать</string>
 </resources>

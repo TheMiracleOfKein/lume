@@ -1,6 +1,11 @@
 package com.lume.app.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -63,6 +68,8 @@ import com.lume.app.data.tracker.TrackerSearchResult
 import com.lume.app.ui.components.TrackerEntryDialog
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.inReadingOrder
+import com.lume.app.domain.dedupeChapters
+import com.lume.app.data.db.TitleSourceEntity
 import com.lume.app.ui.components.AnimatedLoadState
 import com.lume.app.ui.components.CoverImage
 import com.lume.app.ui.components.ErrorRetryBox
@@ -90,7 +97,19 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
     val progressState by vm.progress.collectAsState()
     val links by vm.trackerLinks.collectAsState()
     val pageBookmarks by vm.pageBookmarks.collectAsState()
+    val titleSources by vm.titleSources.collectAsState()
     var showTrackers by remember { mutableStateOf(false) }
+    var showSources by remember { mutableStateOf(false) }
+    // One row per chapter, whatever number of teams or sources have it.
+    val chapterCount = remember(chapters) { dedupeChapters(chapters).size }
+
+    // Moved to another main source: that title replaces this screen.
+    LaunchedEffect(vm.movedTo) {
+        val (newSource, newTitle) = vm.movedTo ?: return@LaunchedEffect
+        nav.navigate(Routes.title(newSource, newTitle)) {
+            popUpTo(Routes.Title) { inclusive = true }
+        }
+    }
 
     Scaffold(
         containerColor = AppColors.background,
@@ -230,14 +249,45 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                 }
                             }
                         }
+                        val suggestions = titleSources.filter { it.state == TitleSourceEntity.SUGGESTED }
+                        AnimatedVisibility(
+                            visible = suggestions.isNotEmpty(),
+                            enter = expandVertically(Motion.medium()) + fadeIn(Motion.medium()),
+                            exit = shrinkVertically(Motion.medium()) + fadeOut(Motion.short()),
+                        ) {
+                            AlsoOnCard(
+                                names = suggestions.map { container.sources.sourceById(it.linkSourceId)?.manifest?.name ?: it.linkSourceId }.distinct(),
+                                enabled = !vm.busy,
+                                onOpen = { showSources = true },
+                                onLink = vm::linkAllSuggestions,
+                                onDismiss = vm::dismissAllSuggestions,
+                            )
+                        }
                         Spacer(Modifier.height(16.dp))
                         OutlinedButton(
                             onClick = { nav.navigate(Routes.chapters(sourceId, titleId)) },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(
-                                stringResource(R.string.title_chapters_list, chapters.size),
+                                stringResource(R.string.title_chapters_list, chapterCount),
                                 color = AppColors.textPrimary,
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { showSources = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            val names = listOf(sourceId) + titleSources
+                                .filter { it.state == TitleSourceEntity.LINKED }
+                                .map { it.linkSourceId }
+                            Text(
+                                stringResource(
+                                    R.string.title_sources,
+                                    names.distinct().joinToString { container.sources.sourceById(it)?.manifest?.name ?: it },
+                                ),
+                                color = AppColors.textPrimary,
+                                maxLines = 1,
                             )
                         }
                         Spacer(Modifier.height(8.dp))
@@ -313,6 +363,10 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
         }
     }
 
+    if (showSources) {
+        TitleSourcesDialog(vm = vm, titleName = details?.title.orEmpty(), onDismiss = { showSources = false })
+    }
+
     if (showTrackers) {
         TrackersDialog(
             sourceId = sourceId,
@@ -323,6 +377,43 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
             typeLabel = details?.typeLabel,
             onDismiss = { showTrackers = false },
         )
+    }
+}
+
+/** "Also on MangaDex, Comick": sources Lume found the title on, with Link / Not now. */
+@Composable
+private fun AlsoOnCard(
+    names: List<String>,
+    enabled: Boolean,
+    onOpen: () -> Unit,
+    onLink: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .padding(top = 16.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(AppColors.card)
+            .clickable(onClick = onOpen)
+            .padding(start = 14.dp, end = 6.dp, top = 12.dp, bottom = 4.dp),
+    ) {
+        Text(
+            stringResource(R.string.title_also_on, names.joinToString()),
+            color = AppColors.textPrimary,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+        )
+        Text(
+            stringResource(R.string.title_also_on_hint),
+            color = AppColors.textSecondary,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(top = 2.dp, end = 8.dp),
+        )
+        Row(modifier = Modifier.align(androidx.compose.ui.Alignment.End)) {
+            TextButton(onClick = onDismiss, enabled = enabled) { Text(stringResource(R.string.action_not_now)) }
+            TextButton(onClick = onLink, enabled = enabled) { Text(stringResource(R.string.action_link)) }
+        }
     }
 }
 

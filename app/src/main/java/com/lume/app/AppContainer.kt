@@ -58,12 +58,13 @@ class AppContainer(val app: Application) {
     val offlineCache = OfflineTitleCache(dao)
     val localImporter = com.lume.app.data.local.LocalImporter(app)
     val libraryChapters = LibraryChapters(database, dao)
-    val titles = TitleRepository(sources, offlineCache, libraryChapters)
+    val titles = TitleRepository(sources, offlineCache, libraryChapters, dao)
     val downloadQueue = DownloadQueue(app, dao, downloads, sources, titles, prefs, network)
     val backup = BackupRepository(app, dao, sources, prefs, titles, libraryChapters)
     val trackers = TrackerRegistry(http, dao, prefs)
     val trackerSync = TrackerSync(app, dao, trackers, prefs)
-    val library = LibraryRepository(database, dao, prefs, titles, libraryChapters, trackerSync, appScope)
+    val titleSources = com.lume.app.data.title.TitleSourceRepository(database, dao, sources, titles, libraryChapters, downloads, prefs)
+    val library = LibraryRepository(database, dao, prefs, titles, libraryChapters, trackerSync, titleSources, appScope)
 
     val imageLoader: ImageLoader get() = app.imageLoader
 

@@ -72,9 +72,18 @@ class MihonBackupTest {
     fun lumeBackupKeepsSettings() {
         val payload = BackupPayload(settings = listOf(SettingDto("dark_theme", "bool", "false")))
         val parsed = BackupPayload.parse(BackupPayload.json.encodeToString(BackupPayload.serializer(), payload))
-        assertEquals(3, parsed.version)
+        assertEquals(4, parsed.version)
         assertEquals("dark_theme", parsed.settings.single().key)
         // Version 2 files have no settings.
         assertTrue(BackupPayload.parse("{\"version\":2}").settings.isEmpty())
+    }
+
+    @Test
+    fun lumeBackupKeepsTitleSources() {
+        val link = TitleSourceDto("lib", "/t", "dex", "abc", "Title", state = "linked", priority = 1)
+        val parsed = BackupPayload.parse(BackupPayload.json.encodeToString(BackupPayload.serializer(), BackupPayload(titleSources = listOf(link))))
+        assertEquals(link, parsed.titleSources.single())
+        // Version 3 files have no title sources.
+        assertTrue(BackupPayload.parse("{\"version\":3}").titleSources.isEmpty())
     }
 }

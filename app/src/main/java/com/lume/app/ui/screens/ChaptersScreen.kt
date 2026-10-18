@@ -82,6 +82,7 @@ import com.lume.app.domain.ChapterBranch
 import com.lume.app.domain.ChapterFilter
 import com.lume.app.domain.ChapterListOptions
 import com.lume.app.domain.ChapterReadState
+import com.lume.app.domain.LinkedChapterId
 import com.lume.app.domain.chapterBranches
 import com.lume.app.domain.chapterListView
 import com.lume.app.ui.components.AnimatedLoadState
@@ -114,6 +115,12 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
 
     val readState = remember(chapters, readIds) { ChapterReadState(chapters, readIds) }
     val branches = remember(chapters) { chapterBranches(chapters) }
+    // Linked sources: each row says where its chapter comes from.
+    val multiSource = remember(chapters) { chapters.any { LinkedChapterId.isLinked(it.id) } }
+    val sourceNames = remember(chapters, multiSource) {
+        if (!multiSource) emptyMap() else chapters.map { LinkedChapterId.sourceOf(it.id, sourceId) }.distinct()
+            .associateWith { container.sources.sourceById(it)?.manifest?.name ?: it }
+    }
     val displayed = remember(chapters, options, readState, downloadedIds, bookmarkedIds) {
         chapterListView(chapters, options, readState, downloadedIds, bookmarkedIds)
     }
@@ -243,9 +250,15 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         .background(AppColors.background),
                     contentPadding = PaddingValues(bottom = 16.dp),
                 ) {
-                    if (branches.isNotEmpty()) {
+                    if (branches.isNotEmpty() || multiSource) {
                         item(key = "teams") {
-                            TeamChips(branches = branches, options = options, onPrefer = vm::preferBranch, onShowAll = vm::showDuplicates)
+                            TeamChips(
+                                branches = branches,
+                                options = options,
+                                autoLabel = stringResource(if (branches.isEmpty()) R.string.chapters_source_auto else R.string.chapters_team_auto),
+                                onPrefer = vm::preferBranch,
+                                onShowAll = vm::showDuplicates,
+                            )
                         }
                     }
                     if (displayed.isEmpty()) {
@@ -262,6 +275,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         ChapterRow(
                             chapter = chapter,
                             showTeam = branches.isNotEmpty(),
+                            sourceLabel = sourceNames[LinkedChapterId.sourceOf(chapter.id, sourceId)],
                             isRead = readState.isRead(chapter),
                             isCurrent = chapter.id == currentChapterId,
                             isDownloaded = chapter.id in downloadedIds,
@@ -315,6 +329,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
 private fun TeamChips(
     branches: List<ChapterBranch>,
     options: ChapterListOptions,
+    autoLabel: String,
     onPrefer: (String?) -> Unit,
     onShowAll: () -> Unit,
 ) {
@@ -325,7 +340,7 @@ private fun TeamChips(
             .padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        TeamChip(stringResource(R.string.chapters_team_auto), !options.showDuplicates && options.branch == null) { onPrefer(null) }
+        TeamChip(autoLabel, !options.showDuplicates && options.branch == null) { onPrefer(null) }
         branches.forEach { b ->
             TeamChip("${b.name} · ${b.chapterCount}", !options.showDuplicates && options.branch == b.id) { onPrefer(b.id) }
         }
@@ -356,6 +371,8 @@ private fun TeamChip(label: String, selected: Boolean, onClick: () -> Unit) {
 private fun ChapterRow(
     chapter: Chapter,
     showTeam: Boolean,
+    /** The chapter's source, for titles with linked sources. */
+    sourceLabel: String?,
     isRead: Boolean,
     isCurrent: Boolean,
     isDownloaded: Boolean,
@@ -390,6 +407,7 @@ private fun ChapterRow(
             )
             val meta = listOfNotNull(
                 chapter.dateLabel,
+                sourceLabel,
                 chapter.branchName?.takeIf { showTeam },
                 partial?.let { (page, count) -> stringResource(R.string.chapter_progress_pages, page, count) },
             ).joinToString(" · ")

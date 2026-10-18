@@ -8,6 +8,7 @@ import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.db.LumeDatabase
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.data.title.TitleRepository
+import com.lume.app.data.title.TitleSourceRepository
 import com.lume.app.data.tracker.TrackerSync
 import com.lume.app.data.tracker.chapterProgressNumber
 import com.lume.app.domain.Chapter
@@ -38,6 +39,7 @@ class LibraryRepository(
     private val titles: TitleRepository,
     private val libraryChapters: LibraryChapters,
     private val trackerSync: TrackerSync,
+    private val titleSources: TitleSourceRepository,
     private val appScope: CoroutineScope,
 ) {
     // ---- Membership -------------------------------------------------------------------------
@@ -62,6 +64,8 @@ class LibraryRepository(
         // Signed-in trackers link the title when they find it under the same name.
         val names = listOfNotNull(titleName, known?.details?.altTitle)
         appScope.launch(Dispatchers.IO) { runCatching { trackerSync.autoLink(sourceId, titleId, names) } }
+        // "Also on …": look for the title on the other sources.
+        appScope.launch(Dispatchers.IO) { runCatching { titleSources.suggest(sourceId, titleId) } }
     }
 
     suspend fun remove(sourceId: String, titleId: String) {

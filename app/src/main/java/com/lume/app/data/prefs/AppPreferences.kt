@@ -111,6 +111,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val deleteAfterReadKey = booleanPreferencesKey("downloads_delete_after_read")
 
     private val trackerAutoLinkKey = booleanPreferencesKey("tracker_auto_link_enabled")
+    private val findOtherSourcesKey = booleanPreferencesKey("find_other_sources")
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val pureBlackKey = booleanPreferencesKey("theme_pure_black")
     private val dynamicColorKey = booleanPreferencesKey("theme_dynamic_color")
@@ -224,6 +225,13 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
 
     suspend fun setTrackerAutoLink(value: Boolean) {
         context.appDataStore.edit { it[trackerAutoLinkKey] = value }
+    }
+
+    /** Look for a title on the other sources when it is added to the library ("Also on …"). */
+    val findOtherSources: StateFlow<Boolean> = state { it[findOtherSourcesKey] ?: true }
+
+    suspend fun setFindOtherSources(value: Boolean) {
+        context.appDataStore.edit { it[findOtherSourcesKey] = value }
     }
     val shikimoriUserId: StateFlow<String?> = state { it[shikiUserIdKey] }
     val shikimoriClientId: StateFlow<String?> = state { it[shikiClientIdKey] }
