@@ -113,6 +113,26 @@ Release notes: [docs/releases/v0.5.0.md](releases/v0.5.0.md).
 **Left over from v0.5**
 - 🟡 **Device testing of v0.5.** Checked on an emulator: search with filters only and paging, a shared MangaDex link, the Sources, Settings and Downloads screens, with no crashes. Tracker sign-ins, Mihon import with a real backup, the download notification, CBZ, local import, app lock and the tablet rail still need real devices and accounts.
 
+## v0.6: one title, many sources
+
+Release notes: [docs/releases/v0.6.0.md](releases/v0.6.0.md).
+
+**One title, many sources** (signature feature 1)
+- ✅ **Merged chapter list.** Linked sources add their chapters to the title; each chapter comes from the main source when it has it, else from the first linked source that does, with a source badge. "Show all copies" lists every source's copy. Linked chapters without a number can't be placed and are left out.
+- ✅ **Found for you.** Adding a title to the library searches the other enabled sources by every name of the title (MangaDex gives all its alternative names) and suggests the sources that have a title with the same name ("Also on …"). Close names (spin-offs, side stories) are never suggested on their own; "Find on other sources" lists them as "maybe" to link by hand.
+- ✅ **Never stuck.** A chapter that fails on its source (site check, region block, removed) loads from another source's copy, in the reader and in downloads. The chapter keeps its place, so the spot inside the page and the read mark stay.
+- ✅ **First to publish.** Library checks fetch every linked source; the copy found first is the new chapter. Notifications and the Updates screen name the source that had it first.
+- ✅ **One-tap migration.** "Make main" moves the title to a linked source with progress, per-chapter spots, read marks, page bookmarks, categories, tracker links, chapter list settings and downloads; the old source stays linked. "Move here" also unlinks the old source. Unlinking moves read marks, spots, bookmarks and downloads to another source's copy where there is one.
+
+**Continuity** (from signature feature 3)
+- ✅ **Home-screen widget** with the last three titles; a tap opens the reader where you stopped.
+- ✅ **App shortcuts** "Continue <title>" for the last three titles.
+- Both show nothing with app lock or "hide in recent apps" on.
+
+**Left over from v0.6**
+- 🟡 **Device testing of v0.6.** Checked on an emulator with real sources: the 8→9 migration test, finding Solo Leveling on other sources from MangaDex (which has no chapters), linking (0 → 207 chapters with source badges), reading a linked chapter, unlink, make main (library entry, Continue and links moved), the Continue shortcut and the widget. That run suggested two spin-offs too; the rule was made stricter afterwards (unit-tested, not re-run on the emulator). Not checked: the fallback with a source that really fails, downloads of linked chapters, the update notification naming the first source, and real phones.
+- **Library badge for titles with several sources** (S).
+
 ## Reader backlog
 
 These land across releases.
@@ -129,7 +149,7 @@ These land across releases.
 
 ## Signature features
 
-### 1. One title, many sources (v0.6, L)
+### 1. One title, many sources (v0.6, L) ✅ done in v0.6
 
 A library entry can be backed by several sources at once.
 
@@ -152,12 +172,12 @@ Everything runs on the phone, with no account. It ships in a separate build flav
 
 Panel detection starts with classic image processing, which needs no model. Learned models stay optional because of their size, their speed on older phones and the licenses of their training data.
 
-### 3. Sync and continuity (v0.5–0.6, M–L)
+### 3. Sync and continuity (v0.6–0.7, M–L) 🟡
 
 This builds directly on the exact positions and page bookmarks from v0.3.
 
-- **See exactly where you stopped.** "Continue" cards show a small picture of the panel you were reading when you left. Page bookmarks use the same picture. Today, page bookmarks show a crop of the page image.
-- **Home-screen widget.** One to three "Continue" cards; a tap opens the exact spot. App shortcuts for "Continue <title>".
-- **Sync between devices.** Library, progress, bookmarks and categories sync through WebDAV (for example Nextcloud), a shared folder (works with Syncthing) or, optionally, Google Drive.
+- ⏸️ **See exactly where you stopped.** Waits for panel detection (feature 2): the picture is the panel you were reading. "Continue" cards show a small picture of the panel you were reading when you left. Page bookmarks use the same picture. Today, page bookmarks show a crop of the page image.
+- ✅ **Home-screen widget.** One to three "Continue" cards; a tap opens the exact spot. App shortcuts for "Continue <title>". Done in v0.6.
+- **Sync between devices** (v0.7). Library, progress, bookmarks and categories sync through WebDAV (for example Nextcloud), a shared folder (works with Syncthing) or, optionally, Google Drive.
   - The newest change wins.
   - For reading progress, the furthest position wins unless you reset it.
