@@ -25,10 +25,15 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # Live catalogue tests stay off (no -Plume.live). The Room migration test runs here on
-      # Robolectric; on Windows it only runs on a device.
+      # Live catalogue tests stay off (no -Plume.live; see live-sources.yml). The Room migration
+      # test runs here on Robolectric; on Windows it only runs on a device.
       - name: Build, test and lint
         run: ./gradlew --no-configuration-cache :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+
+      # The R8-shrunk release build (unsigned here), so a missing keep rule fails the PR rather
+      # than the release.
+      - name: Release build (R8)
+        run: ./gradlew --no-configuration-cache :app:assembleRelease
 
       - name: Upload reports
         if: always()
