@@ -56,14 +56,19 @@ class LibraryViewModel(private val app: AppContainer) : ViewModel() {
         }
     }
 
+    /** Cached details plus the number of linked sources per title. */
+    private val titleExtras = combine(titleInfo, dao.observeLinkedSourceCounts()) { info, links ->
+        info to links.associate { "${it.sourceId}\u0000${it.titleId}" to it.linked }
+    }
+
     /** Every library title with its counts, before category, search, filters and sorting. */
     private val items: StateFlow<List<LibraryItem>> = combine(
         dao.observeBookmarks(),
         dao.observeLibraryStats(),
         dao.observeTitleMeta(),
         dao.observeTrackedTitles(),
-        titleInfo,
-    ) { bookmarks, stats, meta, tracked, info ->
+        titleExtras,
+    ) { bookmarks, stats, meta, tracked, (info, linked) ->
         val statsByKey = stats.associateBy { "${it.sourceId}\u0000${it.titleId}" }
         val newKeys = meta.filter { it.unreadNewCount > 0 }.mapTo(HashSet()) { "${it.sourceId}\u0000${it.titleId}" }
         val trackedKeys = tracked.mapTo(HashSet()) { "${it.sourceId}\u0000${it.titleId}" }
@@ -87,6 +92,7 @@ class LibraryViewModel(private val app: AppContainer) : ViewModel() {
                 tracking = key in trackedKeys,
                 completed = info[key]?.completed == true,
                 hasNew = key in newKeys,
+                sources = 1 + (linked[key] ?: 0),
             )
         }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())

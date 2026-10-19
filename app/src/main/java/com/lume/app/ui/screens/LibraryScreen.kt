@@ -47,6 +47,7 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.FlipToBack
 import androidx.compose.material.icons.outlined.IndeterminateCheckBox
+import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.RemoveDone
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SelectAll
@@ -54,6 +55,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SecondaryTabRow
@@ -526,13 +529,14 @@ private fun LazyGridItemScope.LibraryGridCell(
     }
 }
 
-/** Unread (accent) and downloaded (neutral) counts, joined like a split pill. */
+/** Unread (accent), downloaded (neutral) and source (blue) counts, joined like a split pill. */
 @Composable
 private fun CountBadges(item: LibraryItem, settings: LibrarySettings, modifier: Modifier = Modifier) {
     val unread = item.unread.takeIf { settings.unreadBadge && it > 0 }
     val downloaded = item.downloaded.takeIf { settings.downloadedBadge && it > 0 }
-    if (unread == null && downloaded == null) return
-    Row(modifier.clip(RoundedCornerShape(4.dp))) {
+    val sources = item.sources.takeIf { settings.sourcesBadge && it > 1 }
+    if (unread == null && downloaded == null && sources == null) return
+    Row(modifier.clip(RoundedCornerShape(4.dp)), verticalAlignment = Alignment.CenterVertically) {
         unread?.let {
             Text(
                 "$it",
@@ -554,6 +558,25 @@ private fun CountBadges(item: LibraryItem, settings: LibrarySettings, modifier: 
                     .background(Color(0xFF3A3F47))
                     .padding(horizontal = 5.dp, vertical = 1.dp),
             )
+        }
+        sources?.let {
+            val description = stringResource(R.string.library_sources_badge, it)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .background(Color(0xFF2F5A86))
+                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                    .semantics(mergeDescendants = true) { contentDescription = description },
+            ) {
+                Icon(Icons.Outlined.Layers, contentDescription = null, tint = Color.White, modifier = Modifier.size(11.dp))
+                Text(
+                    "$it",
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 2.dp),
+                )
+            }
         }
     }
 }
@@ -720,6 +743,11 @@ private fun LibrarySheet(settings: LibrarySettings, onChange: ((LibrarySettings)
                     label = stringResource(R.string.library_badge_downloaded),
                     checked = settings.downloadedBadge,
                     onCheckedChange = { value -> onChange { it.copy(downloadedBadge = value) } },
+                )
+                SwitchRow(
+                    label = stringResource(R.string.library_badge_sources),
+                    checked = settings.sourcesBadge,
+                    onCheckedChange = { value -> onChange { it.copy(sourcesBadge = value) } },
                 )
             }
         }

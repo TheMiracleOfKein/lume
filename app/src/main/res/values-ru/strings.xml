@@ -316,6 +316,8 @@
     <string name="library_display_list">Список</string>
     <string name="library_badge_unread">Число непрочитанных</string>
     <string name="library_badge_downloaded">Число скачанных</string>
+    <string name="library_badge_sources">Число источников</string>
+    <string name="library_sources_badge">Источников: %1$d</string>
     <string name="action_mark_read">Отметить прочитанным</string>
     <string name="action_mark_unread">Отметить непрочитанным</string>
     <string name="action_download_unread">Скачать непрочитанное</string>

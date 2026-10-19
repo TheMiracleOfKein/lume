@@ -571,9 +571,9 @@ interface LibraryDao {
     @Query("SELECT * FROM title_sources")
     suspend fun allTitleSources(): List<TitleSourceEntity>
 
-    /** Library titles with at least one linked source (for the library's source badge). */
-    @Query("SELECT DISTINCT sourceId, titleId FROM title_sources WHERE state = 'linked'")
-    fun observeMultiSourceTitles(): Flow<List<TitleKey>>
+    /** Linked sources per title that has any (for the library's sources badge). */
+    @Query("SELECT sourceId, titleId, COUNT(*) AS linked FROM title_sources WHERE state = 'linked' GROUP BY sourceId, titleId")
+    fun observeLinkedSourceCounts(): Flow<List<LinkedSourceCount>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertTitleSource(item: TitleSourceEntity)
@@ -619,6 +619,8 @@ interface LibraryDao {
 }
 
 data class TitleKey(val sourceId: String, val titleId: String)
+
+data class LinkedSourceCount(val sourceId: String, val titleId: String, val linked: Int)
 
 data class TitleJsonRow(val sourceId: String, val titleId: String, val titleJson: String)
 

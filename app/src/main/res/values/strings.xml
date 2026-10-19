@@ -327,6 +327,8 @@
     <string name="library_display_list">List</string>
     <string name="library_badge_unread">Show unread count</string>
     <string name="library_badge_downloaded">Show downloaded count</string>
+    <string name="library_badge_sources">Show the number of sources</string>
+    <string name="library_sources_badge">Sources: %1$d</string>
     <string name="action_mark_read">Mark as read</string>
     <string name="action_mark_unread">Mark as unread</string>
     <string name="action_download_unread">Download unread</string>
