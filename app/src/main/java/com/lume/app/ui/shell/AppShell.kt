@@ -54,6 +54,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.flow.filterNotNull
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -82,6 +86,7 @@ import com.lume.app.ui.screens.HistoryScreen
 import com.lume.app.ui.screens.HomeScreen
 import com.lume.app.ui.screens.LibraryScreen
 import com.lume.app.ui.screens.ReaderScreen
+import com.lume.app.ui.screens.ReadingListScreen
 import com.lume.app.ui.screens.SearchScreen
 import com.lume.app.ui.screens.settings.SettingsPageScreen
 import com.lume.app.ui.screens.settings.SettingsScreen
@@ -127,15 +132,20 @@ fun AppShell(nav: NavHostController) {
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
     val showBottomBar = route in MainTabRoutes
-    val pendingRoute by AppLinks.pendingRoute.collectAsState()
     // Tablets and wide windows: a navigation rail on the left instead of the bottom bar.
     val windowWidth = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
     val useRail = windowWidth.value >= RAIL_MIN_WIDTH_DP
 
-    LaunchedEffect(pendingRoute) {
-        val target = pendingRoute ?: return@LaunchedEffect
-        nav.navigateToTab(target)
-        AppLinks.consumed()
+    // Only the window on screen takes a route. Sharing a file or link to Lume can open a second
+    // Lume window; the one left in the background must not take the route away from it.
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            AppLinks.pendingRoute.filterNotNull().collect { target ->
+                nav.navigateToTab(target)
+                AppLinks.consumed()
+            }
+        }
     }
 
     CompositionLocalProvider(LocalUseRail provides useRail) {
@@ -178,6 +188,7 @@ fun AppShell(nav: NavHostController) {
             lumeComposable(Routes.Downloads) { DownloadsScreen(nav) }
             lumeComposable(Routes.Categories) { CategoriesScreen(nav) }
             lumeComposable(Routes.About) { AboutScreen(nav) }
+            lumeComposable(Routes.ReadingList) { ReadingListScreen(nav) }
             lumeComposable(
                 route = Routes.Browse,
                 arguments = listOf(navArgument("sourceId") { type = NavType.StringType }),
