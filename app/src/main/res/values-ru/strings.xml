@@ -240,6 +240,7 @@
     <string name="error_http_not_found">На %1$s не найдено (HTTP 404). Возможно, тайтл или глава удалены.</string>
     <string name="error_http_rate_limited">%1$s ограничивает частоту запросов. Попробуйте через минуту.</string>
     <string name="error_http_server">Ошибка сервера %1$s (HTTP %2$d). Попробуйте позже.</string>
+    <string name="error_source_login_required">%1$s показывает главы только после входа. Войдите в разделе «Источники» → %1$s.</string>
     <string name="error_http_generic">HTTP %1$d от %2$s</string>
     <string name="error_chapter_locked">Глава закрыта на %1$s (платная или ранний доступ).</string>
     <string name="cd_open_in_browser">Открыть в браузере</string>

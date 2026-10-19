@@ -128,4 +128,7 @@ sealed class SourceSetting {
 }
 
 class CloudflareException(val uri: URI) : Exception("Cloudflare challenge: $uri")
-class SourceFetchException(message: String) : Exception(message)
+open class SourceFetchException(message: String) : Exception(message)
+
+/** The source shows this content only to signed-in users (see `pagesNeedLogin`). */
+class SourceLoginRequiredException(message: String) : SourceFetchException(message)

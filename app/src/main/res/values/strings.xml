@@ -253,6 +253,7 @@
     <string name="error_http_not_found">Not found on %1$s (HTTP 404). The title or chapter may have been removed.</string>
     <string name="error_http_rate_limited">%1$s is limiting requests. Try again in a minute.</string>
     <string name="error_http_server">%1$s server error (HTTP %2$d). Try again later.</string>
+    <string name="error_source_login_required">%1$s shows chapters only to signed-in users. Sign in under Sources → %1$s.</string>
     <string name="error_http_generic" tools:ignore="PluralsCandidate">HTTP %1$d from %2$s</string>
     <string name="error_chapter_locked">This chapter is locked on %1$s (paid or early access).</string>
     <string name="cd_open_in_browser">Open in browser</string>

@@ -13,6 +13,7 @@
   },
   "engineConfig": {
     "apiBase": "https://api.cdnlibs.org/api",
-    "siteId": "4"
+    "siteId": "4",
+    "pagesNeedLogin": "true"
   }
 }

@@ -1,11 +1,13 @@
 package com.lume.app.data.source
 
 import com.lume.app.data.network.AppHttp
+import com.lume.app.data.network.SourceHttpException
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
+import com.lume.app.domain.SourceLoginRequiredException
 import com.lume.app.domain.SourceManifest
 import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleSummary
@@ -18,6 +20,9 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.Request
 import java.net.URI
 import com.lume.app.util.urlEncode
 
@@ -44,8 +49,13 @@ class LibSocialEngine(
         return headers
     }
 
+    /** The image server that last served this source's pages; tried first. */
     @Volatile
     private var imageServerCache: String? = null
+
+    /** The site's image servers from `/constants`, in order of preference. */
+    @Volatile
+    private var imageServersCache: List<String>? = null
 
     override suspend fun getLatest(page: Int) = mangaList(page, "last_chapter_at")
     override suspend fun getPopular(page: Int) = mangaList(page, "rating_score")
@@ -202,7 +212,17 @@ class LibSocialEngine(
             }
         }
         val uri = URI("${apiBase.toString().trimEnd('/')}/manga/$slug/chapter?$query")
-        val response = http.get(uri, source = manifest, headers = apiHeaders(), checkCloudflare = false)
+        val response = try {
+            http.get(uri, source = manifest, headers = apiHeaders(), checkCloudflare = false)
+        } catch (e: SourceHttpException) {
+            // HentaiLib answers 404 for every chapter until you sign in.
+            if (e.code == 404 && manifest.configString("pagesNeedLogin") == "true" && auth?.authorizationHeader(manifest.id) == null) {
+                throw SourceLoginRequiredException(
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.error_source_login_required, manifest.name),
+                )
+            }
+            throw e
+        }
         val root = asObject(json.parseToJsonElement(response.body))
         val data = asObject(root["data"] ?: root)
         if (data["toast"] != null || data["pages"] == null) {
@@ -214,21 +234,17 @@ class LibSocialEngine(
                 ),
             )
         }
-        val server = resolveImageServer(data)
-        val pages = mutableListOf<ComicPage>()
-        val rawPages = data["pages"] as? JsonArray ?: JsonArray(emptyList())
-        for (page in rawPages) {
-            var url: String? = when (page) {
+        val rawPages = (data["pages"] as? JsonArray ?: JsonArray(emptyList())).mapNotNull { page ->
+            when (page) {
                 is JsonPrimitive -> page.contentOrNull
                 is JsonObject -> stringOrNull(page["url"])
                     ?: stringOrNull(page["link"])
                     ?: stringOrNull(page["src"])
                 else -> null
-            }
-            if (url.isNullOrBlank()) continue
-            url = absolutizePageUrl(url, server)
-            pages += ComicPage(index = pages.size, imageUrl = url)
+            }?.takeIf { it.isNotBlank() }
         }
+        val server = rawPages.firstOrNull()?.let { pickImageServer(data, it) }.orEmpty()
+        val pages = rawPages.mapIndexed { index, url -> ComicPage(index = index, imageUrl = absolutizePageUrl(url, server)) }
         if (pages.isEmpty()) {
             throw SourceFetchException(
                 com.lume.app.data.locale.appString(
@@ -240,39 +256,53 @@ class LibSocialEngine(
         return pages
     }
 
-    private suspend fun resolveImageServer(chapterData: JsonObject): String {
-        stringOrNull(chapterData["imageServer"])?.takeIf { it.isNotBlank() }?.let { return it.trimEnd('/') }
-        (chapterData["servers"] as? JsonObject)?.let { servers ->
-            stringOrNull(servers["main"])?.takeIf { it.isNotBlank() }?.let { return it.trimEnd('/') }
+    /**
+     * The first image server that serves [firstPage]. A site's main server sometimes refuses
+     * requests (YaoiLib's answered 403 while its compressed mirror worked), so the others are
+     * tried in turn. The server that worked is remembered for the next chapters.
+     */
+    private suspend fun pickImageServer(chapterData: JsonObject, firstPage: String): String {
+        val fromChapter = stringOrNull(chapterData["imageServer"])
+            ?: (chapterData["servers"] as? JsonObject)?.let { stringOrNull(it["main"]) }
+        val candidates = orderedImageServers(imageServerCache, fromChapter, siteImageServers(), siteId.toIntOrNull() ?: 1)
+        if (firstPage.trim().startsWith("http")) return candidates.first()
+        for (server in candidates) {
+            if (servesImage(absolutizePageUrl(firstPage, server))) {
+                imageServerCache = server
+                return server
+            }
         }
-        imageServerCache?.let { return it }
+        return candidates.first()
+    }
+
+    private suspend fun siteImageServers(): List<String> {
+        imageServersCache?.let { return it }
         val site = siteId.toIntOrNull() ?: 1
-        val fallback = when (site) {
-            2 -> "https://img2.hentaicdn.org"
-            4 -> "https://img2h.hentaicdn.org"
-            else -> "https://img2.imglib.info"
-        }
-        val resolved = runCatching {
-            val uri = URI(
-                "${apiBase.toString().trimEnd('/')}/constants?fields[]=imageServers",
-            )
+        val servers = runCatching {
+            val uri = URI("${apiBase.toString().trimEnd('/')}/constants?fields[]=imageServers")
             val response = http.get(uri, source = manifest, headers = apiHeaders(), checkCloudflare = false)
             val root = asObject(json.parseToJsonElement(response.body))
-            val data = asObject(root["data"] ?: root)
-            val servers = data["imageServers"] as? JsonArray ?: return@runCatching fallback
-            val matching = servers.mapNotNull { it as? JsonObject }.filter { obj ->
-                val ids = (obj["site_ids"] as? JsonArray).orEmpty().mapNotNull {
-                    it.jsonPrimitive.contentOrNull?.toIntOrNull()
-                }
-                site in ids
-            }
-            matching.firstOrNull { stringOrNull(it["id"]) == "main" }
-                ?.let { stringOrNull(it["url"]) }
-                ?: matching.firstOrNull()?.let { stringOrNull(it["url"]) }
-                ?: fallback
-        }.getOrDefault(fallback).trimEnd('/')
-        imageServerCache = resolved
-        return resolved
+            val list = asObject(root["data"] ?: root)["imageServers"] as? JsonArray ?: return@runCatching emptyList()
+            list.mapNotNull { it as? JsonObject }
+                .filter { obj -> (obj["site_ids"] as? JsonArray).orEmpty().any { it.jsonPrimitive.contentOrNull?.toIntOrNull() == site } }
+                .mapNotNull { obj -> stringOrNull(obj["id"])?.let { id -> id to stringOrNull(obj["url"]) } }
+                .sortedBy { (id, _) -> SERVER_PREFERENCE.indexOf(id).let { if (it < 0) SERVER_PREFERENCE.size else it } }
+                .mapNotNull { it.second }
+        }.getOrDefault(emptyList())
+        if (servers.isNotEmpty()) imageServersCache = servers
+        return servers
+    }
+
+    /** A one-byte request for [url], with the headers the image loader sends. */
+    private suspend fun servesImage(url: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val request = Request.Builder().url(url)
+                .header("User-Agent", http.userAgent)
+                .header("Referer", manifest.headers["Referer"] ?: (manifest.baseUrl.trimEnd('/') + "/"))
+                .header("Range", "bytes=0-0")
+                .build()
+            http.okHttp.newCall(request).execute().use { it.isSuccessful }
+        }.getOrDefault(false)
     }
 
     private fun absolutizePageUrl(raw: String, server: String): String {
@@ -368,4 +398,23 @@ class LibSocialEngine(
             "summary", "genres", "tags", "authors", "artists", "releaseDate", "status_id", "chap_count",
         )
     }
+}
+
+/** Image server ids from `/constants`, best first: full quality before compressed copies. */
+private val SERVER_PREFERENCE = listOf("main", "secondary", "compress", "download")
+
+/**
+ * Image servers to try for a LibSocial chapter, best first and without duplicates: the server
+ * that worked last time, the one the chapter names, the site's servers, then a built-in default.
+ */
+internal fun orderedImageServers(lastWorking: String?, fromChapter: String?, siteServers: List<String>, siteId: Int): List<String> {
+    val fallback = when (siteId) {
+        2 -> "https://img2.hentaicdn.org"
+        4 -> "https://img2h.hentaicdn.org"
+        else -> "https://img2.imglib.info"
+    }
+    return (listOfNotNull(lastWorking, fromChapter) + siteServers + fallback)
+        .map { it.trim().trimEnd('/') }
+        .filter { it.startsWith("http") }
+        .distinct()
 }
