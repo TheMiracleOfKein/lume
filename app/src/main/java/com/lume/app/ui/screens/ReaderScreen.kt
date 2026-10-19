@@ -1,32 +1,18 @@
 package com.lume.app.ui.screens
 
 import androidx.activity.compose.LocalActivity
-import androidx.compose.animation.core.animate
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.unit.Velocity
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.pager.PagerState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.BookmarkAdd
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.key
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.geometry.isSpecified
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.createSavedStateHandle
@@ -38,16 +24,9 @@ import com.lume.app.ui.nav.openTitleFromReader
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.animateScrollBy
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.calculateCentroid
-import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -56,104 +35,55 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.FormatListNumbered
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.SkipNext
-import androidx.compose.material.icons.outlined.SkipPrevious
-import androidx.compose.material.icons.outlined.SwipeLeft
-import androidx.compose.material.icons.outlined.SwipeRight
-import androidx.compose.material.icons.outlined.SwipeVertical
-import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.positionChange
-import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.navigation.NavHostController
-import coil.compose.AsyncImage
-import coil.request.CachePolicy
-import coil.request.ImageRequest
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
-import com.lume.app.data.prefs.AppPreferences
-import com.lume.app.data.prefs.ReaderSettings
-import com.lume.app.domain.ComicPage
 import com.lume.app.domain.ReaderMode
 import com.lume.app.domain.ReaderTheme
 import com.lume.app.ui.components.AnimatedLoadState
-import com.lume.app.ui.components.ChoiceChip
 import com.lume.app.ui.components.ErrorRetryBox
 import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
-import com.lume.app.ui.components.SwitchRow
 import com.lume.app.ui.components.loadStateOf
-import com.lume.app.ui.components.lumeSliderColors
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
@@ -161,9 +91,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.io.File
 import kotlin.math.roundToInt
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ReaderScreen(
@@ -612,670 +540,3 @@ private fun ReaderStripItem.key(): String = when (this) {
     is ReaderStripItem.Divider -> "div-${chapter.id}"
     is ReaderStripItem.Page -> "p-${chapter.id}-${page.index}-$indexInChapter"
 }
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ReaderTopBar(
-    titleName: String,
-    chapterTitle: String,
-    inLibrary: Boolean,
-    onBack: () -> Unit,
-    onOpenTitle: () -> Unit,
-    onToggleLibrary: () -> Unit,
-    onSettings: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.87f), Color.Transparent)))
-            // Stable position whether or not the status bar is currently shown.
-            .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .padding(horizontal = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = Color.White)
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(onClick = onOpenTitle),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = titleName,
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                )
-                Text(
-                    text = chapterTitle,
-                    color = AppColors.textSecondary,
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                )
-            }
-            IconButton(onClick = onToggleLibrary) {
-                Icon(
-                    if (inLibrary) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    stringResource(if (inLibrary) R.string.cd_remove_from_library else R.string.cd_add_to_library),
-                    tint = if (inLibrary) AppColors.accent else Color.White,
-                )
-            }
-            IconButton(onClick = onSettings) {
-                Icon(Icons.Outlined.Settings, stringResource(R.string.cd_settings), tint = Color.White)
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
-@Composable
-private fun ReaderBottomBar(
-    pageLabel: String?,
-    onPrev: () -> Unit,
-    onNext: () -> Unit,
-    onChapters: () -> Unit,
-    onBookmark: () -> Unit,
-    onBookmarkList: () -> Unit,
-    onSettings: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.87f))))
-            .windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility)
-            .padding(bottom = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        if (pageLabel != null) {
-            Text(
-                text = pageLabel,
-                color = AppColors.textSecondary,
-                fontSize = 13.sp,
-                modifier = Modifier.padding(bottom = 8.dp),
-            )
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onPrev) {
-                Icon(Icons.Outlined.SkipPrevious, stringResource(R.string.cd_prev_chapter), tint = Color.White)
-            }
-            IconButton(onClick = onChapters) {
-                Icon(Icons.Outlined.FormatListNumbered, stringResource(R.string.cd_chapters), tint = Color.White)
-            }
-            // Tap pins this spot; long-press lists this title's bookmarks.
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .combinedClickable(onClick = onBookmark, onLongClick = onBookmarkList),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Outlined.BookmarkAdd, stringResource(R.string.cd_bookmark_spot), tint = Color.White)
-            }
-            IconButton(onClick = onSettings) {
-                Icon(Icons.Outlined.Tune, stringResource(R.string.cd_settings), tint = Color.White)
-            }
-            IconButton(onClick = onNext) {
-                Icon(Icons.Outlined.SkipNext, stringResource(R.string.cd_next_chapter), tint = Color.White)
-            }
-        }
-    }
-}
-
-@Composable
-private fun ChapterDividerBand(
-    title: String,
-    fillViewport: Boolean = false,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (fillViewport) Modifier.fillMaxSize() else Modifier)
-            .padding(vertical = if (fillViewport) 0.dp else 20.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(AppColors.surface.copy(alpha = 0.92f))
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(2.dp)
-                    .background(AppColors.accent.copy(alpha = 0.55f)),
-            )
-            Text(
-                text = stringResource(R.string.reader_chapter_separator, title),
-                color = AppColors.accent,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .padding(horizontal = 12.dp)
-                    .weight(2f, fill = false),
-            )
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(2.dp)
-                    .background(AppColors.accent.copy(alpha = 0.55f)),
-            )
-        }
-    }
-}
-
-private class ReaderZoomState {
-    var scale by mutableFloatStateOf(1f)
-    var offset by mutableStateOf(Offset.Zero)
-    var viewport by mutableStateOf(IntSize.Zero)
-
-    fun reset() {
-        scale = 1f
-        offset = Offset.Zero
-    }
-
-    fun clamp(raw: Offset, s: Float = scale): Offset {
-        if (s <= 1.01f || viewport.width == 0 || viewport.height == 0) return Offset.Zero
-        val maxX = viewport.width * (s - 1f) / 2f
-        val maxY = viewport.height * (s - 1f) / 2f
-        return Offset(raw.x.coerceIn(-maxX, maxX), raw.y.coerceIn(-maxY, maxY))
-    }
-
-    fun zoomBy(zoomChange: Float, focal: Offset) {
-        // Slight amplification so pinch feels responsive without jumping.
-        val amplified = 1f + (zoomChange - 1f) * 1.35f
-        val old = scale
-        val next = (old * amplified).coerceIn(1f, 5f)
-        if (next <= 1.01f) {
-            reset()
-            return
-        }
-        val center = Offset(viewport.width / 2f, viewport.height / 2f)
-        offset = if (old <= 1.01f) {
-            (center - focal) * (next - 1f)
-        } else {
-            val ratio = next / old
-            offset * ratio + (focal - center) * (1f - ratio)
-        }
-        scale = next
-        offset = clamp(offset, next)
-    }
-
-    /** Read through this (not [scale]) in composition: it changes only when crossing 1x. */
-    val isZoomed: Boolean by derivedStateOf { scale > 1.01f }
-
-    /** Double tap: glide to [target] around [focal] (or back to 1x) instead of jumping. */
-    suspend fun animateZoomTo(target: Float, focal: Offset) {
-        val fromScale = scale
-        val fromOffset = offset
-        val toScale = target.coerceIn(1f, 5f)
-        val center = Offset(viewport.width / 2f, viewport.height / 2f)
-        val toOffset = when {
-            toScale <= 1.01f -> Offset.Zero
-            fromScale <= 1.01f -> clamp((center - focal) * (toScale - 1f), toScale)
-            else -> {
-                val ratio = toScale / fromScale
-                clamp(fromOffset * ratio + (focal - center) * (1f - ratio), toScale)
-            }
-        }
-        animate(0f, 1f, animationSpec = Motion.medium()) { t, _ ->
-            scale = fromScale + (toScale - fromScale) * t
-            offset = fromOffset + (toOffset - fromOffset) * t
-        }
-        if (toScale <= 1.01f) reset()
-    }
-
-    suspend fun toggleZoom(focal: Offset, target: Float = 2.5f) {
-        animateZoomTo(if (scale > 1.1f) 1f else target, focal)
-    }
-}
-
-@Composable
-private fun ReaderZoomFrame(
-    zoomEnabled: Boolean,
-    resetKey: Any?,
-    onSingleTap: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable (zoomModifier: Modifier, isZoomed: () -> Boolean) -> Unit,
-) {
-    val state = remember { ReaderZoomState() }
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(resetKey) { state.reset() }
-
-    Box(
-        modifier = modifier
-            .onSizeChanged { state.viewport = it }
-            // Keys must NOT include scale — restarting mid-pinch makes zoom weak/jerky.
-            .pointerInput(zoomEnabled) {
-                if (zoomEnabled) {
-                    detectTapGestures(
-                        onTap = { onSingleTap() },
-                        onDoubleTap = { pos -> scope.launch { state.toggleZoom(pos) } },
-                    )
-                } else {
-                    // Without a double-tap handler a single tap fires at once (no ~300 ms wait).
-                    detectTapGestures(onTap = { onSingleTap() })
-                }
-            }
-            .pointerInput(zoomEnabled) {
-                if (!zoomEnabled) return@pointerInput
-                awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false)
-                    do {
-                        val event = awaitPointerEvent()
-                        val pressed = event.changes.filter { it.pressed }
-                        when {
-                            pressed.size >= 2 -> {
-                                val zoomChange = event.calculateZoom()
-                                val centroid = event.calculateCentroid(useCurrent = true)
-                                if (kotlin.math.abs(zoomChange - 1f) > 0.001f) {
-                                    state.zoomBy(zoomChange, centroid)
-                                }
-                                event.changes.forEach { if (it.positionChanged()) it.consume() }
-                            }
-                            pressed.size == 1 && state.scale > 1.01f -> {
-                                val change = pressed[0]
-                                val pan = change.positionChange()
-                                if (pan != Offset.Zero) {
-                                    state.offset = state.clamp(state.offset + pan)
-                                    change.consume()
-                                }
-                            }
-                        }
-                    } while (event.changes.any { it.pressed })
-                }
-            },
-    ) {
-        // Scale and offset are read only inside graphicsLayer, so pinching redraws the layer
-        // without recomposing the list underneath.
-        content(
-            Modifier.graphicsLayer {
-                scaleX = state.scale
-                scaleY = state.scale
-                translationX = state.offset.x
-                translationY = state.offset.y
-                transformOrigin = TransformOrigin.Center
-            },
-            { state.isZoomed },
-        )
-    }
-}
-
-/**
- * Hides the reader chrome after real scrolling (about 24 dp), not on every touch that starts a
- * drag; a sloppy tap or a tiny nudge leaves the controls alone.
- */
-@Composable
-private fun rememberChromeHider(enabled: Boolean, onHide: () -> Unit): NestedScrollConnection {
-    val thresholdPx = with(LocalDensity.current) { 24.dp.toPx() }
-    val currentOnHide by rememberUpdatedState(onHide)
-    val currentEnabled by rememberUpdatedState(enabled)
-    return remember(thresholdPx) {
-        object : NestedScrollConnection {
-            private var travelled = 0f
-
-            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                if (source == NestedScrollSource.UserInput && currentEnabled) {
-                    travelled += kotlin.math.abs(consumed.x) + kotlin.math.abs(consumed.y)
-                    if (travelled >= thresholdPx) {
-                        travelled = 0f
-                        currentOnHide()
-                    }
-                }
-                return Offset.Zero
-            }
-
-            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                travelled = 0f
-                return Velocity.Zero
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReaderPageImage(
-    page: ComicPage,
-    /** Width / height when known (from this session or saved progress); sizes the placeholder. */
-    aspect: Float?,
-    onAspect: (Float) -> Unit,
-    contentScale: ContentScale = ContentScale.FillWidth,
-    zoomEnabled: Boolean = false,
-    fillViewport: Boolean = false,
-    /** Single tap at (x, width); needed because the double-tap detector consumes taps. */
-    onTap: ((Float, Int) -> Unit)? = null,
-) {
-    val context = LocalContext.current
-    var attempt by remember(page.imageUrl) { mutableIntStateOf(0) }
-    var failed by remember(page.imageUrl) { mutableStateOf(false) }
-    val model = remember(page.imageUrl, attempt) {
-        ImageRequest.Builder(context)
-            .data(if (page.imageUrl.startsWith("http")) page.imageUrl else File(page.imageUrl))
-            .crossfade(false)
-            .memoryCachePolicy(CachePolicy.ENABLED)
-            .diskCachePolicy(CachePolicy.ENABLED)
-            // A new parameter makes Coil treat a retry as a new request.
-            .setParameter("attempt", attempt, memoryCacheKey = null)
-            .build()
-    }
-    val state = remember(page.imageUrl) { ReaderZoomState() }
-    val scope = rememberCoroutineScope()
-
-    Box(
-        modifier = Modifier
-            .then(
-                when {
-                    fillViewport -> Modifier.fillMaxSize()
-                    // Real height before the bitmap arrives: nothing above the reading spot moves.
-                    aspect != null -> Modifier.fillMaxWidth().aspectRatio(aspect)
-                    // Never seen this page: reserve a typical height (also kept on error).
-                    else -> Modifier.fillMaxWidth().heightIn(min = 420.dp)
-                },
-            )
-            .background(Color.Black.copy(alpha = 0.12f)),
-        contentAlignment = Alignment.Center,
-    ) {
-        AsyncImage(
-            model = model,
-            contentDescription = null,
-            onSuccess = { success ->
-                failed = false
-                val size = success.painter.intrinsicSize
-                if (size.isSpecified && size.width > 0f && size.height > 0f) onAspect(size.width / size.height)
-            },
-            onError = { failed = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(if (fillViewport || aspect != null) Modifier.fillMaxSize() else Modifier)
-                .onSizeChanged { state.viewport = it }
-                .graphicsLayer {
-                    scaleX = state.scale
-                    scaleY = state.scale
-                    translationX = state.offset.x
-                    translationY = state.offset.y
-                    transformOrigin = TransformOrigin.Center
-                }
-                .then(
-                    if (zoomEnabled) {
-                        Modifier
-                            .pointerInput(page.imageUrl, onTap) {
-                                detectTapGestures(
-                                    onTap = onTap?.let { tap -> { pos -> tap(pos.x, size.width) } },
-                                    onDoubleTap = { pos -> scope.launch { state.toggleZoom(pos) } },
-                                )
-                            }
-                            .pointerInput(page.imageUrl) {
-                                awaitEachGesture {
-                                    awaitFirstDown(requireUnconsumed = false)
-                                    do {
-                                        val event = awaitPointerEvent()
-                                        val pressed = event.changes.filter { it.pressed }
-                                        when {
-                                            pressed.size >= 2 -> {
-                                                val zoomChange = event.calculateZoom()
-                                                val centroid = event.calculateCentroid(useCurrent = true)
-                                                if (kotlin.math.abs(zoomChange - 1f) > 0.001f) {
-                                                    state.zoomBy(zoomChange, centroid)
-                                                }
-                                                event.changes.forEach {
-                                                    if (it.positionChanged()) it.consume()
-                                                }
-                                            }
-                                            pressed.size == 1 && state.scale > 1.01f -> {
-                                                val change = pressed[0]
-                                                val pan = change.positionChange()
-                                                if (pan != Offset.Zero) {
-                                                    state.offset = state.clamp(state.offset + pan)
-                                                    change.consume()
-                                                }
-                                            }
-                                        }
-                                    } while (event.changes.any { it.pressed })
-                                }
-                            }
-                    } else {
-                        Modifier
-                    },
-                ),
-            contentScale = contentScale,
-        )
-        if (failed) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(R.string.page_load_failed), color = AppColors.textSecondary, fontSize = 13.sp)
-                TextButton(onClick = { failed = false; attempt++ }) {
-                    Text(stringResource(R.string.action_retry), color = AppColors.accent)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReaderSettingsSheet(
-    settings: ReaderSettings,
-    onClose: () -> Unit,
-    /** Live preview while a slider moves; not written anywhere yet. */
-    onChange: (ReaderSettings) -> Unit,
-    /** A finished edit: becomes the new default. */
-    onCommit: (ReaderSettings) -> Unit,
-    onSaveForTitle: (ReaderSettings) -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 28.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(R.string.settings_title),
-                color = AppColors.textPrimary,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-            )
-            IconButton(onClick = onClose) {
-                Icon(Icons.Outlined.Close, null, tint = AppColors.textPrimary)
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        Text(stringResource(R.string.reader_mode), color = AppColors.textSecondary, fontSize = 13.sp)
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ModeCard(
-                selected = settings.mode == ReaderMode.Rtl,
-                icon = Icons.Outlined.SwipeLeft,
-                label = ReaderMode.Rtl.label,
-                onClick = { onCommit(settings.copy(mode = ReaderMode.Rtl)) },
-                modifier = Modifier.weight(1f),
-            )
-            ModeCard(
-                selected = settings.mode == ReaderMode.Webtoon,
-                icon = Icons.Outlined.SwipeVertical,
-                label = ReaderMode.Webtoon.label,
-                onClick = { onCommit(settings.copy(mode = ReaderMode.Webtoon)) },
-                modifier = Modifier.weight(1f),
-            )
-            ModeCard(
-                selected = settings.mode == ReaderMode.Ltr,
-                icon = Icons.Outlined.SwipeRight,
-                label = ReaderMode.Ltr.label,
-                onClick = { onCommit(settings.copy(mode = ReaderMode.Ltr)) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Spacer(Modifier.height(18.dp))
-        Text(stringResource(R.string.reader_theme), color = AppColors.textSecondary, fontSize = 13.sp)
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ChoiceChip(
-                label = stringResource(ReaderTheme.Light.labelRes),
-                selected = settings.theme == ReaderTheme.Light,
-                onClick = { onCommit(settings.copy(theme = ReaderTheme.Light)) },
-                modifier = Modifier.weight(1f),
-            )
-            ChoiceChip(
-                label = stringResource(ReaderTheme.Dark.labelRes),
-                selected = settings.theme == ReaderTheme.Dark,
-                onClick = { onCommit(settings.copy(theme = ReaderTheme.Dark)) },
-                modifier = Modifier.weight(1f),
-            )
-            ChoiceChip(
-                label = stringResource(ReaderTheme.System.labelRes),
-                selected = settings.theme == ReaderTheme.System,
-                onClick = { onCommit(settings.copy(theme = ReaderTheme.System)) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Spacer(Modifier.height(18.dp))
-        Text(
-            stringResource(R.string.reader_gap, settings.gap.toInt()),
-            color = AppColors.textSecondary,
-            fontSize = 13.sp,
-        )
-        Slider(
-            value = settings.gap,
-            onValueChange = { onChange(settings.copy(gap = it)) },
-            onValueChangeFinished = { onCommit(settings) },
-            valueRange = 0f..32f,
-            colors = lumeSliderColors(),
-        )
-        if (settings.mode == ReaderMode.Webtoon) {
-            Text(
-                stringResource(R.string.reader_side_padding, settings.sidePaddingPercent),
-                color = AppColors.textSecondary,
-                fontSize = 13.sp,
-            )
-            Slider(
-                value = settings.sidePaddingPercent.toFloat(),
-                onValueChange = { onChange(settings.copy(sidePaddingPercent = it.roundToInt())) },
-            onValueChangeFinished = { onCommit(settings) },
-                valueRange = 0f..AppPreferences.MAX_SIDE_PADDING.toFloat(),
-                steps = AppPreferences.MAX_SIDE_PADDING / 5 - 1,
-                colors = lumeSliderColors(),
-            )
-        }
-        Text(
-            stringResource(R.string.reader_dim, (settings.dim * 100).roundToInt()),
-            color = AppColors.textSecondary,
-            fontSize = 13.sp,
-        )
-        Slider(
-            value = settings.dim,
-            onValueChange = { onChange(settings.copy(dim = it)) },
-            onValueChangeFinished = { onCommit(settings) },
-            valueRange = 0f..AppPreferences.MAX_DIM,
-            colors = lumeSliderColors(),
-        )
-        SwitchRow(
-            label = stringResource(R.string.reader_immersive),
-            hint = stringResource(R.string.reader_immersive_hint),
-            checked = settings.immersive,
-            onCheckedChange = { onCommit(settings.copy(immersive = it)) },
-        )
-        SwitchRow(
-            label = stringResource(R.string.reader_keep_screen_on),
-            checked = settings.keepScreenOn,
-            onCheckedChange = { onCommit(settings.copy(keepScreenOn = it)) },
-        )
-        SwitchRow(
-            label = stringResource(R.string.reader_double_tap_zoom),
-            checked = settings.doubleTapZoom,
-            onCheckedChange = { onCommit(settings.copy(doubleTapZoom = it)) },
-        )
-        SwitchRow(
-            label = stringResource(R.string.reader_hide_page_number),
-            checked = settings.hidePageNumber,
-            onCheckedChange = { onCommit(settings.copy(hidePageNumber = it)) },
-        )
-        SwitchRow(
-            label = stringResource(R.string.reader_seamless),
-            checked = settings.seamlessReading,
-            onCheckedChange = { onCommit(settings.copy(seamlessReading = it)) },
-        )
-        SwitchRow(
-            label = stringResource(R.string.reader_volume_keys),
-            checked = settings.volumeKeys,
-            onCheckedChange = { onCommit(settings.copy(volumeKeys = it)) },
-        )
-        SwitchRow(
-            label = stringResource(R.string.reader_tap_zones),
-            checked = settings.tapZones,
-            onCheckedChange = { onCommit(settings.copy(tapZones = it)) },
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.reader_save_for_title),
-            color = AppColors.accent,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onSaveForTitle(settings) }
-                .padding(vertical = 12.dp),
-        )
-    }
-}
-
-@Composable
-private fun ModeCard(
-    selected: Boolean,
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val background by animateColorAsState(
-        if (selected) AppColors.cardHigh else AppColors.card,
-        Motion.short(),
-        label = "modeBackground",
-    )
-    val border by animateColorAsState(
-        if (selected) AppColors.accent else Color.Transparent,
-        Motion.short(),
-        label = "modeBorder",
-    )
-    Column(
-        modifier = modifier
-            .height(80.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(background)
-            .border(1.dp, border, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(icon, null, tint = AppColors.textPrimary, modifier = Modifier.size(28.dp))
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = label,
-            color = if (selected) AppColors.accent else AppColors.textSecondary,
-            fontSize = 12.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-        )
-    }
-}
-
