@@ -113,7 +113,7 @@ Release notes: [docs/releases/v0.5.0.md](releases/v0.5.0.md).
 **Left over from v0.5**
 - 🟡 **Device testing of v0.5.** Checked on an emulator: search with filters only and paging, a shared MangaDex link, the Sources, Settings and Downloads screens, with no crashes. Tracker sign-ins, Mihon import with a real backup, the download notification, CBZ, local import, app lock and the tablet rail still need real devices and accounts.
 
-## v0.6: one title, many sources
+## v0.6: one title, many sources ✅ released 2026-10-19
 
 Release notes: [docs/releases/v0.6.0.md](releases/v0.6.0.md).
 
