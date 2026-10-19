@@ -63,6 +63,12 @@ Use the signed release APK, installed over the previous release, so the database
 - [ ] Download and library-update notifications show the Lume mark in the status bar, not a white square.
 - [ ] Android backup (Settings → System → Backup): Lume's backup works and no longer includes downloads.
 
+## v0.6.2
+
+- [ ] Updating from v0.6.1 while signed in to trackers keeps you signed in (tokens move to `lume_private`).
+- [ ] Restoring from Android's cloud backup on a new phone brings the settings back, without tracker sign-ins.
+- [ ] Settings search in Russian: "тёмная", "бэкап", "трафик" find their settings; a result opens its section and highlights the row.
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.

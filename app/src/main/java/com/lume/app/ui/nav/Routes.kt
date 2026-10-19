@@ -12,6 +12,7 @@ object Routes {
     const val Search = "search"
     const val Sources = "sources"
     const val Settings = "settings"
+    const val SettingsPage = "settings/{page}?focus={focus}"
     const val Downloads = "downloads"
     const val Categories = "categories"
     const val Browse = "browse/{sourceId}"
@@ -19,6 +20,10 @@ object Routes {
     const val Title = "title/{sourceId}/{titleId}"
     const val Chapters = "title/{sourceId}/{titleId}/chapters"
     const val Reader = "read/{sourceId}/{titleId}/{chapterId}?page={page}&offset={offset}"
+
+    /** A settings section; [focus] is the id of a setting to scroll to and highlight. */
+    fun settingsPage(page: String, focus: String? = null): String =
+        if (focus == null) "settings/$page" else "settings/$page?focus=${encode(focus)}"
 
     fun browse(sourceId: String) = "browse/${encode(sourceId)}"
 

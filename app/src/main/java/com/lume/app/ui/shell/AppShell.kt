@@ -83,7 +83,8 @@ import com.lume.app.ui.screens.HomeScreen
 import com.lume.app.ui.screens.LibraryScreen
 import com.lume.app.ui.screens.ReaderScreen
 import com.lume.app.ui.screens.SearchScreen
-import com.lume.app.ui.screens.SettingsScreen
+import com.lume.app.ui.screens.settings.SettingsPageScreen
+import com.lume.app.ui.screens.settings.SettingsScreen
 import com.lume.app.ui.screens.SourcesScreen
 import com.lume.app.ui.screens.TitleScreen
 import com.lume.app.ui.screens.UpdatesScreen
@@ -161,6 +162,19 @@ fun AppShell(nav: NavHostController) {
             lumeComposable(Routes.Search) { SearchScreen(nav) }
             lumeComposable(Routes.Sources) { SourcesScreen(nav) }
             lumeComposable(Routes.Settings) { SettingsScreen(nav) }
+            lumeComposable(
+                route = Routes.SettingsPage,
+                arguments = listOf(
+                    navArgument("page") { type = NavType.StringType },
+                    navArgument("focus") { type = NavType.StringType; nullable = true; defaultValue = null },
+                ),
+            ) { entry ->
+                SettingsPageScreen(
+                    nav = nav,
+                    pageKey = entry.arguments!!.getString("page")!!,
+                    focus = entry.arguments!!.getString("focus"),
+                )
+            }
             lumeComposable(Routes.Downloads) { DownloadsScreen(nav) }
             lumeComposable(Routes.Categories) { CategoriesScreen(nav) }
             lumeComposable(Routes.About) { AboutScreen(nav) }

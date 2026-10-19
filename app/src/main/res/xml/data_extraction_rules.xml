@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Android backup (Android 12+). Cloud backup keeps the library database only:
-    - settings hold tracker tokens, and lib_auth and the WebView data hold site sign-ins and cookies;
+    Android backup (Android 12+). Cloud backup keeps the library database and the settings:
+    - lume_private holds tracker tokens and the backup folder, and lib_auth and the WebView data
+      hold site sign-ins and cookies; all of them stay out;
     - downloads, imported local files and Lume's own backups are too large (cloud backup stops
       entirely past 25 MB).
-    Settings travel with Lume's own backups (Settings → Backup), without the sign-ins.
     Device-to-device transfer copies everything, as before.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <exclude domain="file" path="datastore/lume_prefs.preferences_pb" />
+        <exclude domain="file" path="datastore/lume_private.preferences_pb" />
         <exclude domain="file" path="datastore/lib_auth.preferences_pb" />
         <exclude domain="file" path="downloads/" />
         <exclude domain="file" path="local/" />

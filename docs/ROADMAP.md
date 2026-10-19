@@ -24,7 +24,7 @@ These hold for every release:
 
 | Version | Theme | Highlights | Size |
 | --- | --- | --- | --- |
-| 0.6.x | Maintenance | Device testing, source fixes, settings back in Android backup | S–M |
+| 0.6.x | Maintenance | Clearer settings with search, reading lists, similar titles; device testing, source fixes | S–M |
 | **0.7** | Sync and everyday reading | Sync between devices; page slider, orientation lock, auto-scroll, colour filters | L |
 | **0.8** | Reader 2.0 | Tall pages without memory problems, sharp zoom, crop and spreads, guided panel view, Coil 3 | L |
 | **0.9** | Library and sources | Self-hosted servers (OPDS, Komga, Kavita), CBR and PDF, watched folders, smarter updates, statistics | L |
@@ -38,10 +38,22 @@ Order can change when a source breaks or a bug needs a patch release first.
 Patch releases from the v0.6 line, as needed.
 
 - 🟡 **Device testing** of v0.3–v0.6.1 on real phones: [DEVICE_TESTING.md](DEVICE_TESTING.md). Fix what it finds (M).
-- **Settings back in Android cloud backup** (S–M). Since v0.6.1, cloud backup skips the whole settings file because tracker tokens live in it. Move tokens to their own store (with a migration), then include settings again.
+- ✅ **Settings back in Android cloud backup** (v0.6.2). Tracker tokens moved to their own store (`lume_private`) on the first start; cloud backup includes the settings again and leaves the sign-ins out.
 - **Real tracker accounts** for MyAnimeList, Kitsu and MangaUpdates: sign in, update progress, edit status (S each).
 - **Startup numbers** from `StartupBenchmark` on a real phone, written down as the baseline for later releases (S).
 - **Source fixes** from the weekly live check ([live-sources.yml](../.github/workflows/live-sources.yml)).
+
+**v0.6.2: clearer settings** ✅ ([details](#v062-clearer-settings))
+- ✅ Settings in sections, explanations, search in settings; `SettingsScreen.kt` split.
+
+**v0.6.3: reading lists**
+- **Export a reading list** (the whole library, a category or a selection) as a file and share it from the library (M).
+- **Open a reading list** shared by someone else: Lume lists the titles, marks the ones already in the library and adds the rest, to a category if you want (M).
+- **Split `LibraryScreen.kt`** (about 850 lines) while the library gets the new actions (S).
+
+**v0.6.4: similar titles**
+- **Recommendations on the title screen** ("Similar titles") from AniList (no account needed) or MyAnimeList; a tap searches your sources for that title (M).
+- **Split `Database.kt`** (about 770 lines) into entities, DAOs and migrations, if the release touches it (S).
 
 ## v0.7: sync and everyday reading
 
@@ -171,22 +183,20 @@ Learned models stay optional because of their size, their speed on older phones 
 
 | Problem | Plan |
 | --- | --- |
-| Settings are left out of Android cloud backup (tokens share their file) | v0.6.x: tokens get their own store |
+| ✅ Settings are left out of Android cloud backup (tokens share their file) | Fixed in v0.6.2: tokens have their own store |
 | MyAnimeList, Kitsu and MangaUpdates never tried with real accounts | v0.6.x |
 | MangaRead and ToonGod often show Cloudflare checks; ReManga and MangaBuff block some regions | The in-app browser handles checks; region blocks can't be fixed in the app |
 | HentaiLib needs a signed-in account to read | Works as designed since v0.6.1; the reader says so |
 | Room 6→7 migration can't be tested (no v6 schema was exported) | Accepted; every later migration is tested |
 | The Room migration test is skipped on Windows JVM runs | CI (Linux) runs it; v1.0 adds emulator tests on CI |
 | Coil 2 is in maintenance | v0.8: Coil 3 |
-| Large files: `SettingsScreen.kt`, `LibraryScreen.kt`, `Database.kt` (750–820 lines) | Split when a release touches them |
+| Large files: `LibraryScreen.kt`, `Database.kt` (750–850 lines); 🟡 `SettingsScreen.kt` split in v0.6.2 | v0.6.3 and v0.6.4 |
 | Releases are built on one computer | v1.0: optional signed release workflow |
 | Engine parsers are only tested against the live sites | v0.9: offline tests with saved pages |
 
 ## Ideas, not planned yet
 
-- Recommendations ("similar titles") from AniList or MyAnimeList.
 - Android TV and Chromebook: D-pad and keyboard navigation in the reader.
-- Reading lists you can export and share as a file.
 - A community pack catalogue with its own review rules.
 
 ## Out of scope
@@ -365,3 +375,13 @@ Release notes: [docs/releases/v0.6.1.md](releases/v0.6.1.md).
 - ✅ **CI.** The R8 release build runs on every PR; a weekly workflow checks every bundled source and catalogue pack against the live sites; Dependabot for Gradle and GitHub Actions.
 
 What was still open moved into [v0.6.x](#v06x-maintenance) and later versions.
+
+### v0.6.2: clearer settings
+
+Release notes: [docs/releases/v0.6.2.md](releases/v0.6.2.md).
+
+- ✅ **Settings in sections.** The main settings page lists sections (Appearance, Reader, Library and updates, Downloads, Sources and search, Trackers, Backup and restore, Privacy, Network and storage, About); each opens its own page and shows what it holds.
+- ✅ **Explanations.** Settings whose effect isn't obvious from the name got a short line under it (reader controls, Wi-Fi only, parallel pages, clear cache and cookies, backups and more).
+- ✅ **Search in settings.** One field finds a setting by its name, its section, its explanation or related words ("oled", "mobile data", "бэкап"), in the app language; a tap opens its section, scrolls to the setting and highlights it.
+- ✅ **Sign-ins in their own store.** Tracker tokens and the automatic backup folder moved out of the settings file into `lume_private`, once, on the first start. Android's cloud backup keeps the settings again; sign-ins still stay out.
+- ✅ **Split `SettingsScreen.kt`** (about 770 lines) into `ui/screens/settings`: one file per larger section, the short ones together, plus the catalogue the search reads.

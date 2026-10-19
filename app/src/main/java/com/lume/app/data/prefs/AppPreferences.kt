@@ -28,6 +28,13 @@ import kotlinx.serialization.json.Json
 
 private val Context.appDataStore by preferencesDataStore("lume_prefs")
 
+/**
+ * Values that belong to this install only: tracker tokens and app keys, and the automatic backup
+ * folder (a permission only this install holds). Kept apart from the settings so Android's cloud
+ * backup can keep the settings and leave this file out (see `res/xml/data_extraction_rules.xml`).
+ */
+private val Context.privateDataStore by preferencesDataStore("lume_private")
+
 data class ReaderSettings(
     val mode: ReaderMode = ReaderMode.Webtoon,
     val theme: ReaderTheme = ReaderTheme.Dark,
@@ -125,12 +132,33 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val autoBackupKeepKey = intPreferencesKey("auto_backup_keep")
     private val autoBackupFolderKey = stringPreferencesKey("auto_backup_folder")
 
+    init {
+        runBlocking { movePrivateValues() }
+    }
+
     private val initial: Preferences = runBlocking { context.appDataStore.data.first() }
     private val current: StateFlow<Preferences> =
         context.appDataStore.data.stateIn(scope, SharingStarted.Eagerly, initial)
+    private val initialPrivate: Preferences = runBlocking { context.privateDataStore.data.first() }
+    private val currentPrivate: StateFlow<Preferences> =
+        context.privateDataStore.data.stateIn(scope, SharingStarted.Eagerly, initialPrivate)
 
     private fun <T> state(read: (Preferences) -> T): StateFlow<T> =
         current.map(read).stateIn(scope, SharingStarted.Eagerly, read(initial))
+
+    private fun <T> privateState(read: (Preferences) -> T): StateFlow<T> =
+        currentPrivate.map(read).stateIn(scope, SharingStarted.Eagerly, read(initialPrivate))
+
+    /** Up to v0.6.1 tokens lived in the settings file; they move to [privateDataStore] once. */
+    private suspend fun movePrivateValues() {
+        val moving = context.appDataStore.data.first().asMap().filterKeys { isPrivateKey(it.name) }
+        if (moving.isEmpty()) return
+        context.privateDataStore.edit { target ->
+            @Suppress("UNCHECKED_CAST")
+            moving.forEach { (key, value) -> target[key as Preferences.Key<Any>] = value }
+        }
+        context.appDataStore.edit { prefs -> moving.keys.forEach { prefs.remove(it) } }
+    }
 
     val darkTheme: StateFlow<Boolean> = state { it[darkThemeKey] ?: true }
 
@@ -198,17 +226,17 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     /** "system" | "en" | "ru" | … — see [com.lume.app.data.locale.AppLanguage]. */
     val appLanguage: StateFlow<String> = state { it[appLanguageKey] ?: "system" }
 
-    val anilistAccessToken: StateFlow<String?> = state { it[anilistTokenKey] }
-    val anilistClientId: StateFlow<String?> = state { it[anilistClientIdKey] }
-    val anilistClientSecret: StateFlow<String?> = state { it[anilistClientSecretKey] }
-    val shikimoriAccessToken: StateFlow<String?> = state { it[shikiTokenKey] }
-    val shikimoriRefreshToken: StateFlow<String?> = state { it[shikiRefreshKey] }
+    val anilistAccessToken: StateFlow<String?> = privateState { it[anilistTokenKey] }
+    val anilistClientId: StateFlow<String?> = privateState { it[anilistClientIdKey] }
+    val anilistClientSecret: StateFlow<String?> = privateState { it[anilistClientSecretKey] }
+    val shikimoriAccessToken: StateFlow<String?> = privateState { it[shikiTokenKey] }
+    val shikimoriRefreshToken: StateFlow<String?> = privateState { it[shikiRefreshKey] }
 
     /**
      * Values of the trackers added in v0.5 (MyAnimeList, Kitsu, MangaUpdates), stored as
      * `tracker_<id>_<name>`. Never part of backups (see [isPrivateKey]).
      */
-    val trackerValues: StateFlow<Map<String, String>> = state { prefs ->
+    val trackerValues: StateFlow<Map<String, String>> = privateState { prefs ->
         prefs.asMap().mapNotNull { (k, v) ->
             if (k.name.startsWith(TRACKER_PREFIX) && v is String) k.name.removePrefix(TRACKER_PREFIX) to v else null
         }.toMap()
@@ -218,7 +246,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
 
     suspend fun setTrackerValue(trackerId: String, name: String, value: String?) {
         val key = stringPreferencesKey("$TRACKER_PREFIX${trackerId}_$name")
-        context.appDataStore.edit { if (value.isNullOrBlank()) it.remove(key) else it[key] = value }
+        context.privateDataStore.edit { if (value.isNullOrBlank()) it.remove(key) else it[key] = value }
     }
 
     /** Link titles to trackers by an exact title match when they are added to the library. */
@@ -234,9 +262,9 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     suspend fun setFindOtherSources(value: Boolean) {
         context.appDataStore.edit { it[findOtherSourcesKey] = value }
     }
-    val shikimoriUserId: StateFlow<String?> = state { it[shikiUserIdKey] }
-    val shikimoriClientId: StateFlow<String?> = state { it[shikiClientIdKey] }
-    val shikimoriClientSecret: StateFlow<String?> = state { it[shikiClientSecretKey] }
+    val shikimoriUserId: StateFlow<String?> = privateState { it[shikiUserIdKey] }
+    val shikimoriClientId: StateFlow<String?> = privateState { it[shikiClientIdKey] }
+    val shikimoriClientSecret: StateFlow<String?> = privateState { it[shikiClientSecretKey] }
 
     val readerSettings: StateFlow<ReaderSettings> = state { prefs ->
         val modeIndex = prefs[readerModeKey] ?: ReaderMode.Webtoon.prefsIndex
@@ -389,7 +417,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     val autoBackupKeep: StateFlow<Int> = state { it[autoBackupKeepKey]?.takeIf { n -> n in AUTO_BACKUP_KEEP } ?: 5 }
 
     /** A folder picked with the file picker (tree URI) that automatic backups are copied to. */
-    val autoBackupFolder: StateFlow<String?> = state { it[autoBackupFolderKey]?.takeIf(String::isNotBlank) }
+    val autoBackupFolder: StateFlow<String?> = privateState { it[autoBackupFolderKey]?.takeIf(String::isNotBlank) }
 
     suspend fun setAutoBackup(days: Int, keep: Int) {
         context.appDataStore.edit {
@@ -399,12 +427,12 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     }
 
     suspend fun setAutoBackupFolder(uri: String?) {
-        context.appDataStore.edit { if (uri.isNullOrBlank()) it.remove(autoBackupFolderKey) else it[autoBackupFolderKey] = uri }
+        context.privateDataStore.edit { if (uri.isNullOrBlank()) it.remove(autoBackupFolderKey) else it[autoBackupFolderKey] = uri }
     }
 
     /**
      * Every stored preference as (key, type, value) for backups. Account tokens, app keys and
-     * the backup folder (a permission that only this install holds) stay out.
+     * the backup folder live in [privateDataStore] and stay out; the filter guards against strays.
      */
     fun exportSettings(): List<Triple<String, String, String>> = current.value.asMap().mapNotNull { (key, value) ->
         if (isPrivateKey(key.name)) return@mapNotNull null
@@ -507,21 +535,21 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     }
 
     suspend fun setAniListAccessToken(token: String?) {
-        context.appDataStore.edit {
+        context.privateDataStore.edit {
             if (token.isNullOrBlank()) it.remove(anilistTokenKey) else it[anilistTokenKey] = token
         }
     }
 
     @Suppress("unused")
     suspend fun setAniListClient(clientId: String, clientSecret: String) {
-        context.appDataStore.edit {
+        context.privateDataStore.edit {
             it[anilistClientIdKey] = clientId
             it[anilistClientSecretKey] = clientSecret
         }
     }
 
     suspend fun setShikimoriTokens(access: String?, refresh: String?) {
-        context.appDataStore.edit {
+        context.privateDataStore.edit {
             if (access.isNullOrBlank()) {
                 it.remove(shikiTokenKey)
                 it.remove(shikiUserIdKey)
@@ -533,14 +561,14 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     }
 
     suspend fun setShikimoriUserId(userId: String?) {
-        context.appDataStore.edit {
+        context.privateDataStore.edit {
             if (userId.isNullOrBlank()) it.remove(shikiUserIdKey) else it[shikiUserIdKey] = userId
         }
     }
 
     @Suppress("unused")
     suspend fun setShikimoriClient(clientId: String, clientSecret: String) {
-        context.appDataStore.edit {
+        context.privateDataStore.edit {
             it[shikiClientIdKey] = clientId
             it[shikiClientSecretKey] = clientSecret
         }
