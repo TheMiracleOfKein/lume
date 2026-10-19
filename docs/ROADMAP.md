@@ -1,6 +1,6 @@
 # Lume roadmap
 
-This roadmap lists what Lume has shipped, what comes next, and the bigger features that set it apart.
+This roadmap lists what comes next for Lume, the bigger features that set it apart, the known problems, and what has shipped.
 
 Effort is rough: **S** = under a day, **M** = a few days, **L** = a week or more.
 
@@ -10,7 +10,224 @@ Status:
 - ⏸️ on hold (the note says why)
 - No mark: planned
 
-## v0.3: exact resume and smooth motion ✅ released 2026-10-17
+## Principles
+
+These hold for every release:
+
+- **Everything stays on the phone.** No Lume account, no Lume server, no ads, no analytics. Network access goes only to the sources, trackers and services the user turned on ([PRIVACY.md](../PRIVACY.md)).
+- **Sources are first-party engines.** No extension APKs ([why](MIHON_EXTENSIONS.md)); site families are added as JSON packs.
+- **Nothing is lost on update.** Database changes are additive migrations with tests; backups from older versions keep loading.
+- **English and Russian for every string.**
+- **Checked on a device before a release.** Each release adds its items to [DEVICE_TESTING.md](DEVICE_TESTING.md).
+
+## At a glance
+
+| Version | Theme | Highlights | Size |
+| --- | --- | --- | --- |
+| 0.6.x | Maintenance | Device testing, source fixes, settings back in Android backup | S–M |
+| **0.7** | Sync and everyday reading | Sync between devices; page slider, orientation lock, auto-scroll, colour filters | L |
+| **0.8** | Reader 2.0 | Tall pages without memory problems, sharp zoom, crop and spreads, guided panel view, Coil 3 | L |
+| **0.9** | Library and sources | Self-hosted servers (OPDS, Komga, Kavita), CBR and PDF, watched folders, smarter updates, statistics | L |
+| **0.10** | On-device AI | Translate raws, sharper old scans (separate build flavor) | L |
+| **1.0** | Stable | Distribution, update check, crash log, accessibility, encrypted sign-ins, test coverage, user guide | M–L |
+
+Order can change when a source breaks or a bug needs a patch release first.
+
+## v0.6.x: maintenance
+
+Patch releases from the v0.6 line, as needed.
+
+- 🟡 **Device testing** of v0.3–v0.6.1 on real phones: [DEVICE_TESTING.md](DEVICE_TESTING.md). Fix what it finds (M).
+- **Settings back in Android cloud backup** (S–M). Since v0.6.1, cloud backup skips the whole settings file because tracker tokens live in it. Move tokens to their own store (with a migration), then include settings again.
+- **Real tracker accounts** for MyAnimeList, Kitsu and MangaUpdates: sign in, update progress, edit status (S each).
+- **Startup numbers** from `StartupBenchmark` on a real phone, written down as the baseline for later releases (S).
+- **Source fixes** from the weekly live check ([live-sources.yml](../.github/workflows/live-sources.yml)).
+
+## v0.7: sync and everyday reading
+
+**Goal:** read on the phone, continue on the tablet, without an account.
+
+**Sync between devices** (signature feature 3, L)
+- Library, categories, reading progress (the exact spot per chapter), read marks, page bookmarks, linked sources and tracker links sync. Sign-ins and downloads never sync.
+- Backends:
+  - **WebDAV** (Nextcloud and others) first;
+  - **a shared folder** picked with the file picker (works with Syncthing);
+  - **Google Drive** optional and last, because it needs an OAuth client.
+- Each device writes its own change file, so a shared folder never has write conflicts. Lume merges the files.
+  - The newest change wins.
+  - For reading progress, the furthest position wins unless you reset it.
+- "Sync now", sync in the background (WorkManager), and a status line with the last sync and any error.
+- Optional passphrase that encrypts the sync files.
+- Done when: two emulators and one phone stay in sync through Nextcloud and through a Syncthing folder, including offline edits on both sides.
+
+**Reader quick wins**
+- Page slider (S).
+- Orientation lock (S).
+- Webtoon auto-scroll with speed control; tap zones in webtoon mode (S).
+- Colour filters, e-ink mode (no animations, high contrast), custom brightness (S).
+- Save or share a page with a link to its source (S).
+
+**Foundation**
+- Tests for ViewModels of the reader and the library (M).
+
+## v0.8: reader 2.0
+
+**Goal:** any page, any size, any phone: no memory crashes, sharp zoom, layouts that fit the screen.
+
+**Image pipeline**
+- **Coil 3** instead of Coil 2 (M). Coil 2 only gets fixes; Coil 3 brings better memory handling and the API the next items need.
+- **Tall pages in pieces** (M). Very tall webtoon images are decoded in tiles, so they load faster and don't run out of memory on older phones.
+- **Choose how many pages load ahead** (S).
+- **Sharp zoom** (M). The visible part is decoded again at the zoomed size.
+
+**Layouts**
+- **Crop white borders; split wide pages; two-page spreads** in landscape and on tablets (M).
+- **Previous chapter above** the current one in seamless mode (M).
+- **Two-pane title screen on tablets**: details on the left, chapters on the right (M).
+
+**Guided panel view** (signature feature 2, first part, L)
+- Classic image processing finds the panels of a page; no model, no download.
+- A tap moves to the next panel with a smooth zoom, in the page's reading direction.
+- The same detection powers border cropping and spread splitting.
+- Unblocks **"See exactly where you stopped"**: "Continue" cards and page bookmarks show the panel you were reading.
+
+**Performance**
+- A frame-time benchmark for library and reader scrolling next to `StartupBenchmark`; the profile is recorded again (S).
+- ⏸️ **Rounded screen corners during the back gesture**, when Compose makes `Transition.isSeeking` public.
+
+## v0.9: library and sources
+
+**Goal:** bring every comic you have into one place, and spend less battery and data on updates.
+
+**Self-hosted servers** (L)
+- An **OPDS** engine: Komga, Kavita, Calibre-Web and other servers that speak OPDS, with sign-in.
+- Native **Komga** and **Kavita** engines where OPDS is too limited (read progress back to the server).
+
+**Local files**
+- **CBR, CB7 and PDF** (M). PDF through Android's own renderer.
+- **Watched folders** (M). New chapters in an imported folder appear without importing again.
+- **Any folder as download storage** (M). The reader reads pages through the Storage Access Framework instead of file paths.
+
+**Library**
+- **Smarter updates** (M): skip completed titles, titles you haven't started or titles with many unread chapters; update only some categories; only while charging.
+- **Statistics** (M): chapters and pages read, reading time, per title and per month. Only on the phone.
+- **Grouped notifications** per title, and a switch per category (S).
+- **Import a tracker list** (M): your AniList or MyAnimeList "Reading" list becomes library entries, found on your sources with the same matching as "Found for you".
+- **Import Kotatsu backups** (M).
+
+**Sources**
+- InkStory and Com-X.life ([ENGINES.md](ENGINES.md)) (M each).
+- **Offline parser tests** with saved pages for every engine (M), so a parser change is checked without the live sites.
+- **Source status in the app** (S): the last error per source on the Sources screen, so a broken source is visible before you open a title.
+
+## v0.10: on-device AI
+
+Signature feature 2, second part. It ships in a separate build flavor (`ai`), so the standard build stays fully open source and small.
+
+- **Translate raws** (L). Text recognition (Japanese, Korean, Chinese, Latin scripts) and on-device translation. Lume finds each speech bubble, clears it, and draws the translated text inside.
+  - Results are saved per page.
+  - It can be turned on per title.
+  - It works offline once the language is downloaded.
+- **Sharper old scans** (L). Optional upscaling of low-resolution pages, piece by piece on the GPU, cached.
+- **Learned panel detection** (M), optional, for pages where the classic detection from v0.8 fails.
+- Done when: a 20-page raw chapter translates on a mid-range phone in under a minute, offline, and the `ai` build stays under 60 MB without models.
+
+Learned models stay optional because of their size, their speed on older phones and the licenses of their training data.
+
+## v1.0: stable
+
+**Goal:** an app people can install from a store, trust with their library, and get help with.
+
+**Distribution**
+- **IzzyOnDroid** first; **F-Droid** when the build is reproducible (the standard flavor has no proprietary parts) (M).
+- **Obtainium**: release names and assets stay stable; a checksum file next to each APK (S).
+- **Update check** (S), off by default: asks GitHub's release API for a newer version, nothing else.
+- Google Play stays out ([below](#out-of-scope)).
+
+**Trust**
+- **Encrypted sign-ins** (M): tracker and site tokens encrypted with the Android Keystore.
+- **Crash log** (S): crashes are saved on the phone; About → "Share log" attaches it to a bug report. Nothing is sent automatically.
+- **Backup format documented** and kept stable; every older backup keeps loading (S).
+
+**Everyone**
+- **Accessibility pass** (M): TalkBack labels for every button, font size up to 200 %, touch targets, contrast.
+- **Translations** through a translation platform (for example Weblate), starting with Ukrainian, Spanish and Brazilian Portuguese (M, then contributors).
+- **User guide** (M): reading, sources and packs, sync, backups, trackers, troubleshooting.
+
+**Quality**
+- Emulator tests on CI (Gradle managed devices): migrations and a smoke test of the main screens (M).
+- Screenshot tests for the main screens in light, dark and large font (M).
+- Optional release workflow that builds and signs from a tag with repository secrets (S), so a release no longer depends on one computer.
+- Done when: the device checklist passes on three phones and one tablet, no open crash reports, and the user guide covers every setting.
+
+## Every release
+
+- Source fixes from the weekly live check; new packs in the [catalogue](packs/README.md).
+- The device checklist for what changed.
+- Dependabot updates; lint stays at zero issues; the baseline profile is recorded again when screens change.
+- Release notes in `docs/releases/`, roadmap marks, and the version in `app/build.gradle.kts`.
+
+## Known problems and technical debt
+
+| Problem | Plan |
+| --- | --- |
+| Settings are left out of Android cloud backup (tokens share their file) | v0.6.x: tokens get their own store |
+| MyAnimeList, Kitsu and MangaUpdates never tried with real accounts | v0.6.x |
+| MangaRead and ToonGod often show Cloudflare checks; ReManga and MangaBuff block some regions | The in-app browser handles checks; region blocks can't be fixed in the app |
+| HentaiLib needs a signed-in account to read | Works as designed since v0.6.1; the reader says so |
+| Room 6→7 migration can't be tested (no v6 schema was exported) | Accepted; every later migration is tested |
+| The Room migration test is skipped on Windows JVM runs | CI (Linux) runs it; v1.0 adds emulator tests on CI |
+| Coil 2 is in maintenance | v0.8: Coil 3 |
+| Large files: `SettingsScreen.kt`, `LibraryScreen.kt`, `Database.kt` (750–820 lines) | Split when a release touches them |
+| Releases are built on one computer | v1.0: optional signed release workflow |
+| Engine parsers are only tested against the live sites | v0.9: offline tests with saved pages |
+
+## Ideas, not planned yet
+
+- Recommendations ("similar titles") from AniList or MyAnimeList.
+- Android TV and Chromebook: D-pad and keyboard navigation in the reader.
+- Reading lists you can export and share as a file.
+- A community pack catalogue with its own review rules.
+
+## Out of scope
+
+- Loading Mihon / Tachiyomi extension APKs or any downloaded code ([MIHON_EXTENSIONS.md](MIHON_EXTENSIONS.md)).
+- A Lume account or server, ads, analytics, telemetry.
+- Hosting or mirroring content.
+- Google Play: its policies on third-party content don't fit a reader with built-in sources.
+
+## Signature features
+
+### 1. One title, many sources ✅ done in v0.6
+
+A library entry can be backed by several sources at once.
+
+- **Merged chapter list.** Chapters from all linked sources are combined by volume and number. Each chapter comes from the best available source and shows a small source badge.
+- **Found for you.** When you add a title, Lume quietly searches your other sources and suggests "Also on X, Y". It matches titles and alternative titles.
+- **Never stuck.** If a chapter fails on one source (Cloudflare, region block, removed), Lume loads it from the next one. Your position carries over, down to the spot inside the page.
+- **First to publish.** Update notifications tell you which source got the new chapter first.
+- **One-tap migration.** Move progress, page bookmarks, categories and tracker links to another source.
+- ✅ Library badge with the number of sources (v0.6.1).
+
+### 2. On-device reading help (v0.8 and v0.10)
+
+Everything runs on the phone, with no account.
+
+- **Guided panel view** (v0.8): classic panel detection, no model.
+- **Translate raws** and **sharper old scans** (v0.10): in the separate `ai` build flavor.
+
+### 3. Sync and continuity 🟡
+
+- ✅ **Home-screen widget** and **"Continue <title>" shortcuts** (v0.6).
+- **Sync between devices** (v0.7).
+- ⏸️ **See exactly where you stopped** (v0.8): "Continue" cards and page bookmarks show the panel you were reading. Waits for panel detection; today page bookmarks show a crop of the page.
+
+## Released
+
+- **v0.1.0** (2026-10-03): first public release. [Notes](releases/v0.1.0.md).
+- **v0.2.0** (2026-10-12): faster global search, fullscreen reading, source fixes. [Notes](releases/v0.2.0.md).
+
+### v0.3: exact resume and smooth motion ✅ released 2026-10-17
 
 Release notes: [docs/releases/v0.3.0.md](releases/v0.3.0.md).
 
@@ -41,7 +258,7 @@ Release notes: [docs/releases/v0.3.0.md](releases/v0.3.0.md).
 - ✅ **Measured baseline profile.** Done in v0.4: the `:baselineprofile` module records it on an emulator.
 - 🟡 **Device testing of v0.3.** v0.3 was released after builds and unit tests only. The device checklist (resume, motion, notifications, R8 build) is still to be worked through on real phones; it is in [DEVICE_TESTING.md](DEVICE_TESTING.md).
 
-## v0.4: foundation, library and chapters ✅ released 2026-10-17
+### v0.4: foundation, library and chapters ✅ released 2026-10-17
 
 Release notes: [docs/releases/v0.4.0.md](releases/v0.4.0.md).
 
@@ -73,7 +290,7 @@ Release notes: [docs/releases/v0.4.0.md](releases/v0.4.0.md).
 - 🟡 **Device testing of v0.4.** Checked on an emulator, including the signed R8 release APK: the app starts, the migration runs, the library grid and its counts, chapter selection, the reader, and "Update now". The rest still needs real phones: [DEVICE_TESTING.md](DEVICE_TESTING.md).
 - **Startup numbers.** `StartupBenchmark` exists but has not been run yet; run it on a real phone to measure the profile's gain (S).
 
-## v0.5: sources, downloads, backups, trackers ✅ released 2026-10-17
+### v0.5: sources, downloads, backups, trackers ✅ released 2026-10-17
 
 Release notes: [docs/releases/v0.5.0.md](releases/v0.5.0.md).
 
@@ -113,7 +330,7 @@ Release notes: [docs/releases/v0.5.0.md](releases/v0.5.0.md).
 **Left over from v0.5**
 - 🟡 **Device testing of v0.5.** Checked on an emulator: search with filters only and paging, a shared MangaDex link, the Sources, Settings and Downloads screens, with no crashes. Tracker sign-ins, Mihon import with a real backup, the download notification, CBZ, local import, app lock and the tablet rail still need real devices and accounts: [DEVICE_TESTING.md](DEVICE_TESTING.md).
 
-## v0.6: one title, many sources ✅ released 2026-10-19
+### v0.6: one title, many sources ✅ released 2026-10-19
 
 Release notes: [docs/releases/v0.6.0.md](releases/v0.6.0.md).
 
@@ -133,7 +350,7 @@ Release notes: [docs/releases/v0.6.0.md](releases/v0.6.0.md).
 - 🟡 **Device testing of v0.6.** Checked on an emulator with real sources: the 8→9 migration test, finding Solo Leveling on other sources from MangaDex (which has no chapters), linking (0 → 207 chapters with source badges), reading a linked chapter, unlink, make main (library entry, Continue and links moved), the Continue shortcut and the widget. That run suggested two spin-offs too; the rule was made stricter afterwards (unit-tested, not re-run on the emulator). Not checked: the fallback with a source that really fails, downloads of linked chapters, the update notification naming the first source, and real phones: [DEVICE_TESTING.md](DEVICE_TESTING.md).
 - ✅ **Library badge for titles with several sources.** Shipped in v0.6.1.
 
-## v0.6.1: small fixes and repository health ✅ released 2026-10-19
+### v0.6.1: small fixes and repository health ✅ released 2026-10-19
 
 Release notes: [docs/releases/v0.6.1.md](releases/v0.6.1.md).
 
@@ -147,60 +364,4 @@ Release notes: [docs/releases/v0.6.1.md](releases/v0.6.1.md).
 - ✅ **Repository.** README, contributing guide, architecture overview, privacy and security policies, issue and PR templates, device testing checklist.
 - ✅ **CI.** The R8 release build runs on every PR; a weekly workflow checks every bundled source and catalogue pack against the live sites; Dependabot for Gradle and GitHub Actions.
 
-**Still open outside v0.7**
-- 🟡 **Device testing** of v0.3–v0.6 and of the changes above: [DEVICE_TESTING.md](DEVICE_TESTING.md).
-- **Startup numbers** from `StartupBenchmark` on a real phone (S).
-- **Any folder as download storage** (M). Needs the reader to read pages through the Storage Access Framework instead of file paths.
-- **Watch imported local folders** for new chapters (M). Today a folder is copied once.
-- **More sources.** InkStory and Com-X.life need more work ([ENGINES.md](ENGINES.md)); ToonGod and MangaRead often hit Cloudflare checks that only the in-app browser can pass.
-- **Offline tests for engine parsing** with saved pages (M), so a parser change is checked without the live sites.
-- **Split `ReaderScreen.kt`** (about 1,300 lines) before the reader backlog starts (S).
-
-## Reader backlog
-
-These land across releases.
-
-- Page slider (S)
-- Load the previous chapter above the current one in seamless mode (M)
-- Crop white borders; split wide pages; two-page spreads (M)
-- Webtoon auto-scroll; tap zones in webtoon mode (S)
-- Color filters, e-ink mode, custom brightness (S)
-- Save or share a page with a link to its source (S)
-- Choose how many pages to load ahead; split very tall images so they load faster and use less memory (M)
-- Sharp zoom (the image is decoded again at the zoomed size) (M)
-- Orientation lock (S)
-
-## Signature features
-
-### 1. One title, many sources (v0.6, L) ✅ done in v0.6
-
-A library entry can be backed by several sources at once.
-
-- **Merged chapter list.** Chapters from all linked sources are combined by volume and number. Each chapter comes from the best available source and shows a small source badge.
-- **Found for you.** When you add a title, Lume quietly searches your other sources and suggests "Also on X, Y". It matches titles, alternative titles and authors.
-- **Never stuck.** If a chapter fails on one source (Cloudflare, region block, removed), Lume loads it from the next one. Your position carries over, down to the spot inside the page; the per-chapter positions from v0.3 make this possible.
-- **First to publish.** Update notifications tell you which source got the new chapter first.
-- **One-tap migration.** Move progress, page bookmarks, categories and tracker links to another source.
-
-### 2. On-device AI reading (v0.7+, L)
-
-Everything runs on the phone, with no account. It ships in a separate build flavor, so a fully open-source build stays possible.
-
-- **Guided panel view.** Lume finds the panels on each page and steps through them one tap at a time, zooming smoothly, in the page's reading direction. The same detection powers border cropping and spread splitting.
-- **Translate raws.** Text recognition (Japanese, Korean, Chinese, Latin scripts) plus on-device translation. Lume finds each speech bubble, clears it, and draws the translated text inside.
-  - Results are saved per page.
-  - It can be turned on per title.
-  - It works offline once the language is downloaded.
-- **Sharper old scans.** Optional AI upscaling for low-resolution pages. It runs piece by piece on the GPU, and the result is cached.
-
-Panel detection starts with classic image processing, which needs no model. Learned models stay optional because of their size, their speed on older phones and the licenses of their training data.
-
-### 3. Sync and continuity (v0.6–0.7, M–L) 🟡
-
-This builds directly on the exact positions and page bookmarks from v0.3.
-
-- ⏸️ **See exactly where you stopped.** Waits for panel detection (feature 2): the picture is the panel you were reading. "Continue" cards show a small picture of the panel you were reading when you left. Page bookmarks use the same picture. Today, page bookmarks show a crop of the page image.
-- ✅ **Home-screen widget.** One to three "Continue" cards; a tap opens the exact spot. App shortcuts for "Continue <title>". Done in v0.6.
-- **Sync between devices** (v0.7). Library, progress, bookmarks and categories sync through WebDAV (for example Nextcloud), a shared folder (works with Syncthing) or, optionally, Google Drive.
-  - The newest change wins.
-  - For reading progress, the furthest position wins unless you reset it.
+What was still open moved into [v0.6.x](#v06x-maintenance) and later versions.
