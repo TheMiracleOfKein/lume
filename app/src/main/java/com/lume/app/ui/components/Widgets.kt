@@ -233,7 +233,7 @@ fun LumeLogo(
         label = "logo",
     )
     Image(
-        painter = painterResource(R.drawable.ic_lume),
+        painter = painterResource(R.mipmap.ic_launcher_foreground),
         contentDescription = stringResource(R.string.app_name),
         contentScale = ContentScale.Crop,
         modifier = Modifier

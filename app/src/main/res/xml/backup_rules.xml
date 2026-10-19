@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android backup up to Android 11; the same rules as cloud-backup in data_extraction_rules.xml. -->
+<full-backup-content>
+    <exclude domain="file" path="datastore/lume_prefs.preferences_pb" />
+    <exclude domain="file" path="datastore/lib_auth.preferences_pb" />
+    <exclude domain="file" path="downloads/" />
+    <exclude domain="file" path="local/" />
+    <exclude domain="file" path="backups/" />
+    <exclude domain="root" path="app_webview/" />
+    <exclude domain="external" path="." />
+</full-backup-content>

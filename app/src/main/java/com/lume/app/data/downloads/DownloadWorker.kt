@@ -92,7 +92,7 @@ class DownloadWorker(appContext: Context, params: WorkerParameters) : CoroutineW
     private fun notifyFailed(count: Int) {
         val ctx = applicationContext
         val notification = NotificationCompat.Builder(ctx, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_lume)
+            .setSmallIcon(R.drawable.ic_stat_lume)
             .setContentTitle(ctx.resources.getQuantityString(R.plurals.notif_downloads_failed, count, count))
             .setContentText(ctx.getString(R.string.notif_downloads_failed_text))
             .setContentIntent(openDownloads(ctx))
