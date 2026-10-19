@@ -39,7 +39,7 @@ Release notes: [docs/releases/v0.3.0.md](releases/v0.3.0.md).
 **Left over from v0.3**
 - ⏸️ **Rounded screen corners during the back gesture.** Removed in v0.3. Showing them only while a back gesture is in progress needs a Compose API (`Transition.isSeeking`) that Compose 1.12 keeps internal. Bring them back when that API is public.
 - ✅ **Measured baseline profile.** Done in v0.4: the `:baselineprofile` module records it on an emulator.
-- 🟡 **Device testing of v0.3.** v0.3 was released after builds and unit tests only. The device checklist (resume, motion, notifications, R8 build) is still to be worked through on real phones.
+- 🟡 **Device testing of v0.3.** v0.3 was released after builds and unit tests only. The device checklist (resume, motion, notifications, R8 build) is still to be worked through on real phones; it is in [DEVICE_TESTING.md](DEVICE_TESTING.md).
 
 ## v0.4: foundation, library and chapters ✅ released 2026-10-17
 
@@ -70,7 +70,7 @@ Release notes: [docs/releases/v0.4.0.md](releases/v0.4.0.md).
 - ✅ "Download next N / all unread", delete downloaded chapters, range select.
 
 **Left over from v0.4**
-- 🟡 **Device testing of v0.4.** Checked on an emulator, including the signed R8 release APK: the app starts, the migration runs, the library grid and its counts, chapter selection, the reader, and "Update now". The rest still needs real phones, together with the v0.3 checklist.
+- 🟡 **Device testing of v0.4.** Checked on an emulator, including the signed R8 release APK: the app starts, the migration runs, the library grid and its counts, chapter selection, the reader, and "Update now". The rest still needs real phones: [DEVICE_TESTING.md](DEVICE_TESTING.md).
 - **Startup numbers.** `StartupBenchmark` exists but has not been run yet; run it on a real phone to measure the profile's gain (S).
 
 ## v0.5: sources, downloads, backups, trackers ✅ released 2026-10-17
@@ -111,7 +111,7 @@ Release notes: [docs/releases/v0.5.0.md](releases/v0.5.0.md).
 - ✅ Translate chapter labels that sources send only in Russian.
 
 **Left over from v0.5**
-- 🟡 **Device testing of v0.5.** Checked on an emulator: search with filters only and paging, a shared MangaDex link, the Sources, Settings and Downloads screens, with no crashes. Tracker sign-ins, Mihon import with a real backup, the download notification, CBZ, local import, app lock and the tablet rail still need real devices and accounts.
+- 🟡 **Device testing of v0.5.** Checked on an emulator: search with filters only and paging, a shared MangaDex link, the Sources, Settings and Downloads screens, with no crashes. Tracker sign-ins, Mihon import with a real backup, the download notification, CBZ, local import, app lock and the tablet rail still need real devices and accounts: [DEVICE_TESTING.md](DEVICE_TESTING.md).
 
 ## v0.6: one title, many sources ✅ released 2026-10-19
 
@@ -130,8 +130,29 @@ Release notes: [docs/releases/v0.6.0.md](releases/v0.6.0.md).
 - Both show nothing with app lock or "hide in recent apps" on.
 
 **Left over from v0.6**
-- 🟡 **Device testing of v0.6.** Checked on an emulator with real sources: the 8→9 migration test, finding Solo Leveling on other sources from MangaDex (which has no chapters), linking (0 → 207 chapters with source badges), reading a linked chapter, unlink, make main (library entry, Continue and links moved), the Continue shortcut and the widget. That run suggested two spin-offs too; the rule was made stricter afterwards (unit-tested, not re-run on the emulator). Not checked: the fallback with a source that really fails, downloads of linked chapters, the update notification naming the first source, and real phones.
-- **Library badge for titles with several sources** (S).
+- 🟡 **Device testing of v0.6.** Checked on an emulator with real sources: the 8→9 migration test, finding Solo Leveling on other sources from MangaDex (which has no chapters), linking (0 → 207 chapters with source badges), reading a linked chapter, unlink, make main (library entry, Continue and links moved), the Continue shortcut and the widget. That run suggested two spin-offs too; the rule was made stricter afterwards (unit-tested, not re-run on the emulator). Not checked: the fallback with a source that really fails, downloads of linked chapters, the update notification naming the first source, and real phones: [DEVICE_TESTING.md](DEVICE_TESTING.md).
+- ✅ **Library badge for titles with several sources.** Done after v0.6.0; ships in the next release.
+
+## Since v0.6.0 (not released yet)
+
+- ✅ **Library badge** with the number of sources of a title (can be turned off in the library display settings).
+- ✅ **Icons.** A proper adaptive launcher icon with a themed (monochrome) layer; notifications show the Lume mark instead of a white square.
+- ✅ **Android backup.** Cloud backup keeps the library database but leaves out sign-ins, cookies, downloads and local files (large files stopped cloud backups entirely).
+- ✅ **Russian plurals** in the "new chapters" notification and "Download next N".
+- ✅ **YaoiLib pages load again.** Its main image server refuses requests; LibSocial sources now try the site's other image servers and remember the one that works.
+- ✅ **HentaiLib** says that its chapters need a signed-in account, instead of "HTTP 404".
+- ✅ **Lint clean** (36 warnings → 0); patch updates of AGP, Kotlin, Gradle and test libraries.
+- ✅ **Repository.** README, contributing guide, architecture overview, privacy and security policies, issue and PR templates, device testing checklist.
+- ✅ **CI.** The R8 release build runs on every PR; a weekly workflow checks every bundled source and catalogue pack against the live sites; Dependabot for Gradle and GitHub Actions.
+
+**Still open outside v0.7**
+- 🟡 **Device testing** of v0.3–v0.6 and of the changes above: [DEVICE_TESTING.md](DEVICE_TESTING.md).
+- **Startup numbers** from `StartupBenchmark` on a real phone (S).
+- **Any folder as download storage** (M). Needs the reader to read pages through the Storage Access Framework instead of file paths.
+- **Watch imported local folders** for new chapters (M). Today a folder is copied once.
+- **More sources.** InkStory and Com-X.life need more work ([ENGINES.md](ENGINES.md)); ToonGod and MangaRead often hit Cloudflare checks that only the in-app browser can pass.
+- **Offline tests for engine parsing** with saved pages (M), so a parser change is checked without the live sites.
+- **Split `ReaderScreen.kt`** (about 1,300 lines) before the reader backlog starts (S).
 
 ## Reader backlog
 

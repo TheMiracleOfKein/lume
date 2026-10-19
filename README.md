@@ -1,71 +1,144 @@
 # Lume
 
-Android manga / comics reader written in **Kotlin** and **Jetpack Compose**.
+[![CI](https://github.com/TheMiracleOfKein/lume/actions/workflows/ci.yml/badge.svg)](https://github.com/TheMiracleOfKein/lume/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/TheMiracleOfKein/lume?label=release)](https://github.com/TheMiracleOfKein/lume/releases/latest)
+[![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](#download)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-Lume uses first-party catalogue engines (MangaDex, Madara, LibSocial, and others). JSON packs can clone supported families without shipping new Kotlin code. See [docs/ENGINES.md](docs/ENGINES.md).
+<img src="branding/lume_icon_320.png" alt="Lume icon" width="96" align="right">
 
-![Lume](branding/lume_icon_320.png)
+Lume is an Android reader for manga, manhwa and webtoons, written in Kotlin and Jetpack Compose.
+
+- **It remembers exactly where you stopped**, inside a tall webtoon page and separately for every chapter.
+- **One title can come from several sources.** Lume fills gaps in the chapter list from your other sources and reads a chapter from another source when its own fails.
+- **Sources are built in.** Lume doesn't load extension APKs; supported site families can be added as small JSON packs.
+- **No account, no ads, no analytics.** Everything stays on your phone unless you sign in to a tracker.
+
+## Download
+
+Get the APK from the [latest release](https://github.com/TheMiracleOfKein/lume/releases/latest). Lume needs Android 8.0 or newer.
+
+- Installing a new version over the old one keeps your library, progress and downloads.
+- If Android blocks the install, allow installs from your browser or file manager.
+
+Release APKs are signed with the certificate `CN=Lume App`. To check a download, compare its SHA-256 fingerprint with this one:
+
+```
+b1594cec70301bfd0f66d73d82e9bdcea6355b8df8d2abe50e1fc022629bd565
+```
+
+```bash
+apksigner verify --print-certs lume-vX.Y.Z.apk
+```
 
 ## Features
 
-- Library, home feed, catalogue, search, downloads, offline cache
-- Vertical (webtoon) and page reader with seamless chapters, tap zones and volume-key paging
-- Fullscreen reading (controls and system bars hide on scroll, tap to show), night dimming, webtoon side margins
-- Global search that streams results per source, with per-source timeouts and retry
-- Open any title in the browser or share its link
-- Source packs + in-app login for supported LibSocial sites
-- Optional trackers: Shikimori and AniList
-- Backup / restore
-- English and Russian UI
+**Reader**
+- Webtoon (vertical) and paged modes, with seamless chapters, tap zones and volume-key paging.
+- Fullscreen reading: the controls and system bars hide while you read.
+- Exact resume inside a page, after rotation, after Android closes the app and across chapters.
+- Page bookmarks with notes, shown on the title screen.
+- Night dimming, side margins for webtoons, keep the screen on.
 
-## Requirements
+**Library and updates**
+- Grid, compact and list views; sorting, filters, search and categories.
+- Unread, downloaded and source counts on every title.
+- Select several titles to move, mark, download or remove them.
+- An Updates screen with new chapters from the whole library, background checks and notifications.
+- A "Continue reading" home-screen widget and launcher shortcuts.
 
-- JDK 17+
-- Android SDK (API 37 recommended; `minSdk` 26)
-- Android Studio or command-line Gradle
+**One title, many sources**
+- When you add a title, Lume looks for it on your other sources and suggests them.
+- Linked sources fill the chapter list; every chapter shows which source it comes from.
+- A chapter that fails to load (site check, region block, removed) opens from another source.
+- Notifications name the source that published a new chapter first.
+- Move a title to another source in one tap, with progress, bookmarks, categories, trackers and downloads.
 
-## Build
+**Sources**
+- 11 built-in sources in English and Russian (listed below), plus your own JSON packs for Madara, LibSocial and HiveToons sites.
+- Global search with per-source results, filters and history.
+- Open a title link from the browser or share it to Lume.
+- Cloudflare and DDoS-Guard checks are solved in a built-in browser; sign-in for MangaLib, YaoiLib and HentaiLib.
 
-```bash
-# Windows
-gradlew.bat :app:assembleDebug
+**Downloads and offline**
+- Background downloads with a notification; pause, reorder, retry.
+- Save chapters as CBZ, on internal storage or an SD card.
+- Download new chapters automatically; delete chapters after reading.
+- Import comics from a folder on your phone (with `ComicInfo.xml` and covers).
 
-# macOS / Linux
-./gradlew :app:assembleDebug
-```
+**Trackers**
+- AniList, Shikimori, MyAnimeList, Kitsu and MangaUpdates.
+- Progress updates when you finish a chapter; edit status, score and dates; link titles automatically when you add them.
 
-APK output: `app/build/outputs/apk/debug/`.
+**Backups**
+- Save backups anywhere, or let Lume make them on a schedule.
+- Import a Mihon or Tachiyomi backup (`.tachibk`): titles from sources Lume has, categories, tracker links and read chapters.
 
-Tests: `gradlew :app:testDebugUnitTest` (add `-Plume.live` to check bundled sources against the live sites; see [docs/ENGINES.md](docs/ENGINES.md#live-source-checks)).
+**App**
+- English and Russian.
+- System, light, dark and pure-black themes; Material You colours; a navigation rail on tablets.
+- Incognito mode, app lock and hiding content in the recent-apps screen.
+- DNS over HTTPS.
 
-1. Copy [`local.properties.example`](local.properties.example) to `local.properties`.
-2. Set `sdk.dir` (Android Studio usually does this for you).
-3. Optionally fill `LUME_*` OAuth keys for tracker login (see below).
+## Built-in sources
 
-## Tracker OAuth (optional)
+| Source | Language | Engine |
+| --- | --- | --- |
+| MangaDex | many | `mangadex` |
+| MangaKatana | English | `mangakatana` |
+| Asura Scans | English | `asura` |
+| MangaRead | English | `madara` |
+| HiveToons, Vortex Scans | English | `hivetoons` |
+| MangaLib, YaoiLib\*, HentaiLib\* | Russian | `libsocial` |
+| ReManga | Russian | `remanga` |
+| MangaBuff | Russian | `mangabuff` |
+| Local files | — | `local` |
 
-Shikimori / AniList need **application** client credentials that identify Lume. End users still sign in with their own accounts.
+\* Adult content; can be hidden from global search. HentaiLib shows chapters only to signed-in users (sign in under Sources).
 
-- Keep real keys only in `local.properties` (gitignored).
-- Official release builds you produce locally (or later via CI secrets) can bake keys into the APK via `BuildConfig`.
-- Keys inside an APK are not strongly secret (they can be extracted). Keeping them out of git still avoids casual leaks and bot scraping of the repository.
-- If you build from source without keys, reading works; tracker login will not.
+How engines and packs work, and how to add a site: [docs/ENGINES.md](docs/ENGINES.md) and [docs/packs/README.md](docs/packs/README.md).
 
-Register your own OAuth apps on the tracker sites if you maintain a fork or personal build.
+## Build from source
+
+You need JDK 17 or newer (CI uses 21) and the Android SDK with API 37.
+
+1. Copy [`local.properties.example`](local.properties.example) to `local.properties` and set `sdk.dir` (Android Studio does this for you).
+2. Build a debug APK:
+
+   ```bash
+   ./gradlew :app:assembleDebug
+   ```
+
+   On Windows, use `gradlew.bat`. The APK is in `app/build/outputs/apk/debug/`.
+3. Run the same checks as CI:
+
+   ```bash
+   ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+   ```
+
+   Add `-Plume.live` to check the built-in sources against the live sites ([details](docs/ENGINES.md#live-source-checks)).
+
+### Tracker keys (optional)
+
+AniList, Shikimori and MyAnimeList sign-ins need *application* keys that identify the app to the tracker. Users still sign in with their own accounts. Kitsu and MangaUpdates need no keys.
+
+- Put the keys in `local.properties` (`LUME_*`, see the example file). They are never committed.
+- Without keys, everything works except sign-in to those three trackers.
+- Keys built into an APK can be extracted, so register your own apps on the tracker sites for a fork or personal build.
 
 ## Documentation
 
-- [Catalogue engines](docs/ENGINES.md)
-- [Localization notes](docs/I18N.md)
-- [Sample packs](docs/packs/README.md)
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+- [Roadmap](docs/ROADMAP.md) and [release notes](docs/releases/)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Catalogue engines](docs/ENGINES.md) and [source packs](docs/packs/README.md)
+- [Why Lume doesn't load Mihon extensions](docs/MIHON_EXTENSIONS.md)
+- [Translations](docs/I18N.md)
+- [Device testing checklist](docs/DEVICE_TESTING.md)
+- [Contributing](CONTRIBUTING.md), [privacy](PRIVACY.md), [security](SECURITY.md)
 
 ## Disclaimer
 
-Lume does **not** host manga or comic content. Catalogues and images come from third-party websites and APIs. Lume is not affiliated with those services. You are responsible for complying with the laws and terms that apply where you use the app.
+Lume does **not** host manga or comics. Catalogues and images come from third-party websites and APIs, and Lume is not affiliated with them. You are responsible for following the laws and terms that apply where you use the app.
 
 ## License
 

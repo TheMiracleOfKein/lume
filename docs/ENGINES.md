@@ -79,6 +79,7 @@ See historical notes in [MIHON_EXTENSIONS.md](MIHON_EXTENSIONS.md).
 | `dataSaver` | `mangadex` | `true` serves compressed pages |
 | `rateLimit` | any | max requests/second to the API host (or site host without `apiBase`) |
 | `imageHosts` | any | extra image CDN domains that need this source's `Referer` |
+| `pagesNeedLogin` | `libsocial` | `true`: the site shows chapter pages only to signed-in users, so a 404 asks the user to sign in |
 
 Image requests get a `Referer` automatically when the image host shares a domain with the
 source's `baseUrl` / `apiBase`, is listed in `imageHosts`, or was seen in that source's results.

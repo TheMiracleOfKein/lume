@@ -1,0 +1,46 @@
+name: Source problem
+description: A built-in source or an imported pack stopped working.
+labels: [bug, source]
+body:
+  - type: input
+    id: source
+    attributes:
+      label: Source
+      placeholder: "MangaDex"
+    validations:
+      required: true
+  - type: dropdown
+    id: part
+    attributes:
+      label: What fails
+      multiple: true
+      options:
+        - Popular / latest list
+        - Search
+        - Title details
+        - Chapter list
+        - Pages / images
+        - Site check (Cloudflare) never finishes
+        - Sign-in
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Error message and an example title
+      description: The message Lume shows, and a title (or its link) where it happens.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Lume version
+      placeholder: "0.6.0"
+    validations:
+      required: true
+  - type: checkboxes
+    id: browser
+    attributes:
+      label: Checked in a browser
+      options:
+        - label: The same title opens in a web browser on the same phone and network.
