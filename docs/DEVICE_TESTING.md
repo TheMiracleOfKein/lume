@@ -69,6 +69,13 @@ Use the signed release APK, installed over the previous release, so the database
 - [ ] Restoring from Android's cloud backup on a new phone brings the settings back, without tracker sign-ins.
 - [ ] Settings search in Russian: "тёмная", "бэкап", "трафик" find their settings; a result opens its section and highlights the row.
 
+## v0.6.3
+
+- [ ] Library → Share → send the list to another phone through a messenger; on that phone, opening the file in Lume shows the list and adds the titles.
+- [ ] Settings → Backup and restore → Open a reading list picks a saved list from Downloads.
+- [ ] A list with a title from a source the phone doesn't have: found through its web link, or marked "Lume doesn't have this source".
+- [ ] A shared site link opens in the Lume window you are looking at, also when Lume was already open.
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.
