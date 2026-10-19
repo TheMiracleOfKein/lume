@@ -46,7 +46,7 @@ Patch releases from the v0.6 line, as needed.
 **v0.6.2: clearer settings** ✅ released 2026-10-20 ([details](#v062-clearer-settings--released-2026-10-20))
 - ✅ Settings in sections, explanations, search in settings; `SettingsScreen.kt` split.
 
-**v0.6.3: reading lists** ✅ ([details](#v063-reading-lists))
+**v0.6.3: reading lists** ✅ released 2026-10-20 ([details](#v063-reading-lists--released-2026-10-20))
 - ✅ Share or save a reading list from the library; open one shared to Lume; `LibraryScreen.kt` split.
 
 **v0.6.4: similar titles**
@@ -384,7 +384,7 @@ Release notes: [docs/releases/v0.6.2.md](releases/v0.6.2.md).
 - ✅ **Sign-ins in their own store.** Tracker tokens and the automatic backup folder moved out of the settings file into `lume_private`, once, on the first start. Android's cloud backup keeps the settings again; sign-ins still stay out.
 - ✅ **Split `SettingsScreen.kt`** (about 770 lines) into `ui/screens/settings`: one file per larger section, the short ones together, plus the catalogue the search reads.
 
-### v0.6.3: reading lists
+### v0.6.3: reading lists ✅ released 2026-10-20
 
 Release notes: [docs/releases/v0.6.3.md](releases/v0.6.3.md).
 
