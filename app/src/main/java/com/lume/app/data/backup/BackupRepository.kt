@@ -11,6 +11,7 @@ import com.lume.app.data.db.PageBookmarkEntity
 import com.lume.app.data.db.ProgressEntity
 import com.lume.app.data.db.SourcePackEntity
 import com.lume.app.data.db.TitlePrefsEntity
+import com.lume.app.data.db.TitleSourceEntity
 import com.lume.app.data.db.TrackerLinkEntity
 import com.lume.app.data.source.SourceRegistry
 import com.lume.app.data.library.LibraryChapters
@@ -31,7 +32,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Version 2 adds per-chapter progress, page bookmarks and read marks; version 3 adds settings.
+ * Version 2 adds per-chapter progress, page bookmarks and read marks; version 3 adds settings;
+ * version 4 adds the other sources of each title.
  * Older files still load: the new lists default to empty.
  */
 @Serializable
@@ -48,9 +50,10 @@ data class BackupPayload(
     val pageBookmarks: List<PageBookmarkDto> = emptyList(),
     val chapterRead: List<ChapterReadDto> = emptyList(),
     val settings: List<SettingDto> = emptyList(),
+    val titleSources: List<TitleSourceDto> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 3
+        const val CURRENT_VERSION = 4
 
         val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
@@ -175,6 +178,19 @@ data class TrackerLinkDto(
     val status: String? = null,
     val score: Float? = null,
     val lastSync: Long = 0L,
+)
+
+@Serializable
+data class TitleSourceDto(
+    val sourceId: String,
+    val titleId: String,
+    val linkSourceId: String,
+    val linkTitleId: String,
+    val linkTitleName: String,
+    val coverUrl: String? = null,
+    val state: String = TitleSourceEntity.LINKED,
+    val priority: Int = 0,
+    val addedAt: Long = 0L,
 )
 
 class BackupRepository(
@@ -342,6 +358,19 @@ class BackupRepository(
                 ChapterReadDto(it.sourceId, it.titleId, it.chapterId, it.readAt)
             },
             settings = prefs?.exportSettings().orEmpty().map { (key, type, value) -> SettingDto(key, type, value) },
+            titleSources = dao.allTitleSources().map {
+                TitleSourceDto(
+                    sourceId = it.sourceId,
+                    titleId = it.titleId,
+                    linkSourceId = it.linkSourceId,
+                    linkTitleId = it.linkTitleId,
+                    linkTitleName = it.linkTitleName,
+                    coverUrl = it.coverUrl,
+                    state = it.state,
+                    priority = it.priority,
+                    addedAt = it.addedAt,
+                )
+            },
         )
         return json.encodeToString(payload)
     }
@@ -629,6 +658,23 @@ class BackupRepository(
                     score = l.score,
                     lastSync = l.lastSync,
                 ),
+            )
+        }
+        if (payload.titleSources.isNotEmpty()) {
+            dao.upsertTitleSources(
+                payload.titleSources.map {
+                    TitleSourceEntity(
+                        sourceId = it.sourceId,
+                        titleId = it.titleId,
+                        linkSourceId = it.linkSourceId,
+                        linkTitleId = it.linkTitleId,
+                        linkTitleName = it.linkTitleName,
+                        coverUrl = it.coverUrl,
+                        state = it.state,
+                        priority = it.priority,
+                        addedAt = it.addedAt,
+                    )
+                },
             )
         }
         sources.load()

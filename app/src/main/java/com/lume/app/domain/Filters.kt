@@ -130,4 +130,6 @@ data class LibraryUpdateResult(
     val titleId: String,
     val titleName: String,
     val newChapterCount: Int,
+    /** For titles with linked sources: the sources that had the new chapters first. */
+    val firstOn: List<String> = emptyList(),
 )

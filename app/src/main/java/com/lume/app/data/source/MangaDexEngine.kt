@@ -192,6 +192,13 @@ class MangaDexEngine(
             altTitle = attrs["altTitles"]?.jsonArray
                 ?.mapNotNull { (it as? JsonObject)?.values?.firstOrNull()?.jsonPrimitive?.contentOrNull }
                 ?.firstOrNull(),
+            // English and Russian names first: they are the ones other sources search by.
+            otherNames = attrs["altTitles"]?.jsonArray.orEmpty()
+                .mapNotNull { el -> (el as? JsonObject)?.entries?.firstOrNull() }
+                .sortedBy { (lang, _) -> OTHER_NAME_LANGS.indexOf(lang).let { if (it < 0) OTHER_NAME_LANGS.size else it } }
+                .mapNotNull { (_, value) -> value.jsonPrimitive.contentOrNull?.trim()?.takeIf { it.isNotEmpty() } }
+                .distinct()
+                .take(MAX_OTHER_NAMES),
             coverUrl = coverUrl(mangaId, relationships),
             description = pickLocalized(attrs["description"]?.jsonObject),
             status = attrs["status"]?.jsonPrimitive?.contentOrNull,
@@ -337,6 +344,8 @@ class MangaDexEngine(
     private fun enc(value: String): String = urlEncode(value)
 
     companion object {
+        private val OTHER_NAME_LANGS = listOf("en", "ru", "ja-ro", "ko-ro", "zh-ro", "uk")
+        private const val MAX_OTHER_NAMES = 15
         private const val PAGE_SIZE = 20
         private const val MAX_FEED = 10_000
         private val ALL_RATINGS = listOf("safe", "suggestive", "erotica", "pornographic")

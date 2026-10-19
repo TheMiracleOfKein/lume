@@ -236,6 +236,35 @@ data class OfflineTitleCacheEntity(
     val updatedAt: Long = System.currentTimeMillis(),
 )
 
+/**
+ * Another source's copy of a title ([sourceId], [titleId] is the main source). [state] is
+ * [LINKED] (its chapters are part of the title), [SUGGESTED] (found by Lume, waiting for the
+ * reader) or [DISMISSED] (not suggested again). Linked sources fill in chapters in [priority]
+ * order, lowest first.
+ */
+@Entity(
+    tableName = "title_sources",
+    primaryKeys = ["sourceId", "titleId", "linkSourceId", "linkTitleId"],
+    indices = [Index("linkSourceId", "linkTitleId")],
+)
+data class TitleSourceEntity(
+    val sourceId: String,
+    val titleId: String,
+    val linkSourceId: String,
+    val linkTitleId: String,
+    val linkTitleName: String,
+    val coverUrl: String? = null,
+    val state: String = LINKED,
+    val priority: Int = 0,
+    val addedAt: Long = System.currentTimeMillis(),
+) {
+    companion object {
+        const val LINKED = "linked"
+        const val SUGGESTED = "suggested"
+        const val DISMISSED = "dismissed"
+    }
+}
+
 @Dao
 interface LibraryDao {
     @Query("SELECT * FROM bookmarks ORDER BY createdAt DESC")
@@ -531,6 +560,62 @@ interface LibraryDao {
 
     @Query("SELECT DISTINCT chapterId FROM page_bookmarks WHERE sourceId = :sourceId AND titleId = :titleId")
     fun observePageBookmarkChapterIds(sourceId: String, titleId: String): Flow<List<String>>
+
+    // Title sources
+    @Query("SELECT * FROM title_sources WHERE sourceId = :sourceId AND titleId = :titleId ORDER BY priority ASC, addedAt ASC")
+    fun observeTitleSources(sourceId: String, titleId: String): Flow<List<TitleSourceEntity>>
+
+    @Query("SELECT * FROM title_sources WHERE sourceId = :sourceId AND titleId = :titleId ORDER BY priority ASC, addedAt ASC")
+    suspend fun titleSources(sourceId: String, titleId: String): List<TitleSourceEntity>
+
+    @Query("SELECT * FROM title_sources")
+    suspend fun allTitleSources(): List<TitleSourceEntity>
+
+    /** Library titles with at least one linked source (for the library's source badge). */
+    @Query("SELECT DISTINCT sourceId, titleId FROM title_sources WHERE state = 'linked'")
+    fun observeMultiSourceTitles(): Flow<List<TitleKey>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertTitleSource(item: TitleSourceEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertTitleSources(items: List<TitleSourceEntity>)
+
+    @Query("DELETE FROM title_sources WHERE sourceId = :sourceId AND titleId = :titleId AND linkSourceId = :linkSourceId AND linkTitleId = :linkTitleId")
+    suspend fun deleteTitleSource(sourceId: String, titleId: String, linkSourceId: String, linkTitleId: String)
+
+    @Query("DELETE FROM title_sources WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun deleteTitleSources(sourceId: String, titleId: String)
+
+    @Query("SELECT * FROM chapter_read WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun chapterReadFor(sourceId: String, titleId: String): List<ChapterReadEntity>
+
+    @Query("DELETE FROM chapter_read WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun deleteChapterReadFor(sourceId: String, titleId: String)
+
+    @Query("SELECT * FROM chapter_progress WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun chapterProgressFor(sourceId: String, titleId: String): List<ChapterProgressEntity>
+
+    @Query("DELETE FROM chapter_progress WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun deleteChapterProgressFor(sourceId: String, titleId: String)
+
+    @Query("SELECT * FROM page_bookmarks WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun pageBookmarksFor(sourceId: String, titleId: String): List<PageBookmarkEntity>
+
+    @Query("UPDATE page_bookmarks SET sourceId = :newSourceId, titleId = :newTitleId, chapterId = :chapterId WHERE id = :id")
+    suspend fun movePageBookmark(id: Long, newSourceId: String, newTitleId: String, chapterId: String)
+
+    @Query("DELETE FROM title_meta WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun deleteTitleMeta(sourceId: String, titleId: String)
+
+    @Query("DELETE FROM title_prefs WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun deleteTitlePrefs(sourceId: String, titleId: String)
+
+    @Query("DELETE FROM tracker_links WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun deleteTrackerLinksFor(sourceId: String, titleId: String)
+
+    @Query("SELECT * FROM download_queue WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun downloadQueueFor(sourceId: String, titleId: String): List<DownloadQueueEntity>
 }
 
 data class TitleKey(val sourceId: String, val titleId: String)
@@ -553,8 +638,9 @@ data class TitleJsonRow(val sourceId: String, val titleId: String, val titleJson
         ChapterProgressEntity::class,
         PageBookmarkEntity::class,
         LibraryChapterEntity::class,
+        TitleSourceEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 abstract class LumeDatabase : RoomDatabase() {
@@ -656,6 +742,31 @@ abstract class LumeDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS: Array<Migration> get() = arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+        /** Other sources of a title (linked, suggested, dismissed). Additive. */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS title_sources (
+                        sourceId TEXT NOT NULL,
+                        titleId TEXT NOT NULL,
+                        linkSourceId TEXT NOT NULL,
+                        linkTitleId TEXT NOT NULL,
+                        linkTitleName TEXT NOT NULL,
+                        coverUrl TEXT,
+                        state TEXT NOT NULL,
+                        priority INTEGER NOT NULL,
+                        addedAt INTEGER NOT NULL,
+                        PRIMARY KEY(sourceId, titleId, linkSourceId, linkTitleId)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_title_sources_linkSourceId_linkTitleId ON title_sources (linkSourceId, linkTitleId)",
+                )
+            }
+        }
+
+        val MIGRATIONS: Array<Migration> get() = arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
     }
 }

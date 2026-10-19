@@ -87,6 +87,34 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate8To9KeepsDataAndAddsTitleSources() {
+        helper.createDatabase(dbName, 8).apply {
+            execSQL("INSERT INTO bookmarks (sourceId, titleId, titleName, createdAt, categoryIdsJson) VALUES ('s', 't', 'Title', 1, '[]')")
+            execSQL(
+                "INSERT INTO library_chapters (sourceId, titleId, chapterId, dedupeKey, name, sourceOrder, discoveredAt) " +
+                    "VALUES ('s', 't', 'c1', 'v#c1', 'Ch 1', 0, NULL)",
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(dbName, 9, true, LumeDatabase.MIGRATION_8_9)
+
+        db.query("SELECT COUNT(*) FROM library_chapters").use {
+            it.moveToFirst()
+            assertEquals(1, it.getInt(0))
+        }
+        db.execSQL(
+            "INSERT INTO title_sources (sourceId, titleId, linkSourceId, linkTitleId, linkTitleName, state, priority, addedAt) " +
+                "VALUES ('s', 't', 'dex', 'x', 'Title', 'linked', 0, 5)",
+        )
+        db.query("SELECT linkSourceId, state FROM title_sources").use {
+            it.moveToFirst()
+            assertEquals("dex", it.getString(0))
+            assertEquals("linked", it.getString(1))
+        }
+    }
+
+    @Test
     fun freshDatabaseOpensWithAllMigrations() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         helper.createDatabase(dbName, 7).close()

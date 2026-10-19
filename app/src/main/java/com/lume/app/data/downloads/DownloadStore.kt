@@ -405,11 +405,17 @@ class DownloadStore(
         chapterDir(sourceId, titleId, chapterId).deleteRecursively()
     }
 
+    /**
+     * Downloads [chapter] of [source]'s title [titleId]. [fetchPages] says where the pages come
+     * from when that is not [source] itself (a linked source's chapter, or another copy after the
+     * chapter failed); page requests then carry that source's headers.
+     */
     suspend fun downloadChapter(
         source: CatalogSource,
         titleId: String,
         title: TitleDetails?,
         chapter: Chapter,
+        fetchPages: (suspend () -> Pair<CatalogSource, List<ComicPage>>)? = null,
         onProgress: ((Float) -> Unit)? = null,
     ) {
         val sourceId = source.manifest.id
@@ -418,12 +424,12 @@ class DownloadStore(
         onProgress?.invoke(0f)
 
         try {
-            val pages = source.getPages(chapter)
+            val (pageSource, pages) = fetchPages?.invoke() ?: (source to source.getPages(chapter))
             if (pages.isEmpty()) error(context.getString(R.string.error_no_pages_download))
 
             writeTitleMeta(sourceId, titleId, title)
             val dir = chapterDir(sourceId, titleId, chapter.id)
-            val referer = source.manifest.headers["Referer"] ?: "${source.manifest.baseUrl.trimEnd('/')}/"
+            val referer = pageSource.manifest.headers["Referer"] ?: "${pageSource.manifest.baseUrl.trimEnd('/')}/"
             val parallel = prefs?.downloadParallelPages?.value ?: 1
             val permits = Semaphore(parallel)
             val done = java.util.concurrent.atomic.AtomicInteger(0)
@@ -440,7 +446,7 @@ class DownloadStore(
                             } else {
                                 http.getBytes(
                                     URI(url),
-                                    source = source.manifest,
+                                    source = pageSource.manifest,
                                     headers = mapOf(
                                         "Referer" to referer,
                                         "Accept" to "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",

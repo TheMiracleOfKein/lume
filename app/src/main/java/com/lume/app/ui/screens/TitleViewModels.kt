@@ -11,7 +11,10 @@ import com.lume.app.data.db.ChapterProgressEntity
 import com.lume.app.data.db.PageBookmarkEntity
 import com.lume.app.data.db.ProgressEntity
 import com.lume.app.data.db.TitlePrefsEntity
+import com.lume.app.data.db.TitleSourceEntity
 import com.lume.app.data.db.TrackerLinkEntity
+import com.lume.app.data.title.SourceCandidate
+import com.lume.app.data.title.SourceLookup
 import com.lume.app.data.locale.appString
 import com.lume.app.data.title.TitleLoad
 import com.lume.app.domain.Chapter
@@ -25,6 +28,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -72,6 +76,14 @@ abstract class TitleBackedViewModel(
         load(force = false)
         // A solved Cloudflare check or a reconnect bumps the epoch: try the network again.
         viewModelScope.launch { app.http.networkEpoch.drop(1).collect { load(force = true) } }
+        // A source linked, unlinked or reordered: the merged chapter list changes.
+        viewModelScope.launch {
+            dao.observeTitleSources(sourceId, titleId)
+                .map { rows -> rows.filter { it.state == TitleSourceEntity.LINKED }.map { Triple(it.linkSourceId, it.linkTitleId, it.priority) } }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { load(force = false) }
+        }
     }
 
     fun refresh() = load(force = true)
@@ -121,6 +133,77 @@ abstract class TitleBackedViewModel(
 
 class TitleViewModel(app: AppContainer, sourceId: String, titleId: String) : TitleBackedViewModel(app, sourceId, titleId) {
     val inLibrary: StateFlow<Boolean> = dao.observeIsBookmarked(sourceId, titleId).state(false)
+
+    /** Linked, suggested and dismissed sources of this title. */
+    val titleSources: StateFlow<List<TitleSourceEntity>> = app.titleSources.observe(sourceId, titleId).state(emptyList())
+
+    /** Per source, while "Find on other sources" runs and after. */
+    var lookups by mutableStateOf<List<SourceLookup>>(emptyList())
+        private set
+    var finding by mutableStateOf(false)
+        private set
+
+    /** A source change in progress (link, unlink, make main): buttons wait. */
+    var busy by mutableStateOf(false)
+        private set
+
+    /** Set after the title moved to another main source; the screen opens it. */
+    var movedTo by mutableStateOf<Pair<String, String>?>(null)
+        private set
+
+    private var findJob: Job? = null
+
+    fun findOtherSources() {
+        val d = details ?: return
+        findJob?.cancel()
+        findJob = viewModelScope.launch {
+            finding = true
+            lookups = emptyList()
+            try {
+                app.titleSources.find(sourceId, d) { lookup ->
+                    lookups = lookups.filterNot { it.sourceId == lookup.sourceId } + lookup
+                }
+            } finally {
+                finding = false
+            }
+        }
+    }
+
+    private fun sourceChange(block: suspend () -> Unit) {
+        if (busy) return
+        viewModelScope.launch {
+            busy = true
+            try {
+                block()
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun link(candidate: SourceCandidate) = sourceChange {
+        app.titleSources.link(sourceId, titleId, candidate.sourceId, candidate.titleId, candidate.title, candidate.coverUrl)
+    }
+
+    fun linkSuggestion(row: TitleSourceEntity) = sourceChange { app.titleSources.linkSuggestion(row) }
+
+    fun linkAllSuggestions() = sourceChange {
+        titleSources.value.filter { it.state == TitleSourceEntity.SUGGESTED }.forEach { app.titleSources.linkSuggestion(it) }
+    }
+
+    fun dismiss(row: TitleSourceEntity) = sourceChange { app.titleSources.dismiss(row) }
+
+    fun dismissAllSuggestions() = sourceChange {
+        titleSources.value.filter { it.state == TitleSourceEntity.SUGGESTED }.forEach { app.titleSources.dismiss(it) }
+    }
+
+    fun unlink(row: TitleSourceEntity) = sourceChange { app.titleSources.unlink(row) }
+
+    fun moveSource(row: TitleSourceEntity, delta: Int) = sourceChange { app.titleSources.move(row, delta) }
+
+    fun makeMain(row: TitleSourceEntity) = sourceChange { movedTo = app.titleSources.makeMain(row) }
+
+    fun moveTo(candidate: SourceCandidate) = sourceChange { movedTo = app.titleSources.moveTo(sourceId, titleId, candidate) }
     val progress: StateFlow<ProgressEntity?> = dao.observeProgress(sourceId, titleId).state(null)
     val trackerLinks: StateFlow<List<TrackerLinkEntity>> = dao.observeTrackerLinks(sourceId, titleId).state(emptyList())
     val pageBookmarks: StateFlow<List<PageBookmarkEntity>> = dao.observePageBookmarks(sourceId, titleId).state(emptyList())

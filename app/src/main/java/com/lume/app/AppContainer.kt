@@ -58,20 +58,25 @@ class AppContainer(val app: Application) {
     val offlineCache = OfflineTitleCache(dao)
     val localImporter = com.lume.app.data.local.LocalImporter(app)
     val libraryChapters = LibraryChapters(database, dao)
-    val titles = TitleRepository(sources, offlineCache, libraryChapters)
+    val titles = TitleRepository(sources, offlineCache, libraryChapters, dao)
     val downloadQueue = DownloadQueue(app, dao, downloads, sources, titles, prefs, network)
     val backup = BackupRepository(app, dao, sources, prefs, titles, libraryChapters)
     val trackers = TrackerRegistry(http, dao, prefs)
     val trackerSync = TrackerSync(app, dao, trackers, prefs)
-    val library = LibraryRepository(database, dao, prefs, titles, libraryChapters, trackerSync, appScope)
+    val titleSources = com.lume.app.data.title.TitleSourceRepository(database, dao, sources, titles, libraryChapters, downloads, prefs)
+    val library = LibraryRepository(database, dao, prefs, titles, libraryChapters, trackerSync, titleSources, appScope)
 
     val imageLoader: ImageLoader get() = app.imageLoader
+
+    /** Launcher shortcuts and the home-screen widget for "Continue". */
+    val continueReading = com.lume.app.data.continuity.ContinueReading(app, dao, prefs, { app.imageLoader }, appScope)
 
     /** Background start-up work: sources, download recovery, the library schedule. */
     fun start() {
         com.lume.app.domain.ChapterLabels.volume = { com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_volume, it) }
         com.lume.app.domain.ChapterLabels.chapter = { com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_number, it) }
         appScope.launch { prefs.translateChapterLabels.collect { com.lume.app.domain.ChapterLabels.enabled = it } }
+        continueReading.start()
         appScope.launch(Dispatchers.IO) {
             prefs.dnsOverHttps.collect { id -> http.dns.use(com.lume.app.data.network.DohProvider.byId(id)) }
         }

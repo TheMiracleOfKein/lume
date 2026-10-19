@@ -119,6 +119,7 @@ fun SettingsScreen(nav: NavHostController) {
     val shikiTokenState by prefs.shikimoriAccessToken.collectAsState()
     val trackerValues by prefs.trackerValues.collectAsState()
     val trackerAutoLink by prefs.trackerAutoLink.collectAsState()
+    val findOtherSources by prefs.findOtherSources.collectAsState()
     var passwordLogin by remember { mutableStateOf<Tracker?>(null) }
     passwordLogin?.let { tracker ->
         PasswordLoginDialog(
@@ -331,6 +332,12 @@ fun SettingsScreen(nav: NavHostController) {
                         )
                     }
                 }
+                SwitchRow(
+                    label = stringResource(R.string.settings_find_other_sources),
+                    hint = stringResource(R.string.settings_find_other_sources_hint),
+                    checked = findOtherSources,
+                    onCheckedChange = vm::setFindOtherSources,
+                )
             }
 
             // ---------------- Downloads ----------------

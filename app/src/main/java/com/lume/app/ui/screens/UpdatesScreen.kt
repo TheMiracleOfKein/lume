@@ -51,6 +51,7 @@ import androidx.navigation.NavHostController
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.db.UpdateRow
+import com.lume.app.domain.LinkedChapterId
 import com.lume.app.ui.components.CoverImage
 import com.lume.app.ui.components.LocalShellBottomPadding
 import com.lume.app.ui.components.LumeInsets
@@ -162,6 +163,10 @@ fun UpdatesScreen(nav: NavHostController) {
                             val key = "${row.sourceId}\u0000${row.titleId}\u0000${row.chapterId}"
                             UpdateRowItem(
                                 row = row,
+                                // With linked sources: which one had the chapter first.
+                                firstOn = LinkedChapterId.decode(row.chapterId)?.sourceId?.let { id ->
+                                    container.sources.sourceById(id)?.manifest?.name ?: id
+                                },
                                 downloaded = key in downloaded,
                                 queued = key in queued,
                                 onOpen = { nav.openReader(row.sourceId, row.titleId, row.chapterId) },
@@ -182,6 +187,7 @@ fun UpdatesScreen(nav: NavHostController) {
 @Composable
 private fun UpdateRowItem(
     row: UpdateRow,
+    firstOn: String?,
     downloaded: Boolean,
     queued: Boolean,
     onOpen: () -> Unit,
@@ -209,7 +215,13 @@ private fun UpdateRowItem(
                     .alpha(if (row.read) 0.45f else 1f),
             ) {
                 Text(row.titleName, color = AppColors.textPrimary, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(row.chapterName, color = AppColors.textSecondary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    if (firstOn == null) row.chapterName else stringResource(R.string.updates_first_on, row.chapterName, firstOn),
+                    color = AppColors.textSecondary,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
             Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                 when {

@@ -325,6 +325,10 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         viewModelScope.launch { prefs.setTrackerAutoLink(value) }
     }
 
+    fun setFindOtherSources(value: Boolean) {
+        viewModelScope.launch { prefs.setFindOtherSources(value) }
+    }
+
     fun createBackup() {
         viewModelScope.launch {
             runCatching { app.backup.createBackup() }

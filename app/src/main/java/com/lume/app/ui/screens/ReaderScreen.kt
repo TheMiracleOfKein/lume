@@ -229,6 +229,15 @@ fun ReaderScreen(
         ReaderTheme.System -> if (systemDark) Color.Black else Color(0xFFF2F2F2)
     }
 
+    // A chapter whose own source failed came from another one: say which, once.
+    val fallbackNotice = vm.fallbackNotice
+    LaunchedEffect(fallbackNotice) {
+        if (fallbackNotice != null) {
+            snackbar.showSnackbar(fallbackNotice, duration = SnackbarDuration.Short)
+            vm.clearFallbackNotice()
+        }
+    }
+
     fun bookmarkHere() {
         vm.addPageBookmark { id ->
             scope.launch {
