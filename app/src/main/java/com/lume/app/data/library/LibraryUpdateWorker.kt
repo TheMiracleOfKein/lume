@@ -106,10 +106,10 @@ class LibraryUpdateWorker(
         val text = if (results.size == 1) {
             line(results[0])
         } else {
-            applicationContext.getString(R.string.notif_library_updates_many, results.size)
+            applicationContext.resources.getQuantityString(R.plurals.notif_library_updates_many, results.size, results.size)
         }
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_lume)
+            .setSmallIcon(R.drawable.ic_stat_lume)
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(

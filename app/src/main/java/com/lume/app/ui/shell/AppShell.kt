@@ -1,6 +1,7 @@
 package com.lume.app.ui.shell
 
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.fadeIn
@@ -127,7 +128,8 @@ fun AppShell(nav: NavHostController) {
     val showBottomBar = route in MainTabRoutes
     val pendingRoute by AppLinks.pendingRoute.collectAsState()
     // Tablets and wide windows: a navigation rail on the left instead of the bottom bar.
-    val useRail = LocalConfiguration.current.screenWidthDp >= RAIL_MIN_WIDTH_DP
+    val windowWidth = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
+    val useRail = windowWidth.value >= RAIL_MIN_WIDTH_DP
 
     LaunchedEffect(pendingRoute) {
         val target = pendingRoute ?: return@LaunchedEffect
