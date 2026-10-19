@@ -685,4 +685,51 @@
     <string name="settings_kw_cache">место, картинки, обложки, память</string>
     <string name="settings_kw_cookies">выход, cloudflare, сайты, webview</string>
     <string name="settings_kw_about">версия, лицензии, открытый код, github</string>
+
+    <!-- Reading lists (v0.6.3) -->
+    <string name="action_share">Поделиться</string>
+    <string name="reading_list_title">Список для чтения</string>
+    <string name="reading_list_none">Список не открыт</string>
+    <string name="reading_list_empty">В этом списке нет тайтлов</string>
+    <string name="reading_list_category">Добавить в категорию</string>
+    <string name="reading_list_category_none">Без категории</string>
+    <string name="reading_list_in_library">Уже в библиотеке</string>
+    <string name="reading_list_no_source">В Lume нет этого источника</string>
+    <string name="reading_list_in_library_count">уже в библиотеке: %1$d</string>
+    <string name="reading_list_no_source_count">источника нет в Lume: %1$d</string>
+    <plurals name="reading_list_titles">
+        <item quantity="one">%d тайтл</item>
+        <item quantity="few">%d тайтла</item>
+        <item quantity="many">%d тайтлов</item>
+        <item quantity="other">%d тайтла</item>
+    </plurals>
+    <plurals name="reading_list_add">
+        <item quantity="one">Добавить %d тайтл в библиотеку</item>
+        <item quantity="few">Добавить %d тайтла в библиотеку</item>
+        <item quantity="many">Добавить %d тайтлов в библиотеку</item>
+        <item quantity="other">Добавить %d тайтла в библиотеку</item>
+    </plurals>
+    <plurals name="reading_list_added">
+        <item quantity="one">Добавлен %d тайтл</item>
+        <item quantity="few">Добавлено %d тайтла</item>
+        <item quantity="many">Добавлено %d тайтлов</item>
+        <item quantity="other">Добавлено %d тайтла</item>
+    </plurals>
+    <plurals name="reading_list_export_text">
+        <item quantity="one">%d тайтл. В списке названия, источники и ссылки, но не ваш прогресс.</item>
+        <item quantity="few">%d тайтла. В списке названия, источники и ссылки, но не ваш прогресс.</item>
+        <item quantity="many">%d тайтлов. В списке названия, источники и ссылки, но не ваш прогресс.</item>
+        <item quantity="other">%d тайтла. В списке названия, источники и ссылки, но не ваш прогресс.</item>
+    </plurals>
+    <string name="reading_list_export_title">Поделиться списком</string>
+    <string name="reading_list_name">Название списка</string>
+    <string name="reading_list_save_file">Сохранить в файл</string>
+    <string name="reading_list_saved">Список сохранён</string>
+    <string name="reading_list_save_failed">Не удалось сохранить список</string>
+    <string name="reading_list_share">Поделиться списком</string>
+    <string name="reading_list_not_a_list">Этот файл — не список для чтения Lume</string>
+    <string name="reading_list_open">Открыть список для чтения…</string>
+    <string name="reading_list_open_hint">Список, которым с вами поделились. Чтобы поделиться своим, нажмите кнопку «Поделиться» в библиотеке или сначала выберите тайтлы.</string>
+    <string name="settings_group_reading_lists">Списки для чтения</string>
+    <string name="settings_kw_reading_list">поделиться, экспорт, импорт, список, друзья</string>
 </resources>

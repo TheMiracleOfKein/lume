@@ -1,6 +1,7 @@
 package com.lume.app
 
 import android.content.Intent
+import com.lume.app.data.library.ReadingLists
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
@@ -54,6 +55,7 @@ class MainActivity : AppCompatActivity() {
         if (savedInstanceState == null) {
             ContinueReading.reportShortcutUsed(this, intent)
             AppLinks.handle(intent)
+            handleReadingList(intent)
             handleSiteLink(intent)
         }
         val container = (application as LumeApp).container
@@ -141,6 +143,7 @@ class MainActivity : AppCompatActivity() {
         handleOAuthIntent(intent)
         ContinueReading.reportShortcutUsed(this, intent)
         AppLinks.handle(intent)
+        handleReadingList(intent)
         handleSiteLink(intent)
     }
 
@@ -166,6 +169,28 @@ class MainActivity : AppCompatActivity() {
                 return@launch
             }
             AppLinks.open(Routes.title(target.first, target.second))
+        }
+    }
+
+    /** A reading list file shared to Lume (SEND) or opened from a file manager (VIEW). */
+    private fun handleReadingList(intent: Intent?) {
+        if (intent == null) return
+        val uri: Uri = when (intent.action) {
+            Intent.ACTION_SEND -> if (intent.type == ReadingLists.MIME) {
+                androidx.core.content.IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+            } else {
+                null
+            }
+            Intent.ACTION_VIEW -> intent.data?.takeIf { it.scheme == "content" }
+            else -> null
+        } ?: return
+        // Handled once, like the notification route.
+        intent.action = Intent.ACTION_MAIN
+        val container = (application as LumeApp).container
+        lifecycleScope.launch {
+            runCatching { container.readingLists.open(uri) }
+                .onSuccess { AppLinks.open(Routes.ReadingList) }
+                .onFailure { Toast.makeText(this@MainActivity, R.string.reading_list_not_a_list, Toast.LENGTH_LONG).show() }
         }
     }
 

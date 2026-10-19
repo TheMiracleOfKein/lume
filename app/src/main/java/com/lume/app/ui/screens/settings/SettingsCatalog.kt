@@ -98,6 +98,7 @@ object SettingsCatalog {
         SettingInfo("backup_save", SettingsPage.Backup, R.string.backup_save_to, R.string.backup_save_to_hint, R.string.settings_kw_backup),
         SettingInfo("backup_restore", SettingsPage.Backup, R.string.settings_restore_backup, R.string.backup_restore_hint, R.string.settings_kw_restore),
         SettingInfo("backup_restore_file", SettingsPage.Backup, R.string.backup_restore_file, R.string.backup_restore_file_hint, R.string.settings_kw_restore),
+        SettingInfo("reading_list_open", SettingsPage.Backup, R.string.reading_list_open, R.string.reading_list_open_hint, R.string.settings_kw_reading_list),
         SettingInfo("auto_backup", SettingsPage.Backup, R.string.backup_auto, R.string.backup_auto_hint, R.string.settings_kw_auto_backup),
 
         SettingInfo("incognito", SettingsPage.Privacy, R.string.settings_incognito, R.string.settings_incognito_hint, R.string.settings_kw_incognito),
