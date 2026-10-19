@@ -43,7 +43,7 @@ Patch releases from the v0.6 line, as needed.
 - **Startup numbers** from `StartupBenchmark` on a real phone, written down as the baseline for later releases (S).
 - **Source fixes** from the weekly live check ([live-sources.yml](../.github/workflows/live-sources.yml)).
 
-**v0.6.2: clearer settings** ✅ ([details](#v062-clearer-settings))
+**v0.6.2: clearer settings** ✅ released 2026-10-20 ([details](#v062-clearer-settings--released-2026-10-20))
 - ✅ Settings in sections, explanations, search in settings; `SettingsScreen.kt` split.
 
 **v0.6.3: reading lists**
@@ -376,7 +376,7 @@ Release notes: [docs/releases/v0.6.1.md](releases/v0.6.1.md).
 
 What was still open moved into [v0.6.x](#v06x-maintenance) and later versions.
 
-### v0.6.2: clearer settings
+### v0.6.2: clearer settings ✅ released 2026-10-20
 
 Release notes: [docs/releases/v0.6.2.md](releases/v0.6.2.md).
 
