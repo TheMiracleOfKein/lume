@@ -571,8 +571,6 @@
     <string name="sources_suggested">Найдено для вас</string>
     <string name="sources_find">Найти на других источниках</string>
     <string name="sources_finding">Поиск…</string>
-    <string name="sources_searching_one">поиск…</string>
-    <string name="sources_not_found">не найдено</string>
     <string name="sources_match_same">Тот же тайтл</string>
     <string name="sources_match_maybe">Возможно, тот же тайтл</string>
     <string name="sources_match_other">Похожее название</string>
@@ -596,4 +594,6 @@
     <string name="widget_continue_empty">Продолжать пока нечего</string>
     <string name="widget_continue_hidden">Откройте Lume, чтобы продолжить</string>
     <string name="shortcut_continue_long">Продолжить: %s</string>
+    <string name="sources_searching_list">Идёт поиск: %s</string>
+    <string name="sources_not_found_list">Не найдено: %s</string>
 </resources>

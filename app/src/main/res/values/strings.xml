@@ -576,8 +576,6 @@
     <string name="sources_suggested">Found for you</string>
     <string name="sources_find">Find on other sources</string>
     <string name="sources_finding">Searching…</string>
-    <string name="sources_searching_one">searching…</string>
-    <string name="sources_not_found">not found</string>
     <string name="sources_match_same">Same title</string>
     <string name="sources_match_maybe">Maybe the same title</string>
     <string name="sources_match_other">Similar name</string>
@@ -601,4 +599,6 @@
     <string name="widget_continue_empty">Nothing to continue yet</string>
     <string name="widget_continue_hidden">Open Lume to continue</string>
     <string name="shortcut_continue_long">Continue %s</string>
+    <string name="sources_searching_list">Searching: %s</string>
+    <string name="sources_not_found_list">Not found: %s</string>
 </resources>
