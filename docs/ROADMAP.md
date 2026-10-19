@@ -131,9 +131,11 @@ Release notes: [docs/releases/v0.6.0.md](releases/v0.6.0.md).
 
 **Left over from v0.6**
 - 🟡 **Device testing of v0.6.** Checked on an emulator with real sources: the 8→9 migration test, finding Solo Leveling on other sources from MangaDex (which has no chapters), linking (0 → 207 chapters with source badges), reading a linked chapter, unlink, make main (library entry, Continue and links moved), the Continue shortcut and the widget. That run suggested two spin-offs too; the rule was made stricter afterwards (unit-tested, not re-run on the emulator). Not checked: the fallback with a source that really fails, downloads of linked chapters, the update notification naming the first source, and real phones: [DEVICE_TESTING.md](DEVICE_TESTING.md).
-- ✅ **Library badge for titles with several sources.** Done after v0.6.0; ships in the next release.
+- ✅ **Library badge for titles with several sources.** Shipped in v0.6.1.
 
-## Since v0.6.0 (not released yet)
+## v0.6.1: small fixes and repository health (not released yet)
+
+Release notes: [docs/releases/v0.6.1.md](releases/v0.6.1.md).
 
 - ✅ **Library badge** with the number of sources of a title (can be turned off in the library display settings).
 - ✅ **Icons.** A proper adaptive launcher icon with a themed (monochrome) layer; notifications show the Lume mark instead of a white square.

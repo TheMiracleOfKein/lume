@@ -53,7 +53,7 @@ Use the signed release APK, installed over the previous release, so the database
 - [ ] "Find on other sources" doesn't suggest spin-offs as the same title.
 - [ ] Widget and launcher shortcuts open the reader at the right spot; with app lock on they show nothing.
 
-## Since v0.6.0 (next release)
+## v0.6.1
 
 - [ ] YaoiLib: a chapter opens and its pages load.
 - [ ] HentaiLib: without sign-in a chapter says to sign in; after signing in under Sources it opens.
