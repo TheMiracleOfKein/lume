@@ -9,7 +9,10 @@ import com.lume.app.data.library.LibraryChapters
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.data.source.SourceEngines
 import com.lume.app.data.source.SourceRegistry
+import com.lume.app.R
+import com.lume.app.data.locale.appString
 import com.lume.app.domain.CatalogSource
+import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.LinkedChapterId
 import com.lume.app.domain.TitleDetails
@@ -18,7 +21,9 @@ import com.lume.app.domain.chapterIdForNewMain
 import com.lume.app.domain.dedupeKey
 import com.lume.app.domain.matchTitle
 import com.lume.app.domain.normalName
-import com.lume.app.domain.titleNames
+import com.lume.app.domain.allNames
+import com.lume.app.domain.bestNameSimilarity
+import com.lume.app.domain.searchNames
 import com.lume.app.domain.worthComparing
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.coroutineScope
@@ -107,8 +112,8 @@ class TitleSourceRepository(
         val name = source.manifest.name
         return try {
             withTimeout(LOOKUP_TIMEOUT_MS) {
-                val names = titleNames(details.title, details.altTitle)
-                for (query in names.take(MAX_QUERIES)) {
+                val names = allNames(details)
+                for (query in searchNames(details).take(MAX_QUERIES)) {
                     val results = source.search(query, 1).items.take(RESULTS_PER_QUERY)
                     val close = results.filter { worthComparing(names, it) }.take(COMPARE_PER_SOURCE)
                     if (close.isEmpty()) continue
@@ -123,17 +128,22 @@ class TitleSourceRepository(
                             coverUrl = result.coverUrl ?: theirs.coverUrl,
                             match = matchTitle(details, theirs),
                         )
-                    }.sortedBy { it.match.ordinal }
+                    }.sortedWith(
+                        compareBy<SourceCandidate> { it.match.ordinal }
+                            .thenByDescending { bestNameSimilarity(names, listOf(it.title)) },
+                    )
                     return@withTimeout SourceLookup.Found(id, name, candidates)
                 }
                 SourceLookup.Found(id, name, emptyList())
             }
         } catch (e: CancellationException) {
             if (e is kotlinx.coroutines.TimeoutCancellationException) {
-                SourceLookup.Failed(id, name, com.lume.app.data.locale.appString(com.lume.app.R.string.search_source_timeout))
+                SourceLookup.Failed(id, name, appString(R.string.search_source_timeout))
             } else {
                 throw e
             }
+        } catch (e: CloudflareException) {
+            SourceLookup.Failed(id, name, appString(R.string.error_cloudflare_needed))
         } catch (e: Exception) {
             SourceLookup.Failed(id, name, e.message ?: e::class.simpleName.orEmpty())
         }
@@ -428,7 +438,7 @@ class TitleSourceRepository(
     private companion object {
         const val MAX_PARALLEL = 4
         const val LOOKUP_TIMEOUT_MS = 25_000L
-        const val MAX_QUERIES = 3
+        const val MAX_QUERIES = 4
         const val RESULTS_PER_QUERY = 8
         const val COMPARE_PER_SOURCE = 3
     }

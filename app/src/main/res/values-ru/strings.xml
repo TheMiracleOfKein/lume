@@ -591,4 +591,9 @@
     <string name="updates_first_on">%1$s · раньше всех на %2$s</string>
     <string name="settings_find_other_sources">Искать тайтлы на других источниках</string>
     <string name="settings_find_other_sources_hint">При добавлении тайтла Lume ищет его на других ваших источниках и предлагает их привязать</string>
+    <string name="widget_continue_label">Продолжить чтение</string>
+    <string name="widget_continue_description">Последние тайтлы, которые вы читали; нажатие открывает место, где вы остановились</string>
+    <string name="widget_continue_empty">Продолжать пока нечего</string>
+    <string name="widget_continue_hidden">Откройте Lume, чтобы продолжить</string>
+    <string name="shortcut_continue_long">Продолжить: %s</string>
 </resources>

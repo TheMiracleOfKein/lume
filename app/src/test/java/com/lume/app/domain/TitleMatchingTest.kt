@@ -35,16 +35,29 @@ class TitleMatchingTest {
     }
 
     @Test
-    fun closeNamesNeedAnAuthor() {
+    fun articlesDoNotMatter() {
         val wanted = t("The Beginning After the End", authors = listOf("TurtleMe"))
         assertEquals(TitleMatch.Same, matchTitle(wanted, t("Beginning After the End", authors = listOf("turtleme"))))
-        assertEquals(TitleMatch.Maybe, matchTitle(wanted, t("Beginning After the End")))
         assertEquals(TitleMatch.Different, matchTitle(wanted, t("Omniscient Reader")))
+    }
+
+    @Test
+    fun spinOffsAreNeverTheSameTitle() {
+        val wanted = t("Solo Leveling", authors = listOf("Chugong"))
+        assertEquals(TitleMatch.Maybe, matchTitle(wanted, t("Solo Leveling: Arise", authors = listOf("Chugong"))))
+        assertEquals(TitleMatch.Maybe, matchTitle(wanted, t("Solo Leveling: Ragnarok", authors = listOf("Chugong"))))
+        assertEquals(
+            TitleMatch.Maybe,
+            matchTitle(t("Поднятие уровня в одиночку"), t("Поднятие уровня в одиночку: Истоки Охотника")),
+        )
     }
 
     @Test
     fun authorWordOrderIsIgnored() {
         assertEquals(true, authorsOverlap(listOf("Oh Seong-dae"), listOf("Seong-Dae Oh")))
+        assertEquals(true, authorsOverlap(listOf("Chu-Gong"), listOf("Chugong")))
+        assertEquals(true, authorsOverlap(listOf("DUBU (Redice Studio)"), listOf("Dubu")))
+        assertEquals(false, authorsOverlap(listOf("Naoki Urasawa"), listOf("Someone Else")))
         assertEquals(false, authorsOverlap(listOf("A B"), listOf("C D")))
         assertNull(authorsOverlap(emptyList(), listOf("C D")))
     }
@@ -54,5 +67,20 @@ class TitleMatchingTest {
         val names = listOf("Solo Leveling")
         assertTrue(worthComparing(names, TitleSummary(id = "1", title = "Solo Leveling: Ragnarok")))
         assertFalse(worthComparing(names, TitleSummary(id = "2", title = "Tower of God")))
+    }
+
+    @Test
+    fun otherNamesMatchAndAreSearchedFirst() {
+        val dex = TitleDetails(
+            id = "1",
+            title = "Na Honjaman Level-Up",
+            altTitle = "나 혼자만 레벨업",
+            otherNames = listOf("Solo Leveling", "Поднятие уровня в одиночку", "solo leveling!"),
+        )
+        assertEquals(
+            listOf("Na Honjaman Level-Up", "Solo Leveling", "Поднятие уровня в одиночку", "나 혼자만 레벨업"),
+            searchNames(dex),
+        )
+        assertEquals(TitleMatch.Same, matchTitle(dex, t("Поднятие уровня в одиночку", "Solo Leveling")))
     }
 }

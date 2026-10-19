@@ -596,4 +596,9 @@
     <string name="updates_first_on">%1$s · first on %2$s</string>
     <string name="settings_find_other_sources">Find titles on other sources</string>
     <string name="settings_find_other_sources_hint">When you add a title, Lume looks for it on your other sources and suggests linking them</string>
+    <string name="widget_continue_label">Continue reading</string>
+    <string name="widget_continue_description">The last titles you read; a tap opens the spot where you stopped</string>
+    <string name="widget_continue_empty">Nothing to continue yet</string>
+    <string name="widget_continue_hidden">Open Lume to continue</string>
+    <string name="shortcut_continue_long">Continue %s</string>
 </resources>

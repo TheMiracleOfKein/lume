@@ -24,6 +24,8 @@ data class TitleDetails(
     val authors: List<String> = emptyList(),
     val genres: List<String> = emptyList(),
     val artists: List<String> = emptyList(),
+    /** Every other name the source knows (translations, romanizations); for matching, not shown. */
+    val otherNames: List<String> = emptyList(),
 )
 
 @Serializable
