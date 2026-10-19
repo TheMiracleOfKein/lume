@@ -44,8 +44,18 @@ class LibraryRepository(
 ) {
     // ---- Membership -------------------------------------------------------------------------
 
-    /** Adds a title, into the default category if one is set. */
-    suspend fun add(sourceId: String, titleId: String, titleName: String, coverUrl: String?, typeLabel: String?) {
+    /**
+     * Adds a title, into the default category if one is set. [discover] runs tracker linking and
+     * "Also on …"; a long reading list turns it off so dozens of searches don't start at once.
+     */
+    suspend fun add(
+        sourceId: String,
+        titleId: String,
+        titleName: String,
+        coverUrl: String?,
+        typeLabel: String?,
+        discover: Boolean = true,
+    ) {
         val defaultCategory = prefs.defaultCategoryId.value
             ?.takeIf { id -> dao.allCategories().any { it.id == id } }
         dao.upsertBookmark(
@@ -61,6 +71,7 @@ class LibraryRepository(
         // Know the chapters right away: unread counts work and the next check only reports new ones.
         val known = titles.cached(sourceId, titleId)
         known?.chapters?.let { libraryChapters.sync(sourceId, titleId, it) }
+        if (!discover) return
         // Signed-in trackers link the title when they find it under the same name.
         val names = listOfNotNull(titleName, known?.details?.altTitle)
         appScope.launch(Dispatchers.IO) { runCatching { trackerSync.autoLink(sourceId, titleId, names) } }

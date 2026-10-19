@@ -65,6 +65,7 @@ class AppContainer(val app: Application) {
     val trackerSync = TrackerSync(app, dao, trackers, prefs)
     val titleSources = com.lume.app.data.title.TitleSourceRepository(database, dao, sources, titles, libraryChapters, downloads, prefs)
     val library = LibraryRepository(database, dao, prefs, titles, libraryChapters, trackerSync, titleSources, appScope)
+    val readingLists = com.lume.app.data.library.ReadingLists(app, dao, sources, library)
 
     val imageLoader: ImageLoader get() = app.imageLoader
 

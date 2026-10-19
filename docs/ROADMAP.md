@@ -46,10 +46,8 @@ Patch releases from the v0.6 line, as needed.
 **v0.6.2: clearer settings** ✅ released 2026-10-20 ([details](#v062-clearer-settings--released-2026-10-20))
 - ✅ Settings in sections, explanations, search in settings; `SettingsScreen.kt` split.
 
-**v0.6.3: reading lists**
-- **Export a reading list** (the whole library, a category or a selection) as a file and share it from the library (M).
-- **Open a reading list** shared by someone else: Lume lists the titles, marks the ones already in the library and adds the rest, to a category if you want (M).
-- **Split `LibraryScreen.kt`** (about 850 lines) while the library gets the new actions (S).
+**v0.6.3: reading lists** ✅ ([details](#v063-reading-lists))
+- ✅ Share or save a reading list from the library; open one shared to Lume; `LibraryScreen.kt` split.
 
 **v0.6.4: similar titles**
 - **Recommendations on the title screen** ("Similar titles") from AniList (no account needed) or MyAnimeList; a tap searches your sources for that title (M).
@@ -190,7 +188,7 @@ Learned models stay optional because of their size, their speed on older phones 
 | Room 6→7 migration can't be tested (no v6 schema was exported) | Accepted; every later migration is tested |
 | The Room migration test is skipped on Windows JVM runs | CI (Linux) runs it; v1.0 adds emulator tests on CI |
 | Coil 2 is in maintenance | v0.8: Coil 3 |
-| Large files: `LibraryScreen.kt`, `Database.kt` (750–850 lines); 🟡 `SettingsScreen.kt` split in v0.6.2 | v0.6.3 and v0.6.4 |
+| Large files: `Database.kt` (about 770 lines); 🟡 `SettingsScreen.kt` and `LibraryScreen.kt` split in v0.6.2 and v0.6.3 | v0.6.4 |
 | Releases are built on one computer | v1.0: optional signed release workflow |
 | Engine parsers are only tested against the live sites | v0.9: offline tests with saved pages |
 
@@ -385,3 +383,13 @@ Release notes: [docs/releases/v0.6.2.md](releases/v0.6.2.md).
 - ✅ **Search in settings.** One field finds a setting by its name, its section, its explanation or related words ("oled", "mobile data", "бэкап"), in the app language; a tap opens its section, scrolls to the setting and highlights it.
 - ✅ **Sign-ins in their own store.** Tracker tokens and the automatic backup folder moved out of the settings file into `lume_private`, once, on the first start. Android's cloud backup keeps the settings again; sign-ins still stay out.
 - ✅ **Split `SettingsScreen.kt`** (about 770 lines) into `ui/screens/settings`: one file per larger section, the short ones together, plus the catalogue the search reads.
+
+### v0.6.3: reading lists
+
+Release notes: [docs/releases/v0.6.3.md](releases/v0.6.3.md).
+
+- ✅ **Share a reading list.** The share button in the Library (or in the selection bar) writes the titles on screen, the open category or the selected titles to a small JSON file: names, sources, covers and web links, no progress. Share it through any app or save it as a file.
+- ✅ **Open a reading list.** A list shared to Lume, opened from a file manager or picked under **Settings → Backup and restore → Open a reading list** shows its titles: the ones already in the library are marked, titles from sources Lume doesn't have are found through their web link where another source has it, and the rest can be added, to a category if you want.
+- ✅ **Fix:** a link or file shared to Lume while Lume was already open sometimes landed in the window in the background; now the window on screen opens it.
+- ✅ **Split `LibraryScreen.kt`** (about 850 lines) into the screen, the grid and list items, and the options sheet with its dialogs.
+

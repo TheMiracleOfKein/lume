@@ -22,7 +22,9 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.lume.app.R
+import com.lume.app.ui.nav.Routes
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.ui.components.ChoiceChip
 import com.lume.app.ui.screens.SettingsViewModel
@@ -30,7 +32,7 @@ import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 
 @Composable
-fun BackupSettings(vm: SettingsViewModel) {
+fun BackupSettings(nav: NavHostController, vm: SettingsViewModel) {
     val prefs = vm.prefs
     val autoBackupDays by prefs.autoBackupDays.collectAsState()
     val autoBackupKeep by prefs.autoBackupKeep.collectAsState()
@@ -40,6 +42,9 @@ fun BackupSettings(vm: SettingsViewModel) {
     }
     val openBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) vm.restoreFrom(uri)
+    }
+    val openList = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) vm.openReadingList(uri) { nav.navigate(Routes.ReadingList) }
     }
     val pickBackupFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) vm.setAutoBackupFolder(uri)
@@ -78,6 +83,14 @@ fun BackupSettings(vm: SettingsViewModel) {
                 color = AppColors.accent,
                 trackColor = AppColors.card,
             )
+        }
+    }
+    SettingsSectionTitle(R.string.settings_group_reading_lists)
+    SettingsGroup {
+        SettingItem("reading_list_open") {
+            SettingsLink(stringResource(R.string.reading_list_open), stringResource(R.string.reading_list_open_hint)) {
+                openList.launch(arrayOf("application/json", "application/octet-stream", "text/plain"))
+            }
         }
     }
     SettingsSectionTitle(R.string.backup_auto)

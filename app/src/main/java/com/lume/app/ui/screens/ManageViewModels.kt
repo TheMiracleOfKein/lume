@@ -352,6 +352,15 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         }
     }
 
+    /** Opens a reading list file; [onOpened] shows it, a file that isn't one says so below. */
+    fun openReadingList(uri: android.net.Uri, onOpened: () -> Unit) {
+        viewModelScope.launch {
+            runCatching { app.readingLists.open(uri) }
+                .onSuccess { onOpened() }
+                .onFailure { statusMessage = string(R.string.reading_list_not_a_list) }
+        }
+    }
+
     /** Restores a picked file: a Lume backup or a Mihon / Tachiyomi one. */
     fun restoreFrom(uri: android.net.Uri) {
         if (importProgress != null) return

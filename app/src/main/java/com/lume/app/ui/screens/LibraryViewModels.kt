@@ -204,6 +204,29 @@ class LibraryViewModel(private val app: AppContainer) : ViewModel() {
     }
 
     fun removeFromLibrary() = bulk { app.library.remove(it.sourceId, it.titleId) }
+
+    // ---- Reading lists ------------------------------------------------------------------------
+
+    /** What a reading list made now holds: the selected titles, else everything on screen. */
+    fun exportItems(): List<LibraryItem> = if (selecting) selectedItems() else visible.value
+
+    /** The open category's name, or [fallback] on "All". */
+    fun exportName(fallback: String): String = categories.value.firstOrNull { it.id == categoryId }?.name ?: fallback
+
+    fun listFileName(name: String, items: List<LibraryItem>): String =
+        app.readingLists.fileName(app.readingLists.build(name, items))
+
+    fun shareList(name: String, items: List<LibraryItem>, onFile: (java.io.File) -> Unit) {
+        viewModelScope.launch {
+            runCatching { app.readingLists.writeShareFile(app.readingLists.build(name, items)) }.onSuccess(onFile)
+        }
+    }
+
+    fun saveList(uri: android.net.Uri, name: String, items: List<LibraryItem>, onDone: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            onDone(runCatching { app.readingLists.writeTo(uri, app.readingLists.build(name, items)) }.isSuccess)
+        }
+    }
 }
 
 class CategoriesViewModel(private val app: AppContainer) : ViewModel() {

@@ -152,7 +152,7 @@ fun SettingsPageScreen(nav: NavHostController, pageKey: String, focus: String?) 
                 SettingsPage.Downloads -> DownloadSettings(nav, vm)
                 SettingsPage.Sources -> SourcesSettings(nav, vm)
                 SettingsPage.Trackers -> TrackerSettings(vm)
-                SettingsPage.Backup -> BackupSettings(vm)
+                SettingsPage.Backup -> BackupSettings(nav, vm)
                 SettingsPage.Privacy -> PrivacySettings(vm)
                 SettingsPage.Network -> NetworkSettings(vm)
                 SettingsPage.About -> Unit
