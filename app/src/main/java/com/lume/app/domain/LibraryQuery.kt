@@ -22,6 +22,7 @@ data class LibrarySettings(
     val filters: Map<LibraryFilter, TriState> = emptyMap(),
     val unreadBadge: Boolean = true,
     val downloadedBadge: Boolean = true,
+    val sourcesBadge: Boolean = true,
 ) {
     fun filter(key: LibraryFilter): TriState = filters[key] ?: TriState.Off
 
@@ -47,6 +48,8 @@ data class LibraryItem(
     val completed: Boolean = false,
     /** Chapters found since the title was last opened. */
     val hasNew: Boolean = false,
+    /** The main source plus linked sources. */
+    val sources: Int = 1,
 ) {
     val key: String get() = "$sourceId\u0000$titleId"
     val started: Boolean get() = lastReadAt != null || (totalChapters > 0 && unread < totalChapters)

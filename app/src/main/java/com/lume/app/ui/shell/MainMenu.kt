@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.rememberUpdatedState
@@ -120,20 +121,21 @@ fun MainMenu(
             .collect { if (it == DrawerValue.Closed && currentVisible) currentOnClose() }
     }
 
-    val offset = state.offset
-    val openFraction = when {
-        panelWidth <= 0f || offset.isNaN() -> 0f
-        else -> (1f - offset / panelWidth).coerceIn(0f, 1f)
+    // The drag offset is read only in layout and draw lambdas, so dragging doesn't recompose.
+    fun openFraction(): Float {
+        val offset = state.offset
+        return if (panelWidth <= 0f || offset.isNaN()) 0f else (1f - offset / panelWidth).coerceIn(0f, 1f)
     }
+    val fullyClosed by remember { derivedStateOf { openFraction() <= 0f } }
     // Fully closed: nothing composed, nothing to catch touches.
-    if (!visible && openFraction <= 0f) return
+    if (!visible && fullyClosed) return
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Tap the dimmed area (left of the panel) to close.
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer { alpha = openFraction }
+                .graphicsLayer { alpha = openFraction() }
                 .background(Color.Black.copy(alpha = 0.54f))
                 .clickable(enabled = visible, interactionSource = null, indication = null, onClick = onClose),
         )
@@ -157,8 +159,8 @@ fun MainMenu(
                         )
                     }
                 }
-                .offset { IntOffset((if (offset.isNaN()) panelWidth else offset).roundToInt(), 0) }
-                .graphicsLayer { alpha = if (offset.isNaN()) 0f else 1f }
+                .offset { IntOffset(state.offset.let { if (it.isNaN()) panelWidth else it }.roundToInt(), 0) }
+                .graphicsLayer { alpha = if (state.offset.isNaN()) 0f else 1f }
                 .anchoredDraggable(
                     state = state,
                     reverseDirection = false,

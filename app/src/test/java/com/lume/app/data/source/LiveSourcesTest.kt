@@ -6,6 +6,8 @@ import com.lume.app.data.network.ImageReferers
 import com.lume.app.data.network.SourceHttpException
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.CloudflareException
+import com.lume.app.domain.PackIndex
+import com.lume.app.domain.SourceLoginRequiredException
 import com.lume.app.domain.SourceManifest
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -17,7 +19,8 @@ import java.io.File
 import org.junit.Assert.fail
 
 /**
- * Exercises every bundled source against the real site, the way the app does:
+ * Exercises every bundled source and every pack in `docs/packs/index.json` against the real
+ * site, the way the app does:
  * popular → page 2 → latest → search → details → chapters → pages → first image.
  *
  * Opt-in (hits the network):  ./gradlew :app:testDebugUnitTest -Plume.live
@@ -33,7 +36,14 @@ class LiveSourcesTest {
     fun bundledSourcesWork() {
         assumeTrue("Live source checks disabled (pass -Plume.live)", System.getProperty("lume.live") == "true")
         val only = System.getProperty("lume.live.sources")?.split(',')?.map { it.trim() }?.toSet()
-        val manifests = File("src/main/assets/sources").listFiles { f -> f.extension == "json" }.orEmpty()
+        val bundled = File("src/main/assets/sources").listFiles { f -> f.extension == "json" }.orEmpty().toList()
+        // The importable packs from the catalogue (docs/packs/index.json) are checked too.
+        val packDir = File("../docs/packs")
+        val packs = runCatching {
+            json.decodeFromString(PackIndex.serializer(), File(packDir, "index.json").readText()).packs
+                .map { File(packDir, it.url) }
+        }.getOrDefault(emptyList())
+        val manifests = (bundled + packs)
             .map { json.decodeFromString(SourceManifest.serializer(), it.readText()) }
             .filter { only == null || it.id in only }
             .sortedBy { it.id }
@@ -48,6 +58,8 @@ class LiveSourcesTest {
         }
         println("\n=== Live source report ===")
         reports.forEach { println(it) }
+        // For CI summaries (live-sources.yml).
+        runCatching { File("build/live-sources-report.txt").writeText(reports.joinToString("\n", postfix = "\n")) }
         val failed = reports.filter { it.status == Status.FAIL }
         if (failed.isNotEmpty()) fail("Sources failing: ${failed.joinToString { it.id }}")
     }
@@ -116,13 +128,15 @@ class LiveSourcesTest {
                     return@runBlocking Report(id, Status.SKIP, notes + "image CDN geo-blocked (${hostOf(imageUrl)})")
                 }
                 if (!response.isSuccessful || !(type.startsWith("image/") || type.contains("octet-stream"))) {
-                    return@runBlocking Report(id, Status.FAIL, notes + "image HTTP ${response.code} $type")
+                    return@runBlocking Report(id, Status.FAIL, notes + "image HTTP ${response.code} $type from ${hostOf(imageUrl)}")
                 }
                 notes += "image ok ($type)"
             }
             Report(id, if (warn) Status.WARN else Status.OK, notes)
         } catch (e: CloudflareException) {
             Report(id, Status.SKIP, notes + "anti-bot challenge at ${e.uri.host} (needs WebView)")
+        } catch (e: SourceLoginRequiredException) {
+            Report(id, Status.SKIP, notes + "pages need a signed-in account")
         } catch (e: SourceHttpException) {
             val status = if (e.geoBlocked || e.code == 403) Status.SKIP else Status.FAIL
             Report(id, status, notes + "HTTP ${e.code} ${java.net.URI(e.url).host}${if (e.geoBlocked) " (geo-blocked)" else ""}")

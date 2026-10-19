@@ -1,5 +1,6 @@
 package com.lume.app.ui.theme
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
@@ -101,7 +102,10 @@ object Motion {
 /**
  * Fade in / out only, no placement animation: for rows that expand or change height, where a
  * sliding neighbour would look like the list is wobbling.
+ *
+ * Not `Modifier.fadingItem()`: `animateItem` needs the [LazyItemScope] receiver.
  */
+@SuppressLint("ModifierFactoryExtensionFunction")
 fun LazyItemScope.fadingItem(): Modifier = Modifier.animateItem(
     fadeInSpec = Motion.itemFade(),
     placementSpec = null,
@@ -109,6 +113,7 @@ fun LazyItemScope.fadingItem(): Modifier = Modifier.animateItem(
 )
 
 /** List item insert / move / remove animation with the shared [Motion] specs. */
+@SuppressLint("ModifierFactoryExtensionFunction")
 fun LazyItemScope.animatedItem(): Modifier = Modifier.animateItem(
     fadeInSpec = Motion.itemFade(),
     placementSpec = Motion.itemPlacement(),

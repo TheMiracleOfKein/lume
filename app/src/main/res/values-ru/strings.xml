@@ -69,7 +69,6 @@
     <string name="library_empty">Нет закладок</string>
     <string name="library_offline_only">Офлайн · только скачанные из библиотеки</string>
     <string name="category_all">Все</string>
-    <string name="category_add">+ Категория</string>
     <string name="badge_new">новое</string>
     <string name="dialog_new_category">Новая категория</string>
     <string name="dialog_categories">Категории</string>
@@ -103,7 +102,6 @@
     <string name="chapters_selected">Выбрано: %d</string>
     <string name="chapters_title">Главы</string>
     <string name="cd_select_all">Выбрать всё</string>
-    <string name="cd_selection">Выбор</string>
     <string name="cd_sort">Сортировка</string>
     <string name="cd_current">Текущая</string>
     <string name="cd_read">Прочитано</string>
@@ -156,8 +154,6 @@
     <string name="sources_pack_added">Пак «%1$s» добавлен (%2$s)</string>
     <string name="sources_importing">Импорт…</string>
     <string name="sources_import_by_url">Импортировать пак по ссылке</string>
-    <string name="sources_section_bundled">В приложении</string>
-    <string name="sources_section_imported">Импортированные паки</string>
     <string name="sources_lang_ru">Русский</string>
     <string name="sources_lang_en">Английский</string>
     <string name="sources_lang_multi">Несколько языков</string>
@@ -192,7 +188,12 @@
 
     <string name="notif_library_updates_channel">Обновления библиотеки</string>
     <string name="notif_library_updates_title">Обновления библиотеки</string>
-    <string name="notif_library_updates_many">%d тайтлов с новыми главами</string>
+    <plurals name="notif_library_updates_many">
+        <item quantity="one">%d тайтл с новыми главами</item>
+        <item quantity="few">%d тайтла с новыми главами</item>
+        <item quantity="many">%d тайтлов с новыми главами</item>
+        <item quantity="other">%d тайтла с новыми главами</item>
+    </plurals>
     <string name="notif_library_updates_one">%1$s: +%2$d</string>
 
     <string name="sync_no_links">Нет привязанных трекеров</string>
@@ -239,6 +240,7 @@
     <string name="error_http_not_found">На %1$s не найдено (HTTP 404). Возможно, тайтл или глава удалены.</string>
     <string name="error_http_rate_limited">%1$s ограничивает частоту запросов. Попробуйте через минуту.</string>
     <string name="error_http_server">Ошибка сервера %1$s (HTTP %2$d). Попробуйте позже.</string>
+    <string name="error_source_login_required">%1$s показывает главы только после входа. Войдите в разделе «Источники» → %1$s.</string>
     <string name="error_http_generic">HTTP %1$d от %2$s</string>
     <string name="error_chapter_locked">Глава закрыта на %1$s (платная или ранний доступ).</string>
     <string name="cd_open_in_browser">Открыть в браузере</string>
@@ -315,6 +317,8 @@
     <string name="library_display_list">Список</string>
     <string name="library_badge_unread">Число непрочитанных</string>
     <string name="library_badge_downloaded">Число скачанных</string>
+    <string name="library_badge_sources">Число источников</string>
+    <string name="library_sources_badge">Источников: %1$d</string>
     <string name="action_mark_read">Отметить прочитанным</string>
     <string name="action_mark_unread">Отметить непрочитанным</string>
     <string name="action_download_unread">Скачать непрочитанное</string>
@@ -345,7 +349,12 @@
 
     <!-- Chapters (v0.4) -->
     <string name="cd_download_menu">Скачать</string>
-    <string name="chapters_download_next">Следующие %d непрочитанных</string>
+    <plurals name="chapters_download_next">
+        <item quantity="one">Следующая %d непрочитанная</item>
+        <item quantity="few">Следующие %d непрочитанные</item>
+        <item quantity="many">Следующие %d непрочитанных</item>
+        <item quantity="other">Следующие %d непрочитанных</item>
+    </plurals>
     <string name="chapters_delete_downloads">Удалить скачанные главы</string>
     <string name="cd_chapter_filters">Фильтры и сортировка</string>
     <string name="chapters_none_match">Нет глав, подходящих под фильтры</string>
@@ -467,7 +476,7 @@
     <string name="local_open_library">Открыть локальные тайтлы</string>
     <string name="local_clean_temp">Очистить временные файлы</string>
     <string name="local_folder_hint">Импортированные тайтлы копируются в %1$s. В папке могут быть подпапки-серии, папки глав или файлы .cbz / .zip; также читаются cover.jpg, ComicInfo.xml и details.json.</string>
-    <string name="local_import_done">Импортировано тайтлов: %1$d, глав: %2$d</string>
+    <string name="local_import_done">Импорт готов. Тайтлов: %1$d · глав: %2$d</string>
     <string name="local_import_empty">В этой папке не найдено глав</string>
     <string name="local_import_failed">Импорт не удался: %1$s</string>
     <string name="local_clean_done">Освобождено %1$s</string>
@@ -478,9 +487,9 @@
     <string name="backup_saved_to">Копия сохранена: %1$s</string>
     <string name="backup_restore_failed">Не удалось восстановить: %1$s</string>
     <string name="backup_mihon_progress">Загрузка списков глав: %1$d из %2$d тайтлов</string>
-    <string name="backup_mihon_done">Импорт из Mihon: добавлено %1$d, уже в библиотеке %2$d, отмечено прочитанными глав: %3$d</string>
-    <string name="backup_mihon_unmatched">Пропущено тайтлов: %1$d (источника нет в Lume): %2$s</string>
-    <string name="backup_mihon_read_failed">Для %1$d тайтлов не перенесены отметки: не загрузились списки глав.</string>
+    <string name="backup_mihon_done">Импорт из Mihon. Добавлено: %1$d · уже в библиотеке: %2$d · глав отмечено прочитанными: %3$d</string>
+    <string name="backup_mihon_unmatched">Пропущено, их источника нет в Lume: %1$d (%2$s)</string>
+    <string name="backup_mihon_read_failed">Тайтлов без отметок о прочтении, не загрузились списки глав: %1$d</string>
     <string name="backup_auto">Автоматические копии</string>
     <string name="backup_auto_off">Выкл.</string>
     <plurals name="backup_auto_days">

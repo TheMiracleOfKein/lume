@@ -22,6 +22,7 @@ import androidx.core.content.ContextCompat
 import com.lume.app.ui.components.LockScreen
 import com.lume.app.ui.theme.ThemeMode
 import com.lume.app.ui.theme.isDark
+import com.lume.app.data.continuity.ContinueReading
 import com.lume.app.domain.SourceLinks
 import com.lume.app.ui.nav.AppLinks
 import com.lume.app.ui.nav.Routes
@@ -51,6 +52,7 @@ class MainActivity : AppCompatActivity() {
         handleOAuthIntent(intent)
         // After rotation the same intent comes back; only a fresh launch opens its route.
         if (savedInstanceState == null) {
+            ContinueReading.reportShortcutUsed(this, intent)
             AppLinks.handle(intent)
             handleSiteLink(intent)
         }
@@ -137,6 +139,7 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleOAuthIntent(intent)
+        ContinueReading.reportShortcutUsed(this, intent)
         AppLinks.handle(intent)
         handleSiteLink(intent)
     }

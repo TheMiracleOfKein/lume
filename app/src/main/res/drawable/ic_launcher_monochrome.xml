@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed-icon layer (Android 13+): the Lume mark at the same size as the foreground. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M357,255 H460 V538 H647 V640 H357 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M600,280 Q612,353 685,365 Q612,377 600,450 Q588,377 515,365 Q588,353 600,280 Z" />
+    <path
+        android:pathData="M318,705 H578 L640,768 V705 H706 V432 L668,462"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineJoin="miter"
+        android:strokeWidth="24" />
+</vector>

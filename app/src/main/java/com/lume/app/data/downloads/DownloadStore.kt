@@ -92,7 +92,11 @@ class DownloadStore(
             context.getExternalFilesDirs(null).filterNotNull().map { File(it, "downloads") })
             .distinctBy { it.absolutePath }
 
-    /** Internal storage plus every mounted external volume of the app (SD cards included). */
+    /**
+     * Internal storage plus every mounted external volume of the app (SD cards included).
+     * The free space is only shown next to each choice, so `usableSpace` is enough.
+     */
+    @android.annotation.SuppressLint("UsableSpace")
     fun storageChoices(): List<StorageChoice> {
         val internal = StorageChoice(path = "", removable = false, freeBytes = context.filesDir.usableSpace)
         val external = context.getExternalFilesDirs(null).filterNotNull().filter { it.isDirectory || it.mkdirs() }.map { dir ->

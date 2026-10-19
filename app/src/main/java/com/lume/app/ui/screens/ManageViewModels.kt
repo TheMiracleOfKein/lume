@@ -3,6 +3,7 @@ package com.lume.app.ui.screens
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lume.app.AppContainer
@@ -398,7 +399,7 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
             val resolver = app.app.contentResolver
             val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             prefs.autoBackupFolder.value?.let { old ->
-                runCatching { resolver.releasePersistableUriPermission(android.net.Uri.parse(old), flags) }
+                runCatching { resolver.releasePersistableUriPermission(old.toUri(), flags) }
             }
             if (uri != null) runCatching { resolver.takePersistableUriPermission(uri, flags) }
             prefs.setAutoBackupFolder(uri?.toString())

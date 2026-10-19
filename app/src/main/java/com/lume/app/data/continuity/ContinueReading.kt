@@ -96,14 +96,15 @@ class ContinueReading(
         }
         val max = ShortcutManagerCompat.getMaxShortcutCountPerActivity(app).coerceAtLeast(1)
         val shortcuts = entries.take(minOf(max, MAX_SHORTCUTS)).mapIndexed { index, e ->
+            val id = "continue:${e.sourceId}:${e.titleId}".take(MAX_ID_LENGTH)
             val icon = cover(e.coverUrl, SHORTCUT_ICON_PX, SHORTCUT_ICON_PX)?.let(IconCompat::createWithBitmap)
-                ?: IconCompat.createWithResource(app, R.drawable.ic_lume)
-            ShortcutInfoCompat.Builder(app, "continue:${e.sourceId}:${e.titleId}".take(MAX_ID_LENGTH))
+                ?: IconCompat.createWithResource(app, R.mipmap.ic_launcher)
+            ShortcutInfoCompat.Builder(app, id)
                 .setShortLabel(e.titleName.take(SHORT_LABEL_LENGTH).ifBlank { app.getString(R.string.app_name) })
                 .setLongLabel(app.getString(R.string.shortcut_continue_long, e.titleName).take(LONG_LABEL_LENGTH))
                 .setIcon(icon)
                 .setRank(index)
-                .setIntent(intentFor(e.route))
+                .setIntent(intentFor(e.route).putExtra(EXTRA_SHORTCUT_ID, id))
                 .build()
         }
         ShortcutManagerCompat.setDynamicShortcuts(app, shortcuts)
@@ -131,7 +132,15 @@ class ContinueReading(
     }
 
     companion object {
+        /** Tells the launcher a "Continue" shortcut was used, so it ranks and predicts it better. */
+        fun reportShortcutUsed(context: android.content.Context, intent: Intent?) {
+            val id = intent?.getStringExtra(EXTRA_SHORTCUT_ID) ?: return
+            intent.removeExtra(EXTRA_SHORTCUT_ID)
+            runCatching { ShortcutManagerCompat.reportShortcutUsed(context, id) }
+        }
+
         const val MAX_ENTRIES = 3
+        private const val EXTRA_SHORTCUT_ID = "com.lume.app.SHORTCUT_ID"
         private const val MAX_SHORTCUTS = 3
         private const val UPDATE_DEBOUNCE_MS = 1_500L
         private const val SHORTCUT_ICON_PX = 192

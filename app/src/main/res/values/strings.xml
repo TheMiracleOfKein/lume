@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Lume</string>
 
     <!-- Language -->
@@ -74,7 +74,6 @@
     <string name="library_empty">No bookmarks</string>
     <string name="library_offline_only">Offline · downloaded library only</string>
     <string name="category_all">All</string>
-    <string name="category_add">+ Category</string>
     <string name="badge_new">new</string>
     <string name="dialog_new_category">New category</string>
     <string name="dialog_categories">Categories</string>
@@ -110,7 +109,6 @@
     <string name="chapters_selected">Selected: %d</string>
     <string name="chapters_title">Chapters</string>
     <string name="cd_select_all">Select all</string>
-    <string name="cd_selection">Selection</string>
     <string name="cd_sort">Sort</string>
     <string name="cd_current">Current</string>
     <string name="cd_read">Read</string>
@@ -167,8 +165,6 @@
     <string name="sources_pack_added">Pack “%1$s” added (%2$s)</string>
     <string name="sources_importing">Importing…</string>
     <string name="sources_import_by_url">Import pack from URL</string>
-    <string name="sources_section_bundled">In the app</string>
-    <string name="sources_section_imported">Imported packs</string>
     <string name="sources_lang_ru">Russian</string>
     <string name="sources_lang_en">English</string>
     <string name="sources_lang_multi">Multi-language</string>
@@ -206,7 +202,10 @@
     <!-- Notifications -->
     <string name="notif_library_updates_channel">Library updates</string>
     <string name="notif_library_updates_title">Library updates</string>
-    <string name="notif_library_updates_many">%d titles with new chapters</string>
+    <plurals name="notif_library_updates_many">
+        <item quantity="one">%d title with new chapters</item>
+        <item quantity="other">%d titles with new chapters</item>
+    </plurals>
     <string name="notif_library_updates_one">%1$s: +%2$d</string>
 
     <!-- Tracker sync -->
@@ -254,7 +253,8 @@
     <string name="error_http_not_found">Not found on %1$s (HTTP 404). The title or chapter may have been removed.</string>
     <string name="error_http_rate_limited">%1$s is limiting requests. Try again in a minute.</string>
     <string name="error_http_server">%1$s server error (HTTP %2$d). Try again later.</string>
-    <string name="error_http_generic">HTTP %1$d from %2$s</string>
+    <string name="error_source_login_required">%1$s shows chapters only to signed-in users. Sign in under Sources → %1$s.</string>
+    <string name="error_http_generic" tools:ignore="PluralsCandidate">HTTP %1$d from %2$s</string>
     <string name="error_chapter_locked">This chapter is locked on %1$s (paid or early access).</string>
     <string name="cd_open_in_browser">Open in browser</string>
     <string name="cd_share">Share</string>
@@ -308,7 +308,7 @@
     <string name="cd_library_options">Sort, filter and display</string>
     <string name="cd_edit_categories">Edit categories</string>
     <string name="cd_invert_selection">Invert selection</string>
-    <string name="library_selected">%d selected</string>
+    <string name="library_selected" tools:ignore="PluralsCandidate">%d selected</string>
     <string name="library_tab_filter">Filter</string>
     <string name="library_tab_sort">Sort</string>
     <string name="library_tab_display">Display</string>
@@ -328,6 +328,8 @@
     <string name="library_display_list">List</string>
     <string name="library_badge_unread">Show unread count</string>
     <string name="library_badge_downloaded">Show downloaded count</string>
+    <string name="library_badge_sources">Show the number of sources</string>
+    <string name="library_sources_badge">Sources: %1$d</string>
     <string name="action_mark_read">Mark as read</string>
     <string name="action_mark_unread">Mark as unread</string>
     <string name="action_download_unread">Download unread</string>
@@ -358,7 +360,10 @@
 
     <!-- Chapters (v0.4) -->
     <string name="cd_download_menu">Download</string>
-    <string name="chapters_download_next">Next %d unread</string>
+    <plurals name="chapters_download_next">
+        <item quantity="one">Next %d unread</item>
+        <item quantity="other">Next %d unread</item>
+    </plurals>
     <string name="chapters_delete_downloads">Delete downloaded chapters</string>
     <string name="cd_chapter_filters">Filter and sort</string>
     <string name="chapters_none_match">No chapters match the filters</string>
@@ -474,7 +479,7 @@
     <string name="local_open_library">Open local titles</string>
     <string name="local_clean_temp">Clean temporary files</string>
     <string name="local_folder_hint">Imported titles are copied to %1$s. A folder may hold one series per subfolder, chapter folders, or .cbz / .zip files; cover.jpg, ComicInfo.xml and details.json are read too.</string>
-    <string name="local_import_done">Imported %1$d title(s), %2$d chapter(s)</string>
+    <string name="local_import_done">Imported. Titles: %1$d · chapters: %2$d</string>
     <string name="local_import_empty">No chapters found in that folder</string>
     <string name="local_import_failed">Import failed: %1$s</string>
     <string name="local_clean_done">Freed %1$s</string>
@@ -484,10 +489,10 @@
     <string name="backup_restore_file_hint">A Lume backup or a Mihon / Tachiyomi backup (.tachibk)</string>
     <string name="backup_saved_to">Backup saved: %1$s</string>
     <string name="backup_restore_failed">Restore failed: %1$s</string>
-    <string name="backup_mihon_progress">Reading chapter lists: %1$d of %2$d titles</string>
-    <string name="backup_mihon_done">Mihon import: %1$d added, %2$d already in the library, %3$d chapters marked read</string>
-    <string name="backup_mihon_unmatched">%1$d title(s) skipped (source not in Lume): %2$s</string>
-    <string name="backup_mihon_read_failed">Read marks of %1$d title(s) are missing: their chapter lists didn’t load.</string>
+    <string name="backup_mihon_progress" tools:ignore="PluralsCandidate">Reading chapter lists: %1$d of %2$d titles</string>
+    <string name="backup_mihon_done">Mihon import. Added: %1$d · already in the library: %2$d · chapters marked read: %3$d</string>
+    <string name="backup_mihon_unmatched">Skipped, their source isn’t in Lume: %1$d (%2$s)</string>
+    <string name="backup_mihon_read_failed">Titles without read marks, their chapter lists didn’t load: %1$d</string>
     <string name="backup_auto">Automatic backups</string>
     <string name="backup_auto_off">Off</string>
     <plurals name="backup_auto_days">

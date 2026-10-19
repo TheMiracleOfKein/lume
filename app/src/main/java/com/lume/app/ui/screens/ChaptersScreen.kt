@@ -68,6 +68,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -166,7 +167,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                             DropdownMenu(expanded = downloadMenu, onDismissRequest = { downloadMenu = false }) {
                                 listOf(1, 5, 10).forEach { n ->
                                     DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.chapters_download_next, n)) },
+                                        text = { Text(pluralStringResource(R.plurals.chapters_download_next, n, n)) },
                                         onClick = {
                                             downloadMenu = false
                                             vm.downloadNext(n, displayed)

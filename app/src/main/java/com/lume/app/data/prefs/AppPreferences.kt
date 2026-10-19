@@ -94,6 +94,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val libraryFiltersKey = stringPreferencesKey("library_filters")
     private val libraryUnreadBadgeKey = booleanPreferencesKey("library_badge_unread")
     private val libraryDownloadedBadgeKey = booleanPreferencesKey("library_badge_downloaded")
+    private val librarySourcesBadgeKey = booleanPreferencesKey("library_badge_sources")
     private val defaultCategoryKey = longPreferencesKey("default_category_id")
     private val libraryLastCheckedKey = longPreferencesKey("library_last_checked_at")
 
@@ -270,6 +271,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             filters = decodeLibraryFilters(prefs[libraryFiltersKey]),
             unreadBadge = prefs[libraryUnreadBadgeKey] ?: true,
             downloadedBadge = prefs[libraryDownloadedBadgeKey] ?: true,
+            sourcesBadge = prefs[librarySourcesBadgeKey] ?: true,
         )
     }
 
@@ -284,6 +286,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             it[libraryFiltersKey] = encodeLibraryFilters(settings.filters)
             it[libraryUnreadBadgeKey] = settings.unreadBadge
             it[libraryDownloadedBadgeKey] = settings.downloadedBadge
+            it[librarySourcesBadgeKey] = settings.sourcesBadge
         }
     }
 
