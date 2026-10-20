@@ -10,6 +10,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -41,6 +43,7 @@ import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 
 /** Settings → Sync: where the sync files live, the passphrase, how often, and "Sync now". */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SyncSettingsPage(vm: SettingsViewModel) {
     val settings by vm.prefs.syncSettings.collectAsState()
@@ -116,13 +119,12 @@ fun SyncSettingsPage(vm: SettingsViewModel) {
         }
         SettingItem("sync_interval") {
             SettingsLabel(stringResource(R.string.sync_interval), top = 10)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 AppPreferences.SYNC_INTERVALS.forEach { hours ->
                     ChoiceChip(
                         label = if (hours == 0) stringResource(R.string.sync_interval_manual)
                         else pluralStringResource(R.plurals.sync_interval_hours, hours, hours),
                         selected = hours == settings.intervalHours,
-                        modifier = Modifier.weight(1f),
                         onClick = { vm.saveSync(settings.copy(intervalHours = hours)) },
                     )
                 }
