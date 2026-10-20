@@ -114,6 +114,7 @@ fun SearchScreen(nav: NavHostController, globalQuery: String? = null) {
                 initial = vm.filters,
                 defaults = vm.defaultFilters,
                 loading = vm.filtersLoading,
+                sourceId = vm.filtersSourceId,
                 note = stringResource(R.string.filters_no_query).takeIf { vm.filtersNeedEmptyQuery && vm.query.isNotBlank() },
                 onApply = { next ->
                     filtersOpen = false

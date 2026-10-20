@@ -79,7 +79,8 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         private set
     var defaultFilters by mutableStateOf(FilterList())
         private set
-    private var filtersSourceId: String? = null
+    var filtersSourceId by mutableStateOf<String?>(null)
+        private set
     private var filtersComplete = false
 
     val filtersActive: Boolean get() = !filters.sameAs(defaultFilters)
@@ -198,20 +199,29 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
     private suspend fun ensureFilters(source: CatalogSource, load: Boolean = true) {
         val id = source.manifest.id
         if (filtersSourceId == id && (filtersComplete || !load)) return
-        val static = runCatching { source.getFilters() }.getOrDefault(FilterList())
-        val loaded = if (!load) null else try {
+        if (filtersSourceId != id) {
+            // A new source starts afresh, at once: the panel must not show the old source's filters
+            // while the site's lists load.
+            val static = runCatching { source.getFilters() }.getOrDefault(FilterList())
+            filtersSourceId = id
+            filtersComplete = false
+            defaultFilters = static
+            filters = static
+        }
+        if (!load) return
+        val loaded = try {
             withTimeoutOrNull(FILTERS_TIMEOUT_MS.milliseconds) { source.loadFilters() }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             null
-        }
-        val next = loaded ?: static
-        filtersComplete = loaded != null
-        // Same source, longer lists: keep what the user already set. A new source starts afresh.
-        filters = if (filtersSourceId == id) next.carryOver(filters) else next
-        defaultFilters = next
-        filtersSourceId = id
+        } ?: return
+        // Another source may have become active meanwhile.
+        if (filtersSourceId != id) return
+        // Same source, longer lists: keep what the user already set.
+        filters = loaded.carryOver(filters)
+        defaultFilters = loaded
+        filtersComplete = true
     }
 
     fun applyFilters(next: FilterList) {

@@ -77,8 +77,10 @@ fun FilterPanel(
     onApply: (FilterList) -> Unit,
     loading: Boolean = false,
     note: String? = null,
+    sourceId: String? = null,
 ) {
-    var draft by remember { mutableStateOf(initial) }
+    // A new source starts from its own filters, never carrying the previous source's states.
+    var draft by remember(sourceId) { mutableStateOf(initial) }
     // The site's lists arrive after the panel opened: add them, keep what was already set here.
     LaunchedEffect(initial) { draft = initial.carryOver(draft) }
     fun change(id: String, transform: (SourceFilter) -> SourceFilter) {
