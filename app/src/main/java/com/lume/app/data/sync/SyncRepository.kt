@@ -114,12 +114,6 @@ class SyncRepository(
         status
     }
 
-    /** Forgets what the last sync knew (when the sync place changes): nothing becomes a removal. */
-    suspend fun reset() = mutex.withLock {
-        withContext(Dispatchers.IO) { stateFile.delete() }
-        prefs.setSyncStatus(SyncStatus())
-    }
-
     private suspend fun runSync(settings: SyncSettings): SyncStatus {
         sources.awaitLoaded()
         val backend = backendFor(settings)
@@ -127,18 +121,22 @@ class SyncRepository(
         val local = readLocal()
         var previous = loadState()
         if (SyncMerge.looksWiped(local, previous)) previous = emptyMap()
-        val own = SyncMerge.stamp(local, previous, now)
+        val own = SyncMerge.stamp(local, previous, now, bootstrap = previous.isEmpty())
 
         val passphrase = settings.passphrase.ifEmpty { null }
+        // A file that can't be read with this passphrase (damaged, or from another setup) is skipped
+        // as long as some other device's file decoded; only when none did, the passphrase is the problem.
+        var passphraseError: SyncPassphraseException? = null
         val others = backend.list()
             .filter { it.startsWith(PREFIX) && it.endsWith(SUFFIX) && it != ownFileName }
             .mapNotNull { name ->
                 val bytes = backend.read(name)
                 val file = runCatching { json.decodeFromString(SyncFile.serializer(), SyncCodec.decode(bytes, passphrase)) }
-                    .onFailure { if (it is SyncPassphraseException) throw it }
+                    .onFailure { if (it is SyncPassphraseException) passphraseError = it }
                     .getOrNull()
                 file?.takeIf { it.deviceId != deviceId && it.format <= SyncFile.FORMAT }
             }
+        passphraseError?.let { if (others.isEmpty()) throw it }
 
         val merged = SyncMerge.merge(own, others.map { it.state() }, now)
         val changes = SyncMerge.changes(local, merged)
@@ -269,15 +267,15 @@ class SyncRepository(
         val byCollection = changes.groupBy { it.collection }
         // Packs first (sources), then categories (the library refers to them by name).
         val packs = byCollection[SOURCE_PACKS].orEmpty()
-        for (change in packs) when (change) {
+        for (change in packs) guarded(change) { when (change) {
             is SyncChange.Put -> decode(SourcePackDto.serializer(), change.data).let {
                 dao.upsertSourcePack(SourcePackEntity(it.id, it.json, it.installedAt))
             }
             is SyncChange.Remove -> dao.deleteSourcePack(change.key)
-        }
+        } }
         if (packs.isNotEmpty()) sources.load()
 
-        for (change in byCollection[CATEGORIES].orEmpty()) {
+        for (change in byCollection[CATEGORIES].orEmpty()) guarded(change) {
             val existing = dao.allCategories().firstOrNull { it.name.lowercase() == change.key }
             when (change) {
                 is SyncChange.Put -> {
@@ -290,7 +288,7 @@ class SyncRepository(
         val idByName = dao.allCategories().associate { it.name.lowercase() to it.id }
 
         database.withTransaction {
-            for (change in byCollection[SyncMerge.LIBRARY].orEmpty()) when (change) {
+            for (change in byCollection[SyncMerge.LIBRARY].orEmpty()) guarded(change) { when (change) {
                 is SyncChange.Put -> decode(LibrarySyncDto.serializer(), change.data).let {
                     dao.upsertBookmark(
                         BookmarkEntity(
@@ -305,8 +303,8 @@ class SyncRepository(
                     )
                 }
                 is SyncChange.Remove -> parts(change.key).let { (s, t) -> library.remove(s, t) }
-            }
-            for (change in byCollection[PROGRESS].orEmpty()) when (change) {
+            } }
+            for (change in byCollection[PROGRESS].orEmpty()) guarded(change) { when (change) {
                 is SyncChange.Put -> decode(ProgressEntityDto.serializer(), change.data).let {
                     dao.upsertProgress(
                         ProgressEntity(
@@ -316,8 +314,8 @@ class SyncRepository(
                     )
                 }
                 is SyncChange.Remove -> parts(change.key).let { (s, t) -> dao.clearProgress(s, t) }
-            }
-            for (change in byCollection[SyncMerge.FURTHEST_WINS].orEmpty()) when (change) {
+            } }
+            for (change in byCollection[SyncMerge.FURTHEST_WINS].orEmpty()) guarded(change) { when (change) {
                 is SyncChange.Put -> decode(ChapterProgressDto.serializer(), change.data).let {
                     dao.upsertChapterProgress(
                         ChapterProgressEntity(
@@ -327,16 +325,16 @@ class SyncRepository(
                     )
                 }
                 is SyncChange.Remove -> parts(change.key).let { (s, t, c) -> dao.deleteChapterProgress(s, t, listOf(c)) }
-            }
+            } }
             val now = System.currentTimeMillis()
-            for (change in byCollection[CHAPTER_READ].orEmpty()) when (change) {
+            for (change in byCollection[CHAPTER_READ].orEmpty()) guarded(change) { when (change) {
                 is SyncChange.Put -> decode(ChapterReadDto.serializer(), change.data).let {
                     dao.markChapterRead(ChapterReadEntity(it.sourceId, it.titleId, it.chapterId, now))
                 }
                 is SyncChange.Remove -> parts(change.key).let { (s, t, c) -> dao.markChaptersUnread(s, t, listOf(c)) }
-            }
+            } }
             val bookmarkIds = dao.allPageBookmarks().associate { pageBookmarkKey(it) to it.id }
-            for (change in byCollection[PAGE_BOOKMARKS].orEmpty()) when (change) {
+            for (change in byCollection[PAGE_BOOKMARKS].orEmpty()) guarded(change) { when (change) {
                 is SyncChange.Put -> decode(PageBookmarkDto.serializer(), change.data).let {
                     val entity = PageBookmarkEntity(
                         sourceId = it.sourceId,
@@ -353,8 +351,8 @@ class SyncRepository(
                     if (id != null) dao.updatePageBookmarkNote(id, it.note) else dao.insertPageBookmark(entity)
                 }
                 is SyncChange.Remove -> bookmarkIds[change.key]?.let { dao.deletePageBookmark(it) }
-            }
-            for (change in byCollection[TITLE_SOURCES].orEmpty()) when (change) {
+            } }
+            for (change in byCollection[TITLE_SOURCES].orEmpty()) guarded(change) { when (change) {
                 is SyncChange.Put -> decode(TitleSourceDto.serializer(), change.data).let {
                     dao.upsertTitleSource(
                         TitleSourceEntity(
@@ -364,8 +362,8 @@ class SyncRepository(
                     )
                 }
                 is SyncChange.Remove -> parts(change.key).let { p -> dao.deleteTitleSource(p[0], p[1], p[2], p[3]) }
-            }
-            for (change in byCollection[TRACKER_LINKS].orEmpty()) when (change) {
+            } }
+            for (change in byCollection[TRACKER_LINKS].orEmpty()) guarded(change) { when (change) {
                 is SyncChange.Put -> decode(TrackerLinkDto.serializer(), change.data).let {
                     val (s, t, tracker) = parts(change.key)
                     val lastSync = dao.getTrackerLinks(s, t).firstOrNull { l -> l.tracker == tracker }?.lastSync ?: 0L
@@ -374,8 +372,8 @@ class SyncRepository(
                     )
                 }
                 is SyncChange.Remove -> parts(change.key).let { (s, t, tracker) -> dao.deleteTrackerLink(s, t, tracker) }
-            }
-            for (change in byCollection[TITLE_PREFS].orEmpty()) when (change) {
+            } }
+            for (change in byCollection[TITLE_PREFS].orEmpty()) guarded(change) { when (change) {
                 is SyncChange.Put -> decode(TitlePrefsDto.serializer(), change.data).let {
                     dao.upsertTitlePrefs(
                         TitlePrefsEntity(
@@ -392,7 +390,15 @@ class SyncRepository(
                     )
                 }
                 is SyncChange.Remove -> parts(change.key).let { (s, t) -> dao.deleteTitlePrefs(s, t) }
-            }
+            } }
+        }
+    }
+
+    /** One record that can't be applied must not abort the whole sync. */
+    private inline fun guarded(change: SyncChange, block: () -> Unit) {
+        runCatching { block() }.onFailure {
+            if (it is kotlinx.coroutines.CancellationException) throw it
+            android.util.Log.w("Sync", "Could not apply ${change.collection} change", it)
         }
     }
 

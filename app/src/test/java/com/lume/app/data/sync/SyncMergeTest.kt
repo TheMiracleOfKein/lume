@@ -28,7 +28,7 @@ class SyncMergeTest {
     fun stampKeepsTimesOfUnchangedRecordsAndMarksRemovals() {
         val previous = state(lib, SyncEntry("a", 100, data = title("A")), SyncEntry("b", 100, data = title("B")))
         val current = mapOf(lib to mapOf("a" to title("A"), "c" to title("C")))
-        val stamped = SyncMerge.stamp(current, previous, now = 500)[lib]!!
+        val stamped = SyncMerge.stamp(current, previous, now = 500, bootstrap = false)[lib]!!
         assertEquals(100L, stamped["a"]!!.changedAt)
         assertEquals(500L, stamped["c"]!!.changedAt)
         assertTrue(stamped["b"]!!.deleted)
@@ -38,16 +38,33 @@ class SyncMergeTest {
     @Test
     fun stampGivesChangedRecordsANewTime() {
         val previous = state(lib, SyncEntry("a", 100, data = title("A")))
-        val stamped = SyncMerge.stamp(mapOf(lib to mapOf("a" to title("A2"))), previous, now = 500)
+        val stamped = SyncMerge.stamp(mapOf(lib to mapOf("a" to title("A2"))), previous, now = 500, bootstrap = false)
         assertEquals(500L, stamped[lib]!!["a"]!!.changedAt)
     }
 
     @Test
     fun aRecordAddedAgainAfterItsRemovalIsNew() {
         val previous = state(lib, SyncEntry("a", 100, deleted = true))
-        val stamped = SyncMerge.stamp(mapOf(lib to mapOf("a" to title("A"))), previous, now = 500)[lib]!!["a"]!!
+        val stamped = SyncMerge.stamp(mapOf(lib to mapOf("a" to title("A"))), previous, now = 500, bootstrap = false)[lib]!!["a"]!!
         assertFalse(stamped.deleted)
         assertEquals(500L, stamped.changedAt)
+    }
+
+    @Test
+    fun aRemovalElsewhereBeatsABootstrappedCopy() {
+        val own = SyncMerge.stamp(mapOf(lib to mapOf("a" to title("A"))), emptyMap(), now = 500, bootstrap = true)
+        assertEquals(0L, own[lib]!!["a"]!!.changedAt)
+        val other = state(lib, SyncEntry("a", 300, deleted = true))
+        val merged = SyncMerge.merge(own, listOf(other), now = 1_000)[lib]!!
+        assertTrue(merged["a"]!!.deleted)
+    }
+
+    @Test
+    fun aBootstrappedRecordWithNoRivalStillSyncsOut() {
+        val own = SyncMerge.stamp(mapOf(lib to mapOf("a" to title("A"))), emptyMap(), now = 500, bootstrap = true)
+        val merged = SyncMerge.merge(own, listOf(state(lib, SyncEntry("b", 100, data = title("B")))), now = 1_000)[lib]!!
+        assertEquals(title("A"), merged["a"]!!.data)
+        assertFalse(merged["a"]!!.deleted)
     }
 
     @Test
@@ -120,7 +137,10 @@ class SyncMergeTest {
     fun aWipedDatabaseIsNotTakenForRemovals() {
         val previous = state(lib, SyncEntry("a", 100, data = title("A")))
         assertTrue(SyncMerge.looksWiped(emptyMap(), previous))
+        assertTrue(SyncMerge.looksWiped(mapOf(lib to emptyMap()), previous))
         assertFalse(SyncMerge.looksWiped(mapOf(lib to mapOf("b" to title("B"))), previous))
+        // Every title removed on purpose, but other records remain: removals, not a wipe.
+        assertFalse(SyncMerge.looksWiped(mapOf("categories" to mapOf("x" to title("X"))), previous))
         assertFalse(SyncMerge.looksWiped(emptyMap(), emptyMap()))
     }
 

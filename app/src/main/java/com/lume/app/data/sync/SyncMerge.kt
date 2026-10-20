@@ -58,6 +58,8 @@ sealed interface SyncChange {
  *
  * - [stamp] compares what the database holds now with what this device wrote last time: new or
  *   changed records get the current time, unchanged ones keep theirs, missing ones become removals.
+ *   On the first sync of a place ([stamp]'s `bootstrap`) records without a history get time 0, so a
+ *   removal or edit made on another device wins over this device's untouched copy.
  * - [merge] picks one winner per record across every device: the newest change wins. Chapter
  *   positions are different: the furthest position wins, unless the newest change resets it; "Continue" goes to the title read last.
  * - [changes] lists what the database needs so it matches the winners.
@@ -78,7 +80,13 @@ object SyncMerge {
 
     const val LIBRARY = "library"
 
-    fun stamp(current: Map<String, Map<String, JsonElement>>, previous: SyncState, now: Long): SyncState {
+    fun stamp(
+        current: Map<String, Map<String, JsonElement>>,
+        previous: SyncState,
+        now: Long,
+        bootstrap: Boolean,
+    ): SyncState {
+        val fresh = if (bootstrap) 0L else now
         val collections = current.keys + previous.keys
         return collections.associateWith { name ->
             val live = current[name].orEmpty()
@@ -86,7 +94,7 @@ object SyncMerge {
             val out = HashMap<String, SyncEntry>()
             for ((key, data) in live) {
                 val old = before[key]
-                out[key] = if (old != null && !old.deleted && old.data == data) old else SyncEntry(key, now, data = data)
+                out[key] = if (old != null && !old.deleted && old.data == data) old else SyncEntry(key, fresh, data = data)
             }
             for ((key, old) in before) {
                 if (key in live) continue
@@ -130,12 +138,14 @@ object SyncMerge {
     }
 
     /**
-     * True when the database looks wiped (a reinstall, cleared data, a failed upgrade) while the
-     * last sync knew a library: then its records must not turn into removals on every device.
+     * True when the database looks wiped (a reinstall, cleared data, a failed upgrade): no record in
+     * any collection while the last sync knew a library. Then its records must not turn into removals
+     * on every device. A library emptied on purpose keeps other records (categories, read marks…)
+     * and counts as removals.
      */
     fun looksWiped(current: Map<String, Map<String, JsonElement>>, previous: SyncState): Boolean {
         val had = previous[LIBRARY].orEmpty().values.count { !it.deleted }
-        return had > 0 && current[LIBRARY].isNullOrEmpty()
+        return had > 0 && current.values.all { it.isEmpty() }
     }
 
     private fun newest(candidates: List<SyncEntry>): SyncEntry? =

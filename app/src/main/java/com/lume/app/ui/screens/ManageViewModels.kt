@@ -421,12 +421,12 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
 
     val syncRunning = app.sync.running
 
-    /** Saves the sync settings; a new sync place starts fresh, so nothing there counts as removed. */
+    /** Saves the sync settings. A new place only clears the old error; the saved merge state stays. */
     fun saveSync(next: com.lume.app.data.prefs.SyncSettings, syncNow: Boolean = false) {
         viewModelScope.launch {
             val old = prefs.syncSettings.value
             val placeChanged = old.backend != next.backend || old.folder != next.folder || old.webDavUrl != next.webDavUrl
-            if (placeChanged) app.sync.reset()
+            if (placeChanged) prefs.setSyncStatus(prefs.syncStatus.value.copy(error = null))
             prefs.setSyncSettings(next)
             com.lume.app.data.sync.SyncWorker.schedule(app.app, next)
             if (syncNow && next.ready) runSync()
