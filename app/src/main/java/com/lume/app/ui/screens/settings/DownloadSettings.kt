@@ -3,6 +3,7 @@ package com.lume.app.ui.screens.settings
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -74,7 +75,7 @@ fun DownloadSettings(nav: NavHostController, vm: SettingsViewModel) {
                     )
                 }
             }
-            SettingsNote(stringResource(R.string.settings_downloads_parallel_hint))
+            SettingsNote(stringResource(R.string.settings_downloads_parallel_hint), Modifier.padding(top = 8.dp))
         }
     }
     SettingsSectionTitle(R.string.settings_group_storage)

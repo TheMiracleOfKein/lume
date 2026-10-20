@@ -96,7 +96,7 @@ fun BackupSettings(nav: NavHostController, vm: SettingsViewModel) {
     SettingsSectionTitle(R.string.backup_auto)
     SettingsGroup {
         SettingItem("auto_backup") {
-            SettingsNote(stringResource(R.string.backup_auto_hint), Modifier.padding(top = 6.dp))
+            SettingsNote(stringResource(R.string.backup_auto_hint), Modifier.padding(top = 6.dp, bottom = 8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 AppPreferences.AUTO_BACKUP_DAYS.forEach { days ->
                     ChoiceChip(

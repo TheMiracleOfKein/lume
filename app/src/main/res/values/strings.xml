@@ -164,6 +164,7 @@
     <string name="sources_import_hint">Import pack (madara · libsocial · hivetoons)</string>
     <string name="sources_pack_added">Pack “%1$s” added (%2$s)</string>
     <string name="sources_importing">Importing…</string>
+    <string name="sources_import_empty">Enter a pack link first</string>
     <string name="sources_import_by_url">Import pack from URL</string>
     <string name="sources_lang_ru">Russian</string>
     <string name="sources_lang_en">English</string>
