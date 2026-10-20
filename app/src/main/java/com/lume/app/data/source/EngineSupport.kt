@@ -1,5 +1,6 @@
 package com.lume.app.data.source
 
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -63,3 +64,30 @@ internal fun withQuery(url: String, query: String): String {
 internal fun chapterNumberFrom(text: String): String? =
     Regex("""(?:chapter|ch\.?|episode|ep\.?|глава|гл\.?)\s*([0-9]+(?:[.,][0-9]+)?)""", RegexOption.IGNORE_CASE)
         .find(text)?.groupValues?.getOrNull(1)?.replace(',', '.')
+
+/**
+ * Filter lists a site serves (genres, tags), fetched once per engine. A failed fetch is not kept,
+ * so the next panel opening tries again; until then the static filters stand in.
+ */
+internal class SiteFilters(private val fetch: suspend () -> com.lume.app.domain.FilterList) {
+    @Volatile
+    private var cached: com.lume.app.domain.FilterList? = null
+    private val lock = kotlinx.coroutines.sync.Mutex()
+
+    suspend fun get(fallback: () -> com.lume.app.domain.FilterList): com.lume.app.domain.FilterList {
+        cached?.let { return it }
+        return lock.withLock {
+            cached ?: try {
+                fetch().also { cached = it }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                fallback()
+            }
+        }
+    }
+}
+
+/** Repeated `name[]=value` query parameters, each value encoded; empty when [values] is. */
+internal fun arrayParams(name: String, values: Iterable<String>): String =
+    values.joinToString("") { "&$name[]=${com.lume.app.util.urlEncode(it)}" }

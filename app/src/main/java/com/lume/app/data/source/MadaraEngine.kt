@@ -3,14 +3,19 @@ package com.lume.app.data.source
 import com.lume.app.R
 import com.lume.app.data.locale.appString
 import com.lume.app.data.network.AppHttp
+import com.lume.app.domain.BrowseSection
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
+import com.lume.app.domain.FilterList
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
+import com.lume.app.domain.SourceFilter
 import com.lume.app.domain.SourceManifest
 import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleSummary
+import com.lume.app.domain.choose
+import com.lume.app.domain.include
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.net.URI
@@ -96,15 +101,30 @@ class MadaraParser {
             }
         }
         var typeLabel: String? = null
+        var otherNames = emptyList<String>()
+        var year: Int? = null
         for (item in document.select("div.post-content_item")) {
             val label = item.selectFirst(".summary-heading")?.text()?.lowercase().orEmpty()
-            if (label.contains("type") || label.contains("тип")) {
-                typeLabel = item.selectFirst(".summary-content")?.text()?.trim()
+            val content = item.selectFirst(".summary-content")?.text()?.trim().orEmpty()
+            when {
+                label.contains("type") || label.contains("тип") -> typeLabel = content.ifEmpty { null }
+                label.contains("alternative") || label.contains("альтернатив") || label.contains("другие") ->
+                    otherNames = content.split(Regex("[,;/]")).map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+                label.contains("release") || label.contains("год") || label.contains("выпуск") ->
+                    year = Regex("""\b(19|20)\d{2}\b""").find(content)?.value?.toIntOrNull()
             }
         }
+        val score = document.selectFirst(".post-total-rating .score, #averagerate, span.score")
+            ?.text()?.trim()?.replace(',', '.')?.toDoubleOrNull()
+            // The theme rates out of 5.
+            ?.takeIf { it > 0 }?.let { it * 2 }
         return TitleDetails(
             id = id,
             title = title,
+            altTitle = otherNames.firstOrNull(),
+            otherNames = otherNames,
+            year = year,
+            score = score,
             coverUrl = cover,
             description = description.ifEmpty { null },
             authors = authors,
@@ -113,6 +133,16 @@ class MadaraParser {
             status = status,
             typeLabel = typeLabel,
         )
+    }
+
+    /** The genre boxes of the theme's advanced search form: slug to label. */
+    fun parseGenres(html: String): List<Pair<String, String>> {
+        val document = Jsoup.parse(html)
+        val labels = document.select("label[for]").associate { it.attr("for") to it.text().trim() }
+        return document.select("input[name=genre[]]").mapNotNull { input ->
+            val slug = input.attr("value").trim().ifEmpty { return@mapNotNull null }
+            slug to (labels[input.id()]?.ifEmpty { null } ?: slug)
+        }.distinctBy { it.first }
     }
 
     fun parseChapters(html: String, baseUrl: String? = null): List<Chapter> {
@@ -270,8 +300,14 @@ class MadaraEngine(
         val order = filters.selected("orderby") ?: "latest"
         val statuses = filters.checked("status")
         val adult = filters.selected("adult").orEmpty()
+        val genres = filters.checked("genre").map { it.substringAfter(':') }
+        val author = filters.text("author")
+        val artist = filters.text("artist")
+        val release = filters.text("release")
+        val narrowed = statuses.isNotEmpty() || adult.isNotEmpty() || genres.isNotEmpty() ||
+            author != null || artist != null || release != null
         // Without a text or a filter the archive pages are faster and sorted the same way.
-        if (query.isBlank() && statuses.isEmpty() && adult.isEmpty() && order in setOf("latest", "views")) {
+        if (query.isBlank() && !narrowed && order in setOf("latest", "views")) {
             return browse(
                 page = page,
                 orderBy = order,
@@ -293,10 +329,55 @@ class MadaraEngine(
             if (query.isBlank() || order != "latest") append("&m_orderby=$mOrder")
             for (status in statuses) append("&status%5B%5D=$status")
             if (adult.isNotEmpty()) append("&adult=$adult")
+            for (genre in genres) append("&genre%5B%5D=${urlEncode(genre)}")
+            // op=1: a title must have every chosen genre; empty: any of them.
+            if (genres.size > 1 && filters.selected("match") == "all") append("&op=1")
+            author?.let { append("&author=${urlEncode(it)}") }
+            artist?.let { append("&artist=${urlEncode(it)}") }
+            release?.let { append("&release=${urlEncode(it)}") }
         }
         val uri = URI("${manifest.baseUri.scheme}://${manifest.baseUri.rawAuthority}$path?$params")
         val response = http.get(uri, source = manifest)
         return parser.parseTitleList(response.body, page, manifest.baseUrl)
+    }
+
+    private val siteFilters = SiteFilters(::fetchFilters)
+
+    override suspend fun loadFilters(): FilterList = siteFilters.get(::getFilters)
+
+    /** The genres of the site's advanced search form, plus author, artist and year fields. */
+    private suspend fun fetchFilters(): FilterList {
+        val uri = URI("${manifest.baseUri.scheme}://${manifest.baseUri.rawAuthority}/?s=&post_type=wp-manga")
+        val genres = parser.parseGenres(http.get(uri, source = manifest).body)
+        if (genres.isEmpty()) throw SourceFetchException("${manifest.name}: no genres")
+        return FilterList(
+            getFilters().filters + listOf(
+                SourceFilter.Group(
+                    id = "genre",
+                    name = appString(R.string.filter_genres),
+                    filters = genres.map { (slug, label) -> SourceFilter.Check("genre:$slug", label) },
+                ),
+                SourceFilter.Select(
+                    id = "match",
+                    name = appString(R.string.filter_match),
+                    options = listOf("any", "all"),
+                    labels = listOf(appString(R.string.filter_match_any), appString(R.string.filter_match_all)),
+                ),
+                SourceFilter.Text("author", appString(R.string.filter_author)),
+                SourceFilter.Text("artist", appString(R.string.filter_artist)),
+                SourceFilter.Text("release", appString(R.string.filter_year)),
+            ),
+        )
+    }
+
+    override fun browseSections(): List<BrowseSection> {
+        val base = getFilters()
+        return listOf(
+            BrowseSection("trending", appString(R.string.section_trending), base.choose("orderby", "trending")),
+            BrowseSection("new", appString(R.string.section_new_titles), base.choose("orderby", "new")),
+            BrowseSection("top", appString(R.string.section_top_rated), base.choose("orderby", "rating")),
+            BrowseSection("completed", appString(R.string.section_completed), base.choose("orderby", "views").include("end")),
+        )
     }
 
     override fun getFilters(): com.lume.app.domain.FilterList = com.lume.app.domain.FilterList(

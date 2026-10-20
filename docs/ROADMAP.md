@@ -24,7 +24,7 @@ These hold for every release:
 
 | Version | Theme | Highlights | Size |
 | --- | --- | --- | --- |
-| 0.6.x | Maintenance | Clearer settings with search, reading lists, similar titles; device testing, source fixes | S–M |
+| 0.6.x | Maintenance | Clearer settings with search, reading lists, similar titles, source filters and browse sections; device testing, source fixes | S–M |
 | **0.7** | Sync and everyday reading | Sync between devices; page slider, orientation lock, auto-scroll, colour filters | L |
 | **0.8** | Reader 2.0 | Tall pages without memory problems, sharp zoom, crop and spreads, guided panel view, Coil 3 | L |
 | **0.9** | Library and sources | Self-hosted servers (OPDS, Komga, Kavita), CBR and PDF, watched folders, smarter updates, statistics | L |
@@ -58,6 +58,11 @@ Patch releases from the v0.6 line, as needed.
 - ✅ The reader's chapter line is readable over light pages.
 - ✅ "Import pack from URL" with an empty field now says what is missing.
 - ⏸️ Drawer **Theme** button: the code toggles correctly; the drawer staying open looks intended. Not changed.
+
+**v0.6.6: source filters and browse sections** ([details](#v066-source-filters-and-browse-sections))
+- ✅ The site's own genres, tags, types and statuses in the filter panel, with include/exclude; filters together with search text where the site allows it.
+- ✅ Browse section chips in the catalogue; author, artist, year and score on the title screen.
+- ⏸️ MangaBuff and MangaKatana filters; Lib site descriptions (separate fix).
 
 ## v0.7: sync and everyday reading
 
@@ -416,3 +421,16 @@ Release notes: [docs/releases/v0.6.5.md](releases/v0.6.5.md).
 - ✅ **Reader title bar.** The chapter line is light on every page, and the dark band behind the bar lasts longer.
 - ✅ **Empty pack link.** Tapping Import with an empty field shows "Enter a pack link first".
 - ⏸️ **Not bugs:** incognito is off by default in code; the late switch responses seen in testing looked like emulator lag.
+
+
+### v0.6.6: source filters and browse sections
+
+Release notes: [docs/releases/v0.6.6.md](releases/v0.6.6.md).
+
+- ✅ **The site's own filters.** The filter panel loads genres, tags, types, statuses and formats from the site (MangaDex, MangaLib/YaoiLib/HentaiLib, ReManga, Madara packs, Asura, HiveToons/Vortex, WeebCentral). Genres and tags can be included or excluded where the site allows it, with "has all / has any". Long lists fold, show what is chosen and have a find field. The panel opens at once and adds the lists when they arrive.
+- ✅ **Filters with search text** on MangaDex, the Lib sites, Madara, HiveToons and WeebCentral. ReManga and Asura filter only their catalogue; the panel says so when there is text.
+- ✅ **Browse sections** in the catalogue: chips above the popular list ("New titles", "Top rated", "Completed", "Most viewed", "Manhwa"…), per source.
+- ✅ **More title details:** author and artist, year and the site's score on the title screen; MangaDex type from the original language; more alternative names from the Lib sites, ReManga, Madara and Asura, so "Found for you" matches more titles.
+- ✅ The weekly live check also loads every source's filters, searches with one genre and opens every browse section.
+- ⏸️ **MangaBuff filters:** the site is geo-blocked from where this was built, so its parameters couldn't be checked. **MangaKatana:** genre pages not used yet.
+- **Lib site descriptions** are empty: the API no longer sends them to visitors who aren't signed in (already so in v0.6.5). Separate fix.

@@ -44,4 +44,43 @@ class FiltersTest {
         assertEquals("two", select.labelAt(1))
         assertEquals("B", (defaults.filters[0] as SourceFilter.Select).labelAt(1))
     }
+
+    @Test
+    fun carryOverKeepsStatesWhenTheSiteListsArrive() {
+        val set = defaults
+            .choose("sort", "b")
+            .include("done")
+            .updated("genre") { (it as SourceFilter.TriState).copy(state = 2) }
+        val loaded = FilterList(
+            defaults.filters + SourceFilter.Group(
+                "genres",
+                "Genres",
+                listOf(SourceFilter.TriState("genres:1", "Action"), SourceFilter.TriState("genres:2", "Drama")),
+            ),
+        )
+        val merged = loaded.carryOver(set)
+        assertEquals("b", merged.selected("sort"))
+        assertEquals(listOf("done"), merged.checked("status"))
+        assertEquals(listOf("genre"), merged.excluded())
+        assertEquals(emptyList<String>(), merged.included("genres"))
+        assertEquals(2, merged.flat().count { it.id.startsWith("genres:") })
+    }
+
+    @Test
+    fun carryOverDropsAChoiceWhenTheOptionsChanged() {
+        val set = defaults.choose("sort", "b")
+        val other = FilterList(listOf(SourceFilter.Select("sort", "Sort", options = listOf("x", "y", "z"))))
+        assertEquals("x", other.carryOver(set).selected("sort"))
+    }
+
+    @Test
+    fun chooseAndIncludeSetFiltersByTheirSiteValue() {
+        val sort = FilterList(listOf(SourceFilter.Sort("order", "Order", options = listOf("views", "new"))))
+        val chosen = sort.choose("order", "new", ascending = true).sort("order")!!
+        assertEquals("new", chosen.selectedValue)
+        assertTrue(chosen.ascending)
+        // Unknown values leave the filter as it was.
+        assertEquals("a", defaults.choose("sort", "nope").selected("sort"))
+        assertEquals(listOf("genre"), defaults.include("genre").included())
+    }
 }

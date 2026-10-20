@@ -113,6 +113,9 @@ fun SearchScreen(nav: NavHostController, globalQuery: String? = null) {
             FilterPanel(
                 initial = vm.filters,
                 defaults = vm.defaultFilters,
+                loading = vm.filtersLoading,
+                sourceId = vm.filtersSourceId,
+                note = stringResource(R.string.filters_no_query).takeIf { vm.filtersNeedEmptyQuery && vm.query.isNotBlank() },
                 onApply = { next ->
                     filtersOpen = false
                     keyboard?.hide()
@@ -176,10 +179,8 @@ fun SearchScreen(nav: NavHostController, globalQuery: String? = null) {
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = {
-                    scope.launch {
-                        vm.prepareFilters()
-                        filtersOpen = true
-                    }
+                    vm.prepareFilters()
+                    filtersOpen = true
                 }) {
                     Box {
                         Icon(

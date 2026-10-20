@@ -3,6 +3,7 @@ package com.lume.app.data.source
 import com.lume.app.R
 import com.lume.app.data.locale.appString
 import com.lume.app.data.network.AppHttp
+import com.lume.app.domain.BrowseSection
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
@@ -13,6 +14,7 @@ import com.lume.app.domain.SourceFilter
 import com.lume.app.domain.SourceManifest
 import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleSummary
+import com.lume.app.domain.choose
 import com.lume.app.util.urlEncode
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -53,8 +55,54 @@ class HiveToonsEngine(
                     appString(R.string.filter_sort_new),
                 ),
             ),
+            SourceFilter.Select(
+                id = "seriesType",
+                name = appString(R.string.filter_type),
+                options = listOf("", "MANHWA", "MANGA", "MANHUA"),
+                labels = listOf(
+                    appString(R.string.filter_any),
+                    appString(R.string.type_manhwa),
+                    appString(R.string.type_manga),
+                    appString(R.string.type_manhua),
+                ),
+            ),
+            SourceFilter.Select(
+                id = "seriesStatus",
+                name = appString(R.string.filter_status),
+                options = listOf("", "ONGOING", "COMPLETED", "HIATUS", "DROPPED"),
+                labels = listOf(
+                    appString(R.string.filter_any),
+                    appString(R.string.filter_status_ongoing),
+                    appString(R.string.filter_status_completed),
+                    appString(R.string.filter_status_hiatus),
+                    appString(R.string.filter_status_cancelled),
+                ),
+            ),
         ),
     )
+
+    private val siteFilters = SiteFilters(::fetchFilters)
+
+    override suspend fun loadFilters(): FilterList = siteFilters.get(::getFilters)
+
+    private suspend fun fetchFilters(): FilterList {
+        val body = http.get(URI("$apiBase/api/genres"), source = manifest, checkCloudflare = false).body
+        val genres = json.parseToJsonElement(body).arr().orEmpty().mapNotNull { el ->
+            val item = el.obj() ?: return@mapNotNull null
+            val id = item.str("id") ?: return@mapNotNull null
+            SourceFilter.Check("genres:$id", item.str("name")?.trim() ?: return@mapNotNull null)
+        }.sortedBy { it.name.lowercase() }
+        if (genres.isEmpty()) throw SourceFetchException("${manifest.name}: no genres")
+        return FilterList(getFilters().filters + SourceFilter.Group("genres", appString(R.string.filter_genres), genres))
+    }
+
+    override fun browseSections(): List<BrowseSection> {
+        val base = getFilters()
+        return listOf(
+            BrowseSection("new", appString(R.string.section_latest_titles), base.choose("orderBy", "createdAt")),
+            BrowseSection("completed", appString(R.string.section_completed), base.choose("seriesStatus", "COMPLETED")),
+        )
+    }
 
     override fun titleIdFromUrl(url: String): String? {
         val parts = com.lume.app.domain.SourceLinks.segments(url, manifest.baseUrl) ?: return null
@@ -63,15 +111,21 @@ class HiveToonsEngine(
     }
 
     override suspend fun search(query: String, page: Int, filters: FilterList): PagedResult<TitleSummary> {
-        val order = filters.filters.filterIsInstance<SourceFilter.Select>()
-            .firstOrNull { it.id == "orderBy" }?.selectedValue ?: "totalViews"
-        return query(page, order, search = query.trim())
+        val order = filters.selected("orderBy") ?: "totalViews"
+        val extra = buildString {
+            val genres = filters.checked("genres").map { it.substringAfter(':') }
+            if (genres.isNotEmpty()) append("&genreIds=${genres.joinToString(",")}")
+            filters.selected("seriesType")?.takeIf { it.isNotEmpty() }?.let { append("&seriesType=$it") }
+            filters.selected("seriesStatus")?.takeIf { it.isNotEmpty() }?.let { append("&seriesStatus=$it") }
+        }
+        return query(page, order, search = query.trim(), extra = extra)
     }
 
-    private suspend fun query(page: Int, orderBy: String, search: String = ""): PagedResult<TitleSummary> {
+    private suspend fun query(page: Int, orderBy: String, search: String = "", extra: String = ""): PagedResult<TitleSummary> {
         val q = buildString {
             append("page=$page&perPage=$PAGE_SIZE&orderBy=$orderBy")
             if (search.isNotBlank()) append("&searchTerm=${urlEncode(search)}")
+            append(extra)
         }
         val root = apiObject("$apiBase/api/query?$q")
         val items = root["posts"].arr().orEmpty().mapNotNull { el ->

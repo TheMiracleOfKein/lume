@@ -119,6 +119,60 @@ fun FilterList.updated(id: String, change: (SourceFilter) -> SourceFilter): Filt
         },
     )
 
+/**
+ * This list with the states of [previous] wherever a filter of the same id and kind exists in
+ * both (a Select keeps its choice only when its options are the same).
+ */
+fun FilterList.carryOver(previous: FilterList): FilterList {
+    val old = previous.flat().associateBy { it.id }
+    fun carry(f: SourceFilter): SourceFilter {
+        val p = old[f.id]
+        return when {
+            f is SourceFilter.Group -> f.copy(filters = f.filters.map(::carry))
+            f is SourceFilter.Check && p is SourceFilter.Check -> f.copy(state = p.state)
+            f is SourceFilter.TriState && p is SourceFilter.TriState -> f.copy(state = p.state)
+            f is SourceFilter.Text && p is SourceFilter.Text -> f.copy(state = p.state)
+            f is SourceFilter.Select && p is SourceFilter.Select && p.options == f.options -> f.copy(selected = p.selected)
+            f is SourceFilter.Sort && p is SourceFilter.Sort && p.options == f.options -> f.copy(index = p.index, ascending = p.ascending)
+            else -> f
+        }
+    }
+    return FilterList(filters.map(::carry))
+}
+
+/**
+ * Sets the [SourceFilter.Select] or [SourceFilter.Sort] [id] to the option whose site value is
+ * [value] (unknown values leave it as it is). Engines build their browse sections with this.
+ */
+fun FilterList.choose(id: String, value: String, ascending: Boolean = false): FilterList =
+    updated(id) { f ->
+        when (f) {
+            is SourceFilter.Select -> f.options.indexOf(value).takeIf { it >= 0 }?.let { f.copy(selected = it) } ?: f
+            is SourceFilter.Sort -> f.options.indexOf(value).takeIf { it >= 0 }?.let { f.copy(index = it, ascending = ascending) } ?: f
+            else -> f
+        }
+    }
+
+/** Ticks the [SourceFilter.Check] or includes the [SourceFilter.TriState] [id]. */
+fun FilterList.include(id: String): FilterList =
+    updated(id) { f ->
+        when (f) {
+            is SourceFilter.Check -> f.copy(state = true)
+            is SourceFilter.TriState -> f.copy(state = 1)
+            else -> f
+        }
+    }
+
+/**
+ * An extra catalogue feed of a source besides popular and latest ("New titles", "Top rated").
+ * It is a search without text, with [filters] set the way the feed needs them.
+ */
+data class BrowseSection(
+    val id: String,
+    val name: String,
+    val filters: FilterList,
+)
+
 data class GlobalSearchHit(
     val sourceId: String,
     val sourceName: String,

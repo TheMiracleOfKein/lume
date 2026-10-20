@@ -3,6 +3,7 @@ package com.lume.app.data.source
 import com.lume.app.R
 import com.lume.app.data.locale.appString
 import com.lume.app.data.network.AppHttp
+import com.lume.app.domain.BrowseSection
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
@@ -13,6 +14,7 @@ import com.lume.app.domain.SourceFilter
 import com.lume.app.domain.SourceManifest
 import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleSummary
+import com.lume.app.domain.choose
 import com.lume.app.util.urlEncode
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -37,8 +39,40 @@ class AsuraEngine(
 
     override suspend fun getLatest(page: Int) = seriesList(page, "latest")
 
-    private suspend fun seriesList(page: Int, sort: String): PagedResult<TitleSummary> =
-        fetchList("$apiBase/series?sort=$sort&${pageQuery(page)}", page)
+    private suspend fun seriesList(page: Int, sort: String, extra: String = ""): PagedResult<TitleSummary> =
+        fetchList("$apiBase/series?sort=$sort&${pageQuery(page)}$extra", page)
+
+    /** `genres` takes slugs joined by commas (a title must have all); `type` and `status` take one value. */
+    private fun seriesFilters(filters: FilterList): String = buildString {
+        val genres = filters.checked("genres").map { it.substringAfter(':') }
+        if (genres.isNotEmpty()) append("&genres=${genres.joinToString(",") { urlEncode(it) }}")
+        filters.selected("type")?.takeIf { it.isNotEmpty() }?.let { append("&type=$it") }
+        filters.selected("status")?.takeIf { it.isNotEmpty() }?.let { append("&status=$it") }
+    }
+
+    override val filtersWithQuery: Boolean get() = false
+
+    private val siteFilters = SiteFilters(::fetchFilters)
+
+    override suspend fun loadFilters(): FilterList = siteFilters.get(::getFilters)
+
+    private suspend fun fetchFilters(): FilterList {
+        val genres = apiObject("$apiBase/genres")["data"].arr().orEmpty().mapNotNull { el ->
+            val item = el.obj() ?: return@mapNotNull null
+            val slug = item.str("slug") ?: return@mapNotNull null
+            SourceFilter.Check("genres:$slug", item.str("name") ?: slug)
+        }
+        if (genres.isEmpty()) throw SourceFetchException("Asura: no genres")
+        return FilterList(getFilters().filters + SourceFilter.Group("genres", appString(R.string.filter_genres), genres))
+    }
+
+    override fun browseSections(): List<BrowseSection> {
+        val base = getFilters()
+        return listOf(
+            BrowseSection("top", appString(R.string.section_top_rated), base.choose("sort", "rating")),
+            BrowseSection("completed", appString(R.string.section_completed), base.choose("status", "completed")),
+        )
+    }
 
     override fun getFilters(): FilterList = FilterList(
         listOf(
@@ -52,15 +86,35 @@ class AsuraEngine(
                     appString(R.string.filter_sort_rating),
                 ),
             ),
+            SourceFilter.Select(
+                id = "type",
+                name = appString(R.string.filter_type),
+                options = listOf("", "manhwa", "manga", "manhua"),
+                labels = listOf(
+                    appString(R.string.filter_any),
+                    appString(R.string.type_manhwa),
+                    appString(R.string.type_manga),
+                    appString(R.string.type_manhua),
+                ),
+            ),
+            SourceFilter.Select(
+                id = "status",
+                name = appString(R.string.filter_status),
+                options = listOf("", "ongoing", "completed", "hiatus", "dropped"),
+                labels = listOf(
+                    appString(R.string.filter_any),
+                    appString(R.string.filter_status_ongoing),
+                    appString(R.string.filter_status_completed),
+                    appString(R.string.filter_status_hiatus),
+                    appString(R.string.filter_status_cancelled),
+                ),
+            ),
         ),
     )
 
     override suspend fun search(query: String, page: Int, filters: FilterList): PagedResult<TitleSummary> {
-        if (query.isBlank()) {
-            val sort = filters.filters.filterIsInstance<SourceFilter.Select>()
-                .firstOrNull { it.id == "sort" }?.selectedValue ?: "popular"
-            return seriesList(page, sort)
-        }
+        // The search endpoint takes only text; sorting and filters belong to the series list.
+        if (query.isBlank()) return seriesList(page, filters.selected("sort") ?: "popular", seriesFilters(filters))
         return fetchList("$apiBase/search?q=${urlEncode(query.trim())}&${pageQuery(page)}", page)
     }
 
@@ -73,6 +127,8 @@ class AsuraEngine(
             id = slug,
             title = series.str("title") ?: slug,
             altTitle = series["alt_titles"].arr()?.firstNotNullOfOrNull { it.str() },
+            otherNames = series["alt_titles"].arr().orEmpty().mapNotNull { it.str()?.trim() }.distinct().take(15),
+            score = series.str("rating")?.toDoubleOrNull()?.takeIf { it > 0 },
             coverUrl = series.str("cover") ?: series.str("cover_url"),
             description = htmlToText(series.str("description")),
             status = series.str("status"),

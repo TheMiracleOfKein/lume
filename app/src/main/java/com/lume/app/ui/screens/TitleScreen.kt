@@ -90,6 +90,7 @@ import com.lume.app.ui.nav.openReader
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -222,8 +223,35 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                         modifier = Modifier.padding(top = 8.dp),
                                     )
                                 }
-                                d.typeLabel?.let {
-                                    Text(it, color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                                if (d.authors.isNotEmpty()) {
+                                    Text(
+                                        stringResource(R.string.title_by, d.authors.joinToString()),
+                                        color = AppColors.textSecondary,
+                                        fontSize = 13.sp,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(top = 4.dp),
+                                    )
+                                }
+                                val artOnly = d.artists.filter { it !in d.authors }
+                                if (artOnly.isNotEmpty()) {
+                                    Text(
+                                        stringResource(R.string.title_art_by, artOnly.joinToString()),
+                                        color = AppColors.textSecondary,
+                                        fontSize = 13.sp,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(top = 2.dp),
+                                    )
+                                }
+                                // "Manhwa · 2018 · ★ 9.3"
+                                val facts = listOfNotNull(
+                                    d.typeLabel,
+                                    d.year?.toString(),
+                                    d.score?.let { stringResource(R.string.title_score, String.format(Locale.US, "%.1f", it)) },
+                                )
+                                if (facts.isNotEmpty()) {
+                                    Text(facts.joinToString(" · "), color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
                                 }
                                 Spacer(Modifier.height(12.dp))
                                 Button(

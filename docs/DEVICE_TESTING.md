@@ -83,6 +83,16 @@ Use the signed release APK, installed over the previous release, so the database
 - [ ] Signed in to MyAnimeList: a title AniList doesn't know shows "Recommended on MyAnimeList".
 - [ ] Settings → Sources and search → Similar titles off: the row is gone and no request goes to AniList (check with a proxy or the network log).
 
+## v0.6.6
+
+- [ ] Search → filters on MangaDex, MangaLib and a Madara pack: the panel opens at once, then "Loading the site's filters…" turns into genre and tag groups.
+- [ ] Include and exclude a genre (+, then struck through): the results change; "Has all / has any" changes them again.
+- [ ] A long group (MangaLib tags) starts folded, shows what is chosen when folded, and the find field narrows the chips.
+- [ ] ReManga or Asura with search text: the panel says filters need an empty search field; without text the filters apply.
+- [ ] Catalogue → Popular: the section chips switch lists and keep each list's scroll; changing the active source shows that source's chips and titles, never the old source's.
+- [ ] Title screen: author, artist and "type · year · ★ score" for a MangaDex, a MangaLib and an Asura title; long author lists end with "…".
+- [ ] All of the above in Russian.
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.

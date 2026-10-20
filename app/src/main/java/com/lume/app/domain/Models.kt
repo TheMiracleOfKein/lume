@@ -26,6 +26,10 @@ data class TitleDetails(
     val artists: List<String> = emptyList(),
     /** Every other name the source knows (translations, romanizations); for matching, not shown. */
     val otherNames: List<String> = emptyList(),
+    /** Year of the first release. */
+    val year: Int? = null,
+    /** The site's users' average score on a 0–10 scale. */
+    val score: Double? = null,
 )
 
 @Serializable

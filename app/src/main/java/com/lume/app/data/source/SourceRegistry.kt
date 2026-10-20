@@ -251,6 +251,8 @@ private class DispatchingSource(private val delegate: CatalogSource) : CatalogSo
     override suspend fun search(query: String, page: Int, filters: FilterList) =
         withContext(Dispatchers.IO) { delegate.search(query, page, filters) }
 
+    override suspend fun loadFilters(): FilterList = withContext(Dispatchers.IO) { delegate.loadFilters() }
+
     override suspend fun getTitle(id: String): TitleDetails = withContext(Dispatchers.IO) { delegate.getTitle(id) }
     override suspend fun getChapters(titleId: String): List<Chapter> =
         withContext(Dispatchers.IO) {

@@ -2,15 +2,21 @@ package com.lume.app.data.source
 
 import com.lume.app.data.network.AppHttp
 import com.lume.app.data.network.SourceHttpException
+import com.lume.app.R
+import com.lume.app.data.locale.appString
+import com.lume.app.domain.BrowseSection
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
+import com.lume.app.domain.FilterList
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
+import com.lume.app.domain.SourceFilter
 import com.lume.app.domain.SourceLoginRequiredException
 import com.lume.app.domain.SourceManifest
 import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleSummary
+import com.lume.app.domain.choose
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -71,30 +77,116 @@ class LibSocialEngine(
     override suspend fun search(
         query: String,
         page: Int,
-        filters: com.lume.app.domain.FilterList,
+        filters: FilterList,
     ): PagedResult<TitleSummary> {
-        val sort = filters.selected("sort_by")
-        if (query.isBlank()) return mangaList(page, sort ?: "rating_score")
-        val q = urlEncode(query)
-        val sortPart = sort?.let { "&sort_by=$it" }.orEmpty()
-        val uri = URI("${apiBase.toString().trimEnd('/')}/manga?q=$q&page=$page&site_id[]=$siteId$sortPart")
+        val uri = URI("${apiBase.toString().trimEnd('/')}/manga?page=$page&site_id[]=$siteId" + filterQuery(query, filters))
         val response = http.get(uri, source = manifest, headers = apiHeaders(), checkCloudflare = false)
         return parseList(response.body, page)
     }
 
-    override fun getFilters(): com.lume.app.domain.FilterList = com.lume.app.domain.FilterList(
+    /** The catalogue query for [query] and [filters]; the site applies both together. */
+    internal fun filterQuery(query: String, filters: FilterList): String = buildString {
+        if (query.isNotBlank()) append("&q=${urlEncode(query.trim())}")
+        val sort = filters.sort("sort_by")
+        // A text search is ordered by relevance unless a sort was chosen.
+        if (sort != null && (query.isBlank() || sort.index != 0 || sort.ascending)) {
+            append("&sort_by=${sort.selectedValue}")
+            if (sort.ascending) append("&sort_type=asc")
+        } else if (query.isBlank()) {
+            append("&sort_by=rating_score")
+        }
+        append(arrayParams("genres", filters.included("genres").map(::siteId)))
+        append(arrayParams("genres_exclude", filters.excluded("genres").map(::siteId)))
+        append(arrayParams("tags", filters.included("tags").map(::siteId)))
+        append(arrayParams("tags_exclude", filters.excluded("tags").map(::siteId)))
+        append(arrayParams("types", filters.checked("types").map(::siteId)))
+        append(arrayParams("status", filters.checked("status").map(::siteId)))
+        append(arrayParams("format", filters.included("format").map(::siteId)))
+        append(arrayParams("format_exclude", filters.excluded("format").map(::siteId)))
+        if (filters.selected("match") == "any") append("&genres_soft_search=1&tags_soft_search=1")
+    }
+
+    private fun siteId(filterId: String) = filterId.substringAfter(':')
+
+    override fun getFilters(): FilterList = FilterList(
         listOf(
-            com.lume.app.domain.SourceFilter.Select(
+            SourceFilter.Sort(
                 id = "sort_by",
-                name = com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort),
-                options = listOf("rating_score", "last_chapter_at"),
+                name = appString(R.string.filter_sort),
+                options = listOf("rating_score", "rate_avg", "views", "last_chapter_at", "created_at", "releaseDate", "chap_count", "rus_name"),
                 labels = listOf(
-                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_rating),
-                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_latest),
+                    appString(R.string.filter_sort_popular),
+                    appString(R.string.filter_sort_rating),
+                    appString(R.string.section_most_viewed),
+                    appString(R.string.filter_sort_latest),
+                    appString(R.string.section_latest_titles),
+                    appString(R.string.filter_sort_year),
+                    appString(R.string.filter_sort_chapters),
+                    appString(R.string.filter_sort_title),
                 ),
             ),
         ),
     )
+
+    private val siteFilters = SiteFilters(::fetchFilters)
+
+    override suspend fun loadFilters(): FilterList = siteFilters.get(::getFilters)
+
+    /** Genres, tags, types, statuses and formats from `/constants`, only those of this site. */
+    private suspend fun fetchFilters(): FilterList {
+        val fields = listOf("genres", "tags", "types", "status", "format")
+        val uri = URI("${apiBase.toString().trimEnd('/')}/constants?" + fields.joinToString("&") { "fields[]=$it" })
+        val response = http.get(uri, source = manifest, headers = apiHeaders(), checkCloudflare = false)
+        val data = asObject(json.parseToJsonElement(response.body))["data"].obj()
+            ?: throw SourceFetchException("${manifest.name}: no filters")
+        fun entries(field: String): List<Pair<String, String>> = data[field].arr().orEmpty().mapNotNull { el ->
+            val item = el.obj() ?: return@mapNotNull null
+            val id = item.str("id")?.takeIf { it != "0" } ?: return@mapNotNull null
+            val sites = item["site_ids"].arr()?.mapNotNull { it.str() }.orEmpty()
+            if (sites.isNotEmpty() && siteId !in sites) return@mapNotNull null
+            val name = item.str("label") ?: item.str("name") ?: return@mapNotNull null
+            id to name
+        }
+        fun tri(id: String, name: String, list: List<Pair<String, String>>) = SourceFilter.Group(
+            id = id,
+            name = name,
+            filters = list.sortedBy { it.second.lowercase() }.map { (key, label) -> SourceFilter.TriState("$id:$key", label) },
+        )
+        fun checks(id: String, name: String, list: List<Pair<String, String>>) = SourceFilter.Group(
+            id = id,
+            name = name,
+            filters = list.map { (key, label) -> SourceFilter.Check("$id:$key", label) },
+        )
+        val groups = listOf(
+            checks("types", appString(R.string.filter_type), entries("types")),
+            checks("status", appString(R.string.filter_status), entries("status")),
+            tri("genres", appString(R.string.filter_genres), entries("genres")),
+            tri("tags", appString(R.string.filter_tags), entries("tags")),
+            tri("format", appString(R.string.filter_format), entries("format")),
+        ).filter { it.filters.isNotEmpty() }
+        if (groups.none { it.id == "genres" }) throw SourceFetchException("${manifest.name}: no genres")
+        val match = SourceFilter.Select(
+            id = "match",
+            name = appString(R.string.filter_match),
+            options = listOf("all", "any"),
+            labels = listOf(appString(R.string.filter_match_all), appString(R.string.filter_match_any)),
+        )
+        return FilterList(getFilters().filters + groups + match)
+    }
+
+    override fun browseSections(): List<BrowseSection> {
+        val base = getFilters()
+        return listOf(
+            BrowseSection("views", appString(R.string.section_most_viewed), base.choose("sort_by", "views")),
+            BrowseSection("new", appString(R.string.section_latest_titles), base.choose("sort_by", "created_at")),
+            BrowseSection(
+                "completed",
+                appString(R.string.section_completed),
+                // Status 2 is "completed" on every Lib site.
+                FilterList(base.filters + SourceFilter.Group("status", "", listOf(SourceFilter.Check("status:2", "", state = true)))),
+            ),
+        )
+    }
 
     override suspend fun getTitle(id: String): TitleDetails {
         val slug = slug(id)
@@ -122,12 +214,22 @@ class LibSocialEngine(
         val authors = (data["authors"] as? JsonArray).orEmpty().mapNotNull {
             (it as? JsonObject)?.get("name")?.jsonPrimitive?.contentOrNull
         }
+        val name = data.str("name")
+        val english = data.str("eng_name")
         return TitleDetails(
             id = if (id.startsWith("/")) id else "/$slug",
             title = data["rus_name"]?.jsonPrimitive?.contentOrNull
-                ?: data["name"]?.jsonPrimitive?.contentOrNull
+                ?: name
                 ?: slug,
-            altTitle = data["name"]?.jsonPrimitive?.contentOrNull,
+            altTitle = english ?: name,
+            // The English and original names first: other sources search by them.
+            otherNames = (listOfNotNull(english, name) + data["otherNames"].arr().orEmpty().mapNotNull { it.str() })
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .distinct()
+                .take(MAX_OTHER_NAMES),
+            year = data.str("releaseDate")?.take(4)?.toIntOrNull(),
+            score = data["rating"].obj()?.str("average")?.toDoubleOrNull()?.takeIf { it > 0 },
             coverUrl = cover,
             description = htmlToText(stringOrNull(data["summary"]) ?: stringOrNull(data["description"])),
             typeLabel = nestedLabel(data["type"]),
@@ -396,7 +498,10 @@ class LibSocialEngine(
     private companion object {
         val TITLE_FIELDS = listOf(
             "summary", "genres", "tags", "authors", "artists", "releaseDate", "status_id", "chap_count",
+            // The score (`rating`) comes only with rate_avg and rate.
+            "otherNames", "rate_avg", "rate",
         )
+        private const val MAX_OTHER_NAMES = 15
     }
 }
 

@@ -1,14 +1,20 @@
 package com.lume.app.data.source
 
 import com.lume.app.data.network.AppHttp
+import com.lume.app.R
+import com.lume.app.data.locale.appString
+import com.lume.app.domain.BrowseSection
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
+import com.lume.app.domain.FilterList
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
+import com.lume.app.domain.SourceFilter
 import com.lume.app.domain.SourceManifest
 import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleSummary
+import com.lume.app.domain.choose
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -45,8 +51,8 @@ class RemangaEngine(
         titles(page, ordering = "-rating")
 
     /** `/titles/` ignores `ordering`; the catalog endpoint is what the site uses for sorting. */
-    private suspend fun titles(page: Int, ordering: String): PagedResult<TitleSummary> {
-        val uri = URI("$apiBase/search/catalog/?ordering=$ordering&count=$PAGE_SIZE&page=$page")
+    private suspend fun titles(page: Int, ordering: String, extra: String = ""): PagedResult<TitleSummary> {
+        val uri = URI("$apiBase/search/catalog/?ordering=$ordering&count=$PAGE_SIZE&page=$page$extra")
         val response = http.get(uri, source = manifest, headers = headers, checkCloudflare = false)
         return parseTitleList(response.body, page)
     }
@@ -56,15 +62,71 @@ class RemangaEngine(
         page: Int,
         filters: com.lume.app.domain.FilterList,
     ): PagedResult<TitleSummary> {
-        if (query.isBlank()) {
-            val ordering = filters.filters.filterIsInstance<com.lume.app.domain.SourceFilter.Select>()
-                .firstOrNull { it.id == "ordering" }?.selectedValue ?: "-rating"
-            return titles(page, ordering)
-        }
+        // The catalogue sorts and filters but has no text search; a text search ignores filters.
+        if (query.isBlank()) return titles(page, filters.selected("ordering") ?: "-rating", catalogQuery(filters))
         val q = urlEncode(query.trim())
         val uri = URI("$apiBase/search/?query=$q&count=$PAGE_SIZE&page=$page")
         val response = http.get(uri, source = manifest, headers = headers, checkCloudflare = false)
         return parseTitleList(response.body, page)
+    }
+
+    override val filtersWithQuery: Boolean get() = false
+
+    /** Catalogue parameters for [filters]: repeated `genres=`, `exclude_genres=` and so on. */
+    internal fun catalogQuery(filters: FilterList): String = buildString {
+        fun add(name: String, ids: List<String>) = ids.forEach { append("&$name=${it.substringAfter(':')}") }
+        add("genres", filters.included("genres"))
+        add("exclude_genres", filters.excluded("genres"))
+        add("categories", filters.included("categories"))
+        add("exclude_categories", filters.excluded("categories"))
+        add("types", filters.included("types"))
+        add("exclude_types", filters.excluded("types"))
+        add("age_limit", filters.checked("age"))
+        filters.text("year")?.toIntOrNull()?.let { append("&issue_year_gte=$it") }
+    }
+
+    private val siteFilters = SiteFilters(::fetchFilters)
+
+    override suspend fun loadFilters(): FilterList = siteFilters.get(::getFilters)
+
+    /** Genres, categories (tags), types and age limits from the site's catalogue form. */
+    private suspend fun fetchFilters(): FilterList {
+        val uri = URI("$apiBase/forms/titles/?get=genres&get=categories&get=types&get=age_limit")
+        val response = http.get(uri, source = manifest, headers = headers, checkCloudflare = false)
+        val content = asObject(json.parseToJsonElement(response.body))["content"] as? JsonObject
+            ?: throw SourceFetchException("ReManga: no filters")
+        fun entries(field: String): List<Pair<String, String>> = (content[field] as? JsonArray).orEmpty().mapNotNull { el ->
+            val item = el as? JsonObject ?: return@mapNotNull null
+            val id = stringOrNull(item["id"]) ?: return@mapNotNull null
+            val name = stringOrNull(item["name"]) ?: return@mapNotNull null
+            id to name
+        }
+        fun tri(id: String, name: String) = SourceFilter.Group(
+            id = id,
+            name = name,
+            filters = entries(id).sortedBy { it.second.lowercase() }.map { (key, label) -> SourceFilter.TriState("$id:$key", label) },
+        )
+        val genres = tri("genres", appString(R.string.filter_genres))
+        if (genres.filters.isEmpty()) throw SourceFetchException("ReManga: no genres")
+        val age = SourceFilter.Group(
+            id = "age",
+            name = appString(R.string.filter_age),
+            filters = entries("age_limit").map { (key, label) -> SourceFilter.Check("age:$key", label) },
+        )
+        return FilterList(
+            getFilters().filters +
+                listOf(tri("types", appString(R.string.filter_type)), genres, tri("categories", appString(R.string.filter_tags)), age)
+                    .filter { it.filters.isNotEmpty() } +
+                SourceFilter.Text("year", appString(R.string.filter_year_from)),
+        )
+    }
+
+    override fun browseSections(): List<BrowseSection> {
+        val base = getFilters()
+        return listOf(
+            BrowseSection("views", appString(R.string.section_most_viewed), base.choose("ordering", "-views")),
+            BrowseSection("new", appString(R.string.section_latest_titles), base.choose("ordering", "-id")),
+        )
     }
 
     override fun getFilters(): com.lume.app.domain.FilterList = com.lume.app.domain.FilterList(
@@ -72,12 +134,14 @@ class RemangaEngine(
             com.lume.app.domain.SourceFilter.Select(
                 id = "ordering",
                 name = com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort),
-                options = listOf("-rating", "-chapter_date", "-views", "-id"),
+                options = listOf("-rating", "-chapter_date", "-views", "-id", "-votes", "-count_chapters"),
                 labels = listOf(
                     com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_rating),
                     com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_latest),
                     com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_popular),
                     com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_new),
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_votes),
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_chapters),
                 ),
             ),
         ),
@@ -106,12 +170,21 @@ class RemangaEngine(
             id = dir,
             title = stringOrNull(data["main_name"]) ?: stringOrNull(data["secondary_name"]) ?: dir,
             altTitle = stringOrNull(data["secondary_name"]),
+            // English name first: other sources search by it.
+            otherNames = (listOfNotNull(stringOrNull(data["secondary_name"]), stringOrNull(data["en_name"])) +
+                stringOrNull(data["another_name"]).orEmpty().split(" / "))
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .distinct()
+                .take(MAX_OTHER_NAMES),
+            year = stringOrNull(data["issue_year"])?.toIntOrNull(),
+            score = stringOrNull(data["avg_rating"])?.toDoubleOrNull()?.takeIf { it > 0 },
             coverUrl = coverUrl(data["cover"]),
             description = htmlToText(stringOrNull(data["description"])),
             typeLabel = nestedName(data["type"]),
             status = nestedName(data["status"]) ?: nestedName(data["translate_status"]),
             authors = authors,
-            genres = genres,
+            genres = genres + (data["categories"] as? JsonArray).orEmpty().mapNotNull { stringOrNull((it as? JsonObject)?.get("name")) },
         )
     }
 
@@ -247,5 +320,6 @@ class RemangaEngine(
 
     private companion object {
         const val PAGE_SIZE = 30
+        const val MAX_OTHER_NAMES = 15
     }
 }
