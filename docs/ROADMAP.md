@@ -49,7 +49,7 @@ Patch releases from the v0.6 line, as needed.
 **v0.6.3: reading lists** ✅ released 2026-10-20 ([details](#v063-reading-lists--released-2026-10-20))
 - ✅ Share or save a reading list from the library; open one shared to Lume; `LibraryScreen.kt` split.
 
-**v0.6.4: similar titles** ([details](#v064-similar-titles))
+**v0.6.4: similar titles** ✅ released 2026-10-20 ([details](#v064-similar-titles--released-2026-10-20))
 - ✅ Recommendations on the title screen ("Similar titles") from AniList or MyAnimeList; a tap searches your sources for that title.
 - ⏸️ Split `Database.kt`: the release didn't touch it, so it moves on (next release that changes the database).
 
@@ -393,7 +393,7 @@ Release notes: [docs/releases/v0.6.3.md](releases/v0.6.3.md).
 - ✅ **Fix:** a link or file shared to Lume while Lume was already open sometimes landed in the window in the background; now the window on screen opens it.
 - ✅ **Split `LibraryScreen.kt`** (about 850 lines) into the screen, the grid and list items, and the options sheet with its dialogs.
 
-### v0.6.4: similar titles
+### v0.6.4: similar titles ✅ released 2026-10-20
 
 Release notes: [docs/releases/v0.6.4.md](releases/v0.6.4.md).
 
