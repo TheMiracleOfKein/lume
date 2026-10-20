@@ -59,7 +59,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ "Import pack from URL" with an empty field now says what is missing.
 - ⏸️ Drawer **Theme** button: the code toggles correctly; the drawer staying open looks intended. Not changed.
 
-**v0.6.6: source filters and browse sections** ([details](#v066-source-filters-and-browse-sections))
+**v0.6.6: source filters and browse sections** ✅ released 2026-10-20 ([details](#v066-source-filters-and-browse-sections--released-2026-10-20))
 - ✅ The site's own genres, tags, types and statuses in the filter panel, with include/exclude; filters together with search text where the site allows it.
 - ✅ Browse section chips in the catalogue; author, artist, year and score on the title screen.
 - ⏸️ MangaBuff and MangaKatana filters; Lib site descriptions (separate fix).
@@ -423,7 +423,7 @@ Release notes: [docs/releases/v0.6.5.md](releases/v0.6.5.md).
 - ⏸️ **Not bugs:** incognito is off by default in code; the late switch responses seen in testing looked like emulator lag.
 
 
-### v0.6.6: source filters and browse sections
+### v0.6.6: source filters and browse sections ✅ released 2026-10-20
 
 Release notes: [docs/releases/v0.6.6.md](releases/v0.6.6.md).
 
