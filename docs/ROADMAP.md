@@ -59,6 +59,15 @@ Patch releases from the v0.6 line, as needed.
 - ✅ "Import pack from URL" with an empty field now says what is missing.
 - ⏸️ Drawer **Theme** button: the code toggles correctly; the drawer staying open looks intended. Not changed.
 
+**Next: source filters and browse sections** (in progress, branch `feat/source-filters`)
+- ✅ **The site's own filters.** The filter panel loads genres, tags, types, statuses and formats from the site (MangaDex, MangaLib/YaoiLib/HentaiLib, ReManga, Madara packs, Asura, HiveToons/Vortex, WeebCentral). Genres and tags can be included or excluded where the site allows it, with "has all / has any". Long lists fold, show what is chosen and have a find field. The panel opens at once and adds the lists when they arrive.
+- ✅ **Filters with search text** on MangaDex, the Lib sites, Madara, HiveToons and WeebCentral. ReManga and Asura filter only their catalogue; the panel says so when there is text.
+- ✅ **Browse sections** in the catalogue: chips above the popular list ("New titles", "Top rated", "Completed", "Most viewed", "Manhwa"…), per source.
+- ✅ **More title details:** author and artist, year and the site's score on the title screen; MangaDex type from the original language; more alternative names from the Lib sites, ReManga, Madara and Asura, so "Found for you" matches more titles.
+- ✅ The weekly live check also loads every source's filters, searches with one genre and opens every browse section.
+- MangaBuff: no filters yet (the site is geo-blocked from where this was built). MangaKatana: genre pages not used yet.
+- Device testing of the filter panel and the section chips.
+
 ## v0.7: sync and everyday reading
 
 **Goal:** read on the phone, continue on the tablet, without an account.
