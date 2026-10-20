@@ -13,6 +13,7 @@ import com.lume.app.data.source.SourceEngines
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.FilterList
+import com.lume.app.domain.carryOver
 import com.lume.app.domain.PagedResult
 import kotlinx.coroutines.flow.StateFlow
 import com.lume.app.domain.TitleSummary
@@ -25,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import java.net.URI
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -75,8 +77,13 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
     var defaultFilters by mutableStateOf(FilterList())
         private set
     private var filtersSourceId: String? = null
+    private var filtersComplete = false
 
     val filtersActive: Boolean get() = !filters.sameAs(defaultFilters)
+
+    /** The active source can't combine search text with filters (see [CatalogSource.filtersWithQuery]). */
+    val filtersNeedEmptyQuery: Boolean
+        get() = filtersSourceId?.let { app.sources.sourceById(it) }?.filtersWithQuery == false
 
     val history: StateFlow<List<String>> = app.prefs.searchHistory
 
@@ -133,7 +140,8 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
             return
         }
         currentSourceId = source.manifest.id
-        ensureFilters(source)
+        // Don't hold the search for the site's genre lists; the panel loads them.
+        ensureFilters(source, load = false)
         currentState = runSource(source, q, timeoutMs = CURRENT_TIMEOUT_MS, filters = filters, onPage = { currentHasNext = it.hasNext })
     }
 
@@ -163,16 +171,43 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
     }
 
     /** Loads the active source's filters into the panel (keeps them while the source stays the same). */
-    suspend fun prepareFilters() {
-        val source = app.sources.activeSource() ?: return
-        ensureFilters(source)
+    fun prepareFilters() {
+        viewModelScope.launch {
+            val source = app.sources.activeSource() ?: return@launch
+            filtersLoading = true
+            try {
+                ensureFilters(source)
+            } finally {
+                filtersLoading = false
+            }
+        }
     }
 
-    private fun ensureFilters(source: CatalogSource) {
-        if (filtersSourceId == source.manifest.id) return
-        filtersSourceId = source.manifest.id
-        defaultFilters = runCatching { source.getFilters() }.getOrDefault(FilterList())
-        filters = defaultFilters
+    /** True while the panel waits for the site's own lists (genres, tags). */
+    var filtersLoading by mutableStateOf(false)
+        private set
+
+    /**
+     * The site's own lists (genres, tags) come with [CatalogSource.loadFilters]; a slow site gets
+     * the static filters instead, and the next opening of the panel tries again.
+     */
+    private suspend fun ensureFilters(source: CatalogSource, load: Boolean = true) {
+        val id = source.manifest.id
+        if (filtersSourceId == id && (filtersComplete || !load)) return
+        val static = runCatching { source.getFilters() }.getOrDefault(FilterList())
+        val loaded = if (!load) null else try {
+            withTimeoutOrNull(FILTERS_TIMEOUT_MS.milliseconds) { source.loadFilters() }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        }
+        val next = loaded ?: static
+        filtersComplete = loaded != null
+        // Same source, longer lists: keep what the user already set. A new source starts afresh.
+        filters = if (filtersSourceId == id) next.carryOver(filters) else next
+        defaultFilters = next
+        filtersSourceId = id
     }
 
     fun applyFilters(next: FilterList) {
@@ -269,5 +304,6 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         const val GLOBAL_TIMEOUT_MS = 15_000L
         const val CURRENT_TIMEOUT_MS = 45_000L
         const val MAX_PARALLEL_SOURCES = 5
+        const val FILTERS_TIMEOUT_MS = 10_000L
     }
 }

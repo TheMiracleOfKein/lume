@@ -62,6 +62,18 @@ interface CatalogSource {
     /** Default filters for this source (may be empty). */
     fun getFilters(): FilterList = FilterList()
 
+    /**
+     * Filters with the lists only the site knows (its genres and tags). Engines that fetch them
+     * keep them for the session; on failure they fall back to [getFilters]. Default: [getFilters].
+     */
+    suspend fun loadFilters(): FilterList = getFilters()
+
+    /** False when the site filters only its catalogue: a search with text then ignores the filters. */
+    val filtersWithQuery: Boolean get() = true
+
+    /** Feeds shown next to popular and latest in the catalogue; each runs [search] without text. */
+    fun browseSections(): List<BrowseSection> = emptyList()
+
     suspend fun search(
         query: String,
         page: Int = 1,
