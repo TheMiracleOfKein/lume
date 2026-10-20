@@ -775,4 +775,56 @@
     <string name="reading_list_open_hint">Список, которым с вами поделились. Чтобы поделиться своим, нажмите кнопку «Поделиться» в библиотеке или сначала выберите тайтлы.</string>
     <string name="settings_group_reading_lists">Списки для чтения</string>
     <string name="settings_kw_reading_list">поделиться, экспорт, импорт, список, друзья</string>
+
+    <!-- Синхронизация между устройствами (v0.7) -->
+    <string name="settings_section_sync">Синхронизация</string>
+    <string name="settings_summary_sync">Библиотека и прогресс на всех устройствах</string>
+    <string name="settings_kw_sync">устройства, планшет, телефон, webdav, nextcloud, syncthing, папка, облако, синхронизация</string>
+    <string name="settings_kw_sync_passphrase">шифрование, пароль, секрет</string>
+    <string name="sync_intro">Библиотека, места чтения и отметки о прочтении одинаковы на телефоне и планшете. Без аккаунта Lume: каждое устройство хранит небольшой файл в выбранной вами папке или на сервере WebDAV и читает файлы остальных.</string>
+    <string name="sync_place">Синхронизировать через</string>
+    <string name="sync_off">Выкл.</string>
+    <string name="sync_folder">Папку</string>
+    <string name="sync_webdav">WebDAV</string>
+    <string name="sync_folder_pick">Выбрать папку…</string>
+    <string name="sync_folder_name">Папка: %1$s</string>
+    <string name="sync_folder_hint">Папка, которую другое приложение держит одинаковой на всех устройствах, например Syncthing или приложение облачного диска. Выберите ту же папку на каждом устройстве.</string>
+    <string name="sync_webdav_server">Сервер WebDAV</string>
+    <string name="sync_webdav_hint">Nextcloud, ownCloud, NAS или любая папка WebDAV</string>
+    <string name="sync_webdav_url">Адрес папки</string>
+    <string name="sync_webdav_user">Имя пользователя</string>
+    <string name="sync_webdav_password">Пароль или пароль приложения</string>
+    <string name="sync_webdav_note">Укажите один и тот же адрес на всех устройствах. Lume создаст папку, если её нет. Пароль остаётся на этом устройстве.</string>
+    <string name="sync_section_options">Параметры</string>
+    <string name="sync_passphrase">Кодовая фраза</string>
+    <string name="sync_passphrase_on">Вкл.: файлы синхронизации зашифрованы</string>
+    <string name="sync_passphrase_off">Выкл.: файлы может прочитать любой, у кого есть доступ к папке</string>
+    <string name="sync_passphrase_hint">На всех устройствах нужна одна и та же фраза.</string>
+    <string name="sync_passphrase_note">Шифрует файлы синхронизации (AES-256). Оставьте поле пустым, чтобы выключить. Если забудете фразу, задайте новую на всех устройствах: на самих устройствах ничего не пропадёт.</string>
+    <string name="sync_interval">Синхронизировать в фоне</string>
+    <string name="sync_interval_manual">Вручную</string>
+    <plurals name="sync_interval_hours">
+        <item quantity="one">%d ч</item>
+        <item quantity="few">%d ч</item>
+        <item quantity="many">%d ч</item>
+        <item quantity="other">%d ч</item>
+    </plurals>
+    <string name="sync_interval_hint">Lume также синхронизируется при запуске.</string>
+    <string name="sync_section_status">Состояние</string>
+    <string name="sync_now">Синхронизировать сейчас</string>
+    <string name="sync_never">Ещё не синхронизировано</string>
+    <string name="sync_last">Последняя синхронизация: %1$s</string>
+    <plurals name="sync_devices">
+        <item quantity="one">%d другое устройство</item>
+        <item quantity="few">%d других устройства</item>
+        <item quantity="many">%d других устройств</item>
+        <item quantity="other">%d других устройства</item>
+    </plurals>
+    <string name="sync_failed">Синхронизация не удалась: %1$s</string>
+    <string name="sync_done">Синхронизировано, изменений с других устройств: %1$d</string>
+    <string name="sync_done_nothing">Синхронизировано: всё уже было актуально</string>
+    <string name="sync_what">Синхронизируются библиотека и категории, места чтения, отметки о прочтении, закладки страниц, связанные источники, связи с трекерами, настройки читалки для тайтлов и пакеты источников. Входы в аккаунты, загрузки и настройки приложения остаются на каждом устройстве. Побеждает последнее изменение; для главы — самое дальнее место.</string>
+    <string name="sync_error_passphrase_missing">другое устройство шифрует свой файл: введите здесь ту же кодовую фразу</string>
+    <string name="sync_error_passphrase_wrong">кодовая фраза не подходит к файлу другого устройства</string>
+    <string name="sync_error_offline">нет связи с сервером</string>
 </resources>

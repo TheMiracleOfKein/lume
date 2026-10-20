@@ -62,7 +62,7 @@ import kotlinx.coroutines.delay
 private val SECTION_GROUPS = listOf(
     listOf(SettingsPage.Appearance, SettingsPage.Reader),
     listOf(SettingsPage.Library, SettingsPage.Downloads, SettingsPage.Sources, SettingsPage.Trackers),
-    listOf(SettingsPage.Backup, SettingsPage.Privacy, SettingsPage.Network),
+    listOf(SettingsPage.Sync, SettingsPage.Backup, SettingsPage.Privacy, SettingsPage.Network),
     listOf(SettingsPage.About),
 )
 
@@ -152,6 +152,7 @@ fun SettingsPageScreen(nav: NavHostController, pageKey: String, focus: String?) 
                 SettingsPage.Downloads -> DownloadSettings(nav, vm)
                 SettingsPage.Sources -> SourcesSettings(nav, vm)
                 SettingsPage.Trackers -> TrackerSettings(vm)
+                SettingsPage.Sync -> SyncSettingsPage(vm)
                 SettingsPage.Backup -> BackupSettings(nav, vm)
                 SettingsPage.Privacy -> PrivacySettings(vm)
                 SettingsPage.Network -> NetworkSettings(vm)

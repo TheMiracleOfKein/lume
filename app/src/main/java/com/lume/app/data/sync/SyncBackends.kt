@@ -1,0 +1,163 @@
+package com.lume.app.data.sync
+
+import android.content.Context
+import android.net.Uri
+import android.provider.DocumentsContract
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.Credentials
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.jsoup.Jsoup
+import org.jsoup.parser.Parser
+import java.io.IOException
+import java.net.URLDecoder
+
+/** Where the sync files live. Each device reads every file and writes only its own. */
+interface SyncBackend {
+    /** File names in the sync place. */
+    suspend fun list(): List<String>
+    suspend fun read(name: String): ByteArray
+    suspend fun write(name: String, bytes: ByteArray)
+}
+
+/** A sync failure with a message for the status line. */
+class SyncBackendException(message: String, val httpCode: Int = 0) : IOException(message)
+
+/** A folder picked with the system file picker; Syncthing, a cloud drive app or an SD card. */
+class FolderSyncBackend(private val context: Context, private val tree: Uri) : SyncBackend {
+    private val resolver get() = context.contentResolver
+    private val rootId get() = DocumentsContract.getTreeDocumentId(tree)
+
+    override suspend fun list(): List<String> = withContext(Dispatchers.IO) { children().map { it.second } }
+
+    override suspend fun read(name: String): ByteArray = withContext(Dispatchers.IO) {
+        val id = children().firstOrNull { it.second == name }?.first ?: throw SyncBackendException("$name: not found")
+        resolver.openInputStream(DocumentsContract.buildDocumentUriUsingTree(tree, id))?.use { it.readBytes() }
+            ?: throw SyncBackendException("$name: can't read")
+    }
+
+    override suspend fun write(name: String, bytes: ByteArray) = withContext(Dispatchers.IO) {
+        val existing = children().firstOrNull { it.second == name }?.first
+        val target = if (existing != null) {
+            DocumentsContract.buildDocumentUriUsingTree(tree, existing)
+        } else {
+            val parent = DocumentsContract.buildDocumentUriUsingTree(tree, rootId)
+            DocumentsContract.createDocument(resolver, parent, "application/octet-stream", name)
+                ?: throw SyncBackendException("$name: can't create")
+        }
+        resolver.openOutputStream(target, "wt")?.use { it.write(bytes) } ?: throw SyncBackendException("$name: can't write")
+        Unit
+    }
+
+    /** (document id, display name) of the folder's files. */
+    private fun children(): List<Pair<String, String>> {
+        val uri = DocumentsContract.buildChildDocumentsUriUsingTree(tree, rootId)
+        val found = mutableListOf<Pair<String, String>>()
+        try {
+            resolver.query(
+                uri,
+                arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME),
+                null,
+                null,
+                null,
+            )?.use { c ->
+                while (c.moveToNext()) {
+                    val name = c.getString(1) ?: continue
+                    found += c.getString(0) to name
+                }
+            } ?: throw SyncBackendException("folder: can't open")
+        } catch (e: SecurityException) {
+            throw SyncBackendException("folder: access lost, pick it again")
+        }
+        return found
+    }
+}
+
+/**
+ * A WebDAV folder (Nextcloud, ownCloud, a NAS…). [url] is the folder; it is created when missing.
+ * Uses its own client without the sites' cookies.
+ */
+class WebDavSyncBackend(
+    base: OkHttpClient,
+    url: String,
+    private val user: String,
+    private val password: String,
+) : SyncBackend {
+    private val folder = url.trim().let { if (it.endsWith("/")) it else "$it/" }
+    private val client = base.newBuilder().cookieJar(okhttp3.CookieJar.NO_COOKIES).build()
+
+    override suspend fun list(): List<String> = withContext(Dispatchers.IO) {
+        val body = """<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/></d:prop></d:propfind>"""
+        val request = request(folder)
+            .method("PROPFIND", body.toRequestBody(XML))
+            .header("Depth", "1")
+            .build()
+        client.newCall(request).execute().use { response ->
+            if (response.code == 404) {
+                mkcol()
+                return@withContext emptyList()
+            }
+            check(response, "PROPFIND")
+            fileNames(response.body?.string().orEmpty())
+        }
+    }
+
+    override suspend fun read(name: String): ByteArray = withContext(Dispatchers.IO) {
+        client.newCall(request(folder + name).get().build()).execute().use { response ->
+            check(response, "GET")
+            response.body?.bytes() ?: ByteArray(0)
+        }
+    }
+
+    override suspend fun write(name: String, bytes: ByteArray) = withContext(Dispatchers.IO) {
+        val request = request(folder + name).put(bytes.toRequestBody(BINARY)).build()
+        client.newCall(request).execute().use { check(it, "PUT") }
+    }
+
+    private fun mkcol() {
+        client.newCall(request(folder).method("MKCOL", null).build()).execute().use { response ->
+            // 405: it exists after all.
+            if (!response.isSuccessful && response.code != 405) check(response, "MKCOL")
+        }
+    }
+
+    private fun request(url: String): Request.Builder {
+        val builder = try {
+            Request.Builder().url(url)
+        } catch (_: IllegalArgumentException) {
+            throw SyncBackendException("WebDAV: not a valid address")
+        }
+        if (user.isNotEmpty()) builder.header("Authorization", Credentials.basic(user, password))
+        return builder
+    }
+
+    private fun check(response: okhttp3.Response, what: String) {
+        if (response.isSuccessful || response.code == 207) return
+        val reason = when (response.code) {
+            401, 403 -> "sign-in refused"
+            404 -> "folder not found"
+            else -> "HTTP ${response.code}"
+        }
+        throw SyncBackendException("WebDAV $what: $reason", response.code)
+    }
+
+    companion object {
+        /** File names in a PROPFIND answer; servers differ in their namespace prefix (`d:`, `D:`, none). */
+        fun fileNames(xml: String): List<String> {
+            val doc = Jsoup.parse(xml, "", Parser.xmlParser())
+            fun org.jsoup.nodes.Element.local() = tagName().substringAfter(':').lowercase()
+            return doc.allElements.filter { it.local() == "response" }
+                .filter { r -> r.allElements.none { it.local() == "collection" } }
+                .mapNotNull { r ->
+                    val href = r.allElements.firstOrNull { it.local() == "href" }?.text() ?: return@mapNotNull null
+                    URLDecoder.decode(href.trimEnd('/').substringAfterLast('/'), "UTF-8").takeIf { it.isNotBlank() }
+                }
+        }
+
+        private val XML = "application/xml; charset=utf-8".toMediaType()
+        private val BINARY = "application/octet-stream".toMediaType()
+    }
+}

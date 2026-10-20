@@ -768,4 +768,52 @@
     <string name="reading_list_open_hint">A list someone shared with you. To share your own, tap the share button in the Library, or select titles first.</string>
     <string name="settings_group_reading_lists">Reading lists</string>
     <string name="settings_kw_reading_list">share, export, import, list, friends</string>
+
+    <!-- Sync between devices (v0.7) -->
+    <string name="settings_section_sync">Sync</string>
+    <string name="settings_summary_sync">Library and progress on all your devices</string>
+    <string name="settings_kw_sync">devices, tablet, phone, webdav, nextcloud, syncthing, folder, cloud</string>
+    <string name="settings_kw_sync_passphrase">encrypt, password, secret</string>
+    <string name="sync_intro">Keep the library, reading spots and read marks the same on your phone and tablet. No Lume account: every device keeps a small file in a folder or on a WebDAV server you choose, and reads the files of the others.</string>
+    <string name="sync_place">Sync through</string>
+    <string name="sync_off">Off</string>
+    <string name="sync_folder">Folder</string>
+    <string name="sync_webdav">WebDAV</string>
+    <string name="sync_folder_pick">Pick a folder…</string>
+    <string name="sync_folder_name">Folder: %1$s</string>
+    <string name="sync_folder_hint">A folder that another app keeps the same on all devices, for example Syncthing or a cloud drive app. Pick the same folder on each device.</string>
+    <string name="sync_webdav_server">WebDAV server</string>
+    <string name="sync_webdav_hint">Nextcloud, ownCloud, a NAS or any WebDAV folder</string>
+    <string name="sync_webdav_url">Folder address</string>
+    <string name="sync_webdav_user">User name</string>
+    <string name="sync_webdav_password">Password or app password</string>
+    <string name="sync_webdav_note">Use the same address on every device. Lume creates the folder if it doesn\'t exist. The password stays on this device.</string>
+    <string name="sync_section_options">Options</string>
+    <string name="sync_passphrase">Passphrase</string>
+    <string name="sync_passphrase_on">On: the sync files are encrypted</string>
+    <string name="sync_passphrase_off">Off: anyone who can open the folder can read the sync files</string>
+    <string name="sync_passphrase_hint">Every device needs the same passphrase.</string>
+    <string name="sync_passphrase_note">Encrypts the sync files (AES-256). Leave it empty to turn it off. If you forget it, set a new one on every device; nothing on the devices themselves is lost.</string>
+    <string name="sync_interval">Sync in the background</string>
+    <string name="sync_interval_manual">Manual</string>
+    <plurals name="sync_interval_hours">
+        <item quantity="one">%d h</item>
+        <item quantity="other">%d h</item>
+    </plurals>
+    <string name="sync_interval_hint">Lume also syncs when it starts.</string>
+    <string name="sync_section_status">Status</string>
+    <string name="sync_now">Sync now</string>
+    <string name="sync_never">Not synced yet</string>
+    <string name="sync_last">Last sync %1$s</string>
+    <plurals name="sync_devices">
+        <item quantity="one">%d other device</item>
+        <item quantity="other">%d other devices</item>
+    </plurals>
+    <string name="sync_failed">Sync failed: %1$s</string>
+    <string name="sync_done">Synced: %1$d changes from your other devices</string>
+    <string name="sync_done_nothing">Synced: everything was already up to date</string>
+    <string name="sync_what">Syncs the library and categories, reading spots, read marks, page bookmarks, linked sources, tracker links, per-title reader settings and source packs. Sign-ins, downloads and app settings stay on each device. The newest change wins; for a chapter, the furthest spot wins.</string>
+    <string name="sync_error_passphrase_missing">another device encrypts its file: enter the same passphrase here</string>
+    <string name="sync_error_passphrase_wrong">the passphrase doesn\'t open another device\'s file</string>
+    <string name="sync_error_offline">no connection to the server</string>
 </resources>
