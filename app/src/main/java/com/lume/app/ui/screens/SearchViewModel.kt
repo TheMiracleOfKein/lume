@@ -71,6 +71,9 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         private set
     private var currentPage = 1
 
+    /** The filters the current-source search ran with; the panel may since hold another source's. */
+    private var currentFilters = FilterList()
+
     /** The active source's filters as set in the panel, and that source's defaults. */
     var filters by mutableStateOf(FilterList())
         private set
@@ -142,7 +145,8 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         currentSourceId = source.manifest.id
         // Don't hold the search for the site's genre lists; the panel loads them.
         ensureFilters(source, load = false)
-        currentState = runSource(source, q, timeoutMs = CURRENT_TIMEOUT_MS, filters = filters, onPage = { currentHasNext = it.hasNext })
+        currentFilters = filters
+        currentState = runSource(source, q, timeoutMs = CURRENT_TIMEOUT_MS, filters = currentFilters, onPage = { currentHasNext = it.hasNext })
     }
 
     /** Next results page of the current source, appended below. */
@@ -154,7 +158,7 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         loadingMore = true
         job = viewModelScope.launch {
             try {
-                val result = withTimeout(CURRENT_TIMEOUT_MS.milliseconds) { source.search(q, currentPage + 1, filters) }
+                val result = withTimeout(CURRENT_TIMEOUT_MS.milliseconds) { source.search(q, currentPage + 1, currentFilters) }
                 val known = done.items.mapTo(HashSet()) { it.id }
                 currentState = SourceState.Done(done.items + result.items.filter { it.id !in known })
                 currentPage = result.page

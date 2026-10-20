@@ -75,7 +75,7 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null) {
     var section by rememberSaveable { mutableStateOf<String?>(null) }
     val sections = vm.sections
     LaunchedEffect(sections) {
-        if (section != null && sections.isNotEmpty() && sections.none { it.id == section }) section = null
+        if (section != null && sections.none { it.id == section }) section = null
     }
     val popularFeed = section?.let { vm.sectionFeed(it) } ?: vm.popular
 

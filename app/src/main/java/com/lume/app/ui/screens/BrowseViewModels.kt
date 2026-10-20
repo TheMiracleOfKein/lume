@@ -190,7 +190,14 @@ class CatalogViewModel(private val app: AppContainer, private val fixedSourceId:
                 ensureLoaded(popular, force = true)
                 ensureLoaded(latest, force = latest.items.isNotEmpty())
                 // The list of another source must not linger; the open section reloads on the bump.
-                stale.forEach { it.items = emptyList() }
+                // A request still running for the old source must not write its titles back.
+                stale.forEach {
+                    it.job?.cancel()
+                    it.loading = false
+                    it.loadingMore = false
+                    it.hasNext = false
+                    it.items = emptyList()
+                }
                 sectionsEpoch++
             }
         }
