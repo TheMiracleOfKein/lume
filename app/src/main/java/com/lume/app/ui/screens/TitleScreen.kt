@@ -9,6 +9,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +19,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -57,6 +60,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -64,6 +68,8 @@ import androidx.navigation.NavHostController
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
+import com.lume.app.data.similar.SimilarResult
+import com.lume.app.data.similar.SimilarTitle
 import com.lume.app.data.tracker.TrackerSearchResult
 import com.lume.app.ui.components.TrackerEntryDialog
 import com.lume.app.domain.Chapter
@@ -357,6 +363,16 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                             Spacer(Modifier.height(8.dp))
                             Text(it, color = AppColors.textSecondary, fontSize = 14.sp, lineHeight = 20.sp)
                         }
+                        val similar = vm.similar
+                        AnimatedVisibility(
+                            visible = similar != null && similar.items.isNotEmpty(),
+                            enter = expandVertically(Motion.medium()) + fadeIn(Motion.medium()),
+                            exit = shrinkVertically(Motion.medium()) + fadeOut(Motion.short()),
+                        ) {
+                            similar?.let { result ->
+                                SimilarTitlesRow(result) { nav.navigate(Routes.searchAll(it.title)) }
+                            }
+                        }
                     }
                 }
             }
@@ -413,6 +429,46 @@ private fun AlsoOnCard(
         Row(modifier = Modifier.align(androidx.compose.ui.Alignment.End)) {
             TextButton(onClick = onDismiss, enabled = enabled) { Text(stringResource(R.string.action_not_now)) }
             TextButton(onClick = onLink, enabled = enabled) { Text(stringResource(R.string.action_link)) }
+        }
+    }
+}
+
+/** "Similar titles": covers in a row; a tap searches every source for that title. */
+@Composable
+private fun SimilarTitlesRow(result: SimilarResult, onOpen: (SimilarTitle) -> Unit) {
+    Column(modifier = Modifier.padding(top = 16.dp)) {
+        Text(
+            stringResource(R.string.title_similar),
+            color = AppColors.textPrimary,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            stringResource(R.string.title_similar_from, result.from),
+            color = AppColors.textTertiary,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(top = 2.dp),
+        )
+        Spacer(Modifier.height(8.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(result.items, key = { it.title }) { item ->
+                Column(
+                    modifier = Modifier
+                        .width(96.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(onClickLabel = stringResource(R.string.cd_similar_search)) { onOpen(item) },
+                ) {
+                    CoverImage(url = item.coverUrl, width = 96.dp, height = 136.dp, radius = 8.dp)
+                    Text(
+                        item.title,
+                        color = AppColors.textSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 15.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+            }
         }
     }
 }

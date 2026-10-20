@@ -89,6 +89,7 @@ object SettingsCatalog {
         SettingInfo("restore_downloads", SettingsPage.Downloads, R.string.settings_restore_downloads, R.string.settings_restore_downloads_hint),
 
         SettingInfo("nsfw", SettingsPage.Sources, R.string.settings_search_nsfw, R.string.settings_search_nsfw_hint, R.string.settings_kw_nsfw),
+        SettingInfo("similar_titles", SettingsPage.Sources, R.string.settings_similar_titles, R.string.settings_similar_titles_hint, R.string.settings_kw_similar_titles),
         SettingInfo("sources", SettingsPage.Sources, R.string.settings_sources, R.string.settings_sources_hint, R.string.settings_kw_sources),
 
         SettingInfo("tracker_accounts", SettingsPage.Trackers, R.string.settings_group_accounts, R.string.settings_trackers_note, R.string.settings_kw_trackers),

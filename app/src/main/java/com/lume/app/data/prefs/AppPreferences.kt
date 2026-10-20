@@ -120,6 +120,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
 
     private val trackerAutoLinkKey = booleanPreferencesKey("tracker_auto_link_enabled")
     private val findOtherSourcesKey = booleanPreferencesKey("find_other_sources")
+    private val similarTitlesKey = booleanPreferencesKey("similar_titles")
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val pureBlackKey = booleanPreferencesKey("theme_pure_black")
     private val dynamicColorKey = booleanPreferencesKey("theme_dynamic_color")
@@ -261,6 +262,13 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
 
     suspend fun setFindOtherSources(value: Boolean) {
         context.appDataStore.edit { it[findOtherSourcesKey] = value }
+    }
+
+    /** "Similar titles" on the title screen (asks AniList, or MyAnimeList, by the title's name). */
+    val similarTitles: StateFlow<Boolean> = state { it[similarTitlesKey] ?: true }
+
+    suspend fun setSimilarTitles(value: Boolean) {
+        context.appDataStore.edit { it[similarTitlesKey] = value }
     }
     val shikimoriUserId: StateFlow<String?> = privateState { it[shikiUserIdKey] }
     val shikimoriClientId: StateFlow<String?> = privateState { it[shikiClientIdKey] }

@@ -170,6 +170,12 @@ fun AppShell(nav: NavHostController) {
             lumeComposable(Routes.Updates) { UpdatesScreen(nav) }
             lumeComposable(Routes.History) { HistoryScreen(nav) }
             lumeComposable(Routes.Search) { SearchScreen(nav) }
+            lumeComposable(
+                route = Routes.SearchAll,
+                arguments = listOf(navArgument("q") { type = NavType.StringType; nullable = true; defaultValue = null }),
+            ) { entry ->
+                SearchScreen(nav, globalQuery = entry.arguments!!.getString("q"))
+            }
             lumeComposable(Routes.Sources) { SourcesScreen(nav) }
             lumeComposable(Routes.Settings) { SettingsScreen(nav) }
             lumeComposable(

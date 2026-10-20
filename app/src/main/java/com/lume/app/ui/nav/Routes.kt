@@ -10,6 +10,7 @@ object Routes {
     const val History = "history"
     const val Updates = "updates"
     const val Search = "search"
+    const val SearchAll = "search/all?q={q}"
     const val Sources = "sources"
     const val Settings = "settings"
     const val SettingsPage = "settings/{page}?focus={focus}"
@@ -25,6 +26,9 @@ object Routes {
     /** A settings section; [focus] is the id of a setting to scroll to and highlight. */
     fun settingsPage(page: String, focus: String? = null): String =
         if (focus == null) "settings/$page" else "settings/$page?focus=${encode(focus)}"
+
+    /** Global search (all sources) for [query], started at once. */
+    fun searchAll(query: String) = "search/all?q=${encode(query)}"
 
     fun browse(sourceId: String) = "browse/${encode(sourceId)}"
 

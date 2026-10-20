@@ -3,6 +3,7 @@ package com.lume.app.ui.screens
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lume.app.AppContainer
@@ -13,6 +14,7 @@ import com.lume.app.data.db.ProgressEntity
 import com.lume.app.data.db.TitlePrefsEntity
 import com.lume.app.data.db.TitleSourceEntity
 import com.lume.app.data.db.TrackerLinkEntity
+import com.lume.app.data.similar.SimilarResult
 import com.lume.app.data.title.SourceCandidate
 import com.lume.app.data.title.SourceLookup
 import com.lume.app.data.locale.appString
@@ -26,6 +28,9 @@ import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.TitleDetails
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -218,6 +223,22 @@ class TitleViewModel(app: AppContainer, sourceId: String, titleId: String) : Tit
             if (meta != null && meta.unreadNewCount > 0) {
                 dao.upsertTitleMeta(meta.copy(unreadNewCount = 0))
             }
+        }
+    }
+
+    /** "Similar titles": null while loading, switched off or after a failed request. */
+    var similar by mutableStateOf<SimilarResult?>(null)
+        private set
+
+    init {
+        // Once the title has a name: ask again whenever the setting or the 18+ choice changes.
+        viewModelScope.launch {
+            val d = snapshotFlow { details }.filterNotNull().first()
+            combine(app.prefs.similarTitles, app.prefs.globalSearchNsfw) { on, adult -> on to adult }
+                .distinctUntilChanged()
+                .collectLatest { (on, adult) ->
+                    similar = if (on) app.similarTitles.find(sourceId, titleId, d, adult) else null
+                }
         }
     }
 

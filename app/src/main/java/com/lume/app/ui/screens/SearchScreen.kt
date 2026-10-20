@@ -82,7 +82,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen(nav: NavHostController) {
+fun SearchScreen(nav: NavHostController, globalQuery: String? = null) {
     val container = LocalAppContainer.current
     val vm: SearchViewModel = viewModel { SearchViewModel(container) }
     val scope = rememberCoroutineScope()
@@ -91,6 +91,15 @@ fun SearchScreen(nav: NavHostController) {
     val networkEpoch by container.http.networkEpoch.collectAsState()
     val history by vm.history.collectAsState()
     var filtersOpen by remember { mutableStateOf(false) }
+
+    // Opened for a title ("Similar titles"): search every source once; coming back keeps the results.
+    LaunchedEffect(globalQuery) {
+        if (!globalQuery.isNullOrBlank() && !vm.searched) {
+            vm.query = globalQuery
+            vm.mode = Mode.Global
+            vm.search()
+        }
+    }
 
     // A solved Cloudflare check bumps the epoch: refill the sources it was blocking.
     LaunchedEffect(networkEpoch) { if (networkEpoch > 0) vm.retryChallenged() }

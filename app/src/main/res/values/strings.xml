@@ -569,6 +569,9 @@
     <string name="title_sources">Sources (%s)</string>
     <string name="title_also_on">Also on %s</string>
     <string name="title_also_on_hint">Link them to fill gaps in the chapter list and to read a chapter from another source when one fails</string>
+    <string name="title_similar">Similar titles</string>
+    <string name="title_similar_from">Recommended on %1$s. Tap one to search your sources for it</string>
+    <string name="cd_similar_search">Search your sources</string>
     <string name="action_link">Link</string>
     <string name="action_not_now">Not now</string>
     <string name="dialog_sources">Sources</string>
@@ -638,6 +641,8 @@
     <string name="settings_downloads_wifi_only_hint">Downloads wait for Wi-Fi instead of using mobile data</string>
     <string name="settings_downloads_parallel_hint">More is faster, but some sites slow down or block quick downloads</string>
     <string name="settings_search_nsfw_hint">Global search also asks the sources marked 18+</string>
+    <string name="settings_similar_titles">Similar titles</string>
+    <string name="settings_similar_titles_hint">The title screen shows what AniList recommends (or MyAnimeList, if you are signed in). Lume sends them the title\'s name</string>
     <string name="settings_sources_hint">Turn sources on and off, pin them, change their settings</string>
     <string name="settings_categories_hint">Add, rename and reorder categories; pick the one new titles go to</string>
     <string name="settings_downloads_hint">The queue, pausing and storage used</string>
@@ -673,6 +678,7 @@
     <string name="settings_kw_storage">sd card, folder, location, space</string>
     <string name="settings_kw_downloads">queue, pause, offline</string>
     <string name="settings_kw_nsfw">adult, 18+, hentai, global search</string>
+    <string name="settings_kw_similar_titles">recommendations, similar, anilist, myanimelist, mal</string>
     <string name="settings_kw_sources">extensions, packs, enable, disable, pin</string>
     <string name="settings_kw_trackers">anilist, shikimori, myanimelist, mal, kitsu, mangaupdates, sign in, login, account</string>
     <string name="settings_kw_auto_link">tracker, link, match</string>
