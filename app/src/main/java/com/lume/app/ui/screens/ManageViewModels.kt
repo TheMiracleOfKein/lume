@@ -451,7 +451,7 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
     private suspend fun runSync() {
         val status = app.sync.sync() ?: return
         statusMessage = status.error?.let { string(R.string.sync_failed, it) }
-            ?: if (status.changes == 0) string(R.string.sync_done_nothing) else string(R.string.sync_done, status.changes)
+            ?: if (status.changes == 0) string(R.string.sync_done_nothing) else app.app.resources.getQuantityString(R.plurals.sync_done, status.changes, status.changes)
     }
 
     /** A readable name for a picked file or folder ("Download/Lume" rather than a content URI). */
