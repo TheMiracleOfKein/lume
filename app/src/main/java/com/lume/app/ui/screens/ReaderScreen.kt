@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import android.os.Build
 import com.lume.app.data.library.ReadingLists
 import com.lume.app.ui.components.shareFile
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.withContext
@@ -104,6 +105,7 @@ import com.lume.app.ui.theme.Motion
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -138,6 +140,8 @@ fun ReaderScreen(
     /** A page of the current chapter picked on the slider; only the latest one matters. */
     val pageSeeks = remember { MutableSharedFlow<Int>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST) }
     var autoScroll by rememberSaveable { mutableStateOf(false) }
+    // Auto-scroll is a webtoon feature; switching to a paged mode turns it off.
+    LaunchedEffect(settings.mode) { if (settings.mode != ReaderMode.Webtoon) autoScroll = false }
     val context = LocalContext.current
     val pageSaved = stringResource(R.string.reader_page_saved)
     val pageFailed = stringResource(R.string.reader_page_failed)
@@ -542,7 +546,14 @@ private fun WebtoonReader(
                 val seconds = if (last == 0L) 0f else (now - last) / 1_000_000_000f
                 last = now
                 val pxPerSecond = with(density) { (AUTO_SCROLL_DP_PER_STEP * vm.settings.autoScrollSpeed).dp.toPx() }
-                if (seconds > 0f) listState.scrollBy(pxPerSecond * seconds)
+                if (seconds > 0f) {
+                    // A page turn (tap zone, volume key) cancels this scroll; the glide goes on.
+                    try {
+                        listState.scrollBy(pxPerSecond * seconds)
+                    } catch (e: CancellationException) {
+                        if (!isActive) throw e
+                    }
+                }
                 if (!listState.canScrollForward) {
                     currentStop()
                     break

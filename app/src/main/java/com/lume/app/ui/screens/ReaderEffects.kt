@@ -112,7 +112,13 @@ internal suspend fun savePageToPictures(context: Context, bytes: ByteArray, ext:
     }
     val resolver = context.contentResolver
     val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: error("can't create the picture")
-    resolver.openOutputStream(uri)?.use { it.write(bytes) } ?: error("can't write the picture")
+    try {
+        resolver.openOutputStream(uri)?.use { it.write(bytes) } ?: error("can't write the picture")
+    } catch (e: Throwable) {
+        // Don't leave an empty picture behind in the gallery.
+        runCatching { resolver.delete(uri, null, null) }
+        throw e
+    }
 }
 
 internal fun mimeOf(ext: String): String = when (ext.lowercase()) {

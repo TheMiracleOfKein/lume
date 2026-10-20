@@ -268,7 +268,7 @@ private fun PageSlider(pageLabel: String?, pageIndex: Int, pageCount: Int, rever
             )
         }
         Text(
-            text = "$pageCount",
+            text = if (pageLabel != null || dragging != null) "$pageCount" else "",
             color = AppColors.textSecondary,
             fontSize = 13.sp,
             textAlign = TextAlign.Center,
