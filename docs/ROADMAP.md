@@ -53,6 +53,12 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Recommendations on the title screen ("Similar titles") from AniList or MyAnimeList; a tap searches your sources for that title.
 - ⏸️ Split `Database.kt`: the release didn't touch it, so it moves on (next release that changes the database).
 
+**v0.6.5: polish from emulator testing** 🟡 in review ([details](#v065-polish-from-emulator-testing))
+- ✅ Hint text no longer collides with chip rows in Downloads, Backup and Network settings.
+- ✅ The reader's chapter line is readable over light pages.
+- ✅ "Import pack from URL" with an empty field now says what is missing.
+- ⏸️ Drawer **Theme** button: the code toggles correctly; the drawer staying open looks intended. Not changed.
+
 ## v0.7: sync and everyday reading
 
 **Goal:** read on the phone, continue on the tablet, without an account.
@@ -401,3 +407,12 @@ Release notes: [docs/releases/v0.6.4.md](releases/v0.6.4.md).
 - ✅ **A setting to turn it off** (Settings → Sources and search → Similar titles), found by settings search; [PRIVACY.md](../PRIVACY.md) says what is sent.
 - ⏸️ **Split `Database.kt`.** Moved on: this release doesn't change the database, so it waits for the next release that does.
 
+
+### v0.6.5: polish from emulator testing
+
+Release notes: [docs/releases/v0.6.5.md](releases/v0.6.5.md).
+
+- ✅ **Settings hints.** Space between the chips and the hint under them in Downloads (pages at once), Network (DNS over HTTPS) and Backup (automatic backups).
+- ✅ **Reader title bar.** The chapter line is light on every page, and the dark band behind the bar lasts longer.
+- ✅ **Empty pack link.** Tapping Import with an empty field shows "Enter a pack link first".
+- ⏸️ **Not bugs:** incognito is off by default in code; the late switch responses seen in testing looked like emulator lag.
