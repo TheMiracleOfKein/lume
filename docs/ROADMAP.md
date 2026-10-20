@@ -53,7 +53,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Recommendations on the title screen ("Similar titles") from AniList or MyAnimeList; a tap searches your sources for that title.
 - ⏸️ Split `Database.kt`: the release didn't touch it, so it moves on (next release that changes the database).
 
-**v0.6.5: polish from emulator testing** 🟡 in review ([details](#v065-polish-from-emulator-testing))
+**v0.6.5: polish from emulator testing** ✅ released 2026-10-20 ([details](#v065-polish-from-emulator-testing--released-2026-10-20))
 - ✅ Hint text no longer collides with chip rows in Downloads, Backup and Network settings.
 - ✅ The reader's chapter line is readable over light pages.
 - ✅ "Import pack from URL" with an empty field now says what is missing.
@@ -408,7 +408,7 @@ Release notes: [docs/releases/v0.6.4.md](releases/v0.6.4.md).
 - ⏸️ **Split `Database.kt`.** Moved on: this release doesn't change the database, so it waits for the next release that does.
 
 
-### v0.6.5: polish from emulator testing
+### v0.6.5: polish from emulator testing ✅ released 2026-10-20
 
 Release notes: [docs/releases/v0.6.5.md](releases/v0.6.5.md).
 
