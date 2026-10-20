@@ -520,12 +520,14 @@ private fun WebtoonReader(
             .distinctUntilChanged()
             .collect { (anchor, finished, lastVisible) -> vm.onPosition(session, anchor, finished, lastVisible) }
     }
+    val autoScrolling by rememberUpdatedState(autoScroll)
     LaunchedEffect(listState) {
         pageTurns.collect { delta ->
             onUserScroll()
             val viewport = listState.layoutInfo.viewportSize.height
-            // E-ink panels smear animations: jump instead.
-            if (vm.settings.eInk) listState.scrollBy(delta * viewport * 0.85f)
+            // E-ink panels smear animations: jump instead. So does auto-scroll, whose glide would
+            // cancel an animated turn (and the turn the glide) over and over.
+            if (vm.settings.eInk || autoScrolling) listState.scrollBy(delta * viewport * 0.85f)
             else listState.animateScrollBy(delta * viewport * 0.85f)
         }
     }
