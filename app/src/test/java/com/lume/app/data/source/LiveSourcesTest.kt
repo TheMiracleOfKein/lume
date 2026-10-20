@@ -7,8 +7,10 @@ import com.lume.app.data.network.SourceHttpException
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.PackIndex
+import com.lume.app.domain.SourceFilter
 import com.lume.app.domain.SourceLoginRequiredException
 import com.lume.app.domain.SourceManifest
+import com.lume.app.domain.include
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.CookieJar
@@ -91,6 +93,34 @@ class LiveSourcesTest {
                 warn = true
                 notes += "latest == popular (sort ignored?)"
             }
+            // The site's own filter lists, a search with one genre, and every browse section.
+            val static = source.getFilters().flat().size
+            val loaded = source.loadFilters()
+            if (loaded.flat().size > static) {
+                notes += "site filters=${loaded.flat().size - static}"
+                // The last genre of the alphabet: the first ("Action") is on most popular titles.
+                val genre = loaded.filters.filterIsInstance<SourceFilter.Group>()
+                    .firstOrNull { g -> g.id.startsWith("genre") }
+                    ?.filters?.last()
+                if (genre != null) {
+                    val withGenre = source.search("", 1, loaded.include(genre.id)).items
+                    if (withGenre.isEmpty()) {
+                        warn = true
+                        notes += "filter '${genre.name}' found nothing"
+                    } else if (withGenre.map { it.id } == popular.items.map { it.id }) {
+                        warn = true
+                        notes += "filter '${genre.name}' ignored?"
+                    }
+                }
+            }
+            for (section in source.browseSections()) {
+                val items = source.search("", 1, section.filters).items
+                if (items.isEmpty()) {
+                    warn = true
+                    notes += "section ${section.id} empty"
+                }
+            }
+            if (source.browseSections().isNotEmpty()) notes += "sections=${source.browseSections().size}"
             val sample = popular.items.first()
             val hits = source.search(sample.title.take(40), 1).items
             if (hits.none { it.id == sample.id }) {

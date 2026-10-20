@@ -3,6 +3,7 @@ package com.lume.app.data.source
 import com.lume.app.R
 import com.lume.app.data.locale.appString
 import com.lume.app.data.network.AppHttp
+import com.lume.app.domain.BrowseSection
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
@@ -15,6 +16,8 @@ import com.lume.app.domain.SourceManifest
 import com.lume.app.domain.SourceSetting
 import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleSummary
+import com.lume.app.domain.choose
+import com.lume.app.domain.include
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -86,10 +89,72 @@ class MangaDexEngine(
             for (lang in langs) append("&availableTranslatedLanguage[]=${enc(lang)}")
             for (status in filters.checked("status")) append("&status[]=$status")
             for (demo in filters.checked("demographic")) append("&publicationDemographic[]=$demo")
+            for (origin in filters.checked("origin")) append("&originalLanguage[]=$origin")
+            val included = TAG_GROUPS.flatMap { filters.included(it) }.map(::tagId)
+            val excluded = TAG_GROUPS.flatMap { filters.excluded(it) }.map(::tagId)
+            for (tag in included) append("&includedTags[]=$tag")
+            for (tag in excluded) append("&excludedTags[]=$tag")
+            if (included.size > 1) append("&includedTagsMode=${filters.selected("tagMode") ?: "AND"}")
             if (query.isBlank()) append("&hasAvailableChapters=true")
         }
         val response = http.get(URI("$apiBase/manga?$q"), source = manifest, checkCloudflare = false)
         return parseMangaList(response.body, page)
+    }
+
+    private val siteFilters = SiteFilters { getFilters().withTags(fetchTags()) }
+
+    override suspend fun loadFilters(): FilterList = siteFilters.get(::getFilters)
+
+    /** MangaDex tags by their group (genre, theme, format, content), names in English. */
+    private suspend fun fetchTags(): Map<String, List<Pair<String, String>>> {
+        val response = http.get(URI("$apiBase/manga/tag"), source = manifest, checkCloudflare = false)
+        val data = json.parseToJsonElement(response.body).jsonObject["data"]?.jsonArray.orEmpty()
+        return data.mapNotNull { el ->
+            val item = el.jsonObject
+            val id = item["id"].str() ?: return@mapNotNull null
+            val attrs = item["attributes"].obj() ?: return@mapNotNull null
+            val name = attrs["name"].obj()?.let { pickTitle(it) } ?: return@mapNotNull null
+            Triple(attrs.str("group") ?: "genre", id, name)
+        }.groupBy({ it.first }, { it.second to it.third })
+            .mapValues { (_, tags) -> tags.sortedBy { it.second.lowercase() } }
+    }
+
+    /** Adds the tag groups to the static filters, before the content rating. */
+    private fun FilterList.withTags(tags: Map<String, List<Pair<String, String>>>): FilterList {
+        if (tags.isEmpty()) throw SourceFetchException("MangaDex: no tags")
+        val groups = TAG_GROUPS.mapNotNull { group ->
+            val list = tags[group].orEmpty().ifEmpty { return@mapNotNull null }
+            SourceFilter.Group(
+                id = group,
+                name = when (group) {
+                    "genre" -> appString(R.string.filter_genres)
+                    "theme" -> appString(R.string.filter_tags)
+                    "format" -> appString(R.string.filter_format)
+                    else -> appString(R.string.filter_content_warnings)
+                },
+                filters = list.map { (id, name) -> SourceFilter.TriState("$group:$id", name) },
+            )
+        }
+        val mode = SourceFilter.Select(
+            id = "tagMode",
+            name = appString(R.string.filter_match),
+            options = listOf("AND", "OR"),
+            labels = listOf(appString(R.string.filter_match_all), appString(R.string.filter_match_any)),
+        )
+        val at = filters.indexOfFirst { it.id == "rating" }.let { if (it < 0) filters.size else it }
+        return FilterList(filters.take(at) + groups + mode + filters.drop(at))
+    }
+
+    private fun tagId(filterId: String) = filterId.substringAfter(':')
+
+    override fun browseSections(): List<BrowseSection> {
+        val base = getFilters()
+        return listOf(
+            BrowseSection("new", appString(R.string.section_new_titles), base.choose("sort", "createdAt")),
+            BrowseSection("top", appString(R.string.section_top_rated), base.choose("sort", "rating")),
+            BrowseSection("completed", appString(R.string.section_completed), base.choose("sort", "followedCount").include("completed")),
+            BrowseSection("manhwa", appString(R.string.type_manhwa), base.choose("sort", "followedCount").include("ko")),
+        )
     }
 
     override fun getFilters(): FilterList = FilterList(
@@ -122,6 +187,16 @@ class MangaDexEngine(
                     SourceFilter.Check("completed", appString(R.string.filter_status_completed)),
                     SourceFilter.Check("hiatus", appString(R.string.filter_status_hiatus)),
                     SourceFilter.Check("cancelled", appString(R.string.filter_status_cancelled)),
+                ),
+            ),
+            SourceFilter.Group(
+                id = "origin",
+                name = appString(R.string.filter_type),
+                filters = listOf(
+                    SourceFilter.Check("ja", appString(R.string.type_manga)),
+                    SourceFilter.Check("ko", appString(R.string.type_manhwa)),
+                    SourceFilter.Check("zh", appString(R.string.type_manhua)),
+                    SourceFilter.Check("en", appString(R.string.type_comic)),
                 ),
             ),
             SourceFilter.Group(
@@ -184,6 +259,7 @@ class MangaDexEngine(
         val root = json.parseToJsonElement(response.body).jsonObject
         val data = root["data"]?.jsonObject
             ?: throw SourceFetchException("MangaDex: " + com.lume.app.data.locale.appString(com.lume.app.R.string.error_empty_response))
+        val score = score(mangaId)
         val attrs = data["attributes"]?.jsonObject ?: JsonObject(emptyMap())
         val relationships = data["relationships"]?.jsonArray ?: JsonArray(emptyList())
         return TitleDetails(
@@ -202,6 +278,9 @@ class MangaDexEngine(
             coverUrl = coverUrl(mangaId, relationships),
             description = pickLocalized(attrs["description"]?.jsonObject),
             status = attrs["status"]?.jsonPrimitive?.contentOrNull,
+            typeLabel = originLabel(attrs.str("originalLanguage")),
+            year = attrs.str("year")?.toIntOrNull(),
+            score = score,
             authors = relationships.filter { it.jsonObject["type"]?.jsonPrimitive?.contentOrNull == "author" }
                 .mapNotNull { it.jsonObject["attributes"]?.jsonObject?.get("name")?.jsonPrimitive?.contentOrNull },
             artists = relationships.filter { it.jsonObject["type"]?.jsonPrimitive?.contentOrNull == "artist" }
@@ -210,6 +289,25 @@ class MangaDexEngine(
                 it.jsonObject["attributes"]?.jsonObject?.get("name")?.jsonObject?.let { name -> pickTitle(name) }
             },
         )
+    }
+
+    /** The users' average score (0–10); a failed request only leaves it out. */
+    private suspend fun score(mangaId: String): Double? = try {
+        val response = http.get(URI("$apiBase/statistics/manga/$mangaId"), source = manifest, checkCloudflare = false)
+        json.parseToJsonElement(response.body).jsonObject["statistics"].obj()?.get(mangaId).obj()
+            ?.get("rating").obj()?.str("average")?.toDoubleOrNull()
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
+    }
+
+    private fun originLabel(lang: String?): String? = when (lang) {
+        "ja" -> appString(R.string.type_manga)
+        "ko" -> appString(R.string.type_manhwa)
+        "zh", "zh-hk" -> appString(R.string.type_manhua)
+        "en" -> appString(R.string.type_comic)
+        else -> lang
     }
 
     override suspend fun getChapters(titleId: String): List<Chapter> {
@@ -305,7 +403,7 @@ class MangaDexEngine(
                 title = pickTitle(attrs["title"]?.jsonObject) ?: id,
                 coverUrl = coverUrl(id, relationships),
                 latestChapter = attrs["lastChapter"]?.jsonPrimitive?.contentOrNull,
-                typeLabel = attrs["originalLanguage"]?.jsonPrimitive?.contentOrNull,
+                typeLabel = originLabel(attrs.str("originalLanguage")),
             )
         }
         val total = root["total"]?.jsonPrimitive?.contentOrNull?.toIntOrNull()
@@ -353,6 +451,7 @@ class MangaDexEngine(
         private val CHAPTER_LANGUAGES =
             listOf("en", "ru", "uk", "ja", "ko", "zh", "es", "es-la", "pt-br", "fr", "de", "it", "id", "vi", "tr", "pl")
         private val UUID = Regex("[0-9a-fA-F-]{36}")
+        private val TAG_GROUPS = listOf("genre", "theme", "format", "content")
     }
 
     override fun webUrl(titleId: String): String = "${manifest.baseUrl.trimEnd('/')}/title/${titleId.trim('/')}"

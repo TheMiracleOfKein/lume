@@ -1,15 +1,21 @@
 package com.lume.app.data.source
 
+import com.lume.app.R
+import com.lume.app.data.locale.appString
 import com.lume.app.data.network.AppHttp
+import com.lume.app.domain.BrowseSection
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.FilterList
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
+import com.lume.app.domain.SourceFilter
 import com.lume.app.domain.SourceManifest
 import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleSummary
+import com.lume.app.domain.choose
+import com.lume.app.domain.include
 import org.jsoup.Jsoup
 import java.net.URI
 import com.lume.app.util.urlEncode
@@ -29,11 +35,45 @@ class WeebCentralEngine(
 
     override suspend fun search(query: String, page: Int, filters: FilterList): PagedResult<TitleSummary> {
         val sort = filters.sort("sort")
+        val extra = buildString {
+            filters.included("tags").forEach { append("&included_tag=${enc(it.substringAfter(':'))}") }
+            filters.excluded("tags").forEach { append("&excluded_tag=${enc(it.substringAfter(':'))}") }
+            filters.checked("type").forEach { append("&included_type=${enc(it.substringAfter(':'))}") }
+            filters.checked("status").forEach { append("&included_status=${enc(it.substringAfter(':'))}") }
+        }
         return searchData(
             page = page,
             text = query,
             sort = sort?.selectedValue ?: if (query.isBlank()) "Popularity" else "Best Match",
             order = if (sort?.ascending == true) "Ascending" else "Descending",
+            extra = extra,
+        )
+    }
+
+    private val siteFilters = SiteFilters(::fetchFilters)
+
+    override suspend fun loadFilters(): FilterList = siteFilters.get(::getFilters)
+
+    /** Tags from the search page's form (`tag-<name>-value` inputs). */
+    private suspend fun fetchFilters(): FilterList {
+        val doc = Jsoup.parse(http.get(manifest.baseUri.resolve("/search"), source = manifest).body)
+        val tags = doc.select("input[id^=tag-][id$=-value]").mapNotNull { it.attr("value").trim().ifEmpty { null } }.distinct()
+        if (tags.isEmpty()) throw SourceFetchException("WeebCentral: no tags")
+        return FilterList(
+            getFilters().filters + SourceFilter.Group(
+                id = "tags",
+                name = appString(R.string.filter_genres),
+                filters = tags.map { SourceFilter.TriState("tags:$it", it) },
+            ),
+        )
+    }
+
+    override fun browseSections(): List<BrowseSection> {
+        val base = getFilters()
+        return listOf(
+            BrowseSection("new", appString(R.string.section_latest_titles), base.choose("sort", "Recently Added")),
+            BrowseSection("completed", appString(R.string.section_completed), base.choose("sort", "Popularity").include("status:Complete")),
+            BrowseSection("manhwa", appString(R.string.type_manhwa), base.choose("sort", "Popularity").include("type:Manhwa")),
         )
     }
 
@@ -51,6 +91,26 @@ class WeebCentralEngine(
                     com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_title),
                 ),
             ),
+            SourceFilter.Group(
+                id = "type",
+                name = appString(R.string.filter_type),
+                filters = listOf(
+                    SourceFilter.Check("type:Manga", appString(R.string.type_manga)),
+                    SourceFilter.Check("type:Manhwa", appString(R.string.type_manhwa)),
+                    SourceFilter.Check("type:Manhua", appString(R.string.type_manhua)),
+                    SourceFilter.Check("type:OEL", "OEL"),
+                ),
+            ),
+            SourceFilter.Group(
+                id = "status",
+                name = appString(R.string.filter_status),
+                filters = listOf(
+                    SourceFilter.Check("status:Ongoing", appString(R.string.filter_status_ongoing)),
+                    SourceFilter.Check("status:Complete", appString(R.string.filter_status_completed)),
+                    SourceFilter.Check("status:Hiatus", appString(R.string.filter_status_hiatus)),
+                    SourceFilter.Check("status:Canceled", appString(R.string.filter_status_cancelled)),
+                ),
+            ),
         ),
     )
 
@@ -59,6 +119,7 @@ class WeebCentralEngine(
         text: String,
         sort: String,
         order: String,
+        extra: String = "",
     ): PagedResult<TitleSummary> {
         val offset = (page - 1) * limit
         val q = buildString {
@@ -68,6 +129,7 @@ class WeebCentralEngine(
             append("&official=Any&anime=Any&adult=Any")
             append("&display_mode=${enc("Full Display")}")
             append("&limit=$limit&offset=$offset")
+            append(extra)
         }
         val response = http.get(
             URI("${manifest.baseUrl.trimEnd('/')}/search/data?$q"),
