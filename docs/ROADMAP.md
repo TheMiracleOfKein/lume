@@ -68,7 +68,7 @@ Patch releases from the v0.6 line, as needed.
 
 **Goal:** read on the phone, continue on the tablet, without an account.
 
-**v0.7.0: sync and reader controls** ([details](#v070-sync-and-reader-controls))
+**v0.7.0: sync and reader controls** ✅ released 2026-10-21 ([details](#v070-sync-and-reader-controls--released-2026-10-21))
 
 **Sync between devices** (signature feature 3, L) 🟡
 - ✅ Library, categories, reading progress (the exact spot per chapter), read marks, page bookmarks, linked sources and tracker links sync, plus per-title reader settings and source packs. Sign-ins, downloads and app settings never sync.
@@ -450,7 +450,7 @@ Release notes: [docs/releases/v0.6.6.md](releases/v0.6.6.md).
 - ⏸️ **MangaBuff filters:** the site is geo-blocked from where this was built, so its parameters couldn't be checked. **MangaKatana:** genre pages not used yet.
 - **Lib site descriptions** are empty: the API no longer sends them to visitors who aren't signed in (already so in v0.6.5). Separate fix.
 
-### v0.7.0: sync and reader controls
+### v0.7.0: sync and reader controls ✅ released 2026-10-21
 
 Release notes: [docs/releases/v0.7.0.md](releases/v0.7.0.md).
 
