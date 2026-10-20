@@ -1,6 +1,20 @@
 package com.lume.app.ui.screens
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Slider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import com.lume.app.ui.components.lumeSliderColors
+import kotlin.math.roundToInt
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -67,7 +81,10 @@ internal fun ReaderTopBar(
     onOpenTitle: () -> Unit,
     onToggleLibrary: () -> Unit,
     onSettings: () -> Unit,
+    onSharePage: () -> Unit,
+    onSavePage: () -> Unit,
 ) {
+    var pageMenu by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -116,6 +133,21 @@ internal fun ReaderTopBar(
                     tint = if (inLibrary) AppColors.accent else Color.White,
                 )
             }
+            Box {
+                IconButton(onClick = { pageMenu = true }) {
+                    Icon(Icons.Outlined.Share, stringResource(R.string.reader_page_menu), tint = Color.White)
+                }
+                DropdownMenu(expanded = pageMenu, onDismissRequest = { pageMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.reader_page_share)) },
+                        onClick = { pageMenu = false; onSharePage() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.reader_page_save)) },
+                        onClick = { pageMenu = false; onSavePage() },
+                    )
+                }
+            }
             IconButton(onClick = onSettings) {
                 Icon(Icons.Outlined.Settings, stringResource(R.string.cd_settings), tint = Color.White)
             }
@@ -127,6 +159,14 @@ internal fun ReaderTopBar(
 @Composable
 internal fun ReaderBottomBar(
     pageLabel: String?,
+    /** The page slider: current page, page count of this chapter, and whether it runs right to left. */
+    pageIndex: Int,
+    pageCount: Int,
+    reversed: Boolean,
+    onSeek: (Int) -> Unit,
+    /** Webtoon auto-scroll; null in the paged modes. */
+    autoScroll: Boolean?,
+    onToggleAutoScroll: () -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onChapters: () -> Unit,
@@ -142,7 +182,9 @@ internal fun ReaderBottomBar(
             .padding(bottom = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (pageLabel != null) {
+        if (pageCount > 1) {
+            PageSlider(pageLabel, pageIndex, pageCount, reversed, onSeek)
+        } else if (pageLabel != null) {
             Text(
                 text = pageLabel,
                 color = AppColors.textSecondary,
@@ -173,13 +215,65 @@ internal fun ReaderBottomBar(
             ) {
                 Icon(Icons.Outlined.BookmarkAdd, stringResource(R.string.cd_bookmark_spot), tint = Color.White)
             }
-            IconButton(onClick = onSettings) {
-                Icon(Icons.Outlined.Tune, stringResource(R.string.cd_settings), tint = Color.White)
+            if (autoScroll != null) {
+                IconButton(onClick = onToggleAutoScroll) {
+                    Icon(
+                        if (autoScroll) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                        stringResource(if (autoScroll) R.string.reader_auto_scroll_stop else R.string.reader_auto_scroll_start),
+                        tint = if (autoScroll) AppColors.accent else Color.White,
+                    )
+                }
+            } else {
+                IconButton(onClick = onSettings) {
+                    Icon(Icons.Outlined.Tune, stringResource(R.string.cd_settings), tint = Color.White)
+                }
             }
             IconButton(onClick = onNext) {
                 Icon(Icons.Outlined.SkipNext, stringResource(R.string.cd_next_chapter), tint = Color.White)
             }
         }
+    }
+}
+
+/** Drag to any page of the chapter; the page jumps while the thumb moves. */
+@Composable
+private fun PageSlider(pageLabel: String?, pageIndex: Int, pageCount: Int, reversed: Boolean, onSeek: (Int) -> Unit) {
+    var dragging by remember { mutableStateOf<Float?>(null) }
+    val shown = dragging?.roundToInt() ?: pageIndex
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = if (pageLabel != null || dragging != null) "${shown + 1}" else "",
+            color = AppColors.textSecondary,
+            fontSize = 13.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.width(36.dp),
+        )
+        CompositionLocalProvider(LocalLayoutDirection provides if (reversed) LayoutDirection.Rtl else LayoutDirection.Ltr) {
+            Slider(
+                value = (dragging ?: pageIndex.toFloat()).coerceIn(0f, (pageCount - 1).toFloat()),
+                onValueChange = { value ->
+                    val before = dragging?.roundToInt()
+                    dragging = value
+                    if (value.roundToInt() != before) onSeek(value.roundToInt())
+                },
+                onValueChangeFinished = { dragging = null },
+                valueRange = 0f..(pageCount - 1).toFloat(),
+                colors = lumeSliderColors(),
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Text(
+            text = "$pageCount",
+            color = AppColors.textSecondary,
+            fontSize = 13.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.width(36.dp),
+        )
     }
 }
 

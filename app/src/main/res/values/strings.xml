@@ -810,10 +810,38 @@
         <item quantity="other">%d other devices</item>
     </plurals>
     <string name="sync_failed">Sync failed: %1$s</string>
-    <string name="sync_done">Synced: %1$d changes from your other devices</string>
+    <plurals name="sync_done">
+        <item quantity="one">Synced: %d change from your other devices</item>
+        <item quantity="other">Synced: %d changes from your other devices</item>
+    </plurals>
     <string name="sync_done_nothing">Synced: everything was already up to date</string>
     <string name="sync_what">Syncs the library and categories, reading spots, read marks, page bookmarks, linked sources, tracker links, per-title reader settings and source packs. Sign-ins, downloads and app settings stay on each device. The newest change wins; for a chapter, the furthest spot wins.</string>
     <string name="sync_error_passphrase_missing">another device encrypts its file: enter the same passphrase here</string>
     <string name="sync_error_passphrase_wrong">the passphrase doesn\'t open another device\'s file</string>
     <string name="sync_error_offline">no connection to the server</string>
+
+    <!-- Reader quick wins (v0.7) -->
+    <string name="reader_page_menu">This page</string>
+    <string name="reader_page_share">Share page</string>
+    <string name="reader_page_save">Save page to Pictures</string>
+    <string name="reader_page_saved">Page saved to Pictures/Lume</string>
+    <string name="reader_page_failed">The page isn\'t loaded yet</string>
+    <string name="reader_auto_scroll_start">Start auto-scroll</string>
+    <string name="reader_auto_scroll_stop">Stop auto-scroll</string>
+    <string name="reader_auto_scroll_speed">Auto-scroll speed: %1$d</string>
+    <string name="reader_webtoon_tap_zones">Tap zones in webtoon mode</string>
+    <string name="reader_webtoon_tap_zones_hint">Tap the top third to scroll back and the bottom third to scroll on; the middle shows the controls.</string>
+    <string name="reader_orientation">Screen orientation</string>
+    <string name="reader_orientation_auto">Auto</string>
+    <string name="reader_orientation_portrait">Portrait</string>
+    <string name="reader_orientation_landscape">Landscape</string>
+    <string name="reader_color_filter">Colour filter</string>
+    <string name="reader_filter_none">None</string>
+    <string name="reader_filter_sepia">Sepia</string>
+    <string name="reader_filter_grey">Grey</string>
+    <string name="reader_filter_warm">Warm</string>
+    <string name="reader_eink">E-ink mode</string>
+    <string name="reader_eink_hint">Grey, high-contrast pages and page turns without animation, for e-ink screens.</string>
+    <string name="reader_brightness_own">Own brightness while reading</string>
+    <string name="reader_brightness">Brightness: %1$d %%</string>
 </resources>

@@ -821,10 +821,40 @@
         <item quantity="other">%d других устройства</item>
     </plurals>
     <string name="sync_failed">Синхронизация не удалась: %1$s</string>
-    <string name="sync_done">Синхронизировано, изменений с других устройств: %1$d</string>
+    <plurals name="sync_done">
+        <item quantity="one">Синхронизировано: %d изменение с других устройств</item>
+        <item quantity="few">Синхронизировано: %d изменения с других устройств</item>
+        <item quantity="many">Синхронизировано: %d изменений с других устройств</item>
+        <item quantity="other">Синхронизировано: %d изменения с других устройств</item>
+    </plurals>
     <string name="sync_done_nothing">Синхронизировано: всё уже было актуально</string>
     <string name="sync_what">Синхронизируются библиотека и категории, места чтения, отметки о прочтении, закладки страниц, связанные источники, связи с трекерами, настройки читалки для тайтлов и пакеты источников. Входы в аккаунты, загрузки и настройки приложения остаются на каждом устройстве. Побеждает последнее изменение; для главы — самое дальнее место.</string>
     <string name="sync_error_passphrase_missing">другое устройство шифрует свой файл: введите здесь ту же кодовую фразу</string>
     <string name="sync_error_passphrase_wrong">кодовая фраза не подходит к файлу другого устройства</string>
     <string name="sync_error_offline">нет связи с сервером</string>
+
+    <!-- Улучшения читалки (v0.7) -->
+    <string name="reader_page_menu">Эта страница</string>
+    <string name="reader_page_share">Поделиться страницей</string>
+    <string name="reader_page_save">Сохранить страницу в «Изображения»</string>
+    <string name="reader_page_saved">Страница сохранена в Pictures/Lume</string>
+    <string name="reader_page_failed">Страница ещё не загрузилась</string>
+    <string name="reader_auto_scroll_start">Включить автопрокрутку</string>
+    <string name="reader_auto_scroll_stop">Остановить автопрокрутку</string>
+    <string name="reader_auto_scroll_speed">Скорость автопрокрутки: %1$d</string>
+    <string name="reader_webtoon_tap_zones">Зоны касания в режиме вебтуна</string>
+    <string name="reader_webtoon_tap_zones_hint">Касание верхней трети прокручивает назад, нижней — вперёд; середина показывает управление.</string>
+    <string name="reader_orientation">Ориентация экрана</string>
+    <string name="reader_orientation_auto">Авто</string>
+    <string name="reader_orientation_portrait">Книжная</string>
+    <string name="reader_orientation_landscape">Альбомная</string>
+    <string name="reader_color_filter">Цветовой фильтр</string>
+    <string name="reader_filter_none">Нет</string>
+    <string name="reader_filter_sepia">Сепия</string>
+    <string name="reader_filter_grey">Серый</string>
+    <string name="reader_filter_warm">Тёплый</string>
+    <string name="reader_eink">Режим e-ink</string>
+    <string name="reader_eink_hint">Серые контрастные страницы и перелистывание без анимации — для экранов на электронных чернилах.</string>
+    <string name="reader_brightness_own">Своя яркость при чтении</string>
+    <string name="reader_brightness">Яркость: %1$d %%</string>
 </resources>

@@ -57,7 +57,31 @@ data class ReaderSettings(
     val sidePaddingPercent: Int = 0,
     /** Extra darkening over pages for night reading, 0 (off) … 0.8. */
     val dim: Float = 0f,
-)
+    /** [ORIENTATION_AUTO], [ORIENTATION_PORTRAIT] or [ORIENTATION_LANDSCAPE] while reading. */
+    val orientation: Int = ORIENTATION_AUTO,
+    /** [FILTER_NONE], [FILTER_SEPIA], [FILTER_GREY] or [FILTER_WARM] over the pages. */
+    val colorFilter: Int = FILTER_NONE,
+    /** E-ink screens: grey, high-contrast pages and page turns without animation. */
+    val eInk: Boolean = false,
+    /** Screen brightness while reading, 0.01 … 1; [BRIGHTNESS_SYSTEM] keeps the system's. */
+    val brightness: Float = BRIGHTNESS_SYSTEM,
+    /** Webtoon auto-scroll speed, 1 (slow) … [MAX_AUTO_SCROLL]. */
+    val autoScrollSpeed: Int = 3,
+    /** Webtoon mode: tap the top / bottom third to scroll back / on; the middle toggles controls. */
+    val webtoonTapZones: Boolean = false,
+) {
+    companion object {
+        const val ORIENTATION_AUTO = 0
+        const val ORIENTATION_PORTRAIT = 1
+        const val ORIENTATION_LANDSCAPE = 2
+        const val FILTER_NONE = 0
+        const val FILTER_SEPIA = 1
+        const val FILTER_GREY = 2
+        const val FILTER_WARM = 3
+        const val BRIGHTNESS_SYSTEM = -1f
+        const val MAX_AUTO_SCROLL = 10
+    }
+}
 
 data class SyncSettings(
     /** [OFF], [FOLDER] or [WEBDAV]. */
@@ -115,6 +139,12 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val readerKeepScreenOnKey = booleanPreferencesKey("reader_keep_screen_on")
     private val readerSidePaddingKey = intPreferencesKey("reader_side_padding")
     private val readerDimKey = doublePreferencesKey("reader_dim")
+    private val readerOrientationKey = intPreferencesKey("reader_orientation")
+    private val readerColorFilterKey = intPreferencesKey("reader_color_filter")
+    private val readerEInkKey = booleanPreferencesKey("reader_eink")
+    private val readerBrightnessKey = doublePreferencesKey("reader_brightness")
+    private val readerAutoScrollKey = intPreferencesKey("reader_auto_scroll_speed")
+    private val readerWebtoonTapZonesKey = booleanPreferencesKey("reader_webtoon_tap_zones")
     private val libraryIntervalKey = intPreferencesKey("library_update_interval_hours")
     private val libraryWifiOnlyKey = booleanPreferencesKey("library_update_wifi_only")
     private val downloadsWifiOnlyKey = booleanPreferencesKey("downloads_wifi_only")
@@ -337,6 +367,13 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             keepScreenOn = prefs[readerKeepScreenOnKey] ?: true,
             sidePaddingPercent = (prefs[readerSidePaddingKey] ?: 0).coerceIn(0, MAX_SIDE_PADDING),
             dim = (prefs[readerDimKey] ?: 0.0).toFloat().coerceIn(0f, MAX_DIM),
+            orientation = (prefs[readerOrientationKey] ?: ReaderSettings.ORIENTATION_AUTO).coerceIn(0, 2),
+            colorFilter = (prefs[readerColorFilterKey] ?: ReaderSettings.FILTER_NONE).coerceIn(0, 3),
+            eInk = prefs[readerEInkKey] ?: false,
+            brightness = (prefs[readerBrightnessKey] ?: ReaderSettings.BRIGHTNESS_SYSTEM.toDouble()).toFloat()
+                .let { if (it < 0f) ReaderSettings.BRIGHTNESS_SYSTEM else it.coerceIn(0.01f, 1f) },
+            autoScrollSpeed = (prefs[readerAutoScrollKey] ?: 3).coerceIn(1, ReaderSettings.MAX_AUTO_SCROLL),
+            webtoonTapZones = prefs[readerWebtoonTapZonesKey] ?: false,
         )
     }
 
@@ -633,6 +670,12 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             it[readerKeepScreenOnKey] = settings.keepScreenOn
             it[readerSidePaddingKey] = settings.sidePaddingPercent
             it[readerDimKey] = settings.dim.toDouble()
+            it[readerOrientationKey] = settings.orientation
+            it[readerColorFilterKey] = settings.colorFilter
+            it[readerEInkKey] = settings.eInk
+            it[readerBrightnessKey] = settings.brightness.toDouble()
+            it[readerAutoScrollKey] = settings.autoScrollSpeed
+            it[readerWebtoonTapZonesKey] = settings.webtoonTapZones
         }
     }
 

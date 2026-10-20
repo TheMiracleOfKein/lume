@@ -167,6 +167,88 @@ internal fun ReaderSettingsSheet(
             colors = lumeSliderColors(),
         )
         SwitchRow(
+            label = stringResource(R.string.reader_brightness_own),
+            checked = settings.brightness >= 0f,
+            onCheckedChange = { on -> onCommit(settings.copy(brightness = if (on) 0.5f else ReaderSettings.BRIGHTNESS_SYSTEM)) },
+        )
+        if (settings.brightness >= 0f) {
+            Text(
+                stringResource(R.string.reader_brightness, (settings.brightness * 100).roundToInt()),
+                color = AppColors.textSecondary,
+                fontSize = 13.sp,
+            )
+            Slider(
+                value = settings.brightness,
+                onValueChange = { onChange(settings.copy(brightness = it)) },
+                onValueChangeFinished = { onCommit(settings) },
+                valueRange = 0.01f..1f,
+                colors = lumeSliderColors(),
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(stringResource(R.string.reader_color_filter), color = AppColors.textSecondary, fontSize = 13.sp)
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(
+                ReaderSettings.FILTER_NONE to R.string.reader_filter_none,
+                ReaderSettings.FILTER_SEPIA to R.string.reader_filter_sepia,
+                ReaderSettings.FILTER_GREY to R.string.reader_filter_grey,
+                ReaderSettings.FILTER_WARM to R.string.reader_filter_warm,
+            ).forEach { (filter, label) ->
+                ChoiceChip(
+                    label = stringResource(label),
+                    selected = settings.colorFilter == filter,
+                    onClick = { onCommit(settings.copy(colorFilter = filter)) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        SwitchRow(
+            label = stringResource(R.string.reader_eink),
+            hint = stringResource(R.string.reader_eink_hint),
+            checked = settings.eInk,
+            onCheckedChange = { onCommit(settings.copy(eInk = it)) },
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(stringResource(R.string.reader_orientation), color = AppColors.textSecondary, fontSize = 13.sp)
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(
+                ReaderSettings.ORIENTATION_AUTO to R.string.reader_orientation_auto,
+                ReaderSettings.ORIENTATION_PORTRAIT to R.string.reader_orientation_portrait,
+                ReaderSettings.ORIENTATION_LANDSCAPE to R.string.reader_orientation_landscape,
+            ).forEach { (orientation, label) ->
+                ChoiceChip(
+                    label = stringResource(label),
+                    selected = settings.orientation == orientation,
+                    onClick = { onCommit(settings.copy(orientation = orientation)) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        if (settings.mode == ReaderMode.Webtoon) {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                stringResource(R.string.reader_auto_scroll_speed, settings.autoScrollSpeed),
+                color = AppColors.textSecondary,
+                fontSize = 13.sp,
+            )
+            Slider(
+                value = settings.autoScrollSpeed.toFloat(),
+                onValueChange = { onChange(settings.copy(autoScrollSpeed = it.roundToInt())) },
+                onValueChangeFinished = { onCommit(settings) },
+                valueRange = 1f..ReaderSettings.MAX_AUTO_SCROLL.toFloat(),
+                steps = ReaderSettings.MAX_AUTO_SCROLL - 2,
+                colors = lumeSliderColors(),
+            )
+            SwitchRow(
+                label = stringResource(R.string.reader_webtoon_tap_zones),
+                hint = stringResource(R.string.reader_webtoon_tap_zones_hint),
+                checked = settings.webtoonTapZones,
+                onCheckedChange = { onCommit(settings.copy(webtoonTapZones = it)) },
+            )
+        }
+        SwitchRow(
             label = stringResource(R.string.reader_immersive),
             hint = stringResource(R.string.reader_immersive_hint),
             checked = settings.immersive,

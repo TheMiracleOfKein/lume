@@ -26,13 +26,14 @@ fun shareLink(context: Context, title: String?, url: String) {
 }
 
 /** Hands [file] (under `cache/shared/`, see `res/xml/shared_files.xml`) to the share sheet. */
-fun shareFile(context: Context, file: java.io.File, mime: String, subject: String?) {
+fun shareFile(context: Context, file: java.io.File, mime: String, subject: String?, text: String? = null) {
     val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.files", file)
     val send = Intent(Intent.ACTION_SEND)
         .setType(mime)
         .putExtra(Intent.EXTRA_STREAM, uri)
         .putExtra(Intent.EXTRA_SUBJECT, subject.orEmpty())
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    if (!text.isNullOrBlank()) send.putExtra(Intent.EXTRA_TEXT, text)
     val chooser = Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     context.startActivity(chooser)
 }
