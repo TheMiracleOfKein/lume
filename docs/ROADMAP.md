@@ -91,6 +91,19 @@ Patch releases from the v0.6 line, as needed.
 **Foundation**
 - Tests for ViewModels of the reader and the library (M).
 
+**v0.7.x: send downloads to a nearby device** (L)
+
+Sync moves your library and progress, never the downloaded pages. This moves the pages: pick downloaded chapters on one phone, and another phone nearby receives them, without the internet and without a server.
+- **Choosing.** In Downloads (or on a title's chapter list), select titles or chapters → "Send to a nearby device". The sender shows the total size.
+- **Connecting**, fastest first, with nothing from Google Play services (so F-Droid builds keep it):
+  - **Same Wi-Fi:** the receiver finds the sender by itself (Android's network service discovery, `_lume._tcp`); a QR code with the address works when discovery is blocked (guest or office networks).
+  - **No shared Wi-Fi:** Wi-Fi Direct (`WifiP2pManager`, built into Android), or the sender's local-only hotspot, joined by scanning its QR code.
+  - Both run at Wi-Fi speed (usually 10–40 MB/s), far faster than Bluetooth, which stays out.
+- **Accepting.** The receiver sees who is sending, the titles, chapters and size, and accepts or declines. Nothing is written before that.
+- **Safety.** A short code shown on both screens, or the QR code, pairs the two phones; the transfer is encrypted with a key made for that session only. Lume listens only while the send screen is open.
+- **Transfer.** Chapters go one by one as CBZ with their metadata (title, source, chapter names and numbers), with a checksum each; a dropped connection resumes at the chapter it stopped on. The receiver adds the title to the library if it isn't there, and the chapters show as downloaded. Read marks can come along (a switch).
+- Done when: 1 GB of chapters moves between two phones on the same Wi-Fi and over Wi-Fi Direct, a cancelled transfer resumes, and declining writes nothing.
+
 ## v0.8: reader 2.0
 
 **Goal:** any page, any size, any phone: no memory crashes, sharp zoom, layouts that fit the screen.
