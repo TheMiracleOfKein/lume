@@ -498,7 +498,8 @@ class LibSocialEngine(
     private companion object {
         val TITLE_FIELDS = listOf(
             "summary", "genres", "tags", "authors", "artists", "releaseDate", "status_id", "chap_count",
-            "otherNames",
+            // The score (`rating`) comes only with rate_avg and rate.
+            "otherNames", "rate_avg", "rate",
         )
         private const val MAX_OTHER_NAMES = 15
     }
