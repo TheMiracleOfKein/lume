@@ -21,6 +21,7 @@ import com.lume.app.ui.screens.SettingsViewModel
 @Composable
 fun SourcesSettings(nav: NavHostController, vm: SettingsViewModel) {
     val searchNsfw by vm.prefs.globalSearchNsfw.collectAsState()
+    val similarTitles by vm.prefs.similarTitles.collectAsState()
     SettingsGroup {
         SettingItem("sources") {
             SettingsLink(stringResource(R.string.settings_sources), stringResource(R.string.settings_sources_hint)) {
@@ -33,6 +34,14 @@ fun SourcesSettings(nav: NavHostController, vm: SettingsViewModel) {
                 hint = stringResource(R.string.settings_search_nsfw_hint),
                 checked = searchNsfw,
                 onCheckedChange = vm::setSearchNsfw,
+            )
+        }
+        SettingItem("similar_titles") {
+            SwitchRow(
+                label = stringResource(R.string.settings_similar_titles),
+                hint = stringResource(R.string.settings_similar_titles_hint),
+                checked = similarTitles,
+                onCheckedChange = vm::setSimilarTitles,
             )
         }
     }

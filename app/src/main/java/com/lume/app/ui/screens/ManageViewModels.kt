@@ -293,6 +293,10 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         viewModelScope.launch { prefs.setGlobalSearchNsfw(value) }
     }
 
+    fun setSimilarTitles(value: Boolean) {
+        viewModelScope.launch { prefs.setSimilarTitles(value) }
+    }
+
     /** Finds downloaded chapters on disk again; [onDone] gets the message (shown as a toast too). */
     fun recoverDownloads(onDone: (String) -> Unit) {
         viewModelScope.launch {

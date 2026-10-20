@@ -76,6 +76,13 @@ Use the signed release APK, installed over the previous release, so the database
 - [ ] A list with a title from a source the phone doesn't have: found through its web link, or marked "Lume doesn't have this source".
 - [ ] A shared site link opens in the Lume window you are looking at, also when Lume was already open.
 
+## v0.6.4
+
+- [ ] Title screen: "Similar titles" shows covers for a well-known title (English and Russian sources); a tap opens global search with that name.
+- [ ] A title from a Russian source with only a Russian name still finds its recommendations (AniList knows many Russian names), or shows no row.
+- [ ] Signed in to MyAnimeList: a title AniList doesn't know shows "Recommended on MyAnimeList".
+- [ ] Settings → Sources and search → Similar titles off: the row is gone and no request goes to AniList (check with a proxy or the network log).
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.

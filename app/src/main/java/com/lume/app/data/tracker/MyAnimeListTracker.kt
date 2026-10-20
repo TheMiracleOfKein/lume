@@ -4,6 +4,8 @@ import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.db.TrackerLinkEntity
 import com.lume.app.data.network.AppHttp
 import com.lume.app.data.prefs.AppPreferences
+import com.lume.app.data.similar.SimilarTitle
+import com.lume.app.data.similar.parseMalRecommendations
 import com.lume.app.util.urlEncode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -127,6 +129,13 @@ class MyAnimeListTracker(
             }
         }.orEmpty()
     }
+
+    /** What MyAnimeList users recommend for [remoteId]; null when signed out or on errors. */
+    suspend fun recommendations(remoteId: String): List<SimilarTitle>? =
+        api({ url("$API/manga/$remoteId?fields=recommendations").get() }) { response ->
+            if (!response.isSuccessful) return@api null
+            parseMalRecommendations(json, response.body.string())
+        }
 
     override suspend fun link(sourceId: String, titleId: String, remoteId: String, remoteUrl: String?) {
         dao.upsertTrackerLink(

@@ -568,6 +568,9 @@
     <string name="title_sources">Источники (%s)</string>
     <string name="title_also_on">Есть также на %s</string>
     <string name="title_also_on_hint">Привяжите их: они заполнят пропуски в списке глав, а главу, которая не открылась, можно будет прочитать с другого источника</string>
+    <string name="title_similar">Похожие тайтлы</string>
+    <string name="title_similar_from">Рекомендации %1$s. Нажмите на тайтл, чтобы найти его на ваших источниках</string>
+    <string name="cd_similar_search">Искать на ваших источниках</string>
     <string name="action_link">Привязать</string>
     <string name="action_not_now">Не сейчас</string>
     <string name="dialog_sources">Источники</string>
@@ -637,6 +640,8 @@
     <string name="settings_downloads_wifi_only_hint">Загрузки ждут Wi-Fi и не тратят мобильный трафик</string>
     <string name="settings_downloads_parallel_hint">Больше — быстрее, но некоторые сайты замедляют или блокируют быстрые загрузки</string>
     <string name="settings_search_nsfw_hint">Общий поиск опрашивает и источники с пометкой 18+</string>
+    <string name="settings_similar_titles">Похожие тайтлы</string>
+    <string name="settings_similar_titles_hint">На странице тайтла показывается, что советует AniList (или MyAnimeList, если вы вошли). Lume отправляет им название тайтла</string>
     <string name="settings_sources_hint">Включение и отключение источников, закрепление, их настройки</string>
     <string name="settings_categories_hint">Добавление, переименование и порядок категорий; категория для новых тайтлов</string>
     <string name="settings_downloads_hint">Очередь, пауза и занятое место</string>
@@ -672,6 +677,7 @@
     <string name="settings_kw_storage">sd-карта, папка, место, память</string>
     <string name="settings_kw_downloads">очередь, пауза, офлайн</string>
     <string name="settings_kw_nsfw">взрослые, 18+, хентай, общий поиск</string>
+    <string name="settings_kw_similar_titles">рекомендации, похожие, советы, anilist, myanimelist, mal</string>
     <string name="settings_kw_sources">расширения, пакеты, включить, отключить, закрепить</string>
     <string name="settings_kw_trackers">anilist, shikimori, шикимори, myanimelist, mal, kitsu, mangaupdates, вход, аккаунт</string>
     <string name="settings_kw_auto_link">трекер, привязка, совпадение</string>
