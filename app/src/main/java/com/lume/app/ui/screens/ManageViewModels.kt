@@ -411,12 +411,47 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         viewModelScope.launch {
             val resolver = app.app.contentResolver
             val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            prefs.autoBackupFolder.value?.let { old ->
+            prefs.autoBackupFolder.value?.takeIf { it != prefs.syncSettings.value.folder }?.let { old ->
                 runCatching { resolver.releasePersistableUriPermission(old.toUri(), flags) }
             }
             if (uri != null) runCatching { resolver.takePersistableUriPermission(uri, flags) }
             prefs.setAutoBackupFolder(uri?.toString())
         }
+    }
+
+    val syncRunning = app.sync.running
+
+    /** Saves the sync settings. A new place only clears the old error; the saved merge state stays. */
+    fun saveSync(next: com.lume.app.data.prefs.SyncSettings, syncNow: Boolean = false) {
+        viewModelScope.launch {
+            val old = prefs.syncSettings.value
+            val placeChanged = old.backend != next.backend || old.folder != next.folder || old.webDavUrl != next.webDavUrl
+            if (placeChanged) prefs.setSyncStatus(prefs.syncStatus.value.copy(error = null))
+            prefs.setSyncSettings(next)
+            com.lume.app.data.sync.SyncWorker.schedule(app.app, next)
+            if (syncNow && next.ready) runSync()
+        }
+    }
+
+    fun setSyncFolder(uri: android.net.Uri) {
+        val resolver = app.app.contentResolver
+        val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        val current = prefs.syncSettings.value
+        current.folder?.takeIf { it != uri.toString() && it != prefs.autoBackupFolder.value }?.let { old ->
+            runCatching { resolver.releasePersistableUriPermission(old.toUri(), flags) }
+        }
+        runCatching { resolver.takePersistableUriPermission(uri, flags) }
+        saveSync(current.copy(backend = com.lume.app.data.prefs.SyncSettings.FOLDER, folder = uri.toString()), syncNow = true)
+    }
+
+    fun syncNow() {
+        viewModelScope.launch { runSync() }
+    }
+
+    private suspend fun runSync() {
+        val status = app.sync.sync() ?: return
+        statusMessage = status.error?.let { string(R.string.sync_failed, it) }
+            ?: if (status.changes == 0) string(R.string.sync_done_nothing) else app.app.resources.getQuantityString(R.plurals.sync_done, status.changes, status.changes)
     }
 
     /** A readable name for a picked file or folder ("Download/Lume" rather than a content URI). */

@@ -25,7 +25,7 @@ These hold for every release:
 | Version | Theme | Highlights | Size |
 | --- | --- | --- | --- |
 | 0.6.x | Maintenance | Clearer settings with search, reading lists, similar titles, source filters and browse sections; device testing, source fixes | S–M |
-| **0.7** | Sync and everyday reading | Sync between devices; page slider, orientation lock, auto-scroll, colour filters | L |
+| **0.7** | Sync and everyday reading 🟡 | Sync between devices; page slider, orientation lock, auto-scroll, colour filters | L |
 | **0.8** | Reader 2.0 | Tall pages without memory problems, sharp zoom, crop and spreads, guided panel view, Coil 3 | L |
 | **0.9** | Library and sources | Self-hosted servers (OPDS, Komga, Kavita), CBR and PDF, watched folders, smarter updates, statistics | L |
 | **0.10** | On-device AI | Translate raws, sharper old scans (separate build flavor) | L |
@@ -68,28 +68,43 @@ Patch releases from the v0.6 line, as needed.
 
 **Goal:** read on the phone, continue on the tablet, without an account.
 
-**Sync between devices** (signature feature 3, L)
-- Library, categories, reading progress (the exact spot per chapter), read marks, page bookmarks, linked sources and tracker links sync. Sign-ins and downloads never sync.
-- Backends:
-  - **WebDAV** (Nextcloud and others) first;
-  - **a shared folder** picked with the file picker (works with Syncthing);
-  - **Google Drive** optional and last, because it needs an OAuth client.
-- Each device writes its own change file, so a shared folder never has write conflicts. Lume merges the files.
-  - The newest change wins.
-  - For reading progress, the furthest position wins unless you reset it.
-- "Sync now", sync in the background (WorkManager), and a status line with the last sync and any error.
-- Optional passphrase that encrypts the sync files.
-- Done when: two emulators and one phone stay in sync through Nextcloud and through a Syncthing folder, including offline edits on both sides.
+**v0.7.0: sync and reader controls** ([details](#v070-sync-and-reader-controls))
 
-**Reader quick wins**
-- Page slider (S).
-- Orientation lock (S).
-- Webtoon auto-scroll with speed control; tap zones in webtoon mode (S).
-- Colour filters, e-ink mode (no animations, high contrast), custom brightness (S).
-- Save or share a page with a link to its source (S).
+**Sync between devices** (signature feature 3, L) 🟡
+- ✅ Library, categories, reading progress (the exact spot per chapter), read marks, page bookmarks, linked sources and tracker links sync, plus per-title reader settings and source packs. Sign-ins, downloads and app settings never sync.
+- Backends:
+  - ✅ **WebDAV** (Nextcloud and others);
+  - ✅ **a shared folder** picked with the file picker (works with Syncthing);
+  - ⏸️ **Google Drive**: needs an OAuth client; a cloud drive app that syncs a folder works through "Folder" meanwhile.
+- ✅ Each device writes its own change file, so a shared folder never has write conflicts. Lume merges the files.
+  - The newest change wins.
+  - For reading progress, the furthest position wins unless you reset it; "Continue" goes to the title read last.
+- ✅ "Sync now", sync in the background (WorkManager) and at start, and a status line with the last sync and any error.
+- ✅ Optional passphrase that encrypts the sync files (AES-256-GCM).
+- 🟡 Done when: two emulators and one phone stay in sync through Nextcloud and through a Syncthing folder, including offline edits on both sides. The merge rules have unit tests; the two-device runs are in [DEVICE_TESTING.md](DEVICE_TESTING.md) and not done yet.
+
+**Reader quick wins** ✅
+- ✅ Page slider (S).
+- ✅ Orientation lock (S).
+- ✅ Webtoon auto-scroll with speed control; tap zones in webtoon mode (S).
+- ✅ Colour filters, e-ink mode (no animations, high contrast), custom brightness (S).
+- ✅ Save or share a page with a link to its source (S).
 
 **Foundation**
-- Tests for ViewModels of the reader and the library (M).
+- ⏸️ Tests for ViewModels of the reader and the library (M): moved to the next v0.7.x release; v0.7.0 adds tests for the sync rules instead.
+
+**v0.7.x: send downloads to a nearby device** (L)
+
+Sync moves your library and progress, never the downloaded pages. This moves the pages: pick downloaded chapters on one phone, and another phone nearby receives them, without the internet and without a server.
+- **Choosing.** In Downloads (or on a title's chapter list), select titles or chapters → "Send to a nearby device". The sender shows the total size.
+- **Connecting**, fastest first, with nothing from Google Play services (so F-Droid builds keep it):
+  - **Same Wi-Fi:** the receiver finds the sender by itself (Android's network service discovery, `_lume._tcp`); a QR code with the address works when discovery is blocked (guest or office networks).
+  - **No shared Wi-Fi:** Wi-Fi Direct (`WifiP2pManager`, built into Android), or the sender's local-only hotspot, joined by scanning its QR code.
+  - Both run at Wi-Fi speed (usually 10–40 MB/s), far faster than Bluetooth, which stays out.
+- **Accepting.** The receiver sees who is sending, the titles, chapters and size, and accepts or declines. Nothing is written before that.
+- **Safety.** A short code shown on both screens, or the QR code, pairs the two phones; the transfer is encrypted with a key made for that session only. Lume listens only while the send screen is open.
+- **Transfer.** Chapters go one by one as CBZ with their metadata (title, source, chapter names and numbers), with a checksum each; a dropped connection resumes at the chapter it stopped on. The receiver adds the title to the library if it isn't there, and the chapters show as downloaded. Read marks can come along (a switch).
+- Done when: 1 GB of chapters moves between two phones on the same Wi-Fi and over Wi-Fi Direct, a cancelled transfer resumes, and declining writes nothing.
 
 ## v0.8: reader 2.0
 
@@ -238,7 +253,7 @@ Everything runs on the phone, with no account.
 ### 3. Sync and continuity 🟡
 
 - ✅ **Home-screen widget** and **"Continue <title>" shortcuts** (v0.6).
-- **Sync between devices** (v0.7).
+- ✅ **Sync between devices** (v0.7.0): a folder or WebDAV, optional passphrase. Google Drive waits.
 - ⏸️ **See exactly where you stopped** (v0.8): "Continue" cards and page bookmarks show the panel you were reading. Waits for panel detection; today page bookmarks show a crop of the page.
 
 ## Released
@@ -434,3 +449,12 @@ Release notes: [docs/releases/v0.6.6.md](releases/v0.6.6.md).
 - ✅ The weekly live check also loads every source's filters, searches with one genre and opens every browse section.
 - ⏸️ **MangaBuff filters:** the site is geo-blocked from where this was built, so its parameters couldn't be checked. **MangaKatana:** genre pages not used yet.
 - **Lib site descriptions** are empty: the API no longer sends them to visitors who aren't signed in (already so in v0.6.5). Separate fix.
+
+### v0.7.0: sync and reader controls
+
+Release notes: [docs/releases/v0.7.0.md](releases/v0.7.0.md).
+
+- ✅ **Sync between devices** through a folder (Syncthing, a cloud drive app) or a WebDAV server: library, categories, chapter spots, read marks, page bookmarks, linked sources, tracker links, per-title reader settings and packs. One file per device; newest change wins, furthest chapter spot wins, "Continue" by reading time; removals spread, a wiped install never removes anything elsewhere.
+- ✅ **Passphrase** encryption of the sync files; sync now, in the background and at start; status line.
+- ✅ **Reader:** page slider, orientation lock, webtoon auto-scroll and tap zones, sepia / grey / warm filters, e-ink mode, own brightness, share or save a page.
+- ⏸️ Google Drive; ViewModel tests (next v0.7.x).

@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Backup
+import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Info
@@ -31,6 +32,7 @@ enum class SettingsPage(
     Downloads("downloads", R.string.settings_section_downloads, R.string.settings_summary_downloads, Icons.Outlined.Download),
     Sources("sources", R.string.settings_section_sources, R.string.settings_summary_sources, Icons.Outlined.Explore),
     Trackers("trackers", R.string.settings_trackers, R.string.settings_summary_trackers, Icons.Outlined.Sync),
+    Sync("sync", R.string.settings_section_sync, R.string.settings_summary_sync, Icons.Outlined.CloudSync),
     Backup("backup", R.string.settings_section_backup, R.string.settings_summary_backup, Icons.Outlined.Backup),
     Privacy("privacy", R.string.settings_section_privacy, R.string.settings_summary_privacy, Icons.Outlined.Shield),
     Network("network", R.string.settings_section_network, R.string.settings_summary_network, Icons.Outlined.Public),
@@ -94,6 +96,11 @@ object SettingsCatalog {
 
         SettingInfo("tracker_accounts", SettingsPage.Trackers, R.string.settings_group_accounts, R.string.settings_trackers_note, R.string.settings_kw_trackers),
         SettingInfo("auto_link", SettingsPage.Trackers, R.string.tracker_auto_link, R.string.tracker_auto_link_hint, R.string.settings_kw_auto_link),
+
+        SettingInfo("sync_place", SettingsPage.Sync, R.string.sync_place, R.string.sync_intro, R.string.settings_kw_sync),
+        SettingInfo("sync_passphrase", SettingsPage.Sync, R.string.sync_passphrase, R.string.sync_passphrase_hint, R.string.settings_kw_sync_passphrase),
+        SettingInfo("sync_interval", SettingsPage.Sync, R.string.sync_interval, keywordsRes = R.string.settings_kw_sync),
+        SettingInfo("sync_now", SettingsPage.Sync, R.string.sync_now, keywordsRes = R.string.settings_kw_sync),
 
         SettingInfo("backup_create", SettingsPage.Backup, R.string.settings_create_backup, R.string.backup_create_hint, R.string.settings_kw_backup),
         SettingInfo("backup_save", SettingsPage.Backup, R.string.backup_save_to, R.string.backup_save_to_hint, R.string.settings_kw_backup),

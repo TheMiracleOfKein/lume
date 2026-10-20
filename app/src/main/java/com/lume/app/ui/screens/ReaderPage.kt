@@ -126,12 +126,15 @@ private class ReaderZoomState {
 internal fun ReaderZoomFrame(
     zoomEnabled: Boolean,
     resetKey: Any?,
-    onSingleTap: () -> Unit,
+    /** A single tap at height y of a frame [Int] pixels tall. */
+    onSingleTap: (Float, Int) -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable (zoomModifier: Modifier, isZoomed: () -> Boolean) -> Unit,
 ) {
     val state = remember { ReaderZoomState() }
     val scope = rememberCoroutineScope()
+    // The tap handler may change (settings); the gesture detector keeps running and calls the latest.
+    val tap by androidx.compose.runtime.rememberUpdatedState(onSingleTap)
 
     LaunchedEffect(resetKey) { state.reset() }
 
@@ -142,12 +145,12 @@ internal fun ReaderZoomFrame(
             .pointerInput(zoomEnabled) {
                 if (zoomEnabled) {
                     detectTapGestures(
-                        onTap = { onSingleTap() },
+                        onTap = { pos -> tap(pos.y, size.height) },
                         onDoubleTap = { pos -> scope.launch { state.toggleZoom(pos) } },
                     )
                 } else {
                     // Without a double-tap handler a single tap fires at once (no ~300 ms wait).
-                    detectTapGestures(onTap = { onSingleTap() })
+                    detectTapGestures(onTap = { pos -> tap(pos.y, size.height) })
                 }
             }
             .pointerInput(zoomEnabled) {
@@ -205,6 +208,8 @@ internal fun ReaderPageImage(
     fillViewport: Boolean = false,
     /** Single tap at (x, width); needed because the double-tap detector consumes taps. */
     onTap: ((Float, Int) -> Unit)? = null,
+    /** Colour filter or e-ink matrix from the reader settings. */
+    colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
 ) {
     val context = LocalContext.current
     var attempt by remember(page.imageUrl) { mutableIntStateOf(0) }
@@ -299,6 +304,7 @@ internal fun ReaderPageImage(
                     },
                 ),
             contentScale = contentScale,
+            colorFilter = colorFilter,
         )
         if (failed) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

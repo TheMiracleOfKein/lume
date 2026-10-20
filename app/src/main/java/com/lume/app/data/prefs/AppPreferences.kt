@@ -57,6 +57,66 @@ data class ReaderSettings(
     val sidePaddingPercent: Int = 0,
     /** Extra darkening over pages for night reading, 0 (off) … 0.8. */
     val dim: Float = 0f,
+    /** [ORIENTATION_AUTO], [ORIENTATION_PORTRAIT] or [ORIENTATION_LANDSCAPE] while reading. */
+    val orientation: Int = ORIENTATION_AUTO,
+    /** [FILTER_NONE], [FILTER_SEPIA], [FILTER_GREY] or [FILTER_WARM] over the pages. */
+    val colorFilter: Int = FILTER_NONE,
+    /** E-ink screens: grey, high-contrast pages and page turns without animation. */
+    val eInk: Boolean = false,
+    /** Screen brightness while reading, 0.01 … 1; [BRIGHTNESS_SYSTEM] keeps the system's. */
+    val brightness: Float = BRIGHTNESS_SYSTEM,
+    /** Webtoon auto-scroll speed, 1 (slow) … [MAX_AUTO_SCROLL]. */
+    val autoScrollSpeed: Int = 3,
+    /** Webtoon mode: tap the top / bottom third to scroll back / on; the middle toggles controls. */
+    val webtoonTapZones: Boolean = false,
+) {
+    companion object {
+        const val ORIENTATION_AUTO = 0
+        const val ORIENTATION_PORTRAIT = 1
+        const val ORIENTATION_LANDSCAPE = 2
+        const val FILTER_NONE = 0
+        const val FILTER_SEPIA = 1
+        const val FILTER_GREY = 2
+        const val FILTER_WARM = 3
+        const val BRIGHTNESS_SYSTEM = -1f
+        const val MAX_AUTO_SCROLL = 10
+    }
+}
+
+data class SyncSettings(
+    /** [OFF], [FOLDER] or [WEBDAV]. */
+    val backend: String = OFF,
+    /** The picked folder (a tree URI) for [FOLDER]. */
+    val folder: String? = null,
+    val webDavUrl: String = "",
+    val webDavUser: String = "",
+    val webDavPassword: String = "",
+    /** Encrypts the sync files when not empty; every device needs the same one. */
+    val passphrase: String = "",
+    val intervalHours: Int = 6,
+) {
+    val ready: Boolean
+        get() = when (backend) {
+            FOLDER -> folder != null
+            WEBDAV -> webDavUrl.startsWith("http://") || webDavUrl.startsWith("https://")
+            else -> false
+        }
+
+    companion object {
+        const val OFF = "off"
+        const val FOLDER = "folder"
+        const val WEBDAV = "webdav"
+        val BACKENDS = listOf(OFF, FOLDER, WEBDAV)
+    }
+}
+
+data class SyncStatus(
+    val lastAt: Long = 0L,
+    val error: String? = null,
+    /** Other devices whose files the last sync read. */
+    val devices: Int = 0,
+    /** Records the last sync changed on this device. */
+    val changes: Int = 0,
 )
 
 /**
@@ -79,6 +139,12 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val readerKeepScreenOnKey = booleanPreferencesKey("reader_keep_screen_on")
     private val readerSidePaddingKey = intPreferencesKey("reader_side_padding")
     private val readerDimKey = doublePreferencesKey("reader_dim")
+    private val readerOrientationKey = intPreferencesKey("reader_orientation")
+    private val readerColorFilterKey = intPreferencesKey("reader_color_filter")
+    private val readerEInkKey = booleanPreferencesKey("reader_eink")
+    private val readerBrightnessKey = doublePreferencesKey("reader_brightness")
+    private val readerAutoScrollKey = intPreferencesKey("reader_auto_scroll_speed")
+    private val readerWebtoonTapZonesKey = booleanPreferencesKey("reader_webtoon_tap_zones")
     private val libraryIntervalKey = intPreferencesKey("library_update_interval_hours")
     private val libraryWifiOnlyKey = booleanPreferencesKey("library_update_wifi_only")
     private val downloadsWifiOnlyKey = booleanPreferencesKey("downloads_wifi_only")
@@ -132,6 +198,17 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val autoBackupDaysKey = intPreferencesKey("auto_backup_days")
     private val autoBackupKeepKey = intPreferencesKey("auto_backup_keep")
     private val autoBackupFolderKey = stringPreferencesKey("auto_backup_folder")
+    private val syncBackendKey = stringPreferencesKey("sync_backend")
+    private val syncFolderKey = stringPreferencesKey("sync_folder")
+    private val syncWebDavUrlKey = stringPreferencesKey("sync_webdav_url")
+    private val syncWebDavUserKey = stringPreferencesKey("sync_webdav_user")
+    private val syncWebDavPasswordKey = stringPreferencesKey("sync_webdav_password")
+    private val syncPassphraseKey = stringPreferencesKey("sync_passphrase")
+    private val syncIntervalKey = intPreferencesKey("sync_interval_hours")
+    private val syncLastAtKey = longPreferencesKey("sync_last_at")
+    private val syncLastErrorKey = stringPreferencesKey("sync_last_error")
+    private val syncDevicesKey = intPreferencesKey("sync_devices")
+    private val syncChangesKey = intPreferencesKey("sync_changes")
 
     init {
         runBlocking { movePrivateValues() }
@@ -290,6 +367,13 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             keepScreenOn = prefs[readerKeepScreenOnKey] ?: true,
             sidePaddingPercent = (prefs[readerSidePaddingKey] ?: 0).coerceIn(0, MAX_SIDE_PADDING),
             dim = (prefs[readerDimKey] ?: 0.0).toFloat().coerceIn(0f, MAX_DIM),
+            orientation = (prefs[readerOrientationKey] ?: ReaderSettings.ORIENTATION_AUTO).coerceIn(0, 2),
+            colorFilter = (prefs[readerColorFilterKey] ?: ReaderSettings.FILTER_NONE).coerceIn(0, 3),
+            eInk = prefs[readerEInkKey] ?: false,
+            brightness = (prefs[readerBrightnessKey] ?: ReaderSettings.BRIGHTNESS_SYSTEM.toDouble()).toFloat()
+                .let { if (it < 0f) ReaderSettings.BRIGHTNESS_SYSTEM else it.coerceIn(0.01f, 1f) },
+            autoScrollSpeed = (prefs[readerAutoScrollKey] ?: 3).coerceIn(1, ReaderSettings.MAX_AUTO_SCROLL),
+            webtoonTapZones = prefs[readerWebtoonTapZonesKey] ?: false,
         )
     }
 
@@ -439,6 +523,53 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     }
 
     /**
+     * Sync between devices (Settings → Sync). All of it belongs to this install (a folder
+     * permission, a server password), so it lives in the private store and never in backups.
+     */
+    val syncSettings: StateFlow<SyncSettings> = privateState { p ->
+        SyncSettings(
+            backend = p[syncBackendKey]?.takeIf { it in SyncSettings.BACKENDS } ?: SyncSettings.OFF,
+            folder = p[syncFolderKey]?.takeIf(String::isNotBlank),
+            webDavUrl = p[syncWebDavUrlKey].orEmpty(),
+            webDavUser = p[syncWebDavUserKey].orEmpty(),
+            webDavPassword = p[syncWebDavPasswordKey].orEmpty(),
+            passphrase = p[syncPassphraseKey].orEmpty(),
+            intervalHours = p[syncIntervalKey]?.takeIf { it in SYNC_INTERVALS } ?: 6,
+        )
+    }
+
+    /** The last sync: when it finished, what failed, how many other devices it saw. */
+    val syncStatus: StateFlow<SyncStatus> = privateState { p ->
+        SyncStatus(
+            lastAt = p[syncLastAtKey] ?: 0L,
+            error = p[syncLastErrorKey]?.takeIf(String::isNotBlank),
+            devices = p[syncDevicesKey] ?: 0,
+            changes = p[syncChangesKey] ?: 0,
+        )
+    }
+
+    suspend fun setSyncSettings(settings: SyncSettings) {
+        context.privateDataStore.edit {
+            it[syncBackendKey] = settings.backend
+            if (settings.folder == null) it.remove(syncFolderKey) else it[syncFolderKey] = settings.folder
+            it[syncWebDavUrlKey] = settings.webDavUrl.trim()
+            it[syncWebDavUserKey] = settings.webDavUser.trim()
+            it[syncWebDavPasswordKey] = settings.webDavPassword
+            it[syncPassphraseKey] = settings.passphrase
+            it[syncIntervalKey] = settings.intervalHours
+        }
+    }
+
+    suspend fun setSyncStatus(status: SyncStatus) {
+        context.privateDataStore.edit {
+            it[syncLastAtKey] = status.lastAt
+            if (status.error == null) it.remove(syncLastErrorKey) else it[syncLastErrorKey] = status.error
+            it[syncDevicesKey] = status.devices
+            it[syncChangesKey] = status.changes
+        }
+    }
+
+    /**
      * Every stored preference as (key, type, value) for backups. Account tokens, app keys and
      * the backup folder live in [privateDataStore] and stay out; the filter guards against strays.
      */
@@ -477,7 +608,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     }
 
     private fun isPrivateKey(name: String): Boolean =
-        PRIVATE_KEY_PARTS.any { name.contains(it) } || name == "auto_backup_folder" ||
+        PRIVATE_KEY_PARTS.any { name.contains(it) } || name == "auto_backup_folder" || name.startsWith("sync_") ||
             (name.startsWith(TRACKER_PREFIX) && name != "tracker_auto_link_enabled")
 
     /** Where the pack catalogue is read from; see `docs/packs/index.json`. */
@@ -539,6 +670,12 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             it[readerKeepScreenOnKey] = settings.keepScreenOn
             it[readerSidePaddingKey] = settings.sidePaddingPercent
             it[readerDimKey] = settings.dim.toDouble()
+            it[readerOrientationKey] = settings.orientation
+            it[readerColorFilterKey] = settings.colorFilter
+            it[readerEInkKey] = settings.eInk
+            it[readerBrightnessKey] = settings.brightness.toDouble()
+            it[readerAutoScrollKey] = settings.autoScrollSpeed
+            it[readerWebtoonTapZonesKey] = settings.webtoonTapZones
         }
     }
 
@@ -590,6 +727,8 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
         const val MAX_PARALLEL_PAGES = 4
         val AUTO_BACKUP_DAYS = listOf(0, 1, 3, 7)
         val AUTO_BACKUP_KEEP = listOf(3, 5, 10)
+        /** Hours between background syncs; 0 = only "Sync now" and app start. */
+        val SYNC_INTERVALS = listOf(0, 1, 6, 12, 24)
         private val PRIVATE_KEY_PARTS = listOf("token", "secret", "client_id", "user_id", "password", "verifier")
         private const val TRACKER_PREFIX = "tracker_"
         const val DEFAULT_PACK_INDEX = "https://raw.githubusercontent.com/TheMiracleOfKein/lume/main/docs/packs/index.json"

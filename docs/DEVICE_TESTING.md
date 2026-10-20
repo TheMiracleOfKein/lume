@@ -93,6 +93,26 @@ Use the signed release APK, installed over the previous release, so the database
 - [ ] Title screen: author, artist and "type · year · ★ score" for a MangaDex, a MangaLib and an Asura title; long author lists end with "…".
 - [ ] All of the above in Russian.
 
+## v0.7.0
+
+Sync needs two devices (two emulators work). Use the same folder or server on both.
+
+- [ ] Settings → Sync → Folder: pick a Syncthing folder (or a cloud drive app's folder) on phone A with a library, then the same folder on phone B. After "Sync now" on both, B shows A's titles, categories, read marks and the spot in each chapter.
+- [ ] The same through WebDAV (Nextcloud): a wrong password shows "sign-in refused"; a folder that doesn't exist is created.
+- [ ] Read further on B, sync both: A continues at B's spot. Mark a chapter unread on A, sync both: it is unread on B too.
+- [ ] Remove a title on A, sync both: it is gone from B. Add it back on B: it comes back on A.
+- [ ] Offline edits on both sides (airplane mode), then sync both: both sets of changes are kept.
+- [ ] Passphrase on A only: B says another device encrypts its file. The same passphrase on B: sync works. A different one: "the passphrase doesn't open another device's file".
+- [ ] Clear Lume's data on B and turn sync on again: B gets the library back and A loses nothing.
+- [ ] Background sync every hour runs (the status line moves on) without opening the app.
+- [ ] Reader: the page slider jumps to a page in webtoon, left-to-right and right-to-left modes (the slider runs right to left there).
+- [ ] Orientation lock portrait and landscape hold while the phone turns; leaving the reader lets the app turn again.
+- [ ] Webtoon auto-scroll: play scrolls steadily, the speed setting changes it, a drag stops it, the end of the chapter stops it.
+- [ ] Webtoon tap zones on: top third scrolls back, bottom third scrolls on, middle shows the controls. Off: any tap shows the controls.
+- [ ] Sepia, grey and warm filters, e-ink mode (no animated page turns), own brightness (back to the system brightness after leaving the reader).
+- [ ] Page menu → Share page sends the image with the chapter link; Save page puts it in Pictures/Lume (Android 9: a save dialog).
+- [ ] All of the above in Russian.
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.

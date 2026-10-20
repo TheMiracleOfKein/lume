@@ -27,6 +27,21 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
+import android.os.Build
+import com.lume.app.data.library.ReadingLists
+import com.lume.app.ui.components.shareFile
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.withContext
+import java.io.File
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -90,6 +105,7 @@ import com.lume.app.ui.theme.Motion
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -121,6 +137,14 @@ fun ReaderScreen(
     val systemDark = isSystemInDarkTheme()
     /** +1 = next page, -1 = previous; collected by whichever reader mode is active. */
     val pageTurns = remember { MutableSharedFlow<Int>(extraBufferCapacity = 8) }
+    /** A page of the current chapter picked on the slider; only the latest one matters. */
+    val pageSeeks = remember { MutableSharedFlow<Int>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST) }
+    var autoScroll by rememberSaveable { mutableStateOf(false) }
+    // Auto-scroll is a webtoon feature; switching to a paged mode turns it off.
+    LaunchedEffect(settings.mode) { if (settings.mode != ReaderMode.Webtoon) autoScroll = false }
+    val context = LocalContext.current
+    val pageSaved = stringResource(R.string.reader_page_saved)
+    val pageFailed = stringResource(R.string.reader_page_failed)
     val focusRequester = remember { FocusRequester() }
     val view = LocalView.current
     val bookmarkAdded = stringResource(R.string.reader_bookmark_added)
@@ -131,7 +155,9 @@ fun ReaderScreen(
     }
     // Fullscreen: when the controls hide, the status and navigation bars hide with them
     // (a swipe from the edge peeks them; a tap on the page restores everything).
-    val window = LocalActivity.current?.window
+    val activity = LocalActivity.current
+    ReaderWindowEffects(activity, settings)
+    val window = activity?.window
     val insetsController = remember(window, view) {
         window?.let { WindowCompat.getInsetsController(it, view) }
     }
@@ -163,6 +189,62 @@ fun ReaderScreen(
         if (fallbackNotice != null) {
             snackbar.showSnackbar(fallbackNotice, duration = SnackbarDuration.Short)
             vm.clearFallbackNotice()
+        }
+    }
+
+    /** The current page's bytes, extension and file name; null (with a message) when it can't be read. */
+    suspend fun currentPage(): Triple<ByteArray, String, String>? {
+        val chapter = vm.currentChapter ?: return null
+        val page = vm.loaded.firstOrNull { chapterIdsMatch(it.chapter.id, vm.currentChapterId) }?.pages?.getOrNull(vm.currentPageIndex)
+            ?: return null
+        return runCatching { readerPageBytes(context, page.imageUrl) }
+            .onFailure { snackbar.showSnackbar(pageFailed, duration = SnackbarDuration.Short) }
+            .getOrNull()
+            ?.let { (bytes, ext) -> Triple(bytes, ext, pageFileName(vm.titleName, chapter.title, vm.currentPageIndex)) }
+    }
+
+    // Android 9 and older: saving goes through the file picker, so no storage permission is needed.
+    var pendingSave by remember { mutableStateOf<ByteArray?>(null) }
+    val saveAs = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("image/*")) { uri ->
+        val bytes = pendingSave
+        pendingSave = null
+        if (uri != null && bytes != null) {
+            scope.launch {
+                val ok = runCatching {
+                    withContext(Dispatchers.IO) {
+                        context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } ?: error("write")
+                    }
+                }.isSuccess
+                snackbar.showSnackbar(if (ok) pageSaved else pageFailed, duration = SnackbarDuration.Short)
+            }
+        }
+    }
+
+    fun sharePage() {
+        scope.launch {
+            val (bytes, ext, name) = currentPage() ?: return@launch
+            val file = runCatching {
+                withContext(Dispatchers.IO) {
+                    val dir = File(context.cacheDir, ReadingLists.SHARED_DIR).apply { mkdirs() }
+                    File(dir, "page.$ext").apply { writeBytes(bytes) }
+                }
+            }.getOrNull() ?: return@launch
+            // The link lets whoever gets the page find the chapter.
+            val link = vm.currentChapter?.url?.takeIf { it.startsWith("http") }
+            shareFile(context, file, mimeOf(ext), name, text = listOfNotNull(name, link).joinToString("\n"))
+        }
+    }
+
+    fun savePage() {
+        scope.launch {
+            val (bytes, ext, name) = currentPage() ?: return@launch
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val ok = runCatching { savePageToPictures(context, bytes, ext, name) }.isSuccess
+                snackbar.showSnackbar(if (ok) pageSaved else pageFailed, duration = SnackbarDuration.Short)
+            } else {
+                pendingSave = bytes
+                saveAs.launch("$name.$ext")
+            }
         }
     }
 
@@ -211,17 +293,24 @@ fun ReaderScreen(
                 else -> Box(Modifier.fillMaxSize()) {
                     val toggleChrome = { chromeVisible = !chromeVisible }
                     val hideChrome = { if (settings.immersive) chromeVisible = false }
+                    val colorFilter = remember(settings.colorFilter, settings.eInk) { readerColorFilter(settings) }
                     key(vm.session) {
                         when (settings.mode) {
                             ReaderMode.Webtoon -> WebtoonReader(
                                 vm = vm,
                                 pageTurns = pageTurns,
+                                pageSeeks = pageSeeks,
+                                colorFilter = colorFilter,
+                                autoScroll = autoScroll,
+                                onAutoScrollStop = { autoScroll = false },
                                 onSingleTap = toggleChrome,
                                 onUserScroll = hideChrome,
                             )
                             ReaderMode.Ltr, ReaderMode.Rtl -> PagedReader(
                                 vm = vm,
                                 pageTurns = pageTurns,
+                                pageSeeks = pageSeeks,
+                                colorFilter = colorFilter,
                                 onToggleChrome = toggleChrome,
                                 onUserScroll = hideChrome,
                             )
@@ -246,6 +335,8 @@ fun ReaderScreen(
                             onOpenTitle = { nav.openTitleFromReader(sourceId, titleId) },
                             onToggleLibrary = vm::toggleLibrary,
                             onSettings = { settingsOpen = true },
+                            onSharePage = ::sharePage,
+                            onSavePage = ::savePage,
                         )
                     }
                     Column(
@@ -261,6 +352,15 @@ fun ReaderScreen(
                             ReaderBottomBar(
                                 pageLabel = vm.currentChapterPageCount.takeIf { it > 0 && !settings.hidePageNumber }
                                     ?.let { "${vm.currentPageIndex + 1} / $it" },
+                                pageIndex = vm.currentPageIndex,
+                                pageCount = vm.currentChapterPageCount,
+                                reversed = settings.mode == ReaderMode.Rtl,
+                                onSeek = { pageSeeks.tryEmit(it) },
+                                autoScroll = autoScroll.takeIf { settings.mode == ReaderMode.Webtoon },
+                                onToggleAutoScroll = {
+                                    autoScroll = !autoScroll
+                                    if (autoScroll && settings.immersive) chromeVisible = false
+                                },
                                 onPrev = { vm.goChapter(-1) },
                                 onNext = { vm.goChapter(1) },
                                 onChapters = { nav.navigate(Routes.chapters(sourceId, titleId)) },
@@ -348,10 +448,17 @@ fun ReaderScreen(
 /** How long to wait for the anchor page's real height before giving up on the fine restore. */
 private const val RESTORE_WAIT_MS = 4_000L
 
+/** Auto-scroll speed: dp per second for each step of the speed setting. */
+private const val AUTO_SCROLL_DP_PER_STEP = 18
+
 @Composable
 private fun WebtoonReader(
     vm: ReaderViewModel,
     pageTurns: MutableSharedFlow<Int>,
+    pageSeeks: MutableSharedFlow<Int>,
+    colorFilter: ColorFilter?,
+    autoScroll: Boolean,
+    onAutoScrollStop: () -> Unit,
     onSingleTap: () -> Unit,
     onUserScroll: () -> Unit,
 ) {
@@ -413,18 +520,65 @@ private fun WebtoonReader(
             .distinctUntilChanged()
             .collect { (anchor, finished, lastVisible) -> vm.onPosition(session, anchor, finished, lastVisible) }
     }
+    val autoScrolling by rememberUpdatedState(autoScroll)
     LaunchedEffect(listState) {
         pageTurns.collect { delta ->
             onUserScroll()
             val viewport = listState.layoutInfo.viewportSize.height
-            listState.animateScrollBy(delta * viewport * 0.85f)
+            // E-ink panels smear animations: jump instead. So does auto-scroll, whose glide would
+            // cancel an animated turn (and the turn the glide) over and over.
+            if (vm.settings.eInk || autoScrolling) listState.scrollBy(delta * viewport * 0.85f)
+            else listState.animateScrollBy(delta * viewport * 0.85f)
         }
+    }
+    LaunchedEffect(listState) {
+        pageSeeks.collect { page ->
+            val index = stripIndexOf(vm.strip, vm.currentChapterId, page)
+            if (index >= 0) listState.scrollToItem(index)
+        }
+    }
+    // Auto-scroll: a steady glide; a drag by hand or the end of the strip stops it.
+    val currentStop by rememberUpdatedState(onAutoScrollStop)
+    LaunchedEffect(listState, autoScroll) {
+        if (!autoScroll) return@LaunchedEffect
+        val glide = launch {
+            var last = 0L
+            while (true) {
+                val now = withFrameNanos { it }
+                val seconds = if (last == 0L) 0f else (now - last) / 1_000_000_000f
+                last = now
+                val pxPerSecond = with(density) { (AUTO_SCROLL_DP_PER_STEP * vm.settings.autoScrollSpeed).dp.toPx() }
+                if (seconds > 0f) {
+                    // A page turn (tap zone, volume key) cancels this scroll; the glide goes on.
+                    try {
+                        listState.scrollBy(pxPerSecond * seconds)
+                    } catch (e: CancellationException) {
+                        if (!isActive) throw e
+                    }
+                }
+                if (!listState.canScrollForward) {
+                    currentStop()
+                    break
+                }
+            }
+        }
+        listState.interactionSource.interactions.first { it is DragInteraction.Start }
+        glide.cancel()
+        currentStop()
     }
     val chromeHider = rememberChromeHider(settings.immersive, onUserScroll)
     ReaderZoomFrame(
         zoomEnabled = settings.doubleTapZoom,
         resetKey = vm.session,
-        onSingleTap = onSingleTap,
+        onSingleTap = { y, height ->
+            val third = height / 3f
+            when {
+                !vm.settings.webtoonTapZones -> onSingleTap()
+                y < third -> pageTurns.tryEmit(-1)
+                y > height - third -> pageTurns.tryEmit(1)
+                else -> onSingleTap()
+            }
+        },
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(chromeHider),
@@ -447,6 +601,7 @@ private fun WebtoonReader(
                         page = item.page,
                         aspect = vm.aspectOf(item.chapter.id, item.indexInChapter),
                         onAspect = { vm.reportAspect(item.chapter.id, item.indexInChapter, it) },
+                        colorFilter = colorFilter,
                     )
                 }
             }
@@ -458,6 +613,8 @@ private fun WebtoonReader(
 private fun PagedReader(
     vm: ReaderViewModel,
     pageTurns: MutableSharedFlow<Int>,
+    pageSeeks: MutableSharedFlow<Int>,
+    colorFilter: ColorFilter?,
     onToggleChrome: () -> Unit,
     onUserScroll: () -> Unit,
 ) {
@@ -485,7 +642,13 @@ private fun PagedReader(
         pageTurns.collect { delta ->
             onUserScroll()
             val target = (pagerState.currentPage + delta).coerceIn(0, pagerState.pageCount - 1)
-            pagerState.animateScrollToPage(target)
+            if (vm.settings.eInk) pagerState.scrollToPage(target) else pagerState.animateScrollToPage(target)
+        }
+    }
+    LaunchedEffect(pagerState) {
+        pageSeeks.collect { page ->
+            val index = stripIndexOf(vm.strip, vm.currentChapterId, page)
+            if (index >= 0) pagerState.scrollToPage(index)
         }
     }
     val rtl = settings.mode == ReaderMode.Rtl
@@ -525,6 +688,7 @@ private fun PagedReader(
                     fillViewport = true,
                     // The zoom gesture consumes taps, so forward single taps.
                     onTap = onPagerTap,
+                    colorFilter = colorFilter,
                 )
             }
             is ReaderStripItem.Divider -> ChapterDividerBand(
