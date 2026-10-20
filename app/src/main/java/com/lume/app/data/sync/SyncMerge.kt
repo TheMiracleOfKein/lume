@@ -13,7 +13,8 @@ import kotlinx.serialization.json.longOrNull
 /**
  * One record in a sync file: a library entry, a read mark, a reading position and so on.
  * [changedAt] is when some device last saw it change; [deleted] marks a removal, kept for a while
- * so the other devices remove it too.
+ * so the other devices remove it too. [device] is the id of the device that stamped it; it settles
+ * ties between equal times the same way on every device.
  */
 @Serializable
 data class SyncEntry(
@@ -21,6 +22,7 @@ data class SyncEntry(
     val changedAt: Long,
     val deleted: Boolean = false,
     val data: JsonElement? = null,
+    val device: String = "",
 )
 
 /**
@@ -33,6 +35,8 @@ data class SyncFile(
     val deviceId: String,
     val deviceName: String = "",
     val writtenAt: Long = 0L,
+    /** Marker of the database this state was made from (see [SyncMerge.databaseRecreated]); 0 when unknown. */
+    val databaseId: Int = 0,
     val collections: Map<String, List<SyncEntry>> = emptyMap(),
 ) {
     companion object {
@@ -59,8 +63,10 @@ sealed interface SyncChange {
  * - [stamp] compares what the database holds now with what this device wrote last time: new or
  *   changed records get the current time, unchanged ones keep theirs, missing ones become removals.
  *   On the first sync of a place ([stamp]'s `bootstrap`) records without a history get time 0, so a
- *   removal or edit made on another device wins over this device's untouched copy.
- * - [merge] picks one winner per record across every device: the newest change wins. Chapter
+ *   removal or edit made on another device wins over this device's untouched copy. So on a first
+ *   sync, records another device already has keep that device's version.
+ * - [merge] picks one winner per record across every device: the newest change wins, and equal
+ *   times go to the larger device id so every device picks the same winner. Chapter
  *   positions are different: the furthest position wins, unless the newest change resets it; "Continue" goes to the title read last.
  * - [changes] lists what the database needs so it matches the winners.
  */
@@ -85,6 +91,7 @@ object SyncMerge {
         previous: SyncState,
         now: Long,
         bootstrap: Boolean,
+        device: String,
     ): SyncState {
         val fresh = if (bootstrap) 0L else now
         val collections = current.keys + previous.keys
@@ -94,11 +101,11 @@ object SyncMerge {
             val out = HashMap<String, SyncEntry>()
             for ((key, data) in live) {
                 val old = before[key]
-                out[key] = if (old != null && !old.deleted && old.data == data) old else SyncEntry(key, fresh, data = data)
+                out[key] = if (old != null && !old.deleted && old.data == data) old else SyncEntry(key, fresh, data = data, device = device)
             }
             for ((key, old) in before) {
                 if (key in live) continue
-                out[key] = if (old.deleted) old else SyncEntry(key, now, deleted = true)
+                out[key] = if (old.deleted) old else SyncEntry(key, now, deleted = true, device = device)
             }
             out
         }.filterValues { it.isNotEmpty() }
@@ -114,7 +121,7 @@ object SyncMerge {
                 val candidates = all.mapNotNull { it[name]?.get(key) }
                 val winner = when (name) {
                     FURTHEST_WINS -> furthest(candidates)
-                    LAST_READ_WINS -> candidates.maxWithOrNull(compareBy<SyncEntry>({ readAt(it) }, { it.changedAt }))
+                    LAST_READ_WINS -> candidates.maxWithOrNull(compareBy<SyncEntry>({ readAt(it) }, { it.changedAt }, { if (it.deleted) 1 else 0 }, { it.device }))
                     else -> newest(candidates)
                 }
                 winner?.takeUnless { it.deleted && it.changedAt < cutoff }
@@ -138,25 +145,22 @@ object SyncMerge {
     }
 
     /**
-     * True when the database looks wiped (a reinstall, cleared data, a failed upgrade): no record in
-     * any collection while the last sync knew a library. Then its records must not turn into removals
-     * on every device. A library emptied on purpose keeps other records (categories, read marks…)
-     * and counts as removals.
+     * True when the database file was recreated since the last sync (a reinstall, cleared data, a
+     * failed upgrade): its marker differs from the one saved. Then its records must not turn into
+     * removals on every device. A state saved before markers existed (0) is never taken for that.
      */
-    fun looksWiped(current: Map<String, Map<String, JsonElement>>, previous: SyncState): Boolean {
-        val had = previous[LIBRARY].orEmpty().values.count { !it.deleted }
-        return had > 0 && current.values.all { it.isEmpty() }
-    }
+    fun databaseRecreated(savedDatabaseId: Int, currentDatabaseId: Int): Boolean =
+        savedDatabaseId != 0 && savedDatabaseId != currentDatabaseId
 
     private fun newest(candidates: List<SyncEntry>): SyncEntry? =
-        candidates.maxWithOrNull(compareBy<SyncEntry> { it.changedAt }.thenBy { if (it.deleted) 1 else 0 })
+        candidates.maxWithOrNull(compareBy<SyncEntry> { it.changedAt }.thenBy { if (it.deleted) 1 else 0 }.thenBy { it.device })
 
     private fun furthest(candidates: List<SyncEntry>): SyncEntry? {
         val latest = newest(candidates) ?: return null
         if (latest.deleted) return latest
         val lastReset = candidates.filter { it.deleted }.maxOfOrNull { it.changedAt } ?: Long.MIN_VALUE
         val live = candidates.filter { !it.deleted && it.changedAt > lastReset }
-        val best = live.maxWithOrNull(compareBy<SyncEntry>({ position(it).first }, { position(it).second }, { position(it).third }, { it.changedAt }))
+        val best = live.maxWithOrNull(compareBy<SyncEntry>({ position(it).first }, { position(it).second }, { position(it).third }, { it.changedAt }, { it.device }))
             ?: return latest
         // The winner carries the newest time, so devices agree it is current.
         return best.copy(changedAt = live.maxOf { it.changedAt })

@@ -46,6 +46,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import java.io.File
 import java.util.UUID
+import kotlin.random.Random
 
 /** A library entry as it syncs: categories by name, because their ids differ between devices. */
 @Serializable
@@ -119,9 +120,12 @@ class SyncRepository(
         val backend = backendFor(settings)
         val now = System.currentTimeMillis()
         val local = readLocal()
-        var previous = loadState()
-        if (SyncMerge.looksWiped(local, previous)) previous = emptyMap()
-        val own = SyncMerge.stamp(local, previous, now, bootstrap = previous.isEmpty())
+        val databaseId = databaseMarker()
+        val saved = loadSaved()
+        var previous = saved?.state().orEmpty()
+        // A database created since the last sync lost its records; they are not removals.
+        if (SyncMerge.databaseRecreated(saved?.databaseId ?: 0, databaseId)) previous = emptyMap()
+        val own = SyncMerge.stamp(local, previous, now, bootstrap = previous.isEmpty(), device = deviceId)
 
         val passphrase = settings.passphrase.ifEmpty { null }
         // A file that can't be read with this passphrase (damaged, or from another setup) is skipped
@@ -140,13 +144,21 @@ class SyncRepository(
 
         val merged = SyncMerge.merge(own, others.map { it.state() }, now)
         val changes = SyncMerge.changes(local, merged)
-        if (changes.isNotEmpty()) apply(changes)
+        val failed = if (changes.isNotEmpty()) apply(changes) else emptyList()
+        // A record that could not be applied stays as this device had it, so the next sync does not
+        // take it for a removal: its previous entry, or none if it had none.
+        val kept = if (failed.isEmpty()) merged else merged.mapValues { (name, entries) ->
+            val failedKeys = failed.filter { it.first == name }.map { it.second }.toSet()
+            if (failedKeys.isEmpty()) entries
+            else entries.filterKeys { it !in failedKeys } + failedKeys.mapNotNull { key -> own[name]?.get(key)?.let { key to it } }
+        }.filterValues { it.isNotEmpty() }
 
         val out = SyncFile(
             deviceId = deviceId,
             deviceName = Build.MODEL.orEmpty(),
             writtenAt = now,
-            collections = merged.mapValues { (_, entries) -> entries.values.sortedBy { it.key } },
+            databaseId = databaseId,
+            collections = kept.mapValues { (_, entries) -> entries.values.sortedBy { it.key } },
         )
         val text = json.encodeToString(SyncFile.serializer(), out)
         backend.write(ownFileName, SyncCodec.encode(text, passphrase))
@@ -159,10 +171,23 @@ class SyncRepository(
         else -> WebDavSyncBackend(http.okHttp, settings.webDavUrl, settings.webDavUser, settings.webDavPassword)
     }
 
-    private fun loadState(): SyncState = runCatching {
-        if (!stateFile.exists()) return emptyMap()
-        json.decodeFromString(SyncFile.serializer(), stateFile.readText()).state()
-    }.getOrDefault(emptyMap())
+    private fun loadSaved(): SyncFile? = runCatching {
+        if (!stateFile.exists()) return null
+        json.decodeFromString(SyncFile.serializer(), stateFile.readText())
+    }.getOrNull()
+
+    /**
+     * An id stored in the database file itself (SQLite's `application_id`, which Room leaves alone),
+     * so a recreated database is told apart from an emptied library. Set on first use.
+     */
+    private fun databaseMarker(): Int {
+        val db = database.openHelper.writableDatabase
+        val current = db.query("PRAGMA application_id").use { if (it.moveToFirst()) it.getInt(0) else 0 }
+        if (current != 0) return current
+        val id = Random.nextInt(1, Int.MAX_VALUE)
+        db.execSQL("PRAGMA application_id = $id")
+        return id
+    }
 
     private fun SyncFile.state(): SyncState = collections.mapValues { (_, list) -> list.associateBy { it.key } }
 
@@ -263,7 +288,9 @@ class SyncRepository(
         ).filterValues { it.isNotEmpty() }
     }
 
-    private suspend fun apply(changes: List<SyncChange>) {
+    /** Applies the changes and returns the (collection, key) of every one that failed. */
+    private suspend fun apply(changes: List<SyncChange>): List<Pair<String, String>> {
+        failed.clear()
         val byCollection = changes.groupBy { it.collection }
         // Packs first (sources), then categories (the library refers to them by name).
         val packs = byCollection[SOURCE_PACKS].orEmpty()
@@ -392,12 +419,17 @@ class SyncRepository(
                 is SyncChange.Remove -> parts(change.key).let { (s, t) -> dao.deleteTitlePrefs(s, t) }
             } }
         }
+        return failed.toList()
     }
+
+    /** Changes that failed in the current [apply]; only touched under [mutex]. */
+    private val failed = mutableListOf<Pair<String, String>>()
 
     /** One record that can't be applied must not abort the whole sync. */
     private inline fun guarded(change: SyncChange, block: () -> Unit) {
         runCatching { block() }.onFailure {
             if (it is kotlinx.coroutines.CancellationException) throw it
+            failed += change.collection to change.key
             android.util.Log.w("Sync", "Could not apply ${change.collection} change", it)
         }
     }
