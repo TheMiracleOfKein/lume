@@ -27,7 +27,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import com.lume.app.ui.components.ChoiceChip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -62,13 +67,21 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null) {
         browseSourceId?.let { id -> container.sources.sourceById(id)?.manifest?.name ?: id }
     }
     val bookmarks by container.dao.observeBookmarks().collectAsState(initial = emptyList())
-    // One list state per tab: switching tabs keeps each list's scroll position.
+    // One list state per tab and section: switching keeps each list's scroll position.
     val popularList = rememberLazyListState()
     val latestList = rememberLazyListState()
+    val sectionLists = remember { mutableMapOf<String, LazyListState>() }
+    // null: the popular list; else one of the source's browse sections.
+    var section by rememberSaveable { mutableStateOf<String?>(null) }
+    val sections = vm.sections
+    LaunchedEffect(sections) {
+        if (section != null && sections.isNotEmpty() && sections.none { it.id == section }) section = null
+    }
+    val popularFeed = section?.let { vm.sectionFeed(it) } ?: vm.popular
 
-    LaunchedEffect(tab) {
+    LaunchedEffect(tab, section, vm.sectionsEpoch) {
         when (tab) {
-            0 -> vm.ensureLoaded(vm.popular)
+            0 -> vm.ensureLoaded(popularFeed)
             1 -> vm.ensureLoaded(vm.latest)
         }
     }
@@ -105,10 +118,33 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null) {
             label = "catalogTab",
         ) { tabPane ->
             when (tabPane) {
-                0, 1 -> CatalogFeedList(
+                0 -> Column(Modifier.fillMaxSize()) {
+                    if (sections.isNotEmpty()) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
+                                .padding(horizontal = 12.dp)
+                                .padding(bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            ChoiceChip(stringResource(R.string.catalog_tab_popular), selected = section == null, onClick = { section = null })
+                            sections.forEach { s ->
+                                ChoiceChip(s.name, selected = section == s.id, onClick = { section = s.id })
+                            }
+                        }
+                    }
+                    CatalogFeedList(
+                        vm = vm,
+                        feed = popularFeed,
+                        listState = section?.let { id -> sectionLists.getOrPut(id) { LazyListState() } } ?: popularList,
+                        onOpen = { id -> nav.navigate(Routes.title(vm.sourceId, id)) },
+                    )
+                }
+                1 -> CatalogFeedList(
                     vm = vm,
-                    feed = if (tabPane == 0) vm.popular else vm.latest,
-                    listState = if (tabPane == 0) popularList else latestList,
+                    feed = vm.latest,
+                    listState = latestList,
                     onOpen = { id -> nav.navigate(Routes.title(vm.sourceId, id)) },
                 )
                 else -> {

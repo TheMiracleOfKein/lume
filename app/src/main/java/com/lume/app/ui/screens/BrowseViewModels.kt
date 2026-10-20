@@ -1,6 +1,7 @@
 package com.lume.app.ui.screens
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -9,6 +10,7 @@ import com.lume.app.AppContainer
 import com.lume.app.R
 import com.lume.app.data.locale.appString
 import com.lume.app.data.network.AppHttp
+import com.lume.app.domain.BrowseSection
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.HomeFeed
@@ -153,16 +155,43 @@ class CatalogViewModel(private val app: AppContainer, private val fixedSourceId:
     var sourceId by mutableStateOf(fixedSourceId.orEmpty())
         private set
 
+    /** The source's extra feeds ("New titles", "Top rated"…), shown as chips above the popular list. */
+    var sections by mutableStateOf<List<BrowseSection>>(emptyList())
+        private set
+
+    private val sectionFeeds = mutableMapOf<String, CatalogFeed>()
+
+    /** Bumped when the source or the network changes: the open section loads again. */
+    var sectionsEpoch by mutableIntStateOf(0)
+        private set
+
+    /** The feed of section [id]; it asks whichever source is current for that section's filters. */
+    fun sectionFeed(id: String): CatalogFeed = sectionFeeds.getOrPut(id) {
+        CatalogFeed(app.http) { page ->
+            val section = browseSections().firstOrNull { it.id == id }
+            if (section != null) search("", page, section.filters) else getPopular(page)
+        }
+    }
+
     private suspend fun source(): CatalogSource? =
         if (fixedSourceId != null) app.sources.sourceById(fixedSourceId) else app.sources.activeSource()
 
     init {
         viewModelScope.launch {
+            app.sources.awaitLoaded()
+            sections = source()?.browseSections().orEmpty()
+        }
+        viewModelScope.launch {
             val activeChanges = if (fixedSourceId == null) app.prefs.activeSourceId.drop(1) else emptyFlow()
             merge(app.http.networkEpoch.drop(1), activeChanges).collect {
-                listOf(popular, latest).forEach { it.loadedOnce = false }
+                sections = source()?.browseSections().orEmpty()
+                val stale = sectionFeeds.values.toList()
+                (listOf(popular, latest) + stale).forEach { it.loadedOnce = false }
                 ensureLoaded(popular, force = true)
                 ensureLoaded(latest, force = latest.items.isNotEmpty())
+                // The list of another source must not linger; the open section reloads on the bump.
+                stale.forEach { it.items = emptyList() }
+                sectionsEpoch++
             }
         }
     }
