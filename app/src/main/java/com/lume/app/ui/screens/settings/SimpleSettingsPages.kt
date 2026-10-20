@@ -3,9 +3,11 @@ package com.lume.app.ui.screens.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -98,7 +100,7 @@ fun NetworkSettings(vm: SettingsViewModel) {
                     ChoiceChip(label = provider.label, selected = doh == provider.id, onClick = { vm.setDoh(provider.id) })
                 }
             }
-            SettingsNote(stringResource(R.string.settings_doh_hint))
+            SettingsNote(stringResource(R.string.settings_doh_hint), Modifier.padding(top = 8.dp))
         }
     }
     SettingsSectionTitle(R.string.settings_group_clean)

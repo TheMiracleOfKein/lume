@@ -71,7 +71,7 @@ internal fun ReaderTopBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.87f), Color.Transparent)))
+            .background(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.87f), 0.7f to Color.Black.copy(alpha = 0.6f), 1f to Color.Transparent))
             // Stable position whether or not the status bar is currently shown.
             .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
     ) {
@@ -102,7 +102,7 @@ internal fun ReaderTopBar(
                 )
                 Text(
                     text = chapterTitle,
-                    color = AppColors.textSecondary,
+                    color = Color.White.copy(alpha = 0.75f),
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

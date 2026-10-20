@@ -475,7 +475,11 @@ class SourcesViewModel(private val app: AppContainer) : ViewModel() {
 
     fun import() {
         val url = importUrl.trim()
-        if (url.isEmpty() || busy) return
+        if (busy) return
+        if (url.isEmpty()) {
+            viewModelScope.launch { _messages.send(app.app.getString(R.string.sources_import_empty)) }
+            return
+        }
         // A catalogue link fills the pack list instead of installing one pack.
         if (url.substringBefore('?').endsWith("index.json")) {
             importUrl = ""
