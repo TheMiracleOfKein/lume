@@ -48,7 +48,22 @@ class FolderSyncBackend(private val context: Context, private val tree: Uri) : S
             DocumentsContract.createDocument(resolver, parent, "application/octet-stream", name)
                 ?: throw SyncBackendException("$name: can't create")
         }
-        resolver.openOutputStream(target, "wt")?.use { it.write(bytes) } ?: throw SyncBackendException("$name: can't write")
+        val out = runCatching { resolver.openOutputStream(target, "wt") }.getOrNull()
+        if (out != null) {
+            out.use { it.write(bytes) }
+        } else {
+            // Some providers refuse "wt" (truncate). Plain "w" may leave old bytes at the end, so
+            // the file is made again instead.
+            val dest = if (existing == null) {
+                target
+            } else {
+                runCatching { DocumentsContract.deleteDocument(resolver, target) }
+                val parent = DocumentsContract.buildDocumentUriUsingTree(tree, rootId)
+                DocumentsContract.createDocument(resolver, parent, "application/octet-stream", name)
+                    ?: throw SyncBackendException("$name: can't create")
+            }
+            resolver.openOutputStream(dest, "w")?.use { it.write(bytes) } ?: throw SyncBackendException("$name: can't write")
+        }
         Unit
     }
 
