@@ -1,8 +1,8 @@
 package com.lume.app.data.sync
 
 import android.content.Context
-import android.net.Uri
 import android.os.Build
+import androidx.core.net.toUri
 import androidx.room.withTransaction
 import com.lume.app.R
 import com.lume.app.data.backup.ChapterProgressDto
@@ -167,7 +167,7 @@ class SyncRepository(
     }
 
     private fun backendFor(settings: SyncSettings): SyncBackend = when (settings.backend) {
-        SyncSettings.FOLDER -> FolderSyncBackend(context, Uri.parse(settings.folder))
+        SyncSettings.FOLDER -> FolderSyncBackend(context, requireNotNull(settings.folder) { "No sync folder chosen" }.toUri())
         else -> WebDavSyncBackend(http.okHttp, settings.webDavUrl, settings.webDavUser, settings.webDavPassword)
     }
 

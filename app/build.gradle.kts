@@ -96,6 +96,8 @@ android {
     // IDE-only advisory after bumping targetSdk 35→37 (does not affect CLI builds).
     lint {
         disable.add("EditedTargetSdkVersion")
+        // AGP is pinned to what the installed Android Studio can sync (see .github/dependabot.yml).
+        disable.add("AndroidGradlePluginVersion")
     }
 
     testOptions {

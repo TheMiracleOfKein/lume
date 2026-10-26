@@ -5,6 +5,10 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # AGP stays on what the installed Android Studio can sync; raise it by hand after updating Studio.
+      - dependency-name: "com.android.*"
+        versions: [">= 9.3.0"]
     groups:
       androidx-and-kotlin:
         patterns:
