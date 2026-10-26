@@ -93,7 +93,7 @@ Patch releases from the v0.6 line, as needed.
 **Foundation**
 - ⏸️ Tests for ViewModels of the reader and the library (M): moved to the next v0.7.x release; v0.7.0 adds tests for the sync rules instead.
 
-**v0.7.1: subscribed downloads** ([details](#v071-subscribed-downloads))
+**v0.7.1: subscribed downloads** ✅ released 2026-10-26 ([details](#v071-subscribed-downloads--released-2026-10-26))
 - ✅ A bell on a library title subscribes it to new-chapter downloads; "Download new chapters" becomes Off / All titles / Subscribed.
 - ✅ AGP back to 9.2.1 so the installed Android Studio syncs the project; Gradle 9.8.2 and library updates.
 - ⏸️ Subscribing several titles at once from the library selection.
@@ -465,7 +465,7 @@ Release notes: [docs/releases/v0.7.0.md](releases/v0.7.0.md).
 - ✅ **Reader:** page slider, orientation lock, webtoon auto-scroll and tap zones, sepia / grey / warm filters, e-ink mode, own brightness, share or save a page.
 - ⏸️ Google Drive; ViewModel tests (next v0.7.x).
 
-### v0.7.1: subscribed downloads
+### v0.7.1: subscribed downloads ✅ released 2026-10-26
 
 Release notes: [docs/releases/v0.7.1.md](releases/v0.7.1.md).
 
