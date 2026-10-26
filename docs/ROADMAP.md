@@ -93,6 +93,12 @@ Patch releases from the v0.6 line, as needed.
 **Foundation**
 - ⏸️ Tests for ViewModels of the reader and the library (M): moved to the next v0.7.x release; v0.7.0 adds tests for the sync rules instead.
 
+**v0.7.1: subscribed downloads** ([details](#v071-subscribed-downloads))
+- ✅ A bell on a library title subscribes it to new-chapter downloads; "Download new chapters" becomes Off / All titles / Subscribed.
+- ✅ AGP back to 9.2.1 so the installed Android Studio syncs the project; Gradle 9.8.2 and library updates.
+- ⏸️ Subscribing several titles at once from the library selection.
+- ⏸️ ViewModel tests: still for a later v0.7.x release.
+
 **v0.7.x: send downloads to a nearby device** (L)
 
 Sync moves your library and progress, never the downloaded pages. This moves the pages: pick downloaded chapters on one phone, and another phone nearby receives them, without the internet and without a server.
@@ -458,3 +464,11 @@ Release notes: [docs/releases/v0.7.0.md](releases/v0.7.0.md).
 - ✅ **Passphrase** encryption of the sync files; sync now, in the background and at start; status line.
 - ✅ **Reader:** page slider, orientation lock, webtoon auto-scroll and tap zones, sepia / grey / warm filters, e-ink mode, own brightness, share or save a page.
 - ⏸️ Google Drive; ViewModel tests (next v0.7.x).
+
+### v0.7.1: subscribed downloads
+
+Release notes: [docs/releases/v0.7.1.md](releases/v0.7.1.md).
+
+- ✅ **Subscriptions:** a bell on a library title's page; "Download new chapters" is Off / All titles / Subscribed, and the old switch carries over. Subscriptions go into backups and sync and move with "Make main" (database 9 → 10).
+- ✅ **Build:** AGP 9.2.1 (pinned for Android Studio), Gradle 9.8.2, OkHttp 5.5.1, kotlinx-serialization 1.12.0, DataStore 1.3.0.
+- ⏸️ Bulk subscribe from the library selection; ViewModel tests.
