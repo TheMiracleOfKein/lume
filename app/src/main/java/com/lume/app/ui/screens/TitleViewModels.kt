@@ -19,6 +19,7 @@ import com.lume.app.data.title.SourceCandidate
 import com.lume.app.data.title.SourceLookup
 import com.lume.app.data.locale.appString
 import com.lume.app.data.title.TitleLoad
+import com.lume.app.domain.AutoDownloadMode
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ChapterListOptions
 import com.lume.app.domain.ChapterReadState
@@ -239,6 +240,21 @@ class TitleViewModel(app: AppContainer, sourceId: String, titleId: String) : Tit
                 .collectLatest { (on, adult) ->
                     similar = if (on) app.similarTitles.find(sourceId, titleId, d, adult) else null
                 }
+        }
+    }
+
+    /** Subscribed to new-chapter downloads. */
+    val subscribed: StateFlow<Boolean> = dao.observeTitlePrefs(sourceId, titleId).map { it?.autoDownload == true }.state(false)
+    val autoDownloadMode: StateFlow<AutoDownloadMode> = app.prefs.autoDownloadMode
+
+    /** Subscribing while new-chapter downloads are off turns them on for subscribed titles. */
+    fun toggleSubscribed(onDone: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val base = dao.getTitlePrefs(sourceId, titleId) ?: TitlePrefsEntity(sourceId = sourceId, titleId = titleId)
+            val next = !base.autoDownload
+            dao.upsertTitlePrefs(base.copy(autoDownload = next))
+            if (next && autoDownloadMode.value == AutoDownloadMode.OFF) app.prefs.setAutoDownloadMode(AutoDownloadMode.SUBSCRIBED)
+            onDone(next)
         }
     }
 

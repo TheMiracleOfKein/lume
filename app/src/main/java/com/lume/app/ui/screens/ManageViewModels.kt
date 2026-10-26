@@ -13,6 +13,7 @@ import com.lume.app.data.db.DownloadQueueEntity
 import com.lume.app.data.library.LibraryUpdateWorker
 import com.lume.app.data.prefs.ReaderSettings
 import com.lume.app.data.source.LibAuthToken
+import com.lume.app.domain.AutoDownloadMode
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.PackEntry
 import com.lume.app.domain.PackState
@@ -265,8 +266,8 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         }
     }
 
-    fun setAutoDownloadNew(value: Boolean) {
-        viewModelScope.launch { prefs.setAutoDownloadNew(value) }
+    fun setAutoDownloadMode(value: AutoDownloadMode) {
+        viewModelScope.launch { prefs.setAutoDownloadMode(value) }
     }
 
     fun setDeleteAfterRead(value: Boolean) {

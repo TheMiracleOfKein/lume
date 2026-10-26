@@ -83,6 +83,10 @@
 
     <string name="title_fallback">Тайтл</string>
     <string name="cd_bookmark">Закладка</string>
+    <string name="cd_subscribe">Скачивать новые главы</string>
+    <string name="cd_unsubscribe">Не скачивать новые главы</string>
+    <string name="title_subscribed">Новые главы этого тайтла будут скачиваться автоматически</string>
+    <string name="title_unsubscribed">Новые главы этого тайтла не будут скачиваться автоматически</string>
     <string name="title_status">Статус: %s</string>
     <string name="title_chapters_list">Список глав (%d)</string>
     <string name="title_trackers">Трекеры (%s)</string>
@@ -494,6 +498,10 @@
     <string name="notif_downloads_failed_text">Откройте «Загрузки», чтобы повторить</string>
     <string name="settings_downloads_auto_new">Скачивать новые главы</string>
     <string name="settings_downloads_auto_new_hint">Проверка библиотеки ставит найденные главы в очередь</string>
+    <string name="settings_downloads_auto_new_off">Выкл.</string>
+    <string name="settings_downloads_auto_new_all">Все тайтлы</string>
+    <string name="settings_downloads_auto_new_subscribed">Подписки</string>
+    <string name="settings_downloads_auto_new_subscribed_hint">Только тайтлы, на которые вы подписались колокольчиком на их странице</string>
     <string name="settings_downloads_delete_read">Удалять после прочтения</string>
     <string name="settings_downloads_delete_read_hint">Дочитанные главы удаляются, когда вы закрываете читалку</string>
     <string name="settings_downloads_cbz">Сохранять в CBZ</string>
@@ -707,7 +715,7 @@
     <string name="settings_kw_find_sources">также на, привязка, объединить, другие источники</string>
     <string name="settings_kw_categories">папки, вкладки, категория по умолчанию</string>
     <string name="settings_kw_local">импорт, папка, cbz, zip, файлы</string>
-    <string name="settings_kw_auto_download">новые главы, автоматически</string>
+    <string name="settings_kw_auto_download">новые главы, автоматически, подписка, подписки</string>
     <string name="settings_kw_delete_read">место, удалить, прочитанные</string>
     <string name="settings_kw_cbz">архив, zip, comicinfo</string>
     <string name="settings_kw_parallel">скорость, потоки, одновременно</string>

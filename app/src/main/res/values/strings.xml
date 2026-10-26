@@ -89,6 +89,10 @@
     <!-- Title / trackers -->
     <string name="title_fallback">Title</string>
     <string name="cd_bookmark">Bookmark</string>
+    <string name="cd_subscribe">Download new chapters</string>
+    <string name="cd_unsubscribe">Stop downloading new chapters</string>
+    <string name="title_subscribed">New chapters of this title will download automatically</string>
+    <string name="title_unsubscribed">New chapters of this title won\'t download automatically</string>
     <string name="title_status">Status: %s</string>
     <string name="title_chapters_list">Chapter list (%d)</string>
     <string name="title_trackers">Trackers (%s)</string>
@@ -497,6 +501,10 @@
     <string name="notif_downloads_failed_text">Open Downloads to retry</string>
     <string name="settings_downloads_auto_new">Download new chapters</string>
     <string name="settings_downloads_auto_new_hint">Library checks queue the chapters they find</string>
+    <string name="settings_downloads_auto_new_off">Off</string>
+    <string name="settings_downloads_auto_new_all">All titles</string>
+    <string name="settings_downloads_auto_new_subscribed">Subscribed</string>
+    <string name="settings_downloads_auto_new_subscribed_hint">Only titles you subscribed to with the bell on their page</string>
     <string name="settings_downloads_delete_read">Delete after reading</string>
     <string name="settings_downloads_delete_read_hint">Chapters you finish lose their download when you close the reader</string>
     <string name="settings_downloads_cbz">Save as CBZ</string>
@@ -708,7 +716,7 @@
     <string name="settings_kw_find_sources">also on, link, merge, other sources</string>
     <string name="settings_kw_categories">folders, tabs, default category</string>
     <string name="settings_kw_local">import, folder, cbz, zip, files</string>
-    <string name="settings_kw_auto_download">new chapters, automatic</string>
+    <string name="settings_kw_auto_download">new chapters, automatic, subscribe, subscriptions</string>
     <string name="settings_kw_delete_read">free space, remove, finished</string>
     <string name="settings_kw_cbz">archive, zip, comicinfo</string>
     <string name="settings_kw_parallel">speed, threads, simultaneous</string>

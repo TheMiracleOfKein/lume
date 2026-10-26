@@ -1,5 +1,6 @@
 package com.lume.app.ui.screens
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandVertically
@@ -29,6 +30,8 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.NotificationsActive
+import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -72,6 +75,7 @@ import com.lume.app.data.similar.SimilarResult
 import com.lume.app.data.similar.SimilarTitle
 import com.lume.app.data.tracker.TrackerSearchResult
 import com.lume.app.ui.components.TrackerEntryDialog
+import com.lume.app.domain.AutoDownloadMode
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.inReadingOrder
 import com.lume.app.domain.dedupeChapters
@@ -101,6 +105,8 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
     val details = vm.details
     val chapters = vm.chapters
     val bookmarked by vm.inLibrary.collectAsState()
+    val subscribed by vm.subscribed.collectAsState()
+    val autoDownloadMode by vm.autoDownloadMode.collectAsState()
     val progressState by vm.progress.collectAsState()
     val links by vm.trackerLinks.collectAsState()
     val pageBookmarks by vm.pageBookmarks.collectAsState()
@@ -152,6 +158,26 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                 Icons.Outlined.Share,
                                 contentDescription = stringResource(R.string.cd_share),
                                 tint = AppColors.textPrimary,
+                            )
+                        }
+                    }
+                    // Every library title downloads its new chapters anyway when the setting says "All titles".
+                    if (bookmarked && autoDownloadMode != AutoDownloadMode.ALL) {
+                        IconButton(
+                            onClick = {
+                                vm.toggleSubscribed { on ->
+                                    Toast.makeText(
+                                        context,
+                                        if (on) R.string.title_subscribed else R.string.title_unsubscribed,
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                            },
+                        ) {
+                            Icon(
+                                if (subscribed) Icons.Outlined.NotificationsActive else Icons.Outlined.NotificationsNone,
+                                contentDescription = stringResource(if (subscribed) R.string.cd_unsubscribe else R.string.cd_subscribe),
+                                tint = if (subscribed) AppColors.accent else AppColors.textPrimary,
                             )
                         }
                     }
