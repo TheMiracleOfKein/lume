@@ -166,6 +166,7 @@ data class TitlePrefsDto(
     val chapterSortAsc: Boolean = false,
     val branch: String? = null,
     val showDuplicates: Boolean = false,
+    val autoDownload: Boolean = false,
 )
 
 @Serializable
@@ -314,6 +315,7 @@ class BackupRepository(
                     chapterSortAsc = it.chapterSortAsc,
                     branch = it.branch,
                     showDuplicates = it.showDuplicates,
+                    autoDownload = it.autoDownload,
                 )
             },
             trackerLinks = dao.allTrackerLinks().map {
@@ -643,6 +645,7 @@ class BackupRepository(
                     chapterSortAsc = t.chapterSortAsc,
                     branch = t.branch,
                     showDuplicates = t.showDuplicates,
+                    autoDownload = t.autoDownload,
                 ),
             )
         }

@@ -144,6 +144,9 @@ data class TitlePrefsEntity(
     /** Show every team's copy of a chapter instead of one row per chapter. */
     @ColumnInfo(defaultValue = "0")
     val showDuplicates: Boolean = false,
+    /** Subscribed: library checks download this title's new chapters when downloads are set to subscribed titles. */
+    @ColumnInfo(defaultValue = "0")
+    val autoDownload: Boolean = false,
 )
 
 /**
@@ -642,7 +645,7 @@ data class TitleJsonRow(val sourceId: String, val titleId: String, val titleJson
         LibraryChapterEntity::class,
         TitleSourceEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 abstract class LumeDatabase : RoomDatabase() {
@@ -769,6 +772,13 @@ abstract class LumeDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS: Array<Migration> get() = arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+        /** Per-title subscription to new-chapter downloads. Additive. */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE title_prefs ADD COLUMN autoDownload INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATIONS: Array<Migration> get() = arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
     }
 }

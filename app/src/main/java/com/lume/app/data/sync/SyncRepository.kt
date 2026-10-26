@@ -278,7 +278,7 @@ class SyncRepository(
                     TitlePrefsDto.serializer(),
                     TitlePrefsDto(
                         it.sourceId, it.titleId, it.readerMode, it.readerTheme, it.gap, it.chapterFilter,
-                        it.chapterSortAsc, it.branch, it.showDuplicates,
+                        it.chapterSortAsc, it.branch, it.showDuplicates, it.autoDownload,
                     ),
                 )
             },
@@ -413,6 +413,7 @@ class SyncRepository(
                             chapterSortAsc = it.chapterSortAsc,
                             branch = it.branch,
                             showDuplicates = it.showDuplicates,
+                            autoDownload = it.autoDownload,
                         ),
                     )
                 }
