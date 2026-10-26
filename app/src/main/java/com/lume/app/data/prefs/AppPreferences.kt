@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.lume.app.domain.AutoDownloadMode
 import com.lume.app.domain.LibraryDisplay
 import com.lume.app.domain.LibrarySettings
 import com.lume.app.domain.LibrarySort
@@ -182,6 +183,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val downloadsCbzKey = booleanPreferencesKey("downloads_cbz")
     private val downloadsRootKey = stringPreferencesKey("downloads_root")
     private val autoDownloadNewKey = booleanPreferencesKey("downloads_auto_new")
+    private val autoDownloadModeKey = intPreferencesKey("downloads_auto_new_mode")
     private val deleteAfterReadKey = booleanPreferencesKey("downloads_delete_after_read")
 
     private val trackerAutoLinkKey = booleanPreferencesKey("tracker_auto_link_enabled")
@@ -472,8 +474,9 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     /** Folder that holds `downloads/`; empty = the app's internal storage. */
     val downloadsRoot: StateFlow<String> = state { it[downloadsRootKey].orEmpty() }
 
-    /** Library checks queue new chapters for download. */
-    val autoDownloadNew: StateFlow<Boolean> = state { it[autoDownloadNewKey] ?: false }
+    /** Which titles' new chapters library checks queue for download. */
+    val autoDownloadMode: StateFlow<AutoDownloadMode> =
+        state { AutoDownloadMode.fromStored(it[autoDownloadModeKey], it[autoDownloadNewKey]) }
 
     /** Chapters finished in the reader lose their download when the reader closes. */
     val deleteAfterRead: StateFlow<Boolean> = state { it[deleteAfterReadKey] ?: false }
@@ -494,8 +497,8 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
         context.appDataStore.edit { it[downloadsRootKey] = path }
     }
 
-    suspend fun setAutoDownloadNew(value: Boolean) {
-        context.appDataStore.edit { it[autoDownloadNewKey] = value }
+    suspend fun setAutoDownloadMode(value: AutoDownloadMode) {
+        context.appDataStore.edit { it[autoDownloadModeKey] = value.ordinal }
     }
 
     suspend fun setDeleteAfterRead(value: Boolean) {

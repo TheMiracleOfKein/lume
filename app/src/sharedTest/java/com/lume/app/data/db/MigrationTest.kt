@@ -115,6 +115,23 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate9To10KeepsTitlePrefsAndAddsSubscription() {
+        helper.createDatabase(dbName, 9).apply {
+            execSQL("INSERT INTO title_prefs (sourceId, titleId, readerMode, branch) VALUES ('s', 't', 1, 'team')")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(dbName, 10, true, LumeDatabase.MIGRATION_9_10)
+
+        db.query("SELECT readerMode, branch, autoDownload FROM title_prefs").use {
+            it.moveToFirst()
+            assertEquals(1, it.getInt(0))
+            assertEquals("team", it.getString(1))
+            assertEquals(0, it.getInt(2))
+        }
+    }
+
+    @Test
     fun freshDatabaseOpensWithAllMigrations() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         helper.createDatabase(dbName, 7).close()

@@ -35,8 +35,8 @@ android {
         applicationId = "com.lume.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 13
-        versionName = "0.7.0"
+        versionCode = 14
+        versionName = "0.7.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // OAuth app credentials for AniList / Shikimori (identify Lume itself).
@@ -96,6 +96,8 @@ android {
     // IDE-only advisory after bumping targetSdk 35→37 (does not affect CLI builds).
     lint {
         disable.add("EditedTargetSdkVersion")
+        // AGP is pinned to what the installed Android Studio can sync (see .github/dependabot.yml).
+        disable.add("AndroidGradlePluginVersion")
     }
 
     testOptions {

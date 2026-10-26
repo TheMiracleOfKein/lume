@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.lume.app.R
 import com.lume.app.data.prefs.AppPreferences
+import com.lume.app.domain.AutoDownloadMode
 import com.lume.app.ui.components.ChoiceChip
 import com.lume.app.ui.components.SwitchRow
 import com.lume.app.ui.nav.Routes
@@ -24,7 +25,7 @@ fun DownloadSettings(nav: NavHostController, vm: SettingsViewModel) {
     val prefs = vm.prefs
     val context = LocalContext.current
     val downloadsWifiOnly by prefs.downloadsWifiOnly.collectAsState()
-    val autoDownloadNew by prefs.autoDownloadNew.collectAsState()
+    val autoDownloadMode by prefs.autoDownloadMode.collectAsState()
     val deleteAfterRead by prefs.deleteAfterRead.collectAsState()
     val downloadsCbz by prefs.downloadsAsCbz.collectAsState()
     val parallelPages by prefs.downloadParallelPages.collectAsState()
@@ -40,11 +41,29 @@ fun DownloadSettings(nav: NavHostController, vm: SettingsViewModel) {
             )
         }
         SettingItem("auto_download") {
-            SwitchRow(
-                label = stringResource(R.string.settings_downloads_auto_new),
-                hint = stringResource(R.string.settings_downloads_auto_new_hint),
-                checked = autoDownloadNew,
-                onCheckedChange = vm::setAutoDownloadNew,
+            SettingsLabel(stringResource(R.string.settings_downloads_auto_new))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                AutoDownloadMode.entries.forEach { mode ->
+                    ChoiceChip(
+                        label = stringResource(
+                            when (mode) {
+                                AutoDownloadMode.OFF -> R.string.settings_downloads_auto_new_off
+                                AutoDownloadMode.ALL -> R.string.settings_downloads_auto_new_all
+                                AutoDownloadMode.SUBSCRIBED -> R.string.settings_downloads_auto_new_subscribed
+                            },
+                        ),
+                        selected = mode == autoDownloadMode,
+                        modifier = Modifier.weight(1f),
+                        onClick = { vm.setAutoDownloadMode(mode) },
+                    )
+                }
+            }
+            SettingsNote(
+                stringResource(
+                    if (autoDownloadMode == AutoDownloadMode.SUBSCRIBED) R.string.settings_downloads_auto_new_subscribed_hint
+                    else R.string.settings_downloads_auto_new_hint,
+                ),
+                Modifier.padding(top = 8.dp),
             )
         }
         SettingItem("delete_read") {

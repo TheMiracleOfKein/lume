@@ -65,9 +65,10 @@ class LibraryUpdateWorker(
                         unreadNewCount = (prev?.unreadNewCount ?: 0) + fresh.size,
                     ),
                 )
-                if (fresh.isNotEmpty() && app.prefs.autoDownloadNew.value) {
+                val titlePrefs = if (fresh.isEmpty()) null else dao.getTitlePrefs(bookmark.sourceId, bookmark.titleId)
+                if (fresh.isNotEmpty() && app.prefs.autoDownloadMode.value.downloads(titlePrefs?.autoDownload == true)) {
                     // One copy per chapter, in the team this title reads.
-                    val branch = dao.getTitlePrefs(bookmark.sourceId, bookmark.titleId)?.branch
+                    val branch = titlePrefs?.branch
                     app.downloadQueue.enqueueAll(
                         bookmark.sourceId,
                         bookmark.titleId,
