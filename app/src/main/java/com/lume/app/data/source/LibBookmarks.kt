@@ -13,7 +13,15 @@ data class LibBookmark(
     val coverUrl: String?,
     val typeLabel: String?,
     val folderId: String?,
+    /** The last chapter read on the site (the bookmark's `item`); null when nothing was read. */
+    val lastRead: LibReadChapter? = null,
 )
+
+/**
+ * A chapter as a bookmark names it: volume and number, plus the team (branch) when known.
+ * [readAt] is when the bookmark last changed on the site (epoch millis), if it says.
+ */
+data class LibReadChapter(val volume: String?, val number: String, val branchId: String?, val readAt: Long? = null)
 
 /** A page of `/bookmarks`; [hasNext] says whether another page should be asked for. */
 data class LibBookmarkPage(val items: List<LibBookmark>, val hasNext: Boolean)
@@ -79,8 +87,29 @@ private fun parseLibBookmark(el: JsonElement, siteId: String, folderId: String?)
         coverUrl = cover,
         typeLabel = type,
         folderId = folder,
+        lastRead = parseLibReadChapter(entry["item"], entry.str("updated_at") ?: entry.str("created_at")),
     )
 }
+
+/** `item` of a bookmark entry: `{ model: "chapter", volume, number, branch_id, … }` or null. */
+private fun parseLibReadChapter(el: JsonElement?, changedAt: String?): LibReadChapter? {
+    val item = el.obj() ?: return null
+    val model = item.str("model") ?: item.str("type")
+    if (model != null && model != "chapter") return null
+    val number = item.str("number")?.trim() ?: return null
+    return LibReadChapter(
+        volume = item.str("volume")?.trim(),
+        number = number,
+        branchId = item.str("branch_id")?.takeIf { it != "0" },
+        readAt = changedAt?.let(::parseLibTime),
+    )
+}
+
+/** `2022-11-11T00:16:11.000000Z` or `2022-11-11 00:16:11` (UTC). */
+private fun parseLibTime(raw: String): Long? = runCatching {
+    val iso = raw.trim().replace(' ', 'T').let { if (it.endsWith("Z") || '+' in it) it else "${it}Z" }
+    java.time.Instant.parse(iso).toEpochMilli()
+}.getOrNull()
 
 /** `status` value that asks `/bookmarks` for every bookmark, whatever folder it is in. */
 internal const val LIB_ALL_BOOKMARKS = "0"

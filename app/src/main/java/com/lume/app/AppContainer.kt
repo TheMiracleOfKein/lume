@@ -67,7 +67,7 @@ class AppContainer(val app: Application) {
     val titleSources = com.lume.app.data.title.TitleSourceRepository(database, dao, sources, titles, libraryChapters, downloads, prefs)
     val library = LibraryRepository(database, dao, prefs, titles, libraryChapters, trackerSync, titleSources, appScope)
     val readingLists = com.lume.app.data.library.ReadingLists(app, dao, sources, library)
-    val libBookmarkImport = com.lume.app.data.library.LibBookmarkImport(database, dao, sources)
+    val libBookmarkImport = com.lume.app.data.library.LibBookmarkImport(database, dao, sources, libraryChapters)
     val sync = com.lume.app.data.sync.SyncRepository(app, database, dao, prefs, library, sources, http)
 
     val imageLoader: ImageLoader get() = app.imageLoader
