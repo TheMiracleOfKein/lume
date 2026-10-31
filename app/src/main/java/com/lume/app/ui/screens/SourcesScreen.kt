@@ -162,6 +162,8 @@ fun SourcesScreen(nav: NavHostController) {
                         onRemove = { vm.remove(id) },
                         onLogin = { SourceLoginActivity.start(context, id) },
                         onLogout = { vm.logout(id) },
+                        onImportBookmarks = if (isLib && token != null) ({ vm.importBookmarks(id) }) else null,
+                        importingBookmarks = vm.importingBookmarks == id,
                     )
                 }
                 item(key = "gap-$langKey") { Spacer(Modifier.height(8.dp)) }
@@ -369,6 +371,9 @@ private fun SourceRow(
     onRemove: () -> Unit,
     onLogin: () -> Unit,
     onLogout: () -> Unit,
+    /** Shown in the menu for a signed-in Lib source. */
+    onImportBookmarks: (() -> Unit)? = null,
+    importingBookmarks: Boolean = false,
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -427,6 +432,13 @@ private fun SourceRow(
             )
             Text(source.manifest.baseUrl, color = AppColors.textTertiary, fontSize = 11.sp, maxLines = 1)
         }
+        if (importingBookmarks) {
+            CircularProgressIndicator(
+                modifier = Modifier.padding(horizontal = 8.dp).size(18.dp),
+                color = AppColors.accent,
+                strokeWidth = 2.dp,
+            )
+        }
         if (showLogin) {
             IconButton(onClick = { if (loggedIn) onLogout() else onLogin() }) {
                 Icon(
@@ -448,6 +460,13 @@ private fun SourceRow(
                 DropdownMenuItem(text = { Text(stringResource(R.string.source_action_browse)) }, onClick = { pick(onBrowse) })
                 if (hasSettings) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.source_action_settings)) }, onClick = { pick(onSettings) })
+                }
+                if (onImportBookmarks != null) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.source_action_import_bookmarks)) },
+                        enabled = !importingBookmarks,
+                        onClick = { pick(onImportBookmarks) },
+                    )
                 }
                 DropdownMenuItem(
                     text = { Text(stringResource(if (pinned) R.string.source_action_unpin else R.string.source_action_pin)) },
