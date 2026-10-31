@@ -68,6 +68,43 @@ class LibBookmarksTest {
     }
 
     @Test
+    fun allStatusesAnswerKeepsEachEntrysOwnFolder() {
+        // Shape of a real `status=0` answer: built-in and custom statuses side by side.
+        val raw = """
+            {"data":[
+              {"id":727387848,"type":"manga_bookmark","item_id":1490455,"status":1,"meta":null,
+               "media":{"id":71979,"rus_name":"Насколько же богат этот граф?!","slug_url":"71979--yeongjunim-ui-koin-i-julji-anh-eum",
+                "cover":{"default":"https://cover/a.jpg"},"site":1,"type":{"id":5,"label":"Манхва"}},"item":null},
+              {"id":1298207171,"type":"manga_bookmark","item_id":0,"status":2598197,
+               "meta":{"comment":false,"rewatches":null,"item_number":null},
+               "media":{"id":25786,"name":"yong-wangnim-ui syepeuga","slug_url":"25786--i-became-the-chef-of-the-dragon-king","site":1}}
+            ],
+            "links":{"first":"http://api/bookmarks?page=1","last":null,"prev":null,"next":"http://api/bookmarks?page=2"},
+            "meta":{"current_page":1,"from":1,"per_page":[24,24],"to":24,"page":1,"next_page_url":true}}
+        """.trimIndent()
+        val page = parseLibBookmarksPage(raw, siteId = "1", folderId = null)
+        assertTrue(page.hasNext)
+        assertEquals(listOf("1", "2598197"), page.items.map { it.folderId })
+        assertEquals("/25786--i-became-the-chef-of-the-dragon-king", page.items[1].titleId)
+    }
+
+    @Test
+    fun lastPageFlagEndsPaging() {
+        val raw = """{"data":[{"media":{"slug_url":"1--a"}}],"links":{"next":null},"meta":{"next_page_url":false}}"""
+        assertFalse(parseLibBookmarksPage(raw, "1", null).hasNext)
+    }
+
+    @Test
+    fun builtInFoldersAreNamedWhenTheSiteListsNone() {
+        val site = listOf(LibBookmarkFolder("2598197", "Манхвы"))
+        val folders = withDefaultLibFolders(site, setOf("1", "4", "2598197", "777"))
+        assertEquals(listOf("2598197", "1", "4"), folders.map { it.id })
+        assertEquals("Читаю", folders[1].name)
+        // A site name wins over the built-in one.
+        assertEquals(listOf("Reading"), withDefaultLibFolders(listOf(LibBookmarkFolder("1", "Reading")), setOf("1")).map { it.name })
+    }
+
+    @Test
     fun planGroupsFoldersPerTitleAndDropsEmptyFolders() {
         val folders = listOf(LibBookmarkFolder("1", "Читаю"), LibBookmarkFolder("2", "Любимое"), LibBookmarkFolder("3", "Брошено"))
         val bookmarks = listOf(

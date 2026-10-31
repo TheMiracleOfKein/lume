@@ -98,6 +98,12 @@ class SourceRegistry(
     fun sourceById(id: String): CatalogSource? =
         _sources.value.firstOrNull { it.manifest.id == id }
 
+    /**
+     * The engine behind a source, without the registry's wrappers. Use it only for
+     * engine-specific calls (such as Lib bookmarks); everything else goes through [sourceById].
+     */
+    fun engineById(id: String): CatalogSource? = sourceById(id)?.unwrapped()
+
     suspend fun activeSource(): CatalogSource? {
         val id = prefs.activeSourceId.first()
         return sourceById(id ?: return _sources.value.firstOrNull())
@@ -217,7 +223,9 @@ class SourceRegistry(
 private class ImageHostTrackingSource(
     private val delegate: CatalogSource,
     private val referers: ImageReferers,
-) : CatalogSource by delegate {
+) : CatalogSource by delegate, WrappingSource {
+    override val inner: CatalogSource get() = delegate
+
     private fun learn(url: String?) = referers.learn(url, delegate.manifest)
 
     private fun PagedResult<TitleSummary>.learned() = also { result -> result.items.forEach { learn(it.coverUrl) } }
@@ -243,7 +251,8 @@ private class ImageHostTrackingSource(
  * and then parse JSON / HTML in the caller's context, which for screens was the main thread —
  * right in the middle of screen transitions. One wrapper covers every engine.
  */
-private class DispatchingSource(private val delegate: CatalogSource) : CatalogSource by delegate {
+private class DispatchingSource(private val delegate: CatalogSource) : CatalogSource by delegate, WrappingSource {
+    override val inner: CatalogSource get() = delegate
     override suspend fun getHome(): HomeFeed = withContext(Dispatchers.IO) { delegate.getHome() }
     override suspend fun getLatest(page: Int) = withContext(Dispatchers.IO) { delegate.getLatest(page) }
     override suspend fun getPopular(page: Int) = withContext(Dispatchers.IO) { delegate.getPopular(page) }
@@ -265,4 +274,15 @@ private class DispatchingSource(private val delegate: CatalogSource) : CatalogSo
 
     override suspend fun getPages(chapter: Chapter): List<ComicPage> =
         withContext(Dispatchers.IO) { delegate.getPages(chapter) }
+}
+
+/** A registry wrapper around an engine; [unwrapped] peels them off to reach the engine itself. */
+internal interface WrappingSource {
+    val inner: CatalogSource
+}
+
+internal fun CatalogSource.unwrapped(): CatalogSource {
+    var current = this
+    while (current is WrappingSource) current = current.inner
+    return current
 }
