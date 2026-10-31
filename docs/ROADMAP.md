@@ -109,7 +109,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ All bookmarks in one `status=0` pass, so the user's own folders are imported too; built-in folders are named even when the folder list fails.
 - ⏸️ Read progress from the site: the `status=0` answer has `item` (last chapter read) and `progress`, still to be mapped onto chapters.
 
-**v0.7.4: read progress with bookmark import** ([details](#v074-read-progress-with-bookmark-import))
+**v0.7.4: read progress with bookmark import** ✅ released 2026-10-31 ([details](#v074-read-progress-with-bookmark-import--released-2026-10-31))
 - ✅ The last chapter read on the site and every earlier chapter (all teams) are marked read; titles without local progress get a continue point.
 - ⏸️ The bookmark's `progress` field isn't used: in real answers it doesn't line up with the chapter in `item`.
 
@@ -502,7 +502,7 @@ Release notes: [docs/releases/v0.7.3.md](releases/v0.7.3.md).
 - ✅ **All statuses:** `/bookmarks?status=0` in one paged pass (per-folder fallback); built-in statuses 1–5 named locally when `/bookmarks/folder` fails.
 - ⏸️ Read progress from the site; ViewModel tests.
 
-### v0.7.4: read progress with bookmark import
+### v0.7.4: read progress with bookmark import ✅ released 2026-10-31
 
 Release notes: [docs/releases/v0.7.4.md](releases/v0.7.4.md).
 
