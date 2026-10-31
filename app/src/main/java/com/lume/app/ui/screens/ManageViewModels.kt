@@ -639,8 +639,11 @@ class SourcesViewModel(private val app: AppContainer) : ViewModel() {
                 .onSuccess { r ->
                     _messages.send(
                         if (r.added == 0 && r.alreadyInLibrary == 0) app.app.getString(R.string.source_bookmarks_empty, name)
-                        else app.app.getString(R.string.source_bookmarks_done, name, r.added, r.alreadyInLibrary, r.folders),
+                        else app.app.getString(R.string.source_bookmarks_done, name, r.added, r.alreadyInLibrary, r.folders, r.progress),
                     )
+                    if (r.progressMissed > 0) {
+                        _messages.send(app.app.getString(R.string.source_bookmarks_progress_missed, r.progressMissed))
+                    }
                 }
                 .onFailure { _messages.send(app.app.getString(R.string.source_bookmarks_failed, it.message ?: it.toString())) }
             importingBookmarks = null

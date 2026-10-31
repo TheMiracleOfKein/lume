@@ -89,6 +89,42 @@ class LibBookmarksTest {
     }
 
     @Test
+    fun lastReadChapterIsReadFromItem() {
+        // Shapes from a real `status=0` answer: a read chapter, a team-less one, and none at all.
+        val raw = """
+            {"data":[
+              {"status":1,"progress":"3","updated_at":"2022-11-11T00:16:11.000000Z",
+               "media":{"slug_url":"71979--a","site":1},
+               "item":{"id":1490455,"model":"chapter","volume":"1","number":"16","branch_id":5427,"type":"chapter"}},
+              {"status":4,"created_at":"2019-11-22 13:54:32",
+               "media":{"slug_url":"18743--b","site":1},
+               "item":{"id":414497,"model":"chapter","volume":"10","number":"3.5","branch_id":null}},
+              {"status":2598197,"media":{"slug_url":"25786--c","site":1},"item":null}
+            ]}
+        """.trimIndent()
+        val items = parseLibBookmarksPage(raw, "1", null).items
+        assertEquals(LibReadChapter("1", "16", "5427", 1668125771000L), items[0].lastRead)
+        assertEquals(LibReadChapter("10", "3.5", null, 1574430872000L), items[1].lastRead)
+        assertNull(items[2].lastRead)
+    }
+
+    @Test
+    fun readUpToCoversEarlierChaptersOfEveryTeam() {
+        fun ch(v: String, n: String, team: String?) =
+            com.lume.app.domain.Chapter(id = "/s/v$v/c$n${team?.let { "?bid=$it" }.orEmpty()}", title = "$v-$n", url = "", number = n, volume = v, branchId = team)
+        // Newest first, as getChapters returns them; chapter 2 has two teams.
+        val chapters = listOf(ch("2", "1", null), ch("1", "3", null), ch("1", "2", "7"), ch("1", "2", "8"), ch("1", "1", null))
+        val target = com.lume.app.data.library.libChaptersReadUpTo(chapters, LibReadChapter("1", "2", "8"))!!
+        assertEquals("/s/v1/c2?bid=8", target.last.id)
+        assertEquals(setOf("/s/v1/c2?bid=7", "/s/v1/c2?bid=8", "/s/v1/c1"), target.read.map { it.id }.toSet())
+        // "2.0" matches "2"; a volume the list doesn't know still finds a number that occurs once.
+        assertEquals("/s/v1/c3", com.lume.app.data.library.libChaptersReadUpTo(chapters, LibReadChapter("9", "3.0", null))!!.last.id)
+        // Number 1 is in two volumes: with the wrong volume nothing is guessed.
+        assertNull(com.lume.app.data.library.libChaptersReadUpTo(chapters, LibReadChapter("9", "1", null)))
+        assertNull(com.lume.app.data.library.libChaptersReadUpTo(emptyList(), LibReadChapter("1", "1", null)))
+    }
+
+    @Test
     fun lastPageFlagEndsPaging() {
         val raw = """{"data":[{"media":{"slug_url":"1--a"}}],"links":{"next":null},"meta":{"next_page_url":false}}"""
         assertFalse(parseLibBookmarksPage(raw, "1", null).hasNext)
