@@ -109,6 +109,10 @@ Patch releases from the v0.6 line, as needed.
 - ✅ All bookmarks in one `status=0` pass, so the user's own folders are imported too; built-in folders are named even when the folder list fails.
 - ⏸️ Read progress from the site: the `status=0` answer has `item` (last chapter read) and `progress`, still to be mapped onto chapters.
 
+**v0.7.4: read progress with bookmark import** ([details](#v074-read-progress-with-bookmark-import))
+- ✅ The last chapter read on the site and every earlier chapter (all teams) are marked read; titles without local progress get a continue point.
+- ⏸️ The bookmark's `progress` field isn't used: in real answers it doesn't line up with the chapter in `item`.
+
 **v0.7.x: send downloads to a nearby device** (L)
 
 Sync moves your library and progress, never the downloaded pages. This moves the pages: pick downloaded chapters on one phone, and another phone nearby receives them, without the internet and without a server.
@@ -497,3 +501,12 @@ Release notes: [docs/releases/v0.7.3.md](releases/v0.7.3.md).
 - ✅ **Fix:** `LibBookmarkImport` reaches the `LibSocialEngine` through `SourceRegistry.engineById` instead of casting the wrapped source.
 - ✅ **All statuses:** `/bookmarks?status=0` in one paged pass (per-folder fallback); built-in statuses 1–5 named locally when `/bookmarks/folder` fails.
 - ⏸️ Read progress from the site; ViewModel tests.
+
+### v0.7.4: read progress with bookmark import
+
+Release notes: [docs/releases/v0.7.4.md](releases/v0.7.4.md).
+
+- ✅ **Last chapter read:** each bookmark's `item` (volume, number, branch) is parsed; the import loads those titles' chapter lists (3 at a time, one retry), matches by volume and number and marks that chapter and every earlier one read.
+- ✅ Adds only: existing read marks and continue points stay. The new continue point and read marks are dated by the bookmark's `updated_at`.
+- ✅ The chapter list is stored in `library_chapters` on the way, so unread counts are right before the first update check.
+- ⏸️ The `progress` field; ViewModel tests.
