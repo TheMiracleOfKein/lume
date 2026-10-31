@@ -484,6 +484,36 @@ class LibSocialEngine(
 
     private fun asObject(el: JsonElement): JsonObject = el as? JsonObject ?: JsonObject(emptyMap())
 
+    /**
+     * The signed-in user's bookmark folders and every title in them. Folders are read one by one;
+     * when the site gives no folders, all bookmarks are read in one go. Needs a login.
+     */
+    suspend fun fetchBookmarks(): Pair<List<LibBookmarkFolder>, List<LibBookmark>> {
+        val token = auth?.getToken(manifest.id)?.takeIf { it.isValid() }
+            ?: throw SourceLoginRequiredException(appString(R.string.error_source_login_required, manifest.name))
+        val userId = token.auth?.id?.takeIf { it > 0 }
+            ?: throw SourceLoginRequiredException(appString(R.string.error_source_login_required, manifest.name))
+        val base = apiBase.toString().trimEnd('/')
+        val folders = runCatching {
+            val response = http.get(URI("$base/bookmarks/folder/$userId"), source = manifest, headers = apiHeaders(), checkCloudflare = false)
+            parseLibBookmarkFolders(response.body)
+        }.getOrDefault(emptyList())
+        val items = mutableListOf<LibBookmark>()
+        for (folderId in folders.map { it.id }.ifEmpty { listOf(null) }) {
+            var page = 1
+            while (page <= MAX_BOOKMARK_PAGES) {
+                val status = folderId?.let { "&status=${urlEncode(it)}" }.orEmpty()
+                val uri = URI("$base/bookmarks?user_id=$userId$status&sort_by=name&sort_type=asc&page=$page")
+                val response = http.get(uri, source = manifest, headers = apiHeaders(), checkCloudflare = false)
+                val parsed = parseLibBookmarksPage(response.body, siteId, folderId)
+                items += parsed.items
+                if (!parsed.hasNext) break
+                page++
+            }
+        }
+        return folders to items.distinctBy { it.titleId to it.folderId }
+    }
+
     override fun webUrl(titleId: String): String = "${manifest.baseUrl.trimEnd('/')}/ru/manga/${slug(titleId)}"
 
     /** `/ru/manga/7580--slug`, `/ru/7580--slug/read/…` or `/manga/7580--slug`. */
@@ -502,6 +532,8 @@ class LibSocialEngine(
             "otherNames", "rate_avg", "rate",
         )
         private const val MAX_OTHER_NAMES = 15
+        /** A guard against a paging answer that never ends. */
+        private const val MAX_BOOKMARK_PAGES = 200
     }
 }
 
