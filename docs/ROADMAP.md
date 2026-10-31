@@ -99,7 +99,7 @@ Patch releases from the v0.6 line, as needed.
 - ⏸️ Subscribing several titles at once from the library selection.
 - ⏸️ ViewModel tests: still for a later v0.7.x release.
 
-**v0.7.2: MangaLib bookmark import** ([details](#v072-mangalib-bookmark-import))
+**v0.7.2: MangaLib bookmark import** ✅ released 2026-10-31 ([details](#v072-mangalib-bookmark-import--released-2026-10-31))
 - ✅ Signed in to MangaLib, HentaiLib or YaoiLib: ⋮ → Import bookmarks adds the account's bookmarks to the library, folders as categories.
 - ⏸️ Read progress from the site: the API's last-read field couldn't be checked from where this was built (the API is region-blocked here).
 - ⏸️ ViewModel tests: still for a later v0.7.x release.
@@ -478,7 +478,7 @@ Release notes: [docs/releases/v0.7.1.md](releases/v0.7.1.md).
 - ✅ **Build:** AGP 9.2.1 (pinned for Android Studio), Gradle 9.8.2, OkHttp 5.5.1, kotlinx-serialization 1.12.0, DataStore 1.3.0.
 - ⏸️ Bulk subscribe from the library selection; ViewModel tests.
 
-### v0.7.2: MangaLib bookmark import
+### v0.7.2: MangaLib bookmark import ✅ released 2026-10-31
 
 Release notes: [docs/releases/v0.7.2.md](releases/v0.7.2.md).
 
