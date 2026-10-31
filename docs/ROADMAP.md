@@ -104,7 +104,7 @@ Patch releases from the v0.6 line, as needed.
 - ⏸️ Read progress from the site: the API's last-read field couldn't be checked from where this was built (the API is region-blocked here).
 - ⏸️ ViewModel tests: still for a later v0.7.x release.
 
-**v0.7.3: bookmark import fix** ([details](#v073-bookmark-import-fix))
+**v0.7.3: bookmark import fix** ✅ released 2026-10-31 ([details](#v073-bookmark-import-fix--released-2026-10-31))
 - ✅ Import bookmarks no longer fails with "Not a Lib source" (the registry's wrappers hid the engine).
 - ✅ All bookmarks in one `status=0` pass, so the user's own folders are imported too; built-in folders are named even when the folder list fails.
 - ⏸️ Read progress from the site: the `status=0` answer has `item` (last chapter read) and `progress`, still to be mapped onto chapters.
@@ -490,7 +490,7 @@ Release notes: [docs/releases/v0.7.2.md](releases/v0.7.2.md).
 - ✅ **Bookmark import** for signed-in MangaLib-family sources: every folder, paged, titles of other Lib sites left out; folders become categories (merged by name), titles already in the library keep theirs and gain the folder's.
 - ⏸️ Read progress from the site; ViewModel tests.
 
-### v0.7.3: bookmark import fix
+### v0.7.3: bookmark import fix ✅ released 2026-10-31
 
 Release notes: [docs/releases/v0.7.3.md](releases/v0.7.3.md).
 
