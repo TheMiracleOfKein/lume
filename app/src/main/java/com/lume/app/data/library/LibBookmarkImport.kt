@@ -14,7 +14,14 @@ import com.lume.app.data.source.LibSocialEngine
 import com.lume.app.data.source.SourceRegistry
 import com.lume.app.domain.Chapter
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -46,16 +53,55 @@ class LibBookmarkImport(
     private val dao: LibraryDao,
     private val sources: SourceRegistry,
     private val libraryChapters: LibraryChapters,
+    private val scope: CoroutineScope,
 ) {
-    suspend fun import(sourceId: String): LibBookmarkImportResult = withContext(Dispatchers.IO) {
+    private val _status = MutableStateFlow<LibImportStatus?>(null)
+
+    /**
+     * The running or last finished import; null when there is nothing to show. Lives as long as
+     * the process, so leaving the Sources screen neither stops the import nor hides it.
+     */
+    val status: StateFlow<LibImportStatus?> = _status.asStateFlow()
+
+    /** Starts importing [sourceId] in the app scope. False when an import is already running. */
+    fun start(sourceId: String, sourceName: String): Boolean {
+        if (_status.value?.running == true) return false
+        _status.value = LibImportStatus(sourceId, sourceName, LibImportStage.Fetching)
+        scope.launch {
+            val outcome = runCatching {
+                import(sourceId) { stage -> _status.update { it?.copy(stage = stage) } }
+            }
+            if (outcome.exceptionOrNull() is CancellationException) return@launch
+            _status.update {
+                it?.copy(
+                    stage = LibImportStage.Finished,
+                    result = outcome.getOrNull(),
+                    error = outcome.exceptionOrNull()?.let { e -> e.message ?: e.toString() },
+                )
+            }
+        }
+        return true
+    }
+
+    /** Hides a finished import's summary. */
+    fun dismiss() {
+        _status.update { if (it?.running == true) it else null }
+    }
+
+    suspend fun import(
+        sourceId: String,
+        onStage: (LibImportStage) -> Unit = {},
+    ): LibBookmarkImportResult = withContext(Dispatchers.IO) {
+        onStage(LibImportStage.Fetching)
         sources.awaitLoaded()
         // The registry hands out wrapped sources; the bookmark call lives on the engine itself.
         val engine = sources.engineById(sourceId) as? LibSocialEngine
             ?: error("Not a Lib source: $sourceId")
         val (folders, bookmarks) = engine.fetchBookmarks()
         val plan = planLibBookmarkImport(folders, bookmarks)
+        onStage(LibImportStage.Adding(plan.titles.size))
         val result = apply(sourceId, plan)
-        val (progress, missed) = importProgress(engine, sourceId, plan.titles)
+        val (progress, missed) = importProgress(engine, sourceId, plan.titles, onStage)
         result.copy(progress = progress, progressMissed = missed)
     }
 
@@ -100,19 +146,24 @@ class LibBookmarkImport(
         engine: LibSocialEngine,
         sourceId: String,
         titles: List<LibImportTitle>,
+        onStage: (LibImportStage) -> Unit,
     ): Pair<Int, Int> = coroutineScope {
         val read = titles.filter { it.lastRead != null }
         val gate = Semaphore(PROGRESS_PARALLELISM)
+        val finished = AtomicInteger(0)
+        onStage(LibImportStage.Progress(0, read.size))
         val outcomes = read.map { title ->
             async {
                 gate.withPermit {
-                    try {
+                    val ok = try {
                         importTitleProgress(engine, sourceId, title)
                     } catch (e: CancellationException) {
                         throw e
                     } catch (_: Exception) {
                         false
                     }
+                    onStage(LibImportStage.Progress(finished.incrementAndGet(), read.size))
+                    ok
                 }
             }
         }.awaitAll()
@@ -164,6 +215,31 @@ class LibBookmarkImport(
         const val PROGRESS_PARALLELISM = 3
         const val PROGRESS_RETRY_DELAY_MS = 1_500L
     }
+}
+
+/** Where a bookmark import is. */
+sealed interface LibImportStage {
+    /** Asking the site for the account's bookmarks. */
+    data object Fetching : LibImportStage
+
+    /** Adding [titles] titles to the library. */
+    data class Adding(val titles: Int) : LibImportStage
+
+    /** Loading chapter lists to mark read chapters: [done] of [total] titles. */
+    data class Progress(val done: Int, val total: Int) : LibImportStage
+
+    data object Finished : LibImportStage
+}
+
+/** One bookmark import for the UI: its stage, then its result or error. */
+data class LibImportStatus(
+    val sourceId: String,
+    val sourceName: String,
+    val stage: LibImportStage,
+    val result: LibBookmarkImportResult? = null,
+    val error: String? = null,
+) {
+    val running: Boolean get() = stage != LibImportStage.Finished
 }
 
 /** One title to add, with every folder it sits in. */

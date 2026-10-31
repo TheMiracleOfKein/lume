@@ -67,7 +67,8 @@ class AppContainer(val app: Application) {
     val titleSources = com.lume.app.data.title.TitleSourceRepository(database, dao, sources, titles, libraryChapters, downloads, prefs)
     val library = LibraryRepository(database, dao, prefs, titles, libraryChapters, trackerSync, titleSources, appScope)
     val readingLists = com.lume.app.data.library.ReadingLists(app, dao, sources, library)
-    val libBookmarkImport = com.lume.app.data.library.LibBookmarkImport(database, dao, sources, libraryChapters)
+    val libBookmarkImport = com.lume.app.data.library.LibBookmarkImport(database, dao, sources, libraryChapters, appScope)
+    val updates = com.lume.app.data.update.AppUpdater(app, http, appScope)
     val sync = com.lume.app.data.sync.SyncRepository(app, database, dao, prefs, library, sources, http)
 
     val imageLoader: ImageLoader get() = app.imageLoader
@@ -81,6 +82,7 @@ class AppContainer(val app: Application) {
         com.lume.app.domain.ChapterLabels.chapter = { com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_number, it) }
         appScope.launch { prefs.translateChapterLabels.collect { com.lume.app.domain.ChapterLabels.enabled = it } }
         continueReading.start()
+        updates.checkOnStart()
         appScope.launch(Dispatchers.IO) {
             prefs.dnsOverHttps.collect { id -> http.dns.use(com.lume.app.data.network.DohProvider.byId(id)) }
         }
