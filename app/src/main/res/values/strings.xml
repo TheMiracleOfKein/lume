@@ -455,6 +455,11 @@
     <string name="source_settings_saved">Settings saved</string>
     <string name="source_action_browse">Browse</string>
     <string name="source_action_settings">Settings</string>
+    <string name="source_action_import_bookmarks">Import bookmarks</string>
+    <string name="source_bookmarks_importing">Importing bookmarks from %1$s…</string>
+    <string name="source_bookmarks_done">%1$s bookmarks. Added: %2$d · already in the library: %3$d · folders as categories: %4$d</string>
+    <string name="source_bookmarks_empty">No bookmarks found on %1$s</string>
+    <string name="source_bookmarks_failed">Bookmark import failed: %1$s</string>
     <string name="source_action_pin">Pin to top</string>
     <string name="source_action_unpin">Unpin</string>
     <string name="source_action_disable">Disable</string>

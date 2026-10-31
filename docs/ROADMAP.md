@@ -99,6 +99,11 @@ Patch releases from the v0.6 line, as needed.
 - ⏸️ Subscribing several titles at once from the library selection.
 - ⏸️ ViewModel tests: still for a later v0.7.x release.
 
+**v0.7.2: MangaLib bookmark import** ([details](#v072-mangalib-bookmark-import))
+- ✅ Signed in to MangaLib, HentaiLib or YaoiLib: ⋮ → Import bookmarks adds the account's bookmarks to the library, folders as categories.
+- ⏸️ Read progress from the site: the API's last-read field couldn't be checked from where this was built (the API is region-blocked here).
+- ⏸️ ViewModel tests: still for a later v0.7.x release.
+
 **v0.7.x: send downloads to a nearby device** (L)
 
 Sync moves your library and progress, never the downloaded pages. This moves the pages: pick downloaded chapters on one phone, and another phone nearby receives them, without the internet and without a server.
@@ -472,3 +477,10 @@ Release notes: [docs/releases/v0.7.1.md](releases/v0.7.1.md).
 - ✅ **Subscriptions:** a bell on a library title's page; "Download new chapters" is Off / All titles / Subscribed, and the old switch carries over. Subscriptions go into backups and sync and move with "Make main" (database 9 → 10).
 - ✅ **Build:** AGP 9.2.1 (pinned for Android Studio), Gradle 9.8.2, OkHttp 5.5.1, kotlinx-serialization 1.12.0, DataStore 1.3.0.
 - ⏸️ Bulk subscribe from the library selection; ViewModel tests.
+
+### v0.7.2: MangaLib bookmark import
+
+Release notes: [docs/releases/v0.7.2.md](releases/v0.7.2.md).
+
+- ✅ **Bookmark import** for signed-in MangaLib-family sources: every folder, paged, titles of other Lib sites left out; folders become categories (merged by name), titles already in the library keep theirs and gain the folder's.
+- ⏸️ Read progress from the site; ViewModel tests.

@@ -446,6 +446,11 @@
     <string name="source_settings_saved">Настройки сохранены</string>
     <string name="source_action_browse">Открыть каталог</string>
     <string name="source_action_settings">Настройки</string>
+    <string name="source_action_import_bookmarks">Импорт закладок</string>
+    <string name="source_bookmarks_importing">Загружаем закладки с %1$s…</string>
+    <string name="source_bookmarks_done">Закладки %1$s. Добавлено: %2$d · уже в библиотеке: %3$d · папок-категорий: %4$d</string>
+    <string name="source_bookmarks_empty">На %1$s закладок не нашлось</string>
+    <string name="source_bookmarks_failed">Не удалось импортировать закладки: %1$s</string>
     <string name="source_action_pin">Закрепить сверху</string>
     <string name="source_action_unpin">Открепить</string>
     <string name="source_action_disable">Отключить</string>

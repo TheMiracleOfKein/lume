@@ -624,6 +624,29 @@ class SourcesViewModel(private val app: AppContainer) : ViewModel() {
         }
     }
 
+    /** The source whose site bookmarks are being imported; null when idle. */
+    var importingBookmarks by mutableStateOf<String?>(null)
+        private set
+
+    /** Adds the signed-in account's bookmarks on a Lib site to the library, folders as categories. */
+    fun importBookmarks(sourceId: String) {
+        if (importingBookmarks != null) return
+        val name = app.sources.sourceById(sourceId)?.manifest?.name ?: sourceId
+        importingBookmarks = sourceId
+        viewModelScope.launch {
+            _messages.send(app.app.getString(R.string.source_bookmarks_importing, name))
+            runCatching { app.libBookmarkImport.import(sourceId) }
+                .onSuccess { r ->
+                    _messages.send(
+                        if (r.added == 0 && r.alreadyInLibrary == 0) app.app.getString(R.string.source_bookmarks_empty, name)
+                        else app.app.getString(R.string.source_bookmarks_done, name, r.added, r.alreadyInLibrary, r.folders),
+                    )
+                }
+                .onFailure { _messages.send(app.app.getString(R.string.source_bookmarks_failed, it.message ?: it.toString())) }
+            importingBookmarks = null
+        }
+    }
+
     fun logout(sourceId: String) {
         viewModelScope.launch {
             app.libAuth.clear(sourceId)
