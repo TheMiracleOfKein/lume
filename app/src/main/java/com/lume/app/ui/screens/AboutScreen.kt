@@ -37,6 +37,7 @@ import com.lume.app.BuildConfig
 import com.lume.app.R
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.LumeLogo
+import com.lume.app.ui.components.UpdateSection
 import com.lume.app.ui.components.openInBrowser
 import com.lume.app.ui.theme.AppColors
 
@@ -93,6 +94,10 @@ fun AboutScreen(nav: NavHostController) {
                         fontSize = 13.sp,
                     )
                 }
+            }
+            item(key = "updates") {
+                UpdateSection()
+                Spacer(Modifier.height(12.dp))
             }
             item(key = "links") {
                 Column(Modifier.clip(RoundedCornerShape(14.dp)).background(AppColors.surface)) {

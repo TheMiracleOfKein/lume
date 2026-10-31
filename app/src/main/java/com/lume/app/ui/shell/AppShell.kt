@@ -116,6 +116,7 @@ fun LumeRoot() {
 
     Box(modifier = Modifier.fillMaxSize()) {
         AppShell(nav)
+        com.lume.app.ui.components.UpdatePrompt()
         challengeUri?.let { uri ->
             CloudflareChallengeOverlay(
                 uri = uri,
