@@ -32,7 +32,8 @@ class LibBookmarkImport(
 ) {
     suspend fun import(sourceId: String): LibBookmarkImportResult = withContext(Dispatchers.IO) {
         sources.awaitLoaded()
-        val engine = sources.sourceById(sourceId) as? LibSocialEngine
+        // The registry hands out wrapped sources; the bookmark call lives on the engine itself.
+        val engine = sources.engineById(sourceId) as? LibSocialEngine
             ?: error("Not a Lib source: $sourceId")
         val (folders, bookmarks) = engine.fetchBookmarks()
         apply(sourceId, folders, bookmarks)

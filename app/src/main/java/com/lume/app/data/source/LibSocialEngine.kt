@@ -485,8 +485,12 @@ class LibSocialEngine(
     private fun asObject(el: JsonElement): JsonObject = el as? JsonObject ?: JsonObject(emptyMap())
 
     /**
-     * The signed-in user's bookmark folders and every title in them. Folders are read one by one;
-     * when the site gives no folders, all bookmarks are read in one go. Needs a login.
+     * The signed-in user's bookmark folders and every title in them. Needs a login.
+     *
+     * `status=0` returns every bookmark of every status, the user's own folders included, and
+     * each entry names its folder in `status`; that is one paged pass. If it gives nothing,
+     * the folders are read one by one. Folder names come from `/bookmarks/folder`, with the
+     * built-in statuses named locally when that call fails.
      */
     suspend fun fetchBookmarks(): Pair<List<LibBookmarkFolder>, List<LibBookmark>> {
         val token = auth?.getToken(manifest.id)?.takeIf { it.isValid() }
@@ -494,23 +498,32 @@ class LibSocialEngine(
         val userId = token.auth?.id?.takeIf { it > 0 }
             ?: throw SourceLoginRequiredException(appString(R.string.error_source_login_required, manifest.name))
         val base = apiBase.toString().trimEnd('/')
-        val folders = runCatching {
+        val siteFolders = runCatching {
             val response = http.get(URI("$base/bookmarks/folder/$userId"), source = manifest, headers = apiHeaders(), checkCloudflare = false)
             parseLibBookmarkFolders(response.body)
         }.getOrDefault(emptyList())
-        val items = mutableListOf<LibBookmark>()
-        for (folderId in folders.map { it.id }.ifEmpty { listOf(null) }) {
+
+        suspend fun readStatus(status: String?): List<LibBookmark> {
+            val items = mutableListOf<LibBookmark>()
             var page = 1
             while (page <= MAX_BOOKMARK_PAGES) {
-                val status = folderId?.let { "&status=${urlEncode(it)}" }.orEmpty()
-                val uri = URI("$base/bookmarks?user_id=$userId$status&sort_by=name&sort_type=asc&page=$page")
+                val query = status?.let { "&status=${urlEncode(it)}" }.orEmpty()
+                val uri = URI("$base/bookmarks?user_id=$userId$query&sort_by=name&sort_type=asc&page=$page")
                 val response = http.get(uri, source = manifest, headers = apiHeaders(), checkCloudflare = false)
-                val parsed = parseLibBookmarksPage(response.body, siteId, folderId)
+                // With status=0 every entry carries its own folder; no fallback folder id.
+                val parsed = parseLibBookmarksPage(response.body, siteId, status?.takeIf { it != LIB_ALL_BOOKMARKS })
                 items += parsed.items
                 if (!parsed.hasNext) break
                 page++
             }
+            return items
         }
+
+        var items = runCatching { readStatus(LIB_ALL_BOOKMARKS) }.getOrDefault(emptyList())
+        if (items.isEmpty()) {
+            items = siteFolders.map { it.id }.ifEmpty { listOf(null) }.flatMap { readStatus(it) }
+        }
+        val folders = withDefaultLibFolders(siteFolders, items.mapNotNullTo(HashSet()) { it.folderId })
         return folders to items.distinctBy { it.titleId to it.folderId }
     }
 
