@@ -118,7 +118,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Update check against GitHub releases, with download and install.
 - ⏸️ The import doesn't survive Android killing the process (no WorkManager job yet).
 
-**v0.7.6: request limit, bell pool and library marks** ([details](#v076-request-limit-bell-pool-and-library-marks))
+**v0.7.6: request limit, bell pool and library marks** ✅ released 2026-11-01 ([details](#v076-request-limit-bell-pool-and-library-marks--released-2026-11-01))
 - ✅ Lib API requests spaced to one per 0.5 s; import brings only Reading / Planned / Dropped / Read, and "Read" marks every chapter.
 - ✅ Update checks look only at titles with the bell (up to 20), or the 20 last read when none has it.
 - ✅ Library badge shows read of total; search results in the library get a status colour bar.
@@ -530,7 +530,7 @@ Release notes: [docs/releases/v0.7.5.md](releases/v0.7.5.md).
 - ✅ **Updates:** `AppUpdater` checks `releases/latest` on start (every 6 h at most, can be turned off in About), downloads the APK with progress and opens the system installer. Skip hides a version from the automatic check.
 - ⏸️ Import as a WorkManager job that survives process death; release notes rendered as Markdown.
 
-### v0.7.6: request limit, bell pool and library marks
+### v0.7.6: request limit, bell pool and library marks ✅ released 2026-11-01
 
 Release notes: [docs/releases/v0.7.6.md](releases/v0.7.6.md).
 
