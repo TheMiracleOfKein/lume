@@ -135,5 +135,11 @@ internal fun withDefaultLibFolders(siteFolders: List<LibBookmarkFolder>, usedIds
     return siteFolders + extra
 }
 
+/** The statuses an import brings over: reading, planned, dropped and read. Favourites and the user's own folders stay on the site. */
+internal val LIB_IMPORTED_STATUSES = listOf("1", "2", "3", "4")
+
+/** "Прочитано": every chapter of a title in it is marked read. */
+internal const val LIB_STATUS_COMPLETED = "4"
+
 /** With no paging info, a full page means there may be more. */
 private const val LIB_BOOKMARKS_PAGE_GUESS = 20

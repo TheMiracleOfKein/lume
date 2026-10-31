@@ -156,4 +156,31 @@ class LibBookmarksTest {
         assertEquals("Манга", a.typeLabel)
         assertEquals(2, plan.titles.size)
     }
+
+    @Test
+    fun planKeepsOnlyReadingStatusesAndFlagsRead() {
+        val folders = listOf(LibBookmarkFolder("4", "Прочитано"), LibBookmarkFolder("5", "Любимые"), LibBookmarkFolder("2598197", "Манхвы"))
+        val bookmarks = listOf(
+            LibBookmark("/1--a", "A", null, null, "4"),
+            LibBookmark("/2--b", "B", null, null, "5"),
+            LibBookmark("/3--c", "C", null, null, "2598197"),
+            LibBookmark("/4--d", "D", null, null, null),
+        )
+        val plan = planLibBookmarkImport(folders, bookmarks)
+        assertEquals(listOf("/1--a"), plan.titles.map { it.titleId })
+        assertTrue(plan.titles.single().completed)
+        assertEquals(listOf("4"), plan.folders.map { it.id })
+    }
+
+    @Test
+    fun readStatusMarksEveryChapter() {
+        val chapters = listOf(
+            com.lume.app.domain.Chapter(id = "c2", title = "2", url = "u2"),
+            com.lume.app.domain.Chapter(id = "c1", title = "1", url = "u1"),
+        )
+        val target = com.lume.app.data.library.libAllChaptersRead(chapters)!!
+        assertEquals("c2", target.last.id)
+        assertEquals(2, target.read.size)
+        assertNull(com.lume.app.data.library.libAllChaptersRead(emptyList()))
+    }
 }

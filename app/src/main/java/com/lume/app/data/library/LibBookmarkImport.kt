@@ -9,6 +9,8 @@ import com.lume.app.data.db.LumeDatabase
 import com.lume.app.data.db.ProgressEntity
 import com.lume.app.data.source.LibBookmark
 import com.lume.app.data.source.LibBookmarkFolder
+import com.lume.app.data.source.LIB_IMPORTED_STATUSES
+import com.lume.app.data.source.LIB_STATUS_COMPLETED
 import com.lume.app.data.source.LibReadChapter
 import com.lume.app.data.source.LibSocialEngine
 import com.lume.app.data.source.SourceRegistry
@@ -148,7 +150,7 @@ class LibBookmarkImport(
         titles: List<LibImportTitle>,
         onStage: (LibImportStage) -> Unit,
     ): Pair<Int, Int> = coroutineScope {
-        val read = titles.filter { it.lastRead != null }
+        val read = titles.filter { it.lastRead != null || it.completed }
         val gate = Semaphore(PROGRESS_PARALLELISM)
         val finished = AtomicInteger(0)
         onStage(LibImportStage.Progress(0, read.size))
@@ -172,7 +174,8 @@ class LibBookmarkImport(
     }
 
     private suspend fun importTitleProgress(engine: LibSocialEngine, sourceId: String, title: LibImportTitle): Boolean {
-        val lastRead = title.lastRead ?: return false
+        val lastRead = title.lastRead
+        if (lastRead == null && !title.completed) return false
         val chapters = try {
             engine.getChapters(title.titleId)
         } catch (e: CancellationException) {
@@ -182,9 +185,10 @@ class LibBookmarkImport(
             delay(PROGRESS_RETRY_DELAY_MS)
             engine.getChapters(title.titleId)
         }
-        val target = libChaptersReadUpTo(chapters, lastRead) ?: return false
+        val target = (if (title.completed) libAllChaptersRead(chapters) else lastRead?.let { libChaptersReadUpTo(chapters, it) })
+            ?: return false
         libraryChapters.sync(sourceId, title.titleId, chapters)
-        val readAt = lastRead.readAt ?: System.currentTimeMillis()
+        val readAt = lastRead?.readAt ?: System.currentTimeMillis()
         db.withTransaction {
             val known = dao.readChapterIds(sourceId, title.titleId).toHashSet()
             val fresh = target.read.filter { it.id !in known }
@@ -212,8 +216,9 @@ class LibBookmarkImport(
     }
 
     private companion object {
-        const val PROGRESS_PARALLELISM = 3
-        const val PROGRESS_RETRY_DELAY_MS = 1_500L
+        // Requests to the Lib API are spaced by the host rate limit; more workers would only queue.
+        const val PROGRESS_PARALLELISM = 2
+        const val PROGRESS_RETRY_DELAY_MS = 5_000L
     }
 }
 
@@ -251,6 +256,8 @@ data class LibImportTitle(
     val folderIds: Set<String>,
     /** The last chapter read on the site, if any. */
     val lastRead: LibReadChapter? = null,
+    /** In the site's "read" status: every chapter is marked read. */
+    val completed: Boolean = false,
 )
 
 data class LibImportPlan(val folders: List<LibBookmarkFolder>, val titles: List<LibImportTitle>)
@@ -260,7 +267,9 @@ data class LibImportPlan(val folders: List<LibBookmarkFolder>, val titles: List<
  * that hold something, so empty site folders don't turn into empty categories.
  */
 internal fun planLibBookmarkImport(folders: List<LibBookmarkFolder>, bookmarks: List<LibBookmark>): LibImportPlan {
-    val titles = bookmarks.groupBy { it.titleId }.map { (id, entries) ->
+    // Only the four reading statuses come over; favourites and custom folders are left out.
+    val wanted = bookmarks.filter { it.folderId in LIB_IMPORTED_STATUSES }
+    val titles = wanted.groupBy { it.titleId }.map { (id, entries) ->
         val first = entries.first()
         LibImportTitle(
             titleId = id,
@@ -269,6 +278,7 @@ internal fun planLibBookmarkImport(folders: List<LibBookmarkFolder>, bookmarks: 
             typeLabel = entries.firstNotNullOfOrNull { it.typeLabel },
             folderIds = entries.mapNotNullTo(LinkedHashSet()) { it.folderId },
             lastRead = entries.firstNotNullOfOrNull { it.lastRead },
+            completed = entries.any { it.folderId == LIB_STATUS_COMPLETED },
         )
     }
     val used = titles.flatMapTo(HashSet()) { it.folderIds }
@@ -298,6 +308,10 @@ internal fun libChaptersReadUpTo(chapters: List<Chapter>, lastRead: LibReadChapt
     val last = copies.firstOrNull { lastRead.branchId != null && it.branchId == lastRead.branchId } ?: copies.first()
     return LibReadTarget(last, chapters.filter { key(it) in readKeys })
 }
+
+/** A title in the site's "read" status: every chapter, continuing from the newest. Null when there are none. */
+internal fun libAllChaptersRead(chapters: List<Chapter>): LibReadTarget? =
+    chapters.firstOrNull()?.let { LibReadTarget(it, chapters) }
 
 private fun libNumberKey(raw: String?): String {
     val s = raw?.trim()?.replace(',', '.').orEmpty()
