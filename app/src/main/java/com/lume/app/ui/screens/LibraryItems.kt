@@ -204,23 +204,27 @@ private fun LazyGridItemScope.LibraryGridCell(
     }
 }
 
-/** Unread (accent), downloaded (neutral) and source (blue) counts, joined like a split pill. */
+/** Read of total (accent while unread chapters remain), downloaded (neutral) and source (blue) counts, joined like a split pill. */
 @Composable
 private fun CountBadges(item: LibraryItem, settings: LibrarySettings, modifier: Modifier = Modifier) {
-    val unread = item.unread.takeIf { settings.unreadBadge && it > 0 }
+    val total = item.totalChapters.takeIf { settings.unreadBadge && it > 0 }
     val downloaded = item.downloaded.takeIf { settings.downloadedBadge && it > 0 }
     val sources = item.sources.takeIf { settings.sourcesBadge && it > 1 }
-    if (unread == null && downloaded == null && sources == null) return
+    if (total == null && downloaded == null && sources == null) return
     Row(modifier.clip(RoundedCornerShape(4.dp)), verticalAlignment = Alignment.CenterVertically) {
-        unread?.let {
+        total?.let {
+            val read = (it - item.unread).coerceIn(0, it)
+            val description = stringResource(R.string.cd_library_read_of_total, read, it)
+            val caughtUp = item.unread <= 0
             Text(
-                "$it",
-                color = AppColors.onAccent,
+                stringResource(R.string.library_read_of_total, read, it),
+                color = if (caughtUp) Color.White else AppColors.onAccent,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
-                    .background(AppColors.accent)
-                    .padding(horizontal = 5.dp, vertical = 1.dp),
+                    .background(if (caughtUp) Color(0xFF3A3F47) else AppColors.accent)
+                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                    .semantics { contentDescription = description },
             )
         }
         downloaded?.let {
@@ -292,7 +296,8 @@ private fun LibraryListRow(
             )
             val meta = listOfNotNull(
                 item.typeLabel,
-                item.totalChapters.takeIf { it > 0 }?.let { stringResource(R.string.chapters_count_short, it) },
+                // The read/total badge already says how many chapters there are.
+                item.totalChapters.takeIf { it > 0 && !settings.unreadBadge }?.let { stringResource(R.string.chapters_count_short, it) },
                 if (item.hasNew) stringResource(R.string.badge_new) else null,
             ).joinToString(" · ")
             if (meta.isNotEmpty()) {

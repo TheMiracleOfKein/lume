@@ -290,6 +290,10 @@ class UpdatesViewModel(private val app: AppContainer) : ViewModel() {
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    /** Library titles with the bell: the ones a check looks at. */
+    val watchedCount: StateFlow<Int> = app.dao.observeWatchedCount()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
     fun updateNow() = LibraryUpdateWorker.runNow(app.app)
 
     fun download(row: UpdateRow) {

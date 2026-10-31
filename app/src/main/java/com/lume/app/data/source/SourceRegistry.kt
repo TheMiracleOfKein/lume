@@ -203,7 +203,10 @@ class SourceRegistry(
         val manifest = base.withSettings(settings)
         referers?.register(manifest)
         // engineConfig.rateLimit = requests/second for the API host (or the site when no apiBase).
-        manifest.configString("rateLimit")?.toDoubleOrNull()?.let { perSecond ->
+        // The Lib sites share one API that refuses bursts, so they get a limit even without one.
+        val rateLimit = manifest.configString("rateLimit")?.toDoubleOrNull()
+            ?: LIB_API_RATE_LIMIT.takeIf { manifest.engine == SourceEngines.LIBSOCIAL }
+        rateLimit?.let { perSecond ->
             val host = runCatching { URI(manifest.configString("apiBase") ?: manifest.baseUrl).host }.getOrNull()
             if (host != null) http.setRateLimit(host, perSecond)
         }
@@ -286,3 +289,6 @@ internal fun CatalogSource.unwrapped(): CatalogSource {
     while (current is WrappingSource) current = current.inner
     return current
 }
+
+/** Requests per second to the shared MangaLib-family API: one every half second. */
+internal const val LIB_API_RATE_LIMIT = 2.0

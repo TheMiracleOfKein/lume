@@ -118,6 +118,12 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Update check against GitHub releases, with download and install.
 - ⏸️ The import doesn't survive Android killing the process (no WorkManager job yet).
 
+**v0.7.6: request limit, bell pool and library marks** ([details](#v076-request-limit-bell-pool-and-library-marks))
+- ✅ Lib API requests spaced to one per 0.5 s; import brings only Reading / Planned / Dropped / Read, and "Read" marks every chapter.
+- ✅ Update checks look only at titles with the bell (up to 20), or the 20 last read when none has it.
+- ✅ Library badge shows read of total; search results in the library get a status colour bar.
+- ⏸️ Search marks don't match a library title saved from another source.
+
 **v0.7.x: send downloads to a nearby device** (L)
 
 Sync moves your library and progress, never the downloaded pages. This moves the pages: pick downloaded chapters on one phone, and another phone nearby receives them, without the internet and without a server.
@@ -523,3 +529,13 @@ Release notes: [docs/releases/v0.7.5.md](releases/v0.7.5.md).
 - ✅ **Import progress:** `LibBookmarkImport` runs in the app scope and reports `Fetching → Adding → Progress(done, total) → Finished`; Sources shows a card with the step and a bar, and the summary stays until closed.
 - ✅ **Updates:** `AppUpdater` checks `releases/latest` on start (every 6 h at most, can be turned off in About), downloads the APK with progress and opens the system installer. Skip hides a version from the automatic check.
 - ⏸️ Import as a WorkManager job that survives process death; release notes rendered as Markdown.
+
+### v0.7.6: request limit, bell pool and library marks
+
+Release notes: [docs/releases/v0.7.6.md](releases/v0.7.6.md).
+
+- ✅ **Request limit:** every `libsocial` source gets 2 req/s on its API host (`LIB_API_RATE_LIMIT`), shared by the three Lib sites; the import's retry waits 5 s.
+- ✅ **Import scope:** only statuses 1–4 come over; status 4 ("Прочитано") marks every chapter read.
+- ✅ **Bell pool:** `title_prefs.autoDownload` is the bell; `LibraryUpdateWorker` checks the watched titles (at most 20) or the 20 most recently read.
+- ✅ **Library marks:** read/total badge; status colour bar in search from category names (`libraryStatusOf`).
+- ⏸️ Cross-source matching for search marks; a per-user setting for the pool size.

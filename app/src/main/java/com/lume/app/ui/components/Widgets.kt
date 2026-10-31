@@ -43,6 +43,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
@@ -164,12 +167,24 @@ fun TitleListRow(
     typeLabel: String? = null,
     badge: String? = null,
     sourceId: String? = null,
+    /** A bar along the left edge, e.g. the library status of the title. */
+    marker: Color? = null,
     onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .then(
+                if (marker != null) {
+                    Modifier.drawBehind {
+                        val inset = 10.dp.toPx()
+                        drawRect(marker, topLeft = Offset(0f, inset), size = Size(4.dp.toPx(), size.height - 2 * inset))
+                    }
+                } else {
+                    Modifier
+                },
+            )
             .then(
                 if (onLongClick != null) {
                     Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
@@ -323,6 +338,8 @@ fun CoverCard(
     modifier: Modifier = Modifier,
     badge: String? = null,
     width: Dp = 128.dp,
+    /** A bar along the top of the cover, e.g. the library status of the title. */
+    marker: Color? = null,
 ) {
     Column(
         modifier = modifier
@@ -332,6 +349,15 @@ fun CoverCard(
     ) {
         Box {
             CoverImage(url = coverUrl, width = width, height = width * 1.4f, radius = 10.dp)
+            if (marker != null) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .background(marker),
+                )
+            }
             if (!badge.isNullOrBlank()) {
                 Box(
                     modifier = Modifier

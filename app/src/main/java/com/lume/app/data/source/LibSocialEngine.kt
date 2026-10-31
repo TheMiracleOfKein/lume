@@ -521,7 +521,7 @@ class LibSocialEngine(
 
         var items = runCatching { readStatus(LIB_ALL_BOOKMARKS) }.getOrDefault(emptyList())
         if (items.isEmpty()) {
-            items = siteFolders.map { it.id }.ifEmpty { listOf(null) }.flatMap { readStatus(it) }
+            items = LIB_IMPORTED_STATUSES.flatMap { readStatus(it) }
         }
         val folders = withDefaultLibFolders(siteFolders, items.mapNotNullTo(HashSet()) { it.folderId })
         return folders to items.distinctBy { it.titleId to it.folderId }

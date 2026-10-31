@@ -161,16 +161,12 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                             )
                         }
                     }
-                    // Every library title downloads its new chapters anyway when the setting says "All titles".
-                    if (bookmarked && autoDownloadMode != AutoDownloadMode.ALL) {
+                    // The bell: update checks look only at titles that have it.
+                    if (bookmarked) {
                         IconButton(
                             onClick = {
-                                vm.toggleSubscribed { on ->
-                                    Toast.makeText(
-                                        context,
-                                        if (on) R.string.title_subscribed else R.string.title_unsubscribed,
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
+                                vm.toggleSubscribed { message ->
+                                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                 }
                             },
                         ) {
