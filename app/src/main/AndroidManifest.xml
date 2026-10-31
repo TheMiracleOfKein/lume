@@ -8,6 +8,8 @@
     <!-- Downloads run as a foreground job (WorkManager) with a notification. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- Installs an update downloaded from the GitHub releases; Android asks the user first. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:name=".LumeApp"

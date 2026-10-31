@@ -113,6 +113,11 @@ Patch releases from the v0.6 line, as needed.
 - ✅ The last chapter read on the site and every earlier chapter (all teams) are marked read; titles without local progress get a continue point.
 - ⏸️ The bookmark's `progress` field isn't used: in real answers it doesn't line up with the chapter in `item`.
 
+**v0.7.5: import progress and app updates** ([details](#v075-import-progress-and-app-updates))
+- ✅ Bookmark import shows its step and a progress bar, and keeps running after leaving Sources.
+- ✅ Update check against GitHub releases, with download and install.
+- ⏸️ The import doesn't survive Android killing the process (no WorkManager job yet).
+
 **v0.7.x: send downloads to a nearby device** (L)
 
 Sync moves your library and progress, never the downloaded pages. This moves the pages: pick downloaded chapters on one phone, and another phone nearby receives them, without the internet and without a server.
@@ -510,3 +515,11 @@ Release notes: [docs/releases/v0.7.4.md](releases/v0.7.4.md).
 - ✅ Adds only: existing read marks and continue points stay. The new continue point and read marks are dated by the bookmark's `updated_at`.
 - ✅ The chapter list is stored in `library_chapters` on the way, so unread counts are right before the first update check.
 - ⏸️ The `progress` field; ViewModel tests.
+
+### v0.7.5: import progress and app updates
+
+Release notes: [docs/releases/v0.7.5.md](releases/v0.7.5.md).
+
+- ✅ **Import progress:** `LibBookmarkImport` runs in the app scope and reports `Fetching → Adding → Progress(done, total) → Finished`; Sources shows a card with the step and a bar, and the summary stays until closed.
+- ✅ **Updates:** `AppUpdater` checks `releases/latest` on start (every 6 h at most, can be turned off in About), downloads the APK with progress and opens the system installer. Skip hides a version from the automatic check.
+- ⏸️ Import as a WorkManager job that survives process death; release notes rendered as Markdown.

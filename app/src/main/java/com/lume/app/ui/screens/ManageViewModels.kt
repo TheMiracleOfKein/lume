@@ -624,31 +624,18 @@ class SourcesViewModel(private val app: AppContainer) : ViewModel() {
         }
     }
 
-    /** The source whose site bookmarks are being imported; null when idle. */
-    var importingBookmarks by mutableStateOf<String?>(null)
-        private set
+    /** The running or last finished bookmark import; it runs app-wide, so it outlives this screen. */
+    val importStatus = app.libBookmarkImport.status
 
     /** Adds the signed-in account's bookmarks on a Lib site to the library, folders as categories. */
     fun importBookmarks(sourceId: String) {
-        if (importingBookmarks != null) return
         val name = app.sources.sourceById(sourceId)?.manifest?.name ?: sourceId
-        importingBookmarks = sourceId
-        viewModelScope.launch {
-            _messages.send(app.app.getString(R.string.source_bookmarks_importing, name))
-            runCatching { app.libBookmarkImport.import(sourceId) }
-                .onSuccess { r ->
-                    _messages.send(
-                        if (r.added == 0 && r.alreadyInLibrary == 0) app.app.getString(R.string.source_bookmarks_empty, name)
-                        else app.app.getString(R.string.source_bookmarks_done, name, r.added, r.alreadyInLibrary, r.folders, r.progress),
-                    )
-                    if (r.progressMissed > 0) {
-                        _messages.send(app.app.getString(R.string.source_bookmarks_progress_missed, r.progressMissed))
-                    }
-                }
-                .onFailure { _messages.send(app.app.getString(R.string.source_bookmarks_failed, it.message ?: it.toString())) }
-            importingBookmarks = null
+        if (!app.libBookmarkImport.start(sourceId, name)) {
+            viewModelScope.launch { _messages.send(app.app.getString(R.string.source_bookmarks_busy)) }
         }
     }
+
+    fun dismissImportStatus() = app.libBookmarkImport.dismiss()
 
     fun logout(sourceId: String) {
         viewModelScope.launch {
