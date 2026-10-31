@@ -14,6 +14,7 @@ import com.lume.app.data.db.ProgressEntity
 import com.lume.app.data.db.TitlePrefsEntity
 import com.lume.app.data.db.TitleSourceEntity
 import com.lume.app.data.db.TrackerLinkEntity
+import com.lume.app.data.db.WATCHED_TITLES_LIMIT
 import com.lume.app.data.similar.SimilarResult
 import com.lume.app.data.title.SourceCandidate
 import com.lume.app.data.title.SourceLookup
@@ -243,18 +244,24 @@ class TitleViewModel(app: AppContainer, sourceId: String, titleId: String) : Tit
         }
     }
 
-    /** Subscribed to new-chapter downloads. */
+    /** The bell: update checks look at this title (and download its new chapters for subscribed titles). */
     val subscribed: StateFlow<Boolean> = dao.observeTitlePrefs(sourceId, titleId).map { it?.autoDownload == true }.state(false)
     val autoDownloadMode: StateFlow<AutoDownloadMode> = app.prefs.autoDownloadMode
 
-    /** Subscribing while new-chapter downloads are off turns them on for subscribed titles. */
-    fun toggleSubscribed(onDone: (Boolean) -> Unit) {
+    /**
+     * Rings or silences the bell; [onDone] gets the message to show. At most
+     * [WATCHED_TITLES_LIMIT] titles can have it, so a full pool refuses one more.
+     */
+    fun toggleSubscribed(onDone: (Int) -> Unit) {
         viewModelScope.launch {
             val base = dao.getTitlePrefs(sourceId, titleId) ?: TitlePrefsEntity(sourceId = sourceId, titleId = titleId)
             val next = !base.autoDownload
+            if (next && dao.watchedBookmarks().size >= WATCHED_TITLES_LIMIT) {
+                onDone(R.string.title_watch_full)
+                return@launch
+            }
             dao.upsertTitlePrefs(base.copy(autoDownload = next))
-            if (next && autoDownloadMode.value == AutoDownloadMode.OFF) app.prefs.setAutoDownloadMode(AutoDownloadMode.SUBSCRIBED)
-            onDone(next)
+            onDone(if (next) R.string.title_subscribed else R.string.title_unsubscribed)
         }
     }
 

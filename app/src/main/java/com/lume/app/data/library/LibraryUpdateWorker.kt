@@ -23,6 +23,7 @@ import androidx.work.workDataOf
 import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.TitleMetaEntity
+import com.lume.app.data.db.WATCHED_TITLES_LIMIT
 import com.lume.app.domain.LibraryUpdateResult
 import com.lume.app.domain.LinkedChapterId
 import com.lume.app.domain.dedupeChapters
@@ -43,7 +44,9 @@ class LibraryUpdateWorker(
         // A cold start for this job alone would otherwise see an empty source list and do nothing.
         app.sources.awaitLoaded()
 
-        val bookmarks = dao.allBookmarks()
+        // Only titles with the bell: checking hundreds of titles takes too long and strains the sites.
+        // Until any title has one, the most recently read titles stand in.
+        val bookmarks = dao.watchedBookmarks().ifEmpty { dao.recentBookmarks(WATCHED_TITLES_LIMIT) }
         setProgress(workDataOf(KEY_DONE to 0, KEY_TOTAL to bookmarks.size))
         for ((index, bookmark) in bookmarks.withIndex()) {
             if (app.sources.sourceById(bookmark.sourceId) != null) runCatching {

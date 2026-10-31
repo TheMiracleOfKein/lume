@@ -61,6 +61,17 @@ import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.animatedItem
 import java.util.Calendar
 
+/** Which titles a check looks at: the ones with the bell, or the last read ones when none has it. */
+@Composable
+private fun WatchedHint(watched: Int, modifier: Modifier = Modifier) {
+    Text(
+        if (watched > 0) stringResource(R.string.updates_watched_hint, watched) else stringResource(R.string.updates_watched_none),
+        color = AppColors.textTertiary,
+        fontSize = 12.sp,
+        modifier = modifier.fillMaxWidth(),
+    )
+}
+
 /** New chapters across the whole library, newest first, grouped by the day they were found. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +83,7 @@ fun UpdatesScreen(nav: NavHostController) {
     val lastChecked by vm.lastCheckedAt.collectAsState()
     val downloaded by vm.downloaded.collectAsState()
     val queued by vm.queued.collectAsState()
+    val watched by vm.watchedCount.collectAsState()
     val groups = remember(updates) { updates.groupBy { startOfDay(it.discoveredAt) }.toList() }
 
     Column(
@@ -143,12 +155,14 @@ fun UpdatesScreen(nav: NavHostController) {
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         )
                     }
+                    item { WatchedHint(watched, Modifier.padding(horizontal = 32.dp, vertical = 16.dp)) }
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = LocalShellBottomPadding.current),
                 ) {
+                    item(key = "watched") { WatchedHint(watched, Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp)) }
                     groups.forEach { (day, rows) ->
                         item(key = "day-$day") {
                             Text(

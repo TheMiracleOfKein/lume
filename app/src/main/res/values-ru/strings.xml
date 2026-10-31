@@ -83,10 +83,15 @@
 
     <string name="title_fallback">Тайтл</string>
     <string name="cd_bookmark">Закладка</string>
-    <string name="cd_subscribe">Скачивать новые главы</string>
-    <string name="cd_unsubscribe">Не скачивать новые главы</string>
-    <string name="title_subscribed">Новые главы этого тайтла будут скачиваться автоматически</string>
-    <string name="title_unsubscribed">Новые главы этого тайтла не будут скачиваться автоматически</string>
+    <string name="cd_subscribe">Проверять новые главы</string>
+    <string name="cd_unsubscribe">Не проверять новые главы</string>
+    <string name="title_subscribed">Обновления библиотеки будут проверять этот тайтл</string>
+    <string name="title_unsubscribed">Обновления библиотеки больше не проверяют этот тайтл</string>
+    <string name="title_watch_full">Колокольчик можно включить максимум у 20 тайтлов. Сначала выключите его у другого.</string>
+    <string name="updates_watched_hint">Обновления проверяют тайтлы с колокольчиком (до 20): сейчас %d</string>
+    <string name="updates_watched_none">Обновления проверяют 20 последних прочитанных тайтлов. Включите колокольчик на странице тайтла, чтобы выбрать их самому.</string>
+    <string name="library_read_of_total">%1$d/%2$d</string>
+    <string name="cd_library_read_of_total">Прочитано %1$d из %2$d глав</string>
     <string name="title_status">Статус: %s</string>
     <string name="title_chapters_list">Список глав (%d)</string>
     <string name="title_trackers">Трекеры (%s)</string>
@@ -317,7 +322,7 @@
     <string name="library_display_grid">Сетка</string>
     <string name="library_display_compact">Компактно</string>
     <string name="library_display_list">Список</string>
-    <string name="library_badge_unread">Число непрочитанных</string>
+    <string name="library_badge_unread">Прочитано из всех глав</string>
     <string name="library_badge_downloaded">Число скачанных</string>
     <string name="library_badge_sources">Число источников</string>
     <string name="library_sources_badge">Источников: %1$d</string>

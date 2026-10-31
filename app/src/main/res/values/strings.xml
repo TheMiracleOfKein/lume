@@ -89,10 +89,15 @@
     <!-- Title / trackers -->
     <string name="title_fallback">Title</string>
     <string name="cd_bookmark">Bookmark</string>
-    <string name="cd_subscribe">Download new chapters</string>
-    <string name="cd_unsubscribe">Stop downloading new chapters</string>
-    <string name="title_subscribed">New chapters of this title will download automatically</string>
-    <string name="title_unsubscribed">New chapters of this title won\'t download automatically</string>
+    <string name="cd_subscribe">Check for new chapters</string>
+    <string name="cd_unsubscribe">Stop checking for new chapters</string>
+    <string name="title_subscribed">Library updates will check this title for new chapters</string>
+    <string name="title_unsubscribed">Library updates won\'t check this title any more</string>
+    <string name="title_watch_full">Up to 20 titles can have the bell. Turn it off on another title first.</string>
+    <string name="updates_watched_hint">Updates check titles with the bell (up to 20): %d now</string>
+    <string name="updates_watched_none">Updates check the 20 titles you read last. Ring the bell on a title\'s page to choose them yourself.</string>
+    <string name="library_read_of_total">%1$d/%2$d</string>
+    <string name="cd_library_read_of_total">%1$d of %2$d chapters read</string>
     <string name="title_status">Status: %s</string>
     <string name="title_chapters_list">Chapter list (%d)</string>
     <string name="title_trackers">Trackers (%s)</string>
@@ -328,7 +333,7 @@
     <string name="library_display_grid">Grid</string>
     <string name="library_display_compact">Compact</string>
     <string name="library_display_list">List</string>
-    <string name="library_badge_unread">Show unread count</string>
+    <string name="library_badge_unread">Show chapters read of total</string>
     <string name="library_badge_downloaded">Show downloaded count</string>
     <string name="library_badge_sources">Show the number of sources</string>
     <string name="library_sources_badge">Sources: %1$d</string>

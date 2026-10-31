@@ -144,7 +144,10 @@ data class TitlePrefsEntity(
     /** Show every team's copy of a chapter instead of one row per chapter. */
     @ColumnInfo(defaultValue = "0")
     val showDuplicates: Boolean = false,
-    /** Subscribed: library checks download this title's new chapters when downloads are set to subscribed titles. */
+    /**
+     * The bell: library update checks look at this title (at most [WATCHED_TITLES_LIMIT] titles
+     * have it), and its new chapters download when downloads are set to subscribed titles.
+     */
     @ColumnInfo(defaultValue = "0")
     val autoDownload: Boolean = false,
 )
@@ -287,6 +290,32 @@ interface LibraryDao {
 
     @Query("DELETE FROM bookmarks WHERE sourceId = :sourceId AND titleId = :titleId")
     suspend fun deleteBookmark(sourceId: String, titleId: String)
+
+    /** Library titles with the bell on; the ones update checks look at. */
+    @Query(
+        """
+        SELECT b.* FROM bookmarks b JOIN title_prefs p ON p.sourceId = b.sourceId AND p.titleId = b.titleId
+        WHERE p.autoDownload = 1 ORDER BY b.createdAt DESC
+        """,
+    )
+    suspend fun watchedBookmarks(): List<BookmarkEntity>
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM bookmarks b JOIN title_prefs p ON p.sourceId = b.sourceId AND p.titleId = b.titleId
+        WHERE p.autoDownload = 1
+        """,
+    )
+    fun observeWatchedCount(): Flow<Int>
+
+    /** The [limit] library titles read (or, unread, added) most recently. */
+    @Query(
+        """
+        SELECT b.* FROM bookmarks b LEFT JOIN reading_progress r ON r.sourceId = b.sourceId AND r.titleId = b.titleId
+        ORDER BY COALESCE(r.updatedAt, b.createdAt) DESC LIMIT :limit
+        """,
+    )
+    suspend fun recentBookmarks(limit: Int): List<BookmarkEntity>
 
     @Query("SELECT * FROM reading_progress ORDER BY updatedAt DESC")
     fun observeHistory(): Flow<List<ProgressEntity>>
@@ -782,3 +811,6 @@ abstract class LumeDatabase : RoomDatabase() {
         val MIGRATIONS: Array<Migration> get() = arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
     }
 }
+
+/** How many library titles can have the bell; update checks look only at these. */
+const val WATCHED_TITLES_LIMIT = 20
