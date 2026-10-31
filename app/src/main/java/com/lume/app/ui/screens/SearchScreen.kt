@@ -70,6 +70,9 @@ import com.lume.app.ui.components.LoadingBox
 import com.lume.app.ui.components.QuickSearchBar
 import com.lume.app.ui.components.SegmentTab
 import com.lume.app.ui.components.TitleListRow
+import com.lume.app.ui.components.libraryMarkKey
+import com.lume.app.ui.components.libraryStatusColor
+import com.lume.app.ui.components.rememberLibraryMarks
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.screens.SearchViewModel.Mode
 import com.lume.app.ui.screens.SearchViewModel.SourceRow
@@ -272,6 +275,7 @@ private fun CurrentSourceResults(
                 LaunchedEffect(nearEnd, items.size, vm.currentHasNext) {
                     if (nearEnd && vm.currentHasNext) vm.loadMore()
                 }
+                val marks = rememberLibraryMarks()
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                     items(items, key = { it.id }) { item ->
                         TitleListRow(
@@ -279,6 +283,7 @@ private fun CurrentSourceResults(
                             coverUrl = item.coverUrl,
                             subtitle = item.latestChapter,
                             typeLabel = item.typeLabel,
+                            marker = marks[libraryMarkKey(vm.currentSourceId, item.id)]?.let { libraryStatusColor(it) },
                             modifier = animatedItem(),
                             onClick = { nav.navigate(Routes.title(vm.currentSourceId, item.id)) },
                         )
@@ -426,6 +431,7 @@ private fun SourceResultRow(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val marks = rememberLibraryMarks()
     Column(modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 6.dp),
@@ -471,6 +477,7 @@ private fun SourceResultRow(
                             coverUrl = item.coverUrl,
                             badge = item.latestChapter,
                             width = 104.dp,
+                            marker = marks[libraryMarkKey(row.sourceId, item.id)]?.let { libraryStatusColor(it) },
                             onClick = { onOpen(item.id) },
                         )
                     }
