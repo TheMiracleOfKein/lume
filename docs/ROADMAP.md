@@ -113,7 +113,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ The last chapter read on the site and every earlier chapter (all teams) are marked read; titles without local progress get a continue point.
 - ⏸️ The bookmark's `progress` field isn't used: in real answers it doesn't line up with the chapter in `item`.
 
-**v0.7.5: import progress and app updates** ([details](#v075-import-progress-and-app-updates))
+**v0.7.5: import progress and app updates** ✅ released 2026-11-01 ([details](#v075-import-progress-and-app-updates--released-2026-11-01))
 - ✅ Bookmark import shows its step and a progress bar, and keeps running after leaving Sources.
 - ✅ Update check against GitHub releases, with download and install.
 - ⏸️ The import doesn't survive Android killing the process (no WorkManager job yet).
@@ -516,7 +516,7 @@ Release notes: [docs/releases/v0.7.4.md](releases/v0.7.4.md).
 - ✅ The chapter list is stored in `library_chapters` on the way, so unread counts are right before the first update check.
 - ⏸️ The `progress` field; ViewModel tests.
 
-### v0.7.5: import progress and app updates
+### v0.7.5: import progress and app updates ✅ released 2026-11-01
 
 Release notes: [docs/releases/v0.7.5.md](releases/v0.7.5.md).
 
