@@ -35,6 +35,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
@@ -70,6 +71,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
+import com.lume.app.data.library.LibImportStage
+import com.lume.app.data.library.LibImportStatus
 import com.lume.app.data.source.SourceEngines
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.PackState
@@ -93,6 +96,7 @@ fun SourcesScreen(nav: NavHostController) {
     val activeId by vm.activeId.collectAsState()
     val disabled by vm.disabled.collectAsState()
     val pinned by vm.pinned.collectAsState()
+    val importStatus by vm.importStatus.collectAsState()
     val snack = remember { SnackbarHostState() }
     var settingsFor by remember { mutableStateOf<CatalogSource?>(null) }
     LaunchedEffect(vm) { vm.messages.collect { snack.showSnackbar(it) } }
@@ -132,6 +136,11 @@ fun SourcesScreen(nav: NavHostController) {
                 .background(AppColors.background),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         ) {
+            importStatus?.let { status ->
+                item(key = "bookmark-import") {
+                    BookmarkImportCard(status, onDismiss = vm::dismissImportStatus, modifier = animatedItem())
+                }
+            }
             item(key = "import") { ImportSection(vm) }
             item(key = "packs") { PackCatalogue(vm) }
             grouped.forEach { (langKey, list) ->
@@ -163,7 +172,7 @@ fun SourcesScreen(nav: NavHostController) {
                         onLogin = { SourceLoginActivity.start(context, id) },
                         onLogout = { vm.logout(id) },
                         onImportBookmarks = if (isLib && token != null) ({ vm.importBookmarks(id) }) else null,
-                        importingBookmarks = vm.importingBookmarks == id,
+                        importingBookmarks = importStatus?.let { it.running && it.sourceId == id } == true,
                     )
                 }
                 item(key = "gap-$langKey") { Spacer(Modifier.height(8.dp)) }
@@ -194,6 +203,85 @@ fun SourcesScreen(nav: NavHostController) {
 }
 
 private const val PINNED_GROUP = "pinned"
+
+/** The bookmark import: its stage and a progress bar while it runs, its summary once done. */
+@Composable
+private fun BookmarkImportCard(status: LibImportStatus, onDismiss: () -> Unit, modifier: Modifier) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(AppColors.surface)
+            .padding(14.dp),
+    ) {
+        Text(
+            stringResource(R.string.source_bookmarks_card_title, status.sourceName),
+            color = AppColors.textPrimary,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(6.dp))
+        when (val stage = status.stage) {
+            LibImportStage.Fetching -> ImportStageLine(stringResource(R.string.source_bookmarks_stage_fetching), null)
+            is LibImportStage.Adding -> ImportStageLine(stringResource(R.string.source_bookmarks_stage_adding, stage.titles), null)
+            is LibImportStage.Progress -> ImportStageLine(
+                stringResource(R.string.source_bookmarks_stage_progress, stage.done, stage.total),
+                if (stage.total > 0) stage.done.toFloat() / stage.total else null,
+            )
+            LibImportStage.Finished -> {
+                val r = status.result
+                val summary = when {
+                    status.error != null -> stringResource(R.string.source_bookmarks_failed, status.error)
+                    r == null || (r.added == 0 && r.alreadyInLibrary == 0) ->
+                        stringResource(R.string.source_bookmarks_empty, status.sourceName)
+                    else -> stringResource(
+                        R.string.source_bookmarks_done, status.sourceName, r.added, r.alreadyInLibrary, r.folders, r.progress,
+                    )
+                }
+                Text(
+                    summary,
+                    color = if (status.error != null) AppColors.danger else AppColors.textSecondary,
+                    fontSize = 13.sp,
+                )
+                if (r != null && r.progressMissed > 0) {
+                    Text(
+                        stringResource(R.string.source_bookmarks_progress_missed, r.progressMissed),
+                        color = AppColors.textTertiary,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+                TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
+                    Text(stringResource(R.string.action_close), color = AppColors.accent)
+                }
+            }
+        }
+    }
+}
+
+/** One running stage: its label and a bar ([fraction] null: indeterminate). */
+@Composable
+private fun ImportStageLine(label: String, fraction: Float?) {
+    Text(label, color = AppColors.textSecondary, fontSize = 13.sp)
+    Spacer(Modifier.height(8.dp))
+    if (fraction == null) {
+        LinearProgressIndicator(
+            modifier = Modifier.fillMaxWidth(),
+            color = AppColors.accent,
+            trackColor = AppColors.background,
+        )
+    } else {
+        LinearProgressIndicator(
+            progress = { fraction },
+            modifier = Modifier.fillMaxWidth(),
+            color = AppColors.accent,
+            trackColor = AppColors.background,
+        )
+    }
+    Spacer(Modifier.height(6.dp))
+    Text(stringResource(R.string.source_bookmarks_stage_hint), color = AppColors.textTertiary, fontSize = 11.sp)
+}
 
 @Composable
 private fun ImportSection(vm: SourcesViewModel) {
