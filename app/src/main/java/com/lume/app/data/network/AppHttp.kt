@@ -1,5 +1,6 @@
 package com.lume.app.data.network
 
+import com.lume.app.data.backup.readCapped
 import com.lume.app.R
 import com.lume.app.data.locale.appString
 import com.lume.app.domain.CloudflareException
@@ -123,7 +124,8 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
                 val text = runCatching { response.peekBody(16_384).string() }.getOrDefault("")
                 validate(response, text, uri, checkCloudflare = true)
             }
-            response.body.bytes()
+            // One page or cover; a much bigger answer is not an image and would exhaust memory.
+            response.body.byteStream().use { it.readCapped(MAX_IMAGE_BYTES) }
         }
     }
 
@@ -221,3 +223,6 @@ class SourceHttpException(
             else -> appString(R.string.error_http_generic, code, host)
         }.ifBlank { "HTTP $code: $url" }
 }
+
+/** Largest image [AppHttp.getBytes] accepts. Long webtoon strips stay well below this. */
+internal const val MAX_IMAGE_BYTES = 48L * 1024 * 1024

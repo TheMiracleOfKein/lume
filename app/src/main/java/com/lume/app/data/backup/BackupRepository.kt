@@ -1,5 +1,6 @@
 package com.lume.app.data.backup
 
+import androidx.room.withTransaction
 import android.content.Context
 import android.net.Uri
 import com.lume.app.data.db.BookmarkEntity
@@ -202,6 +203,7 @@ class BackupRepository(
     private val titles: TitleRepository? = null,
     private val libraryChapters: LibraryChapters? = null,
     private val json: Json = BackupPayload.json,
+    private val database: androidx.room.RoomDatabase? = null,
 ) {
     fun backupsDir(): File {
         val dir = File(context.filesDir, "backups")
@@ -378,7 +380,8 @@ class BackupRepository(
     }
 
     suspend fun restoreFromFile(file: File) = withContext(Dispatchers.IO) {
-        restorePayload(BackupPayload.parse(file.readText()))
+        val bytes = file.inputStream().use { it.readCapped(MAX_BACKUP_BYTES) }
+        restorePayload(BackupPayload.parse(bytes.decodeToString()))
     }
 
     /** What [restoreFromUri] found in the file. */
@@ -392,10 +395,10 @@ class BackupRepository(
      * (`.tachibk`, gzipped protobuf). [onProgress] reports titles done / total for Mihon imports.
      */
     suspend fun restoreFromUri(uri: Uri, onProgress: (Int, Int) -> Unit = { _, _ -> }): RestoreResult = withContext(Dispatchers.IO) {
-        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readCapped(MAX_BACKUP_BYTES) }
             ?: error(com.lume.app.data.locale.appString(com.lume.app.R.string.error_backup_read))
         val text = if (MihonBackupFormat.isGzip(bytes)) {
-            java.util.zip.GZIPInputStream(bytes.inputStream()).use { it.readBytes() }
+            java.util.zip.GZIPInputStream(bytes.inputStream()).use { it.readCapped(MAX_BACKUP_BYTES) }
         } else {
             bytes
         }
@@ -545,10 +548,20 @@ class BackupRepository(
         latest
     }
 
+    /**
+     * Writes [payload]. The database part runs in one transaction, so a broken file leaves the
+     * library as it was; settings are applied only after the database part succeeded.
+     */
     private suspend fun restorePayload(payload: BackupPayload) {
+        val db = database
+        if (db != null) db.withTransaction { writeRows(payload) } else writeRows(payload)
         if (payload.settings.isNotEmpty()) {
             prefs?.importSettings(payload.settings.map { Triple(it.key, it.type, it.value) })
         }
+        sources.load()
+    }
+
+    private suspend fun writeRows(payload: BackupPayload) {
         for (c in payload.categories) {
             dao.upsertCategory(CategoryEntity(id = c.id, name = c.name, sortOrder = c.sortOrder))
         }
@@ -629,6 +642,8 @@ class BackupRepository(
             }
         }
         for (s in payload.sourcePacks) {
+            // A pack must never replace a built-in source.
+            if (sources.isBundled(s.id) || !com.lume.app.data.source.isValidPackId(s.id)) continue
             dao.upsertSourcePack(
                 SourcePackEntity(id = s.id, json = s.json, installedAt = s.installedAt),
             )
@@ -680,10 +695,27 @@ class BackupRepository(
                 },
             )
         }
-        sources.load()
     }
 
     private companion object {
         const val AUTO_PREFIX = "LUME_auto_"
     }
+}
+
+/** Largest backup Lume reads (packed or unpacked); a 600-title library is a few MB. */
+internal const val MAX_BACKUP_BYTES = 64L * 1024 * 1024
+
+/** Reads the whole stream, but throws once it passes [max] bytes (a huge or zip-bomb file). */
+internal fun java.io.InputStream.readCapped(max: Long): ByteArray {
+    val out = java.io.ByteArrayOutputStream()
+    val buffer = ByteArray(64 * 1024)
+    var total = 0L
+    while (true) {
+        val n = read(buffer)
+        if (n < 0) break
+        total += n
+        if (total > max) throw java.io.IOException("File is larger than ${max / (1024 * 1024)} MB")
+        out.write(buffer, 0, n)
+    }
+    return out.toByteArray()
 }
