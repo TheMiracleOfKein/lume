@@ -82,6 +82,7 @@
     <string name="search_empty">Ничего не найдено</string>
 
     <string name="title_fallback">Тайтл</string>
+    <string name="cd_back">Назад</string>
     <string name="cd_bookmark">Закладка</string>
     <string name="cd_subscribe">Проверять новые главы</string>
     <string name="cd_unsubscribe">Не проверять новые главы</string>

@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import com.lume.app.ui.components.BackButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -87,13 +87,7 @@ class SourceLoginActivity : ComponentActivity() {
                                 )
                             },
                             navigationIcon = {
-                                IconButton(onClick = { finish() }) {
-                                    Icon(
-                                        Icons.AutoMirrored.Outlined.ArrowBack,
-                                        null,
-                                        tint = AppColors.textPrimary,
-                                    )
-                                }
+                                BackButton(onClick = { finish() })
                             },
                             actions = {
                                 TextButton(onClick = { finish() }) {

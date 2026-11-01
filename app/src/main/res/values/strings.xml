@@ -88,6 +88,7 @@
 
     <!-- Title / trackers -->
     <string name="title_fallback">Title</string>
+    <string name="cd_back">Back</string>
     <string name="cd_bookmark">Bookmark</string>
     <string name="cd_subscribe">Check for new chapters</string>
     <string name="cd_unsubscribe">Stop checking for new chapters</string>

@@ -149,7 +149,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                     IconButton(onClick = { if (vm.selecting) vm.clearSelection() else nav.popBackStack() }) {
                         Icon(
                             if (vm.selecting) Icons.Outlined.Close else Icons.AutoMirrored.Outlined.ArrowBack,
-                            null,
+                            stringResource(if (vm.selecting) R.string.action_close else R.string.cd_back),
                             tint = AppColors.textPrimary,
                         )
                     }
