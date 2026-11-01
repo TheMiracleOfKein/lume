@@ -87,7 +87,7 @@ internal fun LibraryContent(
         LibraryDisplay.Grid, LibraryDisplay.Compact -> {
             val compact = settings.display == LibraryDisplay.Compact
             LazyVerticalGrid(
-                columns = GridCells.Fixed(if (compact) 4 else 3),
+                columns = GridCells.Adaptive(if (compact) 88.dp else 116.dp),
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 4.dp, bottom = bottomPadding + 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp),
