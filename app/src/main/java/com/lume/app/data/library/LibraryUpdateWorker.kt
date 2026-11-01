@@ -115,8 +115,10 @@ class LibraryUpdateWorker(
         if (results.isNotEmpty()) {
             notifyUpdates(results)
         }
+        // A run the user started reports its outcome at once; only the background check retries.
+        val manual = inputData.getBoolean(KEY_MANUAL, false)
         return when {
-            outcome.shouldRetry(runAttemptCount) -> Result.retry()
+            !manual && outcome.shouldRetry(runAttemptCount) -> Result.retry()
             outcome.allFailed -> Result.failure()
             else -> Result.success()
         }
@@ -186,11 +188,16 @@ class LibraryUpdateWorker(
         const val NOW_WORK_NAME = "library_update_now"
         const val KEY_DONE = "done"
         const val KEY_TOTAL = "total"
+        const val KEY_MANUAL = "manual"
 
-        /** "Update now": one run right away, whatever the schedule says. A run in progress is kept. */
+        /**
+         * "Update now": one run right away, whatever the schedule says. A run in progress is kept.
+         * No network constraint: offline, the run fails fast and records "Last check failed"
+         * instead of waiting for a connection with the spinner on.
+         */
         fun runNow(context: Context) {
             val request = OneTimeWorkRequestBuilder<LibraryUpdateWorker>()
-                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .setInputData(workDataOf(KEY_MANUAL to true))
                 .build()
             WorkManager.getInstance(context).enqueueUniqueWork(NOW_WORK_NAME, ExistingWorkPolicy.KEEP, request)
         }
