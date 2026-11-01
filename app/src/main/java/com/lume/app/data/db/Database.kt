@@ -486,6 +486,10 @@ interface LibraryDao {
     @Query("UPDATE download_queue SET status = :status, progress = :progress WHERE id = :id")
     suspend fun updateDownloadQueueStatus(id: Long, status: String, progress: Float)
 
+    /** Progress of a running row only, so a late write cannot revive a paused or failed one. */
+    @Query("UPDATE download_queue SET progress = :progress WHERE id = :id AND status = 'running'")
+    suspend fun updateRunningDownloadProgress(id: Long, progress: Float)
+
     @Query("DELETE FROM download_queue WHERE id = :id")
     suspend fun deleteDownloadQueueItem(id: Long)
 

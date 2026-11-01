@@ -21,7 +21,8 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
-import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,8 +77,7 @@ class DownloadStore(
     fun keyOf(sourceId: String, titleId: String, chapterId: String) =
         "$sourceId|$titleId|$chapterId"
 
-    fun safe(value: String) =
-        value.replace(Regex("""[<>:"/\\|?*]"""), "_").replace(' ', '_')
+    fun safe(value: String) = safeFolderName(value)
 
     /** `downloads/` in the chosen storage (falls back to internal storage when it is gone). */
     fun downloadsDir(): File {
@@ -127,11 +127,13 @@ class DownloadStore(
         return dir
     }
 
-    private fun chapterDir(sourceId: String, titleId: String, chapterId: String): File {
-        val dir = File(titleDir(sourceId, titleId), safe(chapterId))
-        if (!dir.exists()) dir.mkdirs()
-        return dir
-    }
+    /** Where a finished chapter lives (not created). */
+    private fun chapterDirPath(sourceId: String, titleId: String, chapterId: String): File =
+        File(titleDir(sourceId, titleId), safe(chapterId))
+
+    /** Where a chapter is downloaded to before it is complete; renamed to [chapterDirPath] after. */
+    private fun partDirPath(sourceId: String, titleId: String, chapterId: String): File =
+        File(titleDir(sourceId, titleId), safe(chapterId) + PART_SUFFIX)
 
     suspend fun downloadedChapterIds(sourceId: String, titleId: String): Set<String> =
         dao.downloadedChapterIds(sourceId, titleId).toSet()
@@ -218,8 +220,8 @@ class DownloadStore(
         runCatching { file.writeText(json.encodeToString(meta)) }
     }
 
-    private fun writeChapterMeta(sourceId: String, titleId: String, chapter: Chapter) {
-        val file = File(chapterDir(sourceId, titleId, chapter.id), "meta.json")
+    private fun writeChapterMeta(dir: File, chapter: Chapter) {
+        val file = File(dir, "meta.json")
         val meta = ChapterDiskMeta(
             chapterId = chapter.id,
             chapterName = chapter.title,
@@ -263,6 +265,9 @@ class DownloadStore(
                 val titleName = titleMeta?.titleName ?: titleFolder.name
                 val coverUrl = titleMeta?.coverUrl
 
+                // Unfinished downloads (the app was killed) are dropped, never registered.
+                titleFolder.listFiles()?.filter { it.isDirectory && it.name.endsWith(PART_SUFFIX) }
+                    ?.forEach { it.deleteRecursively() }
                 titleFolder.listFiles()?.filter { it.isDirectory }?.forEach { chapterFolder ->
                     val chapterMeta = readChapterMeta(chapterFolder)
                     val chapterId = chapterMeta?.chapterId ?: chapterFolder.name
@@ -340,7 +345,8 @@ class DownloadStore(
                 val chapterName = matched?.title ?: item.chapterName
                 val chapterId = matched?.id ?: item.chapterId
                 if (matched != null) {
-                    writeChapterMeta(sourceId, titleId, matched)
+                    chapterDirPath(sourceId, titleId, matched.id).takeIf { it.isDirectory }
+                        ?.let { writeChapterMeta(it, matched) }
                 }
                 val titleName = details?.title ?: item.titleName
                 val cover = details?.coverUrl ?: item.coverUrl
@@ -402,11 +408,18 @@ class DownloadStore(
         return updated
     }
 
-    fun abortPartial(sourceId: String, titleId: String, chapterId: String) {
+    /**
+     * Drops an unfinished download of a chapter. A finished copy (it has a download row) stays;
+     * a folder without a row is a partial one left by an older version and is removed too.
+     */
+    suspend fun abortPartial(sourceId: String, titleId: String, chapterId: String) {
         val key = keyOf(sourceId, titleId, chapterId)
         progressMap.remove(key)
         _progress.value = progressMap.toMap()
-        chapterDir(sourceId, titleId, chapterId).deleteRecursively()
+        partDirPath(sourceId, titleId, chapterId).deleteRecursively()
+        if (dao.getDownload(sourceId, titleId, chapterId) == null) {
+            chapterDirPath(sourceId, titleId, chapterId).takeIf { it.isDirectory }?.deleteRecursively()
+        }
     }
 
     /**
@@ -432,7 +445,11 @@ class DownloadStore(
             if (pages.isEmpty()) error(context.getString(R.string.error_no_pages_download))
 
             writeTitleMeta(sourceId, titleId, title)
-            val dir = chapterDir(sourceId, titleId, chapter.id)
+            // Pages go to a temporary folder; only a complete chapter is moved into place.
+            val dir = partDirPath(sourceId, titleId, chapter.id).apply {
+                deleteRecursively()
+                mkdirs()
+            }
             val referer = pageSource.manifest.headers["Referer"] ?: "${pageSource.manifest.baseUrl.trimEnd('/')}/"
             val parallel = prefs?.downloadParallelPages?.value ?: 1
             val permits = Semaphore(parallel)
@@ -470,12 +487,19 @@ class DownloadStore(
                 }.awaitAll()
             }
 
-            writeChapterMeta(sourceId, titleId, chapter)
-            val paths = if (prefs?.downloadsAsCbz?.value == true) {
-                listOf(packCbz(dir, files, title, chapter, source).absolutePath)
+            writeChapterMeta(dir, chapter)
+            val names = if (prefs?.downloadsAsCbz?.value == true) {
+                listOf(packCbz(dir, files, title, chapter, source).name)
             } else {
-                files.map { it.absolutePath }
+                files.map { it.name }
             }
+            val finalDir = chapterDirPath(sourceId, titleId, chapter.id)
+            finalDir.deleteRecursively()
+            if (!dir.renameTo(finalDir)) {
+                dir.copyRecursively(finalDir, overwrite = true)
+                dir.deleteRecursively()
+            }
+            val paths = names.map { File(finalDir, it).absolutePath }
             dao.upsertDownload(
                 DownloadEntity(
                     sourceId = sourceId,
@@ -488,8 +512,9 @@ class DownloadStore(
                     pagePathsJson = json.encodeToString(paths),
                 ),
             )
-        } catch (e: CancellationException) {
-            abortPartial(sourceId, titleId, chapter.id)
+        } catch (e: Throwable) {
+            // Any failure (network, not an image, cancel): nothing half-done stays on disk.
+            withContext(NonCancellable) { abortPartial(sourceId, titleId, chapter.id) }
             throw e
         } finally {
             progressMap.remove(key)
@@ -576,5 +601,22 @@ class DownloadStore(
 
     private companion object {
         const val CBZ_NAME = "chapter.cbz"
+        const val PART_SUFFIX = ".lume-part"
     }
 }
+
+/**
+ * A folder name for a source, title or chapter id. Characters that file systems refuse become
+ * `_`; names made only of dots (`.`, `..`) get a `_` in front, so an id can never point at a
+ * parent folder; very long names are shortened and keep a hash, to stay under the 255-byte limit.
+ */
+internal fun safeFolderName(value: String): String {
+    val cleaned = value.replace(Regex("""[<>:"/\\|?*\u0000-\u001f]"""), "_").replace(' ', '_')
+    if (cleaned.isEmpty() || cleaned.all { it == '.' }) return "_$cleaned"
+    if (cleaned.toByteArray(Charsets.UTF_8).size <= MAX_FOLDER_BYTES) return cleaned
+    val digest = java.security.MessageDigest.getInstance("SHA-256").digest(value.toByteArray(Charsets.UTF_8))
+    val hash = digest.take(8).joinToString("") { "%02x".format(it) }
+    return cleaned.take(60) + "_" + hash
+}
+
+private const val MAX_FOLDER_BYTES = 200
