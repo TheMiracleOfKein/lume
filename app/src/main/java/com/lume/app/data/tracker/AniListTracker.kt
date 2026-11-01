@@ -40,8 +40,14 @@ class AniListTracker(
         val clientSecret = TrackerOAuthDefaults.ANILIST_CLIENT_SECRET
             .ifBlank { prefs.anilistClientSecret.first().orEmpty() }
         if (clientId.isBlank()) return@withContext false
-        val jsonBody =
-            """{"grant_type":"authorization_code","client_id":"$clientId","client_secret":"$clientSecret","redirect_uri":"$REDIRECT_URI","code":"$code"}"""
+        // Built as JSON, not by pasting strings: the code comes from a redirect link.
+        val jsonBody = kotlinx.serialization.json.buildJsonObject {
+            put("grant_type", JsonPrimitive("authorization_code"))
+            put("client_id", JsonPrimitive(clientId))
+            put("client_secret", JsonPrimitive(clientSecret))
+            put("redirect_uri", JsonPrimitive(REDIRECT_URI))
+            put("code", JsonPrimitive(code))
+        }.toString()
         val jsonRequest = Request.Builder()
             .url("https://anilist.co/api/v2/oauth/token")
             .post(jsonBody.toRequestBody("application/json".toMediaType()))

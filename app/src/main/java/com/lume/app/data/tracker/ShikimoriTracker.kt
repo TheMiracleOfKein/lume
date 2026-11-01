@@ -7,6 +7,7 @@ import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.util.urlEncode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -86,9 +87,15 @@ class ShikimoriTracker(
         val first = http.okHttp.newCall(build(token)).execute()
         if (first.code != 401) return@withContext first.use(read)
         first.close()
-        val fresh = refreshTokens() ?: return@withContext null
+        val fresh = refreshLock.withLock {
+            // Another call may have refreshed while this one waited: its token is good, and the
+            // old refresh token is spent (sending it again would sign the user out).
+            prefs.shikimoriAccessToken.first()?.takeIf { it != token } ?: refreshTokens()
+        } ?: return@withContext null
         http.okHttp.newCall(build(fresh)).execute().use(read)
     }
+
+    private val refreshLock = kotlinx.coroutines.sync.Mutex()
 
     /** New tokens from the refresh token; null (and signed out) when Shikimori refuses it. */
     private suspend fun refreshTokens(): String? {

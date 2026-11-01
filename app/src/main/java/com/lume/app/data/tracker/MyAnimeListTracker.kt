@@ -8,6 +8,7 @@ import com.lume.app.data.similar.SimilarTitle
 import com.lume.app.data.similar.parseMalRecommendations
 import com.lume.app.util.urlEncode
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -66,9 +67,13 @@ class MyAnimeListTracker(
         storeTokens(Request.Builder().url("$OAUTH/token").post(body).build())
     }
 
+    /** HTTP status of the last refused token request (0 when it was not refused). */
+    private var lastTokenStatus = 0
+
     private suspend fun storeTokens(request: Request): Boolean =
         http.okHttp.newCall(request).execute().use { response ->
             val text = response.body.string()
+            lastTokenStatus = if (response.isSuccessful) 0 else response.code
             if (!response.isSuccessful) return@use false
             val obj = json.parseToJsonElement(text).jsonObject
             val token = (obj["access_token"] as? JsonPrimitive)?.contentOrNull ?: return@use false
@@ -85,8 +90,17 @@ class MyAnimeListTracker(
             .add("refresh_token", refresh)
             .build()
         val ok = storeTokens(Request.Builder().url("$OAUTH/token").post(body).build())
-        if (!ok) logout()
+        // Only a refused refresh token signs out; a server error may pass.
+        if (!ok && lastTokenStatus in 400..401) logout()
         return ok
+    }
+
+    private val refreshLock = kotlinx.coroutines.sync.Mutex()
+
+    /** Refreshes once for calls that got 401 with [stale] at the same time. */
+    private suspend fun refreshAfter(stale: String): String? = refreshLock.withLock {
+        prefs.trackerValue(id, "access_token")?.takeIf { it != stale }
+            ?: if (refresh()) prefs.trackerValue(id, "access_token") else null
     }
 
     override suspend fun logout() {
@@ -100,8 +114,7 @@ class MyAnimeListTracker(
         val first = http.okHttp.newCall(request(token)).execute()
         if (first.code != 401) return@withContext first.use(read)
         first.close()
-        if (!refresh()) return@withContext null
-        val fresh = prefs.trackerValue(id, "access_token") ?: return@withContext null
+        val fresh = refreshAfter(token) ?: return@withContext null
         http.okHttp.newCall(request(fresh)).execute().use(read)
     }
 
