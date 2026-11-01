@@ -16,7 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import com.lume.app.ui.components.BackButton
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Tune
@@ -136,9 +136,7 @@ fun SearchScreen(nav: NavHostController, globalQuery: String? = null) {
             TopAppBar(
                 title = { Text(stringResource(R.string.search_title), color = AppColors.textPrimary) },
                 navigationIcon = {
-                    IconButton(onClick = { nav.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = AppColors.textPrimary)
-                    }
+                    BackButton(onClick = { nav.popBackStack() })
                 },
                 windowInsets = LumeInsets.topBar,
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),

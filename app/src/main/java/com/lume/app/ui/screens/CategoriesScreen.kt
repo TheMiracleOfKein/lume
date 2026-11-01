@@ -13,7 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import com.lume.app.ui.components.BackButton
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -74,9 +74,7 @@ fun CategoriesScreen(nav: NavHostController) {
             TopAppBar(
                 title = { Text(stringResource(R.string.categories_title), color = AppColors.textPrimary) },
                 navigationIcon = {
-                    IconButton(onClick = { nav.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = AppColors.textPrimary)
-                    }
+                    BackButton(onClick = { nav.popBackStack() })
                 },
                 windowInsets = LumeInsets.topBar,
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),

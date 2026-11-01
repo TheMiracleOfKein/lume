@@ -82,6 +82,7 @@
     <string name="search_empty">Ничего не найдено</string>
 
     <string name="title_fallback">Тайтл</string>
+    <string name="cd_back">Назад</string>
     <string name="cd_bookmark">Закладка</string>
     <string name="cd_subscribe">Проверять новые главы</string>
     <string name="cd_unsubscribe">Не проверять новые главы</string>
@@ -298,6 +299,8 @@
     <string name="chapter_progress_pages">стр. %1$d / %2$d</string>
     <string name="action_delete">Удалить</string>
     <string name="page_load_failed">Не удалось загрузить страницу</string>
+    <string name="reader_last_chapter">Это последняя глава</string>
+    <string name="reader_first_chapter">Это первая глава</string>
     <string name="search_no_results_in">Нет результатов: %1$s</string>
 
     <!-- Library (v0.4) -->

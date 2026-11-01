@@ -31,6 +31,7 @@ import androidx.compose.foundation.gestures.scrollBy
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
@@ -149,6 +150,22 @@ fun ReaderScreen(
     val view = LocalView.current
     val bookmarkAdded = stringResource(R.string.reader_bookmark_added)
     val addNote = stringResource(R.string.reader_bookmark_add_note)
+    val lastChapterMsg = stringResource(R.string.reader_last_chapter)
+    val firstChapterMsg = stringResource(R.string.reader_first_chapter)
+    // Running into the end (swipe, tap zone, volume key): say so, at most every few seconds.
+    var lastEdgeAt by remember { mutableLongStateOf(0L) }
+    val onEdge: (Boolean) -> Unit = { forward ->
+        val now = System.currentTimeMillis()
+        val neighbours = vm.neighbours
+        val missing = if (forward) neighbours.next == null else neighbours.previous == null
+        if (missing && vm.currentChapter != null && now - lastEdgeAt > EDGE_NOTICE_GAP_MS) {
+            lastEdgeAt = now
+            scope.launch {
+                snackbar.currentSnackbarData?.dismiss()
+                snackbar.showSnackbar(if (forward) lastChapterMsg else firstChapterMsg, duration = SnackbarDuration.Short)
+            }
+        }
+    }
     DisposableEffect(view, settings.keepScreenOn) {
         view.keepScreenOn = settings.keepScreenOn
         onDispose { view.keepScreenOn = false }
@@ -284,12 +301,18 @@ fun ReaderScreen(
             modifier = Modifier.fillMaxSize(),
         ) { pane ->
             when (pane) {
-                LoadState.Loading -> LoadingBox()
-                LoadState.Error -> ErrorRetryBox(
-                    message = vm.error.orEmpty(),
-                    onRetry = vm::retry,
-                    onCloudflare = vm.cloudflareUri?.let { { vm.solveChallenge() } },
-                )
+                LoadState.Loading -> Box(Modifier.fillMaxSize()) {
+                    LoadingBox()
+                    ReaderBackBar(vm.titleName, vm.currentChapter?.title.orEmpty(), onBack = { nav.popBackStack() })
+                }
+                LoadState.Error -> Box(Modifier.fillMaxSize()) {
+                    ErrorRetryBox(
+                        message = vm.error.orEmpty(),
+                        onRetry = vm::retry,
+                        onCloudflare = vm.cloudflareUri?.let { { vm.solveChallenge() } },
+                    )
+                    ReaderBackBar(vm.titleName, vm.currentChapter?.title.orEmpty(), onBack = { nav.popBackStack() })
+                }
                 else -> Box(Modifier.fillMaxSize()) {
                     val toggleChrome = { chromeVisible = !chromeVisible }
                     val hideChrome = { if (settings.immersive) chromeVisible = false }
@@ -305,6 +328,7 @@ fun ReaderScreen(
                                 onAutoScrollStop = { autoScroll = false },
                                 onSingleTap = toggleChrome,
                                 onUserScroll = hideChrome,
+                                onEdge = onEdge,
                             )
                             ReaderMode.Ltr, ReaderMode.Rtl -> PagedReader(
                                 vm = vm,
@@ -313,6 +337,7 @@ fun ReaderScreen(
                                 colorFilter = colorFilter,
                                 onToggleChrome = toggleChrome,
                                 onUserScroll = hideChrome,
+                                onEdge = onEdge,
                             )
                         }
                     }
@@ -361,6 +386,8 @@ fun ReaderScreen(
                                     autoScroll = !autoScroll
                                     if (autoScroll && settings.immersive) chromeVisible = false
                                 },
+                                hasPrev = vm.neighbours.previous != null,
+                                hasNext = vm.neighbours.next != null,
                                 onPrev = { vm.goChapter(-1) },
                                 onNext = { vm.goChapter(1) },
                                 onChapters = { nav.navigate(Routes.chapters(sourceId, titleId)) },
@@ -448,6 +475,9 @@ fun ReaderScreen(
 /** How long to wait for the anchor page's real height before giving up on the fine restore. */
 private const val RESTORE_WAIT_MS = 4_000L
 
+/** Shortest gap between two "last / first chapter" notices. */
+private const val EDGE_NOTICE_GAP_MS = 3_000L
+
 /** Auto-scroll speed: dp per second for each step of the speed setting. */
 private const val AUTO_SCROLL_DP_PER_STEP = 18
 
@@ -461,6 +491,7 @@ private fun WebtoonReader(
     onAutoScrollStop: () -> Unit,
     onSingleTap: () -> Unit,
     onUserScroll: () -> Unit,
+    onEdge: (forward: Boolean) -> Unit,
 ) {
     val settings = vm.settings
     val density = LocalDensity.current
@@ -521,6 +552,7 @@ private fun WebtoonReader(
             .collect { (anchor, finished, lastVisible) -> vm.onPosition(session, anchor, finished, lastVisible) }
     }
     val autoScrolling by rememberUpdatedState(autoScroll)
+    val currentOnEdge by rememberUpdatedState(onEdge)
     LaunchedEffect(listState) {
         pageTurns.collect { delta ->
             onUserScroll()
@@ -529,6 +561,8 @@ private fun WebtoonReader(
             // cancel an animated turn (and the turn the glide) over and over.
             if (vm.settings.eInk || autoScrolling) listState.scrollBy(delta * viewport * 0.85f)
             else listState.animateScrollBy(delta * viewport * 0.85f)
+            if (delta > 0 && !listState.canScrollForward) currentOnEdge(true)
+            if (delta < 0 && !listState.canScrollBackward) currentOnEdge(false)
         }
     }
     LaunchedEffect(listState) {
@@ -567,6 +601,13 @@ private fun WebtoonReader(
         currentStop()
     }
     val chromeHider = rememberChromeHider(settings.immersive, onUserScroll)
+    val edgeNotifier = rememberEdgeNotifier(
+        horizontal = false,
+        forwardIsNegative = true,
+        canForward = { listState.canScrollForward },
+        canBackward = { listState.canScrollBackward },
+        onEdge = onEdge,
+    )
     ReaderZoomFrame(
         zoomEnabled = settings.doubleTapZoom,
         resetKey = vm.session,
@@ -581,7 +622,8 @@ private fun WebtoonReader(
         },
         modifier = Modifier
             .fillMaxSize()
-            .nestedScroll(chromeHider),
+            .nestedScroll(chromeHider)
+            .nestedScroll(edgeNotifier),
     ) { zoomModifier, isZoomed ->
         // Recomposes only when crossing 1x, not on every pinch frame.
         val scrollEnabled by remember { derivedStateOf { !isZoomed() } }
@@ -617,6 +659,7 @@ private fun PagedReader(
     colorFilter: ColorFilter?,
     onToggleChrome: () -> Unit,
     onUserScroll: () -> Unit,
+    onEdge: (forward: Boolean) -> Unit,
 ) {
     val settings = vm.settings
     val session = remember { vm.session }
@@ -641,7 +684,9 @@ private fun PagedReader(
     LaunchedEffect(pagerState) {
         pageTurns.collect { delta ->
             onUserScroll()
-            val target = (pagerState.currentPage + delta).coerceIn(0, pagerState.pageCount - 1)
+            val wanted = pagerState.currentPage + delta
+            val target = wanted.coerceIn(0, pagerState.pageCount - 1)
+            if (target != wanted) onEdge(delta > 0)
             if (vm.settings.eInk) pagerState.scrollToPage(target) else pagerState.animateScrollToPage(target)
         }
     }
@@ -652,6 +697,13 @@ private fun PagedReader(
         }
     }
     val rtl = settings.mode == ReaderMode.Rtl
+    val edgeNotifier = rememberEdgeNotifier(
+        horizontal = true,
+        forwardIsNegative = !rtl,
+        canForward = { pagerState.canScrollForward },
+        canBackward = { pagerState.canScrollBackward },
+        onEdge = onEdge,
+    )
     val onPagerTap: (Float, Int) -> Unit = { x, width ->
         val third = width / 3f
         val zone = when {
@@ -669,6 +721,7 @@ private fun PagedReader(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(chromeHider)
+            .nestedScroll(edgeNotifier)
             .pointerInput(settings.tapZones, rtl) {
                 detectTapGestures(onTap = { offset -> onPagerTap(offset.x, size.width) })
             },

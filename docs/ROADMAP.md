@@ -142,6 +142,13 @@ Patch releases from the v0.6 line, as needed.
 - ⏸️ Room keeps wiping the database on a downgrade: Android refuses to install an older APK over a newer one, so this happens only with `adb install -d`; removing it would crash instead.
 - ⏸️ OAuth `state` checks: the redirect goes to Lume's own link scheme and MyAnimeList already uses PKCE; planned with the tracker rework.
 
+**v0.7.11: reader and navigation** 🟡 ([details](#v0711-reader-and-navigation))
+- ✅ Very tall webtoon pages (Asura's 800×~14,500 strips) draw as stacked slices instead of staying black.
+- ✅ Links from notifications, the widget, shortcuts and shared links open on top of the current screens; the menu no longer stacks duplicates.
+- ✅ The reader shows Back and the title while loading or failed; prev/next follow reading order, are greyed out at the ends, and pulling past the end says so.
+- ✅ Per-page spinner; one shared zoom gesture; every back arrow is labelled "Back".
+- ⏸️ Links still open under the app lock (hidden by it); waiting for unlock needs the lock state in the shell.
+
 **v0.7.7: Lib sign-out and back animation** ✅ released 2026-11-01 ([details](#v077-lib-sign-out-and-back-animation--released-2026-11-01))
 - ✅ Sign-out of a Lib site clears its web session, so another account can log in; the login screen offers saved passwords through autofill.
 - ✅ Going back shrinks the leaving screen into a rounded card with a shadow (the rounded corners left over from v0.3).
@@ -562,6 +569,18 @@ Release notes: [docs/releases/v0.7.6.md](releases/v0.7.6.md).
 - ✅ **Bell pool:** `title_prefs.autoDownload` is the bell; `LibraryUpdateWorker` checks the watched titles (at most 20) or the 20 most recently read.
 - ✅ **Library marks:** read/total badge; status colour bar in search from category names (`libraryStatusOf`).
 - ⏸️ Cross-source matching for search marks; a per-user setting for the pool size.
+
+### v0.7.11: reader and navigation
+
+Release notes: [docs/releases/v0.7.11.md](releases/v0.7.11.md). From the full audit of v0.7.9 (static findings 9, 12, 14 and 17); device check in [v0.7.11-check.md](releases/v0.7.11-check.md).
+
+- ✅ **Tall pages:** in webtoon mode, a page still taller than 4096 px after Coil's capped decode is redrawn with `BitmapRegionDecoder` in slices of at most 2048 decoded px (`ReaderTallPage`, `TallPageTiles`). Old Asura chapters draw on the emulator; a page over 4096 px wasn't confirmed to take the slice path on the device (unit tests cover the slice math).
+- ✅ **Navigation:** `openLink` pushes non-tab routes with `launchSingleTop`, replaces an open reader, and keeps tab routes on `navigateToTab`; menu entries use `launchSingleTop`.
+- ✅ **Reader:** `ReaderBackBar` over loading and error states; `chapterNeighbours` in reading order; disabled buttons and an edge notice at the ends (the "first chapter" notice was seen on the device, the "last chapter" one wasn't reached).
+- ✅ **Pages:** per-page spinner, 70%-of-window placeholder, shared `zoomLayer` / `detectPinchAndPan`.
+- ✅ **Accessibility:** shared `BackButton` with `cd_back`.
+- ⏸️ Deep links while locked: see the summary above.
+- Next: v0.7.12 polish (download queue race, library check result, rotation state, sync, CBZ order, adaptive library grid, menu redesign, doc fixes).
 
 ### v0.7.10: safety ✅ released 2026-11-01
 

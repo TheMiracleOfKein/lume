@@ -26,7 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import com.lume.app.ui.components.BackButton
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
@@ -137,9 +137,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { nav.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = AppColors.textPrimary)
-                    }
+                    BackButton(onClick = { nav.popBackStack() })
                 },
                 actions = {
                     val webUrl = remember(sourceId, titleId) {

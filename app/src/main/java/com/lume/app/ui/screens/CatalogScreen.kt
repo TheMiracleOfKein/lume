@@ -39,7 +39,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import com.lume.app.ui.components.BackButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.navigation.NavHostController
@@ -97,9 +97,7 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null) {
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = { nav.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = AppColors.textPrimary)
-                }
+                BackButton(onClick = { nav.popBackStack() })
                 Text(browseName, color = AppColors.textPrimary, fontSize = 20.sp, modifier = Modifier.weight(1f))
             }
         }

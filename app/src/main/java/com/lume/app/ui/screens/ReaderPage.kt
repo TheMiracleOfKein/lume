@@ -35,6 +35,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerInputScope
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.DisposableEffect
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import coil.size.Dimension
+import coil.size.Size
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
@@ -154,46 +163,50 @@ internal fun ReaderZoomFrame(
                 }
             }
             .pointerInput(zoomEnabled) {
-                if (!zoomEnabled) return@pointerInput
-                awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false)
-                    do {
-                        val event = awaitPointerEvent()
-                        val pressed = event.changes.filter { it.pressed }
-                        when {
-                            pressed.size >= 2 -> {
-                                val zoomChange = event.calculateZoom()
-                                val centroid = event.calculateCentroid(useCurrent = true)
-                                if (kotlin.math.abs(zoomChange - 1f) > 0.001f) {
-                                    state.zoomBy(zoomChange, centroid)
-                                }
-                                event.changes.forEach { if (it.positionChanged()) it.consume() }
-                            }
-                            pressed.size == 1 && state.scale > 1.01f -> {
-                                val change = pressed[0]
-                                val pan = change.positionChange()
-                                if (pan != Offset.Zero) {
-                                    state.offset = state.clamp(state.offset + pan)
-                                    change.consume()
-                                }
-                            }
-                        }
-                    } while (event.changes.any { it.pressed })
-                }
+                if (zoomEnabled) detectPinchAndPan(state)
             },
     ) {
         // Scale and offset are read only inside graphicsLayer, so pinching redraws the layer
         // without recomposing the list underneath.
-        content(
-            Modifier.graphicsLayer {
-                scaleX = state.scale
-                scaleY = state.scale
-                translationX = state.offset.x
-                translationY = state.offset.y
-                transformOrigin = TransformOrigin.Center
-            },
-            { state.isZoomed },
-        )
+        content(Modifier.zoomLayer(state), { state.isZoomed })
+    }
+}
+
+/** Applies the zoom state to the layer; reads it only at draw time, so pinching never recomposes. */
+private fun Modifier.zoomLayer(state: ReaderZoomState): Modifier = graphicsLayer {
+    scaleX = state.scale
+    scaleY = state.scale
+    translationX = state.offset.x
+    translationY = state.offset.y
+    transformOrigin = TransformOrigin.Center
+}
+
+/** Two fingers zoom around their centre; one finger pans while zoomed in. */
+private suspend fun PointerInputScope.detectPinchAndPan(state: ReaderZoomState) {
+    awaitEachGesture {
+        awaitFirstDown(requireUnconsumed = false)
+        do {
+            val event = awaitPointerEvent()
+            val pressed = event.changes.filter { it.pressed }
+            when {
+                pressed.size >= 2 -> {
+                    val zoomChange = event.calculateZoom()
+                    val centroid = event.calculateCentroid(useCurrent = true)
+                    if (kotlin.math.abs(zoomChange - 1f) > 0.001f) {
+                        state.zoomBy(zoomChange, centroid)
+                    }
+                    event.changes.forEach { if (it.positionChanged()) it.consume() }
+                }
+                pressed.size == 1 && state.scale > 1.01f -> {
+                    val change = pressed[0]
+                    val pan = change.positionChange()
+                    if (pan != Offset.Zero) {
+                        state.offset = state.clamp(state.offset + pan)
+                        change.consume()
+                    }
+                }
+            }
+        } while (event.changes.any { it.pressed })
     }
 }
 
@@ -212,14 +225,27 @@ internal fun ReaderPageImage(
     colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
 ) {
     val context = LocalContext.current
+    val density = LocalDensity.current
+    val container = LocalWindowInfo.current.containerSize
     var attempt by remember(page.imageUrl) { mutableIntStateOf(0) }
     var failed by remember(page.imageUrl) { mutableStateOf(false) }
-    val model = remember(page.imageUrl, attempt) {
+    var loading by remember(page.imageUrl) { mutableStateOf(true) }
+    // Set when the decoded page is taller than one bitmap can be drawn; it is then redrawn as tiles.
+    var tallCandidate by remember(page.imageUrl) { mutableStateOf(false) }
+    var tall by remember(page.imageUrl) { mutableStateOf<TallSource?>(null) }
+    val model = remember(page.imageUrl, attempt, fillViewport, container.width) {
         ImageRequest.Builder(context)
             .data(if (page.imageUrl.startsWith("http")) page.imageUrl else File(page.imageUrl))
             .crossfade(false)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
+            .apply {
+                // A strip shown at full width has no height limit, so Coil would decode it at full
+                // size. Cap it; a page still taller than that is redrawn as tiles below.
+                if (!fillViewport && container.width > 0) {
+                    size(Size(Dimension.Pixels(container.width), Dimension.Pixels(MAX_DRAW_PX)))
+                }
+            }
             // A new parameter makes Coil treat a retry as a new request.
             .setParameter("attempt", attempt, memoryCacheKey = null)
             .build()
@@ -227,6 +253,22 @@ internal fun ReaderPageImage(
     val state = remember(page.imageUrl) { ReaderZoomState() }
     val scope = rememberCoroutineScope()
 
+    LaunchedEffect(tallCandidate, attempt) {
+        if (!tallCandidate) return@LaunchedEffect
+        val source = withContext(Dispatchers.IO) { openTallSource(context, page.imageUrl, container.width) }
+        if (source != null) {
+            tall = source
+            loading = false
+            onAspect(source.width.toFloat() / source.height)
+        }
+    }
+    DisposableEffect(tall) {
+        val source = tall
+        onDispose { source?.decoder?.recycle() }
+    }
+
+    // Without a known height, reserve most of a screen so the list does not jump when pages arrive.
+    val placeholderHeight = with(density) { (container.height * 0.7f).toDp() }.coerceAtLeast(240.dp)
     Box(
         modifier = Modifier
             .then(
@@ -235,77 +277,61 @@ internal fun ReaderPageImage(
                     // Real height before the bitmap arrives: nothing above the reading spot moves.
                     aspect != null -> Modifier.fillMaxWidth().aspectRatio(aspect)
                     // Never seen this page: reserve a typical height (also kept on error).
-                    else -> Modifier.fillMaxWidth().heightIn(min = 420.dp)
+                    else -> Modifier.fillMaxWidth().heightIn(min = placeholderHeight)
                 },
             )
             .background(Color.Black.copy(alpha = 0.12f)),
         contentAlignment = Alignment.Center,
     ) {
-        AsyncImage(
-            model = model,
-            contentDescription = null,
-            onSuccess = { success ->
-                failed = false
-                val size = success.painter.intrinsicSize
-                if (size.isSpecified && size.width > 0f && size.height > 0f) onAspect(size.width / size.height)
-            },
-            onError = { failed = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(if (fillViewport || aspect != null) Modifier.fillMaxSize() else Modifier)
-                .onSizeChanged { state.viewport = it }
-                .graphicsLayer {
-                    scaleX = state.scale
-                    scaleY = state.scale
-                    translationX = state.offset.x
-                    translationY = state.offset.y
-                    transformOrigin = TransformOrigin.Center
-                }
-                .then(
-                    if (zoomEnabled) {
-                        Modifier
-                            .pointerInput(page.imageUrl, onTap) {
-                                detectTapGestures(
-                                    onTap = onTap?.let { tap -> { pos -> tap(pos.x, size.width) } },
-                                    onDoubleTap = { pos -> scope.launch { state.toggleZoom(pos) } },
-                                )
-                            }
-                            .pointerInput(page.imageUrl) {
-                                awaitEachGesture {
-                                    awaitFirstDown(requireUnconsumed = false)
-                                    do {
-                                        val event = awaitPointerEvent()
-                                        val pressed = event.changes.filter { it.pressed }
-                                        when {
-                                            pressed.size >= 2 -> {
-                                                val zoomChange = event.calculateZoom()
-                                                val centroid = event.calculateCentroid(useCurrent = true)
-                                                if (kotlin.math.abs(zoomChange - 1f) > 0.001f) {
-                                                    state.zoomBy(zoomChange, centroid)
-                                                }
-                                                event.changes.forEach {
-                                                    if (it.positionChanged()) it.consume()
-                                                }
-                                            }
-                                            pressed.size == 1 && state.scale > 1.01f -> {
-                                                val change = pressed[0]
-                                                val pan = change.positionChange()
-                                                if (pan != Offset.Zero) {
-                                                    state.offset = state.clamp(state.offset + pan)
-                                                    change.consume()
-                                                }
-                                            }
-                                        }
-                                    } while (event.changes.any { it.pressed })
-                                }
-                            }
-                    } else {
-                        Modifier
-                    },
-                ),
-            contentScale = contentScale,
-            colorFilter = colorFilter,
-        )
+        val pageModifier = Modifier
+            .fillMaxWidth()
+            .then(if (fillViewport || aspect != null) Modifier.fillMaxSize() else Modifier)
+            .onSizeChanged { state.viewport = it }
+            .zoomLayer(state)
+            .then(
+                if (zoomEnabled) {
+                    Modifier
+                        .pointerInput(page.imageUrl, onTap) {
+                            detectTapGestures(
+                                onTap = onTap?.let { tap -> { pos -> tap(pos.x, size.width) } },
+                                onDoubleTap = { pos -> scope.launch { state.toggleZoom(pos) } },
+                            )
+                        }
+                        .pointerInput(page.imageUrl) { detectPinchAndPan(state) }
+                } else {
+                    Modifier
+                },
+            )
+        val tiles = tall
+        if (tiles != null) {
+            TiledPage(tiles, colorFilter, pageModifier)
+        } else {
+            AsyncImage(
+                model = model,
+                contentDescription = null,
+                onLoading = { loading = true },
+                onSuccess = { success ->
+                    failed = false
+                    loading = false
+                    val size = success.painter.intrinsicSize
+                    if (size.isSpecified && size.width > 0f && size.height > 0f) {
+                        onAspect(size.width / size.height)
+                        if (!fillViewport && size.height > MAX_DRAW_PX) tallCandidate = true
+                    }
+                },
+                onError = { failed = true; loading = false },
+                modifier = pageModifier,
+                contentScale = contentScale,
+                colorFilter = colorFilter,
+            )
+        }
+        if (loading && !failed) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(28.dp),
+                color = AppColors.accent,
+                strokeWidth = 3.dp,
+            )
+        }
         if (failed) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(stringResource(R.string.page_load_failed), color = AppColors.textSecondary, fontSize = 13.sp)

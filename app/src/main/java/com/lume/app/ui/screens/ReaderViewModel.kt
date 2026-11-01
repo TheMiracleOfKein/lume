@@ -22,6 +22,8 @@ import com.lume.app.data.locale.appString
 import com.lume.app.data.prefs.ReaderSettings
 import com.lume.app.data.title.TitleLoad
 import com.lume.app.domain.Chapter
+import com.lume.app.domain.ChapterNeighbours
+import com.lume.app.domain.chapterNeighbours
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.ReaderMode
@@ -123,6 +125,9 @@ class ReaderViewModel(
         private set
     val currentChapter: Chapter?
         get() = chapters.firstOrNull { chapterIdsMatch(it.id, currentChapterId) }
+    /** The chapters before and after the current one in reading order (null at either end). */
+    val neighbours: ChapterNeighbours
+        get() = chapterNeighbours(chapters, currentChapterId)
     val currentChapterPageCount: Int
         get() = loaded.firstOrNull { chapterIdsMatch(it.chapter.id, currentChapterId) }?.pages?.size ?: 0
 
@@ -436,8 +441,7 @@ class ReaderViewModel(
 
     /** Previous / next chapter without leaving the reader (one reader in the back stack). */
     fun goChapter(delta: Int) {
-        val idx = chapters.indexOfFirst { chapterIdsMatch(it.id, currentChapterId) }
-        val next = chapters.getOrNull(idx + delta) ?: return
+        val next = (if (delta < 0) neighbours.previous else neighbours.next) ?: return
         flush()
         load(ReaderAnchor(next.id, 0, 0f), explicit = false)
     }
