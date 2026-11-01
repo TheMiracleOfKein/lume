@@ -129,7 +129,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Going back is instant on every screen; the back animation is gone.
 - ✅ A big library (600+ titles) opens at once instead of after about 10 seconds.
 
-**v0.7.9: no back animation anywhere** ([details](#v079-no-back-animation-anywhere))
+**v0.7.9: no back animation anywhere** ✅ released 2026-11-01 ([details](#v079-no-back-animation-anywhere--released-2026-11-01))
 - ✅ Android's own predictive-back animations (back-to-home card, login screens, bottom sheets) are off; the screen stays still during the back gesture.
 
 **v0.7.7: Lib sign-out and back animation** ✅ released 2026-11-01 ([details](#v077-lib-sign-out-and-back-animation--released-2026-11-01))
@@ -553,7 +553,7 @@ Release notes: [docs/releases/v0.7.6.md](releases/v0.7.6.md).
 - ✅ **Library marks:** read/total badge; status colour bar in search from category names (`libraryStatusOf`).
 - ⏸️ Cross-source matching for search marks; a per-user setting for the pool size.
 
-### v0.7.9: no back animation anywhere
+### v0.7.9: no back animation anywhere ✅ released 2026-11-01
 
 Release notes: [docs/releases/v0.7.9.md](releases/v0.7.9.md).
 
