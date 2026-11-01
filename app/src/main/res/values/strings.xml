@@ -180,7 +180,7 @@
     <string name="sources_lang_multi">Multi-language</string>
     <string name="sources_lang_badge_multi">MULTI</string>
     <string name="source_login_title">Sign in · %1$s</string>
-    <string name="source_login_hint">Log in on the site. The app will pick up the session automatically.</string>
+    <string name="source_login_hint">Log in on the site and the app picks up the session. Tap the e-mail field to fill a login saved in Google Password Manager. Google sign-in may not work inside apps; use e-mail and password.</string>
     <string name="source_login_ok">Signed in</string>
     <string name="source_logout_ok">Signed out</string>
     <string name="source_auth_on">signed in</string>

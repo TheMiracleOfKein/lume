@@ -169,7 +169,7 @@
     <string name="sources_lang_multi">Несколько языков</string>
     <string name="sources_lang_badge_multi">MULTI</string>
     <string name="source_login_title">Вход · %1$s</string>
-    <string name="source_login_hint">Войдите на сайте. Приложение подхватит сессию само.</string>
+    <string name="source_login_hint">Войдите на сайте, приложение подхватит сессию само. Нажмите на поле почты, чтобы подставить логин, сохранённый в Google Паролях. Вход через Google внутри приложений может не работать, используйте почту и пароль.</string>
     <string name="source_login_ok">Вы вошли</string>
     <string name="source_logout_ok">Вы вышли</string>
     <string name="source_auth_on">вход выполнен</string>

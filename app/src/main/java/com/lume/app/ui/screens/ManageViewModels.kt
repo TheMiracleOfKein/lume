@@ -13,6 +13,7 @@ import com.lume.app.data.db.DownloadQueueEntity
 import com.lume.app.data.library.LibraryUpdateWorker
 import com.lume.app.data.prefs.ReaderSettings
 import com.lume.app.data.source.LibAuthToken
+import com.lume.app.data.source.LibWebSession
 import com.lume.app.domain.AutoDownloadMode
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.PackEntry
@@ -640,6 +641,7 @@ class SourcesViewModel(private val app: AppContainer) : ViewModel() {
     fun logout(sourceId: String) {
         viewModelScope.launch {
             app.libAuth.clear(sourceId)
+            app.sources.sourceById(sourceId)?.manifest?.baseUrl?.let { LibWebSession.clear(it) }
             _messages.send(app.app.getString(R.string.source_logout_ok))
         }
     }
