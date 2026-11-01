@@ -11,12 +11,14 @@
     <!-- Installs an update downloaded from the GitHub releases; Android asks the user first. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <!-- enableOnBackInvokedCallback="false": no predictive-back animations anywhere (system
+         back-to-home and cross-activity, Material sheets, navigation). Back acts at once. -->
     <application
         android:name=".LumeApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:enableOnBackInvokedCallback="true"
+        android:enableOnBackInvokedCallback="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
