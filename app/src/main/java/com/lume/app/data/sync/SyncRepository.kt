@@ -296,7 +296,10 @@ class SyncRepository(
         val packs = byCollection[SOURCE_PACKS].orEmpty()
         for (change in packs) guarded(change) { when (change) {
             is SyncChange.Put -> decode(SourcePackDto.serializer(), change.data).let {
-                dao.upsertSourcePack(SourcePackEntity(it.id, it.json, it.installedAt))
+                // A pack must never replace a built-in source.
+                if (!sources.isBundled(it.id) && com.lume.app.data.source.isValidPackId(it.id)) {
+                    dao.upsertSourcePack(SourcePackEntity(it.id, it.json, it.installedAt))
+                }
             }
             is SyncChange.Remove -> dao.deleteSourcePack(change.key)
         } }
