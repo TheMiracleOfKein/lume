@@ -124,7 +124,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Library badge shows read of total; search results in the library get a status colour bar.
 - ⏸️ Search marks don't match a library title saved from another source.
 
-**v0.7.8: login, back and a fast library** ([details](#v078-login-back-and-a-fast-library))
+**v0.7.8: login, back and a fast library** ✅ released 2026-11-01 ([details](#v078-login-back-and-a-fast-library--released-2026-11-01))
 - ✅ The Lib login screen ignores a site session left over from before sign-out and clears it, so the login form shows.
 - ✅ Going back is instant on every screen; the back animation is gone.
 - ✅ A big library (600+ titles) opens at once instead of after about 10 seconds.
@@ -550,7 +550,7 @@ Release notes: [docs/releases/v0.7.6.md](releases/v0.7.6.md).
 - ✅ **Library marks:** read/total badge; status colour bar in search from category names (`libraryStatusOf`).
 - ⏸️ Cross-source matching for search marks; a per-user setting for the pool size.
 
-### v0.7.8: login, back and a fast library
+### v0.7.8: login, back and a fast library ✅ released 2026-11-01
 
 Release notes: [docs/releases/v0.7.8.md](releases/v0.7.8.md).
 
