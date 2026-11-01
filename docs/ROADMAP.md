@@ -124,7 +124,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Library badge shows read of total; search results in the library get a status colour bar.
 - ⏸️ Search marks don't match a library title saved from another source.
 
-**v0.7.7: Lib sign-out and back animation** ([details](#v077-lib-sign-out-and-back-animation))
+**v0.7.7: Lib sign-out and back animation** ✅ released 2026-11-01 ([details](#v077-lib-sign-out-and-back-animation--released-2026-11-01))
 - ✅ Sign-out of a Lib site clears its web session, so another account can log in; the login screen offers saved passwords through autofill.
 - ✅ Going back shrinks the leaving screen into a rounded card with a shadow (the rounded corners left over from v0.3).
 - ⏸️ "Sign in with Google" inside the login screen: Google blocks it in web views.
@@ -545,7 +545,7 @@ Release notes: [docs/releases/v0.7.6.md](releases/v0.7.6.md).
 - ✅ **Library marks:** read/total badge; status colour bar in search from category names (`libraryStatusOf`).
 - ⏸️ Cross-source matching for search marks; a per-user setting for the pool size.
 
-### v0.7.7: Lib sign-out and back animation
+### v0.7.7: Lib sign-out and back animation ✅ released 2026-11-01
 
 Release notes: [docs/releases/v0.7.7.md](releases/v0.7.7.md).
 
