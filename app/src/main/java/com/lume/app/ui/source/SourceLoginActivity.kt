@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -11,7 +12,11 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -87,11 +92,18 @@ class SourceLoginActivity : ComponentActivity() {
                         )
                     },
                 ) { padding ->
+                    Column(Modifier.fillMaxSize().padding(padding)) {
+                    Text(
+                        status,
+                        color = AppColors.textSecondary,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
                     LoginWebView(
                         url = loginUrl,
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
+                            .fillMaxWidth()
+                            .weight(1f),
                         onAuthJson = { raw ->
                             lifecycleScope.launch {
                                 val saved = container.libAuth.saveRaw(sourceId, raw)
@@ -110,6 +122,7 @@ class SourceLoginActivity : ComponentActivity() {
                             }
                         },
                     )
+                    }
                 }
             }
         }
@@ -130,6 +143,9 @@ class SourceLoginActivity : ComponentActivity() {
                     settings.domStorageEnabled = true
                     // Share the app UA so cookies set during login (incl. anti-bot clearance) stay valid.
                     settings.userAgentString = container.http.userAgent
+                    // Lets the system autofill service (Google Password Manager, the same store
+                    // Chrome uses) offer saved logins in the e-mail and password fields.
+                    importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_YES
                     CookieManager.getInstance().setAcceptCookie(true)
                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                     webViewClient = object : WebViewClient() {

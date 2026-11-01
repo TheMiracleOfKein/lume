@@ -124,6 +124,11 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Library badge shows read of total; search results in the library get a status colour bar.
 - ⏸️ Search marks don't match a library title saved from another source.
 
+**v0.7.7: Lib sign-out and back animation** ([details](#v077-lib-sign-out-and-back-animation))
+- ✅ Sign-out of a Lib site clears its web session, so another account can log in; the login screen offers saved passwords through autofill.
+- ✅ Going back shrinks the leaving screen into a rounded card with a shadow (the rounded corners left over from v0.3).
+- ⏸️ "Sign in with Google" inside the login screen: Google blocks it in web views.
+
 **v0.7.x: send downloads to a nearby device** (L)
 
 Sync moves your library and progress, never the downloaded pages. This moves the pages: pick downloaded chapters on one phone, and another phone nearby receives them, without the internet and without a server.
@@ -160,7 +165,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **Performance**
 - A frame-time benchmark for library and reader scrolling next to `StartupBenchmark`; the profile is recorded again (S).
-- ⏸️ **Rounded screen corners during the back gesture**, when Compose makes `Transition.isSeeking` public.
+- ✅ **Rounded screen corners during the back gesture**: done in v0.7.7 through the navigation event dispatcher.
 
 ## v0.9: library and sources
 
@@ -319,7 +324,7 @@ Release notes: [docs/releases/v0.3.0.md](releases/v0.3.0.md).
 - ✅ **Smaller, faster release build.** R8 shrinking cut the APK from about 16 MB to 3 MB. A baseline profile speeds up startup.
 
 **Left over from v0.3**
-- ⏸️ **Rounded screen corners during the back gesture.** Removed in v0.3. Showing them only while a back gesture is in progress needs a Compose API (`Transition.isSeeking`) that Compose 1.12 keeps internal. Bring them back when that API is public.
+- ✅ **Rounded screen corners during the back gesture.** Removed in v0.3; back in v0.7.7, read from `NavigationEventDispatcher.transitionState` instead of the internal `Transition.isSeeking`.
 - ✅ **Measured baseline profile.** Done in v0.4: the `:baselineprofile` module records it on an emulator.
 - 🟡 **Device testing of v0.3.** v0.3 was released after builds and unit tests only. The device checklist (resume, motion, notifications, R8 build) is still to be worked through on real phones; it is in [DEVICE_TESTING.md](DEVICE_TESTING.md).
 
@@ -539,3 +544,11 @@ Release notes: [docs/releases/v0.7.6.md](releases/v0.7.6.md).
 - ✅ **Bell pool:** `title_prefs.autoDownload` is the bell; `LibraryUpdateWorker` checks the watched titles (at most 20) or the 20 most recently read.
 - ✅ **Library marks:** read/total badge; status colour bar in search from category names (`libraryStatusOf`).
 - ⏸️ Cross-source matching for search marks; a per-user setting for the pool size.
+
+### v0.7.7: Lib sign-out and back animation
+
+Release notes: [docs/releases/v0.7.7.md](releases/v0.7.7.md).
+
+- ✅ **Sign-out:** `LibWebSession` clears the site's and `lib.social`'s WebView storage and cookies, keeping anti-bot clearance; the login WebView opts into autofill.
+- ✅ **Back animation:** `BackGestureCard` rounds and shadows the leaving screen while a gesture is held (`NavigationEventDispatcher.transitionState`) or the entry pops; pop exit scales to 0.9.
+- ⏸️ Google sign-in inside the web view.

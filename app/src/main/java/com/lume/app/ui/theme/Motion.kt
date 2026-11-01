@@ -11,6 +11,7 @@ import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -55,13 +56,16 @@ object Motion {
             fadeOut(tween(SHORT, easing = Standard))
 
     // Pops are also what a predictive-back gesture scrubs through, so they must track the
-    // finger: linear slides, and the leaving screen only fades in the last 40 % of the way.
+    // finger: linear curves. The leaving screen shrinks into a card (its corners come from
+    // BackGestureCard) and drifts to the end, fading only in the last 40 % of the way; the screen
+    // underneath is already half visible, so nothing flashes dark behind the card.
     val screenPopEnter: EnterTransition =
         slideInHorizontally(tween(LONG, easing = LinearEasing)) { -it / 20 } +
-            fadeIn(tween(MEDIUM, easing = LinearEasing))
+            fadeIn(tween(MEDIUM, easing = LinearEasing), initialAlpha = 0.5f)
 
     val screenPopExit: ExitTransition =
-        slideOutHorizontally(tween(LONG, easing = LinearEasing)) { it / 10 } +
+        scaleOut(tween(LONG, easing = LinearEasing), targetScale = 0.9f) +
+            slideOutHorizontally(tween(LONG, easing = LinearEasing)) { it / 10 } +
             fadeOut(tween(durationMillis = LONG * 4 / 10, delayMillis = LONG * 6 / 10, easing = LinearEasing))
 
     /** Switching between bottom-bar tabs: fade-through, no directional slide. */
