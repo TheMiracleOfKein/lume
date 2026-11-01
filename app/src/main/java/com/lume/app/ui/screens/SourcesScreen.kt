@@ -55,6 +55,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -98,7 +99,8 @@ fun SourcesScreen(nav: NavHostController) {
     val pinned by vm.pinned.collectAsState()
     val importStatus by vm.importStatus.collectAsState()
     val snack = remember { SnackbarHostState() }
-    var settingsFor by remember { mutableStateOf<CatalogSource?>(null) }
+    var settingsForId by rememberSaveable { mutableStateOf<String?>(null) }
+    val settingsFor = sources.firstOrNull { it.manifest.id == settingsForId }
     LaunchedEffect(vm) { vm.messages.collect { snack.showSnackbar(it) } }
 
     // Pinned sources first, then by language, each group alphabetical.
@@ -163,7 +165,7 @@ fun SourcesScreen(nav: NavHostController) {
                         modifier = animatedItem(),
                         onSelect = { vm.setActive(id) },
                         onBrowse = { nav.navigate(Routes.browse(id)) },
-                        onSettings = { settingsFor = source },
+                        onSettings = { settingsForId = source.manifest.id },
                         onPin = { vm.setPinned(id, it) },
                         onDisable = { vm.setDisabled(id, it) },
                         onRemove = { vm.remove(id) },
@@ -191,10 +193,10 @@ fun SourcesScreen(nav: NavHostController) {
             name = source.manifest.name,
             settings = source.settings(),
             initial = vm.settingsOf(source.manifest.id),
-            onDismiss = { settingsFor = null },
+            onDismiss = { settingsForId = null },
             onSave = { values ->
                 vm.saveSettings(source.manifest.id, values)
-                settingsFor = null
+                settingsForId = null
             },
         )
     }
@@ -465,7 +467,7 @@ private fun SourceRow(
     val resources = LocalResources.current
     val engine = source.manifest.engine
     val langBadge = languageBadge(source.manifest.language)
-    var menuOpen by remember { mutableStateOf(false) }
+    var menuOpen by rememberSaveable { mutableStateOf(false) }
     Row(
         modifier = modifier
             .fillMaxWidth()

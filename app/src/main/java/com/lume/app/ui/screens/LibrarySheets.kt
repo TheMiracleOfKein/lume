@@ -201,7 +201,7 @@ internal fun CategoryAssignDialog(
     onDismiss: () -> Unit,
     onSave: (Set<Long>) -> Unit,
 ) {
-    var selected by remember { mutableStateOf(initial) }
+    var selected by rememberSaveable { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.dialog_categories)) },
@@ -253,7 +253,7 @@ internal fun ExportListDialog(
     onShare: (String) -> Unit,
     onSave: (String) -> Unit,
 ) {
-    var name by remember { mutableStateOf(initialName) }
+    var name by rememberSaveable { mutableStateOf(initialName) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.reading_list_export_title)) },

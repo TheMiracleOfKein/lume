@@ -25,6 +25,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
@@ -53,13 +54,14 @@ fun TrackerSettings(vm: SettingsViewModel) {
     val shikiTokenState by prefs.shikimoriAccessToken.collectAsState()
     val trackerValues by prefs.trackerValues.collectAsState()
     val trackerAutoLink by prefs.trackerAutoLink.collectAsState()
-    var passwordLogin by remember { mutableStateOf<Tracker?>(null) }
+    var passwordLoginId by rememberSaveable { mutableStateOf<String?>(null) }
+    val passwordLogin = container.trackers.all.firstOrNull { it.id == passwordLoginId }
     passwordLogin?.let { tracker ->
         PasswordLoginDialog(
             name = tracker.displayName,
-            onDismiss = { passwordLogin = null },
+            onDismiss = { passwordLoginId = null },
             onLogin = { user, password ->
-                passwordLogin = null
+                passwordLoginId = null
                 vm.passwordLogin(tracker, user, password)
             },
         )
@@ -78,7 +80,7 @@ fun TrackerSettings(vm: SettingsViewModel) {
                 loggedIn = loggedIn,
                 onLogin = {
                     if (tracker.login == TrackerLogin.Password) {
-                        passwordLogin = tracker
+                        passwordLoginId = tracker.id
                     } else {
                         scope.launch {
                             val err = TrackerAuthActivity.start(context, tracker.id)
@@ -152,8 +154,8 @@ private fun TrackerLoginCard(
 /** Username / e-mail and password for Kitsu and MangaUpdates; only the tracker's token is kept. */
 @Composable
 private fun PasswordLoginDialog(name: String, onDismiss: () -> Unit, onLogin: (String, String) -> Unit) {
-    var user by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var user by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.tracker_login_title, name)) },

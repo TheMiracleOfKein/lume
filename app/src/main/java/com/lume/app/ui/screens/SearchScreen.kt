@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.clip
 import com.lume.app.ui.components.FilterPanel
 import androidx.compose.material3.CircularProgressIndicator
@@ -93,7 +94,7 @@ fun SearchScreen(nav: NavHostController, globalQuery: String? = null) {
     val focusManager = LocalFocusManager.current
     val networkEpoch by container.http.networkEpoch.collectAsState()
     val history by vm.history.collectAsState()
-    var filtersOpen by remember { mutableStateOf(false) }
+    var filtersOpen by rememberSaveable { mutableStateOf(false) }
 
     // Opened for a title ("Similar titles"): search every source once; coming back keeps the results.
     LaunchedEffect(globalQuery) {
