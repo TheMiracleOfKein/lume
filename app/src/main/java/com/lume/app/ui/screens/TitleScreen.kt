@@ -19,6 +19,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -56,6 +59,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -111,8 +115,8 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
     val links by vm.trackerLinks.collectAsState()
     val pageBookmarks by vm.pageBookmarks.collectAsState()
     val titleSources by vm.titleSources.collectAsState()
-    var showTrackers by remember { mutableStateOf(false) }
-    var showSources by remember { mutableStateOf(false) }
+    var showTrackers by rememberSaveable { mutableStateOf(false) }
+    var showSources by rememberSaveable { mutableStateOf(false) }
     // One row per chapter, whatever number of teams or sources have it.
     val chapterCount = remember(chapters) { dedupeChapters(chapters).size }
 
@@ -214,6 +218,9 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState())
+                            // Wide screens: keep the details at a readable width, centred.
+                            .wrapContentWidth(Alignment.CenterHorizontally)
+                            .widthIn(max = 840.dp)
                             .padding(16.dp),
                     ) {
                         Row {
@@ -535,15 +542,16 @@ private fun TrackersDialog(
     val resources = LocalResources.current
     val container = LocalAppContainer.current
     val trackers = container.trackers.all
-    var selectedTracker by remember { mutableStateOf(trackers.first()) }
-    var query by remember { mutableStateOf(titleName) }
+    var selectedTrackerId by rememberSaveable { mutableStateOf(trackers.first().id) }
+    val selectedTracker = trackers.firstOrNull { it.id == selectedTrackerId } ?: trackers.first()
+    var query by rememberSaveable { mutableStateOf(titleName) }
     var results by remember { mutableStateOf<List<TrackerSearchResult>>(emptyList()) }
-    var manualId by remember { mutableStateOf("") }
+    var manualId by rememberSaveable { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var syncing by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     var remotePreview by remember { mutableStateOf<String?>(null) }
-    var editing by remember { mutableStateOf<String?>(null) }
+    var editing by rememberSaveable { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val links by container.dao.observeTrackerLinks(sourceId, titleId)
         .collectAsState(initial = emptyList())
@@ -626,7 +634,7 @@ private fun TrackersDialog(
                             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                             modifier = Modifier
                                 .padding(end = 12.dp)
-                                .clickable { selectedTracker = t }
+                                .clickable { selectedTrackerId = t.id }
                                 .padding(vertical = 6.dp),
                         )
                     }

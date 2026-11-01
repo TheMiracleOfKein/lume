@@ -71,8 +71,11 @@ sealed interface SyncChange {
  * - [changes] lists what the database needs so it matches the winners.
  */
 object SyncMerge {
-    /** Removals are remembered this long; a device that stays offline longer may bring a record back. */
-    const val TOMBSTONE_DAYS = 180L
+    /**
+     * Removals are remembered this long. A removal is a few bytes, so it is kept for ten years: a
+     * device that comes back online after months must not bring deleted records back.
+     */
+    const val TOMBSTONE_DAYS = 3650L
     private const val DAY_MS = 24L * 60 * 60 * 1000
 
     /** Chapter positions: the furthest one wins (see [merge]). */
@@ -85,6 +88,17 @@ object SyncMerge {
     const val LAST_READ_WINS = "progress"
 
     const val LIBRARY = "library"
+
+    /**
+     * The time to stamp local changes with: the clock, but always after every stamp seen so far
+     * ([lastSeen]: this device's saved state and the other devices' files). A device whose clock is
+     * behind then still wins over what it has already seen.
+     */
+    fun stampTime(now: Long, lastSeen: Long): Long = maxOf(now, lastSeen + 1)
+
+    /** The highest [SyncEntry.changedAt] in the states; 0 when they are empty. */
+    fun highestStamp(vararg states: SyncState): Long =
+        states.maxOfOrNull { s -> s.values.maxOfOrNull { c -> c.values.maxOfOrNull { it.changedAt } ?: 0L } ?: 0L } ?: 0L
 
     fun stamp(
         current: Map<String, Map<String, JsonElement>>,

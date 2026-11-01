@@ -111,8 +111,8 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
     val options by vm.options.collectAsState()
     val queueItems by container.downloadQueue.items.collectAsState()
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
-    var downloadMenu by remember { mutableStateOf(false) }
-    var confirmDeleteAll by remember { mutableStateOf(false) }
+    var downloadMenu by rememberSaveable { mutableStateOf(false) }
+    var confirmDeleteAll by rememberSaveable { mutableStateOf(false) }
 
     val readState = remember(chapters, readIds) { ChapterReadState(chapters, readIds) }
     val branches = remember(chapters) { chapterBranches(chapters) }

@@ -523,7 +523,17 @@ class LibSocialEngine(
         if (items.isEmpty()) {
             items = LIB_IMPORTED_STATUSES.flatMap { readStatus(it) }
         }
-        val folders = withDefaultLibFolders(siteFolders, items.mapNotNullTo(HashSet()) { it.folderId })
+        val folders = withDefaultLibFolders(
+            siteFolders,
+            items.mapNotNullTo(HashSet()) { it.folderId },
+            mapOf(
+                "1" to appString(R.string.lib_folder_reading),
+                "2" to appString(R.string.lib_folder_planned),
+                "3" to appString(R.string.lib_folder_dropped),
+                "4" to appString(R.string.lib_folder_read),
+                "5" to appString(R.string.lib_folder_favorite),
+            ),
+        )
         return folders to items.distinctBy { it.titleId to it.folderId }
     }
 

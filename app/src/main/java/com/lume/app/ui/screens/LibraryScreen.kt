@@ -94,8 +94,8 @@ fun LibraryScreen(nav: NavHostController) {
     val settings by vm.settings.collectAsState()
     val online by vm.online.collectAsState()
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
-    var categoriesDialog by remember { mutableStateOf<Set<Long>?>(null) }
-    var confirmRemove by remember { mutableStateOf(false) }
+    var categoriesDialog by rememberSaveable { mutableStateOf(false) }
+    var confirmRemove by rememberSaveable { mutableStateOf(false) }
     // Titles of the reading list being exported, and its name while the file picker is open.
     var exporting by remember { mutableStateOf<List<LibraryItem>?>(null) }
     var savingName by remember { mutableStateOf<String?>(null) }
@@ -184,7 +184,7 @@ fun LibraryScreen(nav: NavHostController) {
             exit = Motion.barExitToBottom,
         ) {
             SelectionBar(
-                onCategories = { categoriesDialog = vm.commonCategories() },
+                onCategories = { categoriesDialog = true },
                 onMarkRead = vm::markRead,
                 onMarkUnread = vm::markUnread,
                 onDownload = vm::downloadUnread,
@@ -204,14 +204,15 @@ fun LibraryScreen(nav: NavHostController) {
         }
     }
 
-    categoriesDialog?.let { initial ->
+    if (categoriesDialog) {
+        val initial = remember { vm.commonCategories() }
         CategoryAssignDialog(
             initial = initial,
             categories = categories,
-            onDismiss = { categoriesDialog = null },
+            onDismiss = { categoriesDialog = false },
             onSave = { ids ->
                 vm.setCategories(ids)
-                categoriesDialog = null
+                categoriesDialog = false
             },
         )
     }

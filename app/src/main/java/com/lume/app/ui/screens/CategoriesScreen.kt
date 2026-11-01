@@ -36,7 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,9 +63,11 @@ fun CategoriesScreen(nav: NavHostController) {
     val vm: CategoriesViewModel = viewModel { CategoriesViewModel(container) }
     val categories by vm.categories.collectAsState()
     val defaultId by vm.defaultCategoryId.collectAsState()
-    var editing by remember { mutableStateOf<CategoryEntity?>(null) }
-    var creating by remember { mutableStateOf(false) }
-    var deleting by remember { mutableStateOf<CategoryEntity?>(null) }
+    var editingId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var creating by rememberSaveable { mutableStateOf(false) }
+    var deletingId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val editing = categories.firstOrNull { it.id == editingId }
+    val deleting = categories.firstOrNull { it.id == deletingId }
 
     Scaffold(
         containerColor = AppColors.background,
@@ -127,10 +129,10 @@ fun CategoriesScreen(nav: NavHostController) {
                     IconButton(onClick = { vm.move(cat.id, 1) }, enabled = index < categories.lastIndex) {
                         Icon(Icons.Outlined.KeyboardArrowDown, stringResource(R.string.cd_move_down), tint = AppColors.textSecondary)
                     }
-                    IconButton(onClick = { editing = cat }) {
+                    IconButton(onClick = { editingId = cat.id }) {
                         Icon(Icons.Outlined.Edit, stringResource(R.string.action_rename), tint = AppColors.textSecondary)
                     }
-                    IconButton(onClick = { deleting = cat }) {
+                    IconButton(onClick = { deletingId = cat.id }) {
                         Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete), tint = AppColors.danger)
                     }
                 }
@@ -156,26 +158,26 @@ fun CategoriesScreen(nav: NavHostController) {
             title = stringResource(R.string.dialog_rename_category),
             initial = cat.name,
             confirm = stringResource(R.string.action_save),
-            onDismiss = { editing = null },
+            onDismiss = { editingId = null },
             onConfirm = {
                 vm.rename(cat.id, it)
-                editing = null
+                editingId = null
             },
         )
     }
     deleting?.let { cat ->
         AlertDialog(
-            onDismissRequest = { deleting = null },
+            onDismissRequest = { deletingId = null },
             title = { Text(stringResource(R.string.dialog_delete_category_title)) },
             text = { Text(stringResource(R.string.dialog_delete_category_text, cat.name)) },
             confirmButton = {
                 TextButton(onClick = {
                     vm.delete(cat.id)
-                    deleting = null
+                    deletingId = null
                 }) { Text(stringResource(R.string.action_delete), color = AppColors.danger) }
             },
             dismissButton = {
-                TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.action_cancel)) }
+                TextButton(onClick = { deletingId = null }) { Text(stringResource(R.string.action_cancel)) }
             },
         )
     }
@@ -208,7 +210,7 @@ private fun NameDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
-    var name by remember { mutableStateOf(initial) }
+    var name by rememberSaveable { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },

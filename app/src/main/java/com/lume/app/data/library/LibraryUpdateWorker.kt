@@ -1,5 +1,6 @@
 package com.lume.app.data.library
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import android.Manifest
@@ -26,6 +27,7 @@ import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.TitleMetaEntity
 import com.lume.app.data.db.WATCHED_TITLES_LIMIT
+import com.lume.app.domain.LibraryCheckOutcome
 import com.lume.app.domain.LibraryUpdateResult
 import com.lume.app.domain.LinkedChapterId
 import com.lume.app.domain.dedupeChapters
@@ -43,6 +45,8 @@ class LibraryUpdateWorker(
         val app = (applicationContext as? LumeApp)?.container ?: return Result.success()
         val dao = app.dao
         val results = mutableListOf<LibraryUpdateResult>()
+        var checked = 0
+        var failed = 0
         // A cold start for this job alone would otherwise see an empty source list and do nothing.
         app.sources.awaitLoaded()
 
@@ -51,7 +55,8 @@ class LibraryUpdateWorker(
         val bookmarks = dao.watchedBookmarks().ifEmpty { dao.recentBookmarks(WATCHED_TITLES_LIMIT) }
         setProgress(workDataOf(KEY_DONE to 0, KEY_TOTAL to bookmarks.size))
         for ((index, bookmark) in bookmarks.withIndex()) {
-            if (app.sources.sourceById(bookmark.sourceId) != null) runCatching {
+            if (app.sources.sourceById(bookmark.sourceId) != null) try {
+                checked++
                 // The main source and every linked one, merged; the title screen shows it at once.
                 val (chapters, all) = app.titles.fetchChapterLists(bookmark.sourceId, bookmark.titleId)
                 // New = ids never seen before (not "more chapters than last time"), one per chapter.
@@ -95,17 +100,28 @@ class LibraryUpdateWorker(
                             .map { id -> app.sources.sourceById(id)?.manifest?.name ?: id },
                     )
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                failed++
+                android.util.Log.w("LibraryUpdate", "${bookmark.titleName}: ${e.message}")
             }
-            // runCatching above also catches cancellation; a stopped job must stop here.
             currentCoroutineContext().ensureActive()
             setProgress(workDataOf(KEY_DONE to index + 1, KEY_TOTAL to bookmarks.size))
         }
-        app.prefs.setLibraryLastCheckedAt(System.currentTimeMillis())
+        val outcome = LibraryCheckOutcome(checked, failed)
+        app.prefs.setLibraryLastCheck(System.currentTimeMillis(), outcome)
 
         if (results.isNotEmpty()) {
             notifyUpdates(results)
         }
-        return Result.success()
+        // A run the user started reports its outcome at once; only the background check retries.
+        val manual = inputData.getBoolean(KEY_MANUAL, false)
+        return when {
+            !manual && outcome.shouldRetry(runAttemptCount) -> Result.retry()
+            outcome.allFailed -> Result.failure()
+            else -> Result.success()
+        }
     }
 
     private fun notifyUpdates(results: List<LibraryUpdateResult>) {
@@ -172,11 +188,16 @@ class LibraryUpdateWorker(
         const val NOW_WORK_NAME = "library_update_now"
         const val KEY_DONE = "done"
         const val KEY_TOTAL = "total"
+        const val KEY_MANUAL = "manual"
 
-        /** "Update now": one run right away, whatever the schedule says. A run in progress is kept. */
+        /**
+         * "Update now": one run right away, whatever the schedule says. A run in progress is kept.
+         * No network constraint: offline, the run fails fast and records "Last check failed"
+         * instead of waiting for a connection with the spinner on.
+         */
         fun runNow(context: Context) {
             val request = OneTimeWorkRequestBuilder<LibraryUpdateWorker>()
-                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .setInputData(workDataOf(KEY_MANUAL to true))
                 .build()
             WorkManager.getInstance(context).enqueueUniqueWork(NOW_WORK_NAME, ExistingWorkPolicy.KEEP, request)
         }

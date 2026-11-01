@@ -32,9 +32,13 @@ import kotlinx.serialization.json.Json
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 
-class HistoryViewModel(app: AppContainer) : ViewModel() {
+class HistoryViewModel(private val app: AppContainer) : ViewModel() {
     val history: StateFlow<List<ProgressEntity>> =
         app.dao.observeHistory().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    fun clearAll() {
+        viewModelScope.launch { app.dao.clearAllProgress() }
+    }
 }
 
 /** Status and alternative title from the cached details, for filters and search. */
@@ -263,6 +267,7 @@ class UpdatesViewModel(private val app: AppContainer) : ViewModel() {
         app.dao.observeUpdates(limit = 500).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val lastCheckedAt: StateFlow<Long> = app.prefs.libraryLastCheckedAt
+    val lastCheck: StateFlow<com.lume.app.domain.LibraryCheckOutcome> = app.prefs.libraryLastCheck
 
     /** `sourceId\u0000titleId\u0000chapterId` of downloaded chapters. */
     val downloaded: StateFlow<Set<String>> = app.dao.observeDownloads()

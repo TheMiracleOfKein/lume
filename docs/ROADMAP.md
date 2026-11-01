@@ -124,6 +124,11 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Library badge shows read of total; search results in the library get a status colour bar.
 - ⏸️ Search marks don't match a library title saved from another source.
 
+**v0.7.7: Lib sign-out and back animation** ✅ released 2026-11-01 ([details](#v077-lib-sign-out-and-back-animation--released-2026-11-01))
+- ✅ Sign-out of a Lib site clears its web session, so another account can log in; the login screen offers saved passwords through autofill.
+- ✅ Going back shrinks the leaving screen into a rounded card with a shadow (the rounded corners left over from v0.3).
+- ⏸️ "Sign in with Google" inside the login screen: Google blocks it in web views.
+
 **v0.7.8: login, back and a fast library** ✅ released 2026-11-01 ([details](#v078-login-back-and-a-fast-library--released-2026-11-01))
 - ✅ The Lib login screen ignores a site session left over from before sign-out and clears it, so the login form shows.
 - ✅ Going back is instant on every screen; the back animation is gone.
@@ -149,10 +154,13 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Per-page spinner; one shared zoom gesture; every back arrow is labelled "Back".
 - ⏸️ Links still open under the app lock (hidden by it); waiting for unlock needs the lock state in the shell.
 
-**v0.7.7: Lib sign-out and back animation** ✅ released 2026-11-01 ([details](#v077-lib-sign-out-and-back-animation--released-2026-11-01))
-- ✅ Sign-out of a Lib site clears its web session, so another account can log in; the login screen offers saved passwords through autofill.
-- ✅ Going back shrinks the leaving screen into a rounded card with a shadow (the rounded corners left over from v0.3).
-- ⏸️ "Sign in with Google" inside the login screen: Google blocks it in web views.
+**v0.7.12: polish** ([details](#v0712-polish))
+- ✅ Main menu without the bottom-bar tabs; Home search opens the all-sources search with the query; History has clear-all.
+- ✅ Library grid adapts to the screen width; Settings and title details are width-capped on wide screens.
+- ✅ Dialogs and typed text survive rotation.
+- ✅ The library check reports failures; downloaded and local pages in natural order; one queue row per chapter; CBZ cache capped at 300 MB.
+- ✅ Sync: monotonic change stamps, long-lived removals, temp-then-rename writes, a message for "Sync now" while off.
+- ⏸️ Stronger sync key derivation (PBKDF2 600k): needs a new sync file format that older versions can't read.
 
 **v0.7.x: send downloads to a nearby device** (L)
 
@@ -238,7 +246,7 @@ Learned models stay optional because of their size, their speed on older phones 
 **Distribution**
 - **IzzyOnDroid** first; **F-Droid** when the build is reproducible (the standard flavor has no proprietary parts) (M).
 - **Obtainium**: release names and assets stay stable; a checksum file next to each APK (S).
-- **Update check** (S), off by default: asks GitHub's release API for a newer version, nothing else.
+- **Update check** (S), on by default and switchable in About: asks GitHub's release API for a newer version, at most every 6 hours, nothing else.
 - Google Play stays out ([below](#out-of-scope)).
 
 **Trust**
@@ -570,17 +578,27 @@ Release notes: [docs/releases/v0.7.6.md](releases/v0.7.6.md).
 - ✅ **Library marks:** read/total badge; status colour bar in search from category names (`libraryStatusOf`).
 - ⏸️ Cross-source matching for search marks; a per-user setting for the pool size.
 
-### v0.7.11: reader and navigation ✅ released 2026-11-01
+### v0.7.7: Lib sign-out and back animation ✅ released 2026-11-01
 
-Release notes: [docs/releases/v0.7.11.md](releases/v0.7.11.md). From the full audit of v0.7.9 (static findings 9, 12, 14 and 17); device check in [v0.7.11-check.md](releases/v0.7.11-check.md).
+Release notes: [docs/releases/v0.7.7.md](releases/v0.7.7.md).
 
-- ✅ **Tall pages:** in webtoon mode, a page still taller than 4096 px after Coil's capped decode is redrawn with `BitmapRegionDecoder` in slices of at most 2048 decoded px (`ReaderTallPage`, `TallPageTiles`). Old Asura chapters draw on the emulator; a page over 4096 px wasn't confirmed to take the slice path on the device (unit tests cover the slice math).
-- ✅ **Navigation:** `openLink` pushes non-tab routes with `launchSingleTop`, replaces an open reader, and keeps tab routes on `navigateToTab`; menu entries use `launchSingleTop`.
-- ✅ **Reader:** `ReaderBackBar` over loading and error states; `chapterNeighbours` in reading order; disabled buttons and an edge notice at the ends (the "first chapter" notice was seen on the device, the "last chapter" one wasn't reached).
-- ✅ **Pages:** per-page spinner, 70%-of-window placeholder, shared `zoomLayer` / `detectPinchAndPan`.
-- ✅ **Accessibility:** shared `BackButton` with `cd_back`.
-- ⏸️ Deep links while locked: see the summary above.
-- Next: v0.7.12 polish (download queue race, library check result, rotation state, sync, CBZ order, adaptive library grid, menu redesign, doc fixes).
+- ✅ **Sign-out:** `LibWebSession` clears the site's and `lib.social`'s WebView storage and cookies, keeping anti-bot clearance; the login WebView opts into autofill.
+- ✅ **Back animation:** `BackGestureCard` rounds and shadows the leaving screen while a gesture is held (`NavigationEventDispatcher.transitionState`) or the entry pops; pop exit scales to 0.9.
+- ⏸️ Google sign-in inside the web view.
+
+### v0.7.8: login, back and a fast library ✅ released 2026-11-01
+
+Release notes: [docs/releases/v0.7.8.md](releases/v0.7.8.md).
+
+- ✅ **Login:** with no Lume token, a `localStorage.auth` found before the user touches the page is treated as stale: `LibWebSession.wipeAll` deletes all WebView storage and cookies (re-setting the sources' clearance cookies) and the page reloads; stale tokens are never saved. Logout expiry also sends `Secure; SameSite=None` variants.
+- ✅ **Back:** pop transitions are `None`; `BackGestureCard`, `BackGesture.kt` and the direct navigationevent dependency are removed.
+- ✅ **Library:** `observeLibraryStats` is one grouped pass instead of correlated `NOT IN` subqueries (synthetic 600 titles: 126 s → 0.4 s, same results); the library waits for the first answer instead of flashing empty.
+
+### v0.7.9: no back animation anywhere ✅ released 2026-11-01
+
+Release notes: [docs/releases/v0.7.9.md](releases/v0.7.9.md).
+
+- ✅ **Back:** `enableOnBackInvokedCallback="false"` in the manifest; no system or in-app predictive-back animation is left. The opt-out is honoured on API 37 / targetSdk 37.
 
 ### v0.7.10: safety ✅ released 2026-11-01
 
@@ -595,24 +613,27 @@ Release notes: [docs/releases/v0.7.10.md](releases/v0.7.10.md). From the full au
 - ⏸️ Destructive downgrade and OAuth `state`: see the summary above.
 - Next: v0.7.11 reader and navigation (deep links, chapter ends, back-arrow labels, tall strips), v0.7.12 polish.
 
-### v0.7.9: no back animation anywhere ✅ released 2026-11-01
+### v0.7.11: reader and navigation ✅ released 2026-11-01
 
-Release notes: [docs/releases/v0.7.9.md](releases/v0.7.9.md).
+Release notes: [docs/releases/v0.7.11.md](releases/v0.7.11.md). From the full audit of v0.7.9 (static findings 9, 12, 14 and 17); device check in [v0.7.11-check.md](releases/v0.7.11-check.md).
 
-- ✅ **Back:** `enableOnBackInvokedCallback="false"` in the manifest; no system or in-app predictive-back animation is left. The opt-out is honoured on API 37 / targetSdk 37.
+- ✅ **Tall pages:** in webtoon mode, a page still taller than 4096 px after Coil's capped decode is redrawn with `BitmapRegionDecoder` in slices of at most 2048 decoded px (`ReaderTallPage`, `TallPageTiles`). Old Asura chapters draw on the emulator; a page over 4096 px wasn't confirmed to take the slice path on the device (unit tests cover the slice math).
+- ✅ **Navigation:** `openLink` pushes non-tab routes with `launchSingleTop`, replaces an open reader, and keeps tab routes on `navigateToTab`; menu entries use `launchSingleTop`.
+- ✅ **Reader:** `ReaderBackBar` over loading and error states; `chapterNeighbours` in reading order; disabled buttons and an edge notice at the ends (the "first chapter" notice was seen on the device, the "last chapter" one wasn't reached).
+- ✅ **Pages:** per-page spinner, 70%-of-window placeholder, shared `zoomLayer` / `detectPinchAndPan`.
+- ✅ **Accessibility:** shared `BackButton` with `cd_back`.
+- ⏸️ Deep links while locked: see the summary above.
+- Next: v0.7.12 polish (download queue race, library check result, rotation state, sync, CBZ order, adaptive library grid, menu redesign, doc fixes).
 
-### v0.7.8: login, back and a fast library ✅ released 2026-11-01
+### v0.7.12: polish
 
-Release notes: [docs/releases/v0.7.8.md](releases/v0.7.8.md).
+Release notes: [docs/releases/v0.7.12.md](releases/v0.7.12.md). From the full audit of v0.7.9 (static findings 10, 11, 13, 15, 16, 18 and 19, plus the menu redesign); device check in [v0.7.12-check.md](releases/v0.7.12-check.md).
 
-- ✅ **Login:** with no Lume token, a `localStorage.auth` found before the user touches the page is treated as stale: `LibWebSession.wipeAll` deletes all WebView storage and cookies (re-setting the sources' clearance cookies) and the page reloads; stale tokens are never saved. Logout expiry also sends `Secure; SameSite=None` variants.
-- ✅ **Back:** pop transitions are `None`; `BackGestureCard`, `BackGesture.kt` and the direct navigationevent dependency are removed.
-- ✅ **Library:** `observeLibraryStats` is one grouped pass instead of correlated `NOT IN` subqueries (synthetic 600 titles: 126 s → 0.4 s, same results); the library waits for the first answer instead of flashing empty.
-
-### v0.7.7: Lib sign-out and back animation ✅ released 2026-11-01
-
-Release notes: [docs/releases/v0.7.7.md](releases/v0.7.7.md).
-
-- ✅ **Sign-out:** `LibWebSession` clears the site's and `lib.social`'s WebView storage and cookies, keeping anti-bot clearance; the login WebView opts into autofill.
-- ✅ **Back animation:** `BackGestureCard` rounds and shadows the leaving screen while a gesture is held (`NavigationEventDispatcher.transitionState`) or the entry pops; pop exit scales to 0.9.
-- ⏸️ Google sign-in inside the web view.
+- ✅ **Downloads:** unique `(sourceId, titleId, chapterId)` index (migration 10 → 11, duplicates dropped first); WorkManager 2.12 already stops the dataSync worker on `onTimeout`, and stopped rows go back to pending.
+- ✅ **Library check:** failed and checked counts, `retry()` when every title fails, shown on Updates.
+- ✅ **Pages and caches:** `NaturalOrder` for CBZ and local folders; unpacked archive cache capped at 300 MB; `TitleRepository` caches are LRU (200).
+- ✅ **Rotation:** `rememberSaveable` for dialog flags and typed text on eight screens.
+- ✅ **Layout and menu:** adaptive library grid, 840 dp cap on Settings and title details; menu without the four tabs; Home search with the query; History clear-all. Settings → Sources already linked to the Sources screen.
+- ✅ **Sync:** `stampTime` monotonic stamps, tombstones kept 3650 days, `.tmp` then rename / WebDAV `MOVE`, "Sync is off" message.
+- ✅ **Docs:** PRIVACY (update check, `REQUEST_INSTALL_PACKAGES`), roadmap update-check default and order, README source count, DEVICE_TESTING for v0.7.1–v0.7.11; Lib folder names from string resources.
+- ⏸️ PBKDF2 iterations: see the summary above.

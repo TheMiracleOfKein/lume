@@ -125,7 +125,6 @@ class SyncRepository(
         var previous = saved?.state().orEmpty()
         // A database created since the last sync lost its records; they are not removals.
         if (SyncMerge.databaseRecreated(saved?.databaseId ?: 0, databaseId)) previous = emptyMap()
-        val own = SyncMerge.stamp(local, previous, now, bootstrap = previous.isEmpty(), device = deviceId)
 
         val passphrase = settings.passphrase.ifEmpty { null }
         // A file that can't be read with this passphrase (damaged, or from another setup) is skipped
@@ -142,6 +141,9 @@ class SyncRepository(
             }
         passphraseError?.let { if (others.isEmpty()) throw it }
 
+        // Stamps come after every stamp seen so far, so a device with a slow clock keeps its edits.
+        val stampAt = SyncMerge.stampTime(now, SyncMerge.highestStamp(previous, *others.map { it.state() }.toTypedArray()))
+        val own = SyncMerge.stamp(local, previous, stampAt, bootstrap = previous.isEmpty(), device = deviceId)
         val merged = SyncMerge.merge(own, others.map { it.state() }, now)
         val changes = SyncMerge.changes(local, merged)
         val failed = if (changes.isNotEmpty()) apply(changes) else emptyList()

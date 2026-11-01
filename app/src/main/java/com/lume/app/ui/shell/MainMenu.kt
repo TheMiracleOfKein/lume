@@ -38,19 +38,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
-import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Download
-import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import com.lume.app.ui.theme.ThemeMode
 import com.lume.app.ui.theme.isDark
 import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LightMode
-import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
@@ -257,43 +253,11 @@ private fun MenuPanel(
                 },
             )
             MenuTile(
-                icon = Icons.Outlined.NewReleases,
-                title = stringResource(R.string.menu_updates),
-                onClick = {
-                    onClose()
-                    onNavigate(Routes.Updates)
-                },
-            )
-            MenuTile(
                 icon = Icons.Outlined.History,
                 title = stringResource(R.string.menu_history),
                 onClick = {
                     onClose()
                     onNavigate(Routes.History)
-                },
-            )
-            MenuTile(
-                icon = Icons.Outlined.BookmarkBorder,
-                title = stringResource(R.string.menu_library),
-                onClick = {
-                    onClose()
-                    onNavigate(Routes.Library)
-                },
-            )
-            MenuTile(
-                icon = Icons.Outlined.Home,
-                title = stringResource(R.string.menu_home),
-                onClick = {
-                    onClose()
-                    onNavigate(Routes.Home)
-                },
-            )
-            MenuTile(
-                icon = Icons.Outlined.GridView,
-                title = stringResource(R.string.menu_catalog),
-                onClick = {
-                    onClose()
-                    onNavigate(Routes.Catalog)
                 },
             )
             MenuTile(

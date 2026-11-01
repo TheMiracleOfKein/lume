@@ -113,6 +113,59 @@ Sync needs two devices (two emulators work). Use the same folder or server on bo
 - [ ] Page menu → Share page sends the image with the chapter link; Save page puts it in Pictures/Lume (Android 9: a save dialog).
 - [ ] All of the above in Russian.
 
+## v0.7.1
+
+- [ ] Title screen: the bell next to the bookmark rings and goes quiet; ringing it while downloads are off switches Settings → Downloads to "Subscribed".
+- [ ] Settings → Downloads → Download new chapters: Off, All titles, Subscribed. With "Subscribed", only titles with the bell download new chapters at the library check; with "All titles" the bell is hidden.
+- [ ] Update from v0.7.0 with "Download new chapters" on: it shows "All titles".
+
+## v0.7.2 to v0.7.6: Lib bookmark import and library marks
+
+Needs a MangaLib account (HentaiLib and YaoiLib too, if you use them).
+
+- [ ] Sources → sign in to MangaLib → ⋮ → Import bookmarks: a card at the top shows the step and a progress bar ("12 of 140" while reading progress loads).
+- [ ] Leave Sources during the import and come back: the card is still there; when it finishes it shows the summary until closed.
+- [ ] Reading, Planned, Dropped and Read become categories; your own folders and Favourites stay on the site.
+- [ ] Titles in the site's "Read" list have every chapter marked read; other titles have the last chapter read on the site and every earlier one marked read, and continue from there.
+- [ ] Run the import a second time: no duplicates.
+- [ ] A long import (hundreds of titles) does not stop with a request-limit error.
+- [ ] The category names come out in the app's language (try English and Russian).
+- [ ] Bell: Update now and the scheduled check look only at titles with the bell (up to 20); with no bell, at the 20 last read.
+- [ ] Library badge shows read of total ("12/150"), accent-coloured while unread chapters remain, grey when caught up.
+- [ ] Search: results already in the library get a colour bar (green Reading, blue Planned, red Dropped, purple Read, accent for other categories).
+
+## v0.7.5 and v0.7.10: app updates
+
+- [ ] About → Updates: the installed version, "Check for updates", and the switch for the automatic check.
+- [ ] With a newer release on GitHub: a dialog shows the notes with Download and install, Later and Skip; Skip hides that version on the next start but not in a manual check.
+- [ ] Download shows a progress bar; Install first asks to allow installs from Lume, then Android's installer opens.
+- [ ] Switch the automatic check off: no request to GitHub on start (network log).
+
+## v0.7.7 to v0.7.9: Lib sign-in and back
+
+- [ ] Sign out of MangaLib, then log in with another account: the login form shows and the new account is used.
+- [ ] Tap the e-mail field on the login screen: Android offers saved logins.
+- [ ] Going back is instant by gesture, button and arrow, also with the gesture held (no shrinking card, no sliding login screen or sheet).
+- [ ] A library of several hundred titles shows its Bookmarks tab at once after start.
+
+## v0.7.10: safety
+
+- [ ] Close Lume or cut the network during a chapter download: the chapter is not listed as downloaded and the half-finished folder is gone after restart.
+- [ ] Pause a download while it runs: it stays paused.
+- [ ] Restore a damaged backup file: the restore stops with an error and the library is unchanged.
+- [ ] Import a source pack with the id of a built-in source (for example `mangalib`): it is refused.
+- [ ] With the app lock on, TalkBack does not read the library behind the lock screen.
+
+## v0.7.11: reader and navigation
+
+- [ ] An Asura Scans chapter in webtoon mode: the very tall pages draw (no black strips), scroll smoothly and zoom.
+- [ ] Open a chapter from a notification or a shared link while you are deep in the app: it opens on top, and Back returns to where you were.
+- [ ] Pick a screen in the side menu that is already open: no second copy appears.
+- [ ] Open a chapter on a slow network and on a failing one: the reader shows Back and the title while loading and on the error.
+- [ ] First and last chapter: the previous / next buttons are greyed out, and pulling past the end shows "This is the last chapter" (or first). Check in right-to-left mode too.
+- [ ] Pages show a spinner while they load.
+- [ ] TalkBack announces every back arrow as "Back".
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.

@@ -133,11 +133,12 @@ class LibBookmarksTest {
     @Test
     fun builtInFoldersAreNamedWhenTheSiteListsNone() {
         val site = listOf(LibBookmarkFolder("2598197", "Манхвы"))
-        val folders = withDefaultLibFolders(site, setOf("1", "4", "2598197", "777"))
+        val defaults = mapOf("1" to "Reading", "2" to "Planned", "4" to "Read")
+        val folders = withDefaultLibFolders(site, setOf("1", "4", "2598197", "777"), defaults)
         assertEquals(listOf("2598197", "1", "4"), folders.map { it.id })
-        assertEquals("Читаю", folders[1].name)
+        assertEquals("Reading", folders[1].name)
         // A site name wins over the built-in one.
-        assertEquals(listOf("Reading"), withDefaultLibFolders(listOf(LibBookmarkFolder("1", "Reading")), setOf("1")).map { it.name })
+        assertEquals(listOf("Site"), withDefaultLibFolders(listOf(LibBookmarkFolder("1", "Site")), setOf("1"), defaults).map { it.name })
     }
 
     @Test

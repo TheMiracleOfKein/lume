@@ -30,6 +30,10 @@ class SyncBackendException(message: String, val httpCode: Int = 0) : IOException
 
 /** A folder picked with the system file picker; Syncthing, a cloud drive app or an SD card. */
 class FolderSyncBackend(private val context: Context, private val tree: Uri) : SyncBackend {
+    private companion object {
+        const val TEMP_SUFFIX = ".tmp"
+    }
+
     private val resolver get() = context.contentResolver
     private val rootId get() = DocumentsContract.getTreeDocumentId(tree)
 
@@ -41,7 +45,42 @@ class FolderSyncBackend(private val context: Context, private val tree: Uri) : S
             ?: throw SyncBackendException("$name: can't read")
     }
 
+    /**
+     * Writes `name.tmp` first, checks its size, then swaps it in by deleting the old file and
+     * renaming. A half-written file therefore only ever has the `.tmp` name, which readers skip
+     * (they take only names ending in `.bin`). A provider that can't rename gets a plain write.
+     */
     override suspend fun write(name: String, bytes: ByteArray) = withContext(Dispatchers.IO) {
+        val tempName = name + TEMP_SUFFIX
+        children().filter { it.second == tempName }.forEach { (id, _) ->
+            runCatching { DocumentsContract.deleteDocument(resolver, DocumentsContract.buildDocumentUriUsingTree(tree, id)) }
+        }
+        val parent = DocumentsContract.buildDocumentUriUsingTree(tree, rootId)
+        val temp = runCatching { DocumentsContract.createDocument(resolver, parent, "application/octet-stream", tempName) }.getOrNull()
+        val written = temp != null && runCatching {
+            resolver.openOutputStream(temp, "wt")?.use { it.write(bytes) } ?: error("no stream")
+            sizeOf(temp)?.let { it == bytes.size.toLong() } ?: true
+        }.getOrDefault(false)
+        if (temp != null && written) {
+            val existing = children().firstOrNull { it.second == name }?.first
+            if (existing != null) {
+                runCatching { DocumentsContract.deleteDocument(resolver, DocumentsContract.buildDocumentUriUsingTree(tree, existing)) }
+            }
+            val renamed = runCatching { DocumentsContract.renameDocument(resolver, temp, name) }.getOrNull()
+            if (renamed != null) return@withContext
+        }
+        // No temp file or no rename: write the file itself, and drop the temp one.
+        temp?.let { runCatching { DocumentsContract.deleteDocument(resolver, it) } }
+        writeInPlace(name, bytes)
+    }
+
+    private fun sizeOf(uri: Uri): Long? = runCatching {
+        resolver.query(uri, arrayOf(DocumentsContract.Document.COLUMN_SIZE), null, null, null)?.use { c ->
+            if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else null
+        }
+    }.getOrNull()
+
+    private fun writeInPlace(name: String, bytes: ByteArray) {
         val existing = children().firstOrNull { it.second == name }?.first
         val target = if (existing != null) {
             DocumentsContract.buildDocumentUriUsingTree(tree, existing)
@@ -66,7 +105,6 @@ class FolderSyncBackend(private val context: Context, private val tree: Uri) : S
             }
             resolver.openOutputStream(dest, "w")?.use { it.write(bytes) } ?: throw SyncBackendException("$name: can't write")
         }
-        Unit
     }
 
     /** (document id, display name) of the folder's files. */
@@ -130,8 +168,21 @@ class WebDavSyncBackend(
     }
 
     override suspend fun write(name: String, bytes: ByteArray) = withContext(Dispatchers.IO) {
-        val request = request(folder + name).put(bytes.toRequestBody(BINARY)).build()
-        client.newCall(request).execute().use { check(it, "PUT") }
+        // Upload under a temp name, then move it over the real one, so a reader never gets half a file.
+        val temp = request(folder + name + ".tmp").put(bytes.toRequestBody(BINARY)).build()
+        client.newCall(temp).execute().use { check(it, "PUT") }
+        val move = request(folder + name + ".tmp")
+            .method("MOVE", null)
+            .header("Destination", folder + name)
+            .header("Overwrite", "T")
+            .build()
+        val moved = runCatching { client.newCall(move).execute().use { it.isSuccessful } }.getOrDefault(false)
+        if (!moved) {
+            // A server without MOVE: put the file itself, then remove the temp one.
+            val direct = request(folder + name).put(bytes.toRequestBody(BINARY)).build()
+            client.newCall(direct).execute().use { check(it, "PUT") }
+            runCatching { client.newCall(request(folder + name + ".tmp").delete().build()).execute().close() }
+        }
     }
 
     private fun mkcol() {
