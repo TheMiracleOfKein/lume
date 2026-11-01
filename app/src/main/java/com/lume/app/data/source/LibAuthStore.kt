@@ -34,11 +34,15 @@ class LibAuthStore(private val context: Context) {
         return token.bearerHeader()
     }
 
-    suspend fun saveRaw(sourceId: String, rawJson: String): LibAuthToken? {
+    /** The token in a raw `localStorage.auth` value, or null when it isn't a valid one. */
+    fun parse(rawJson: String): LibAuthToken? {
         val cleaned = rawJson.trim().removeSurrounding("\"").replace("\\\"", "\"")
-        val token = runCatching { json.decodeFromString(LibAuthToken.serializer(), cleaned) }.getOrNull()
-            ?: return null
-        if (!token.isValid()) return null
+        return runCatching { json.decodeFromString(LibAuthToken.serializer(), cleaned) }.getOrNull()
+            ?.takeIf { it.isValid() }
+    }
+
+    suspend fun saveRaw(sourceId: String, rawJson: String): LibAuthToken? {
+        val token = parse(rawJson) ?: return null
         context.libAuthStore.edit { it[key(sourceId)] = json.encodeToString(LibAuthToken.serializer(), token) }
         return token
     }

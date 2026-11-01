@@ -6,12 +6,10 @@ import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -55,18 +53,11 @@ object Motion {
         slideOutHorizontally(tween(LONG, easing = EmphasizedAccelerate)) { -it / 20 } +
             fadeOut(tween(SHORT, easing = Standard))
 
-    // Pops are also what a predictive-back gesture scrubs through, so they must track the
-    // finger: linear curves. The leaving screen shrinks into a card (its corners come from
-    // BackGestureCard) and drifts to the end, fading only in the last 40 % of the way; the screen
-    // underneath is already half visible, so nothing flashes dark behind the card.
-    val screenPopEnter: EnterTransition =
-        slideInHorizontally(tween(LONG, easing = LinearEasing)) { -it / 20 } +
-            fadeIn(tween(MEDIUM, easing = LinearEasing), initialAlpha = 0.5f)
+    // Going back is instant everywhere (back button, arrow and predictive-back gesture alike):
+    // the gesture-scrubbed animations never looked the same on every screen.
+    val screenPopEnter: EnterTransition = EnterTransition.None
 
-    val screenPopExit: ExitTransition =
-        scaleOut(tween(LONG, easing = LinearEasing), targetScale = 0.9f) +
-            slideOutHorizontally(tween(LONG, easing = LinearEasing)) { it / 10 } +
-            fadeOut(tween(durationMillis = LONG * 4 / 10, delayMillis = LONG * 6 / 10, easing = LinearEasing))
+    val screenPopExit: ExitTransition = ExitTransition.None
 
     /** Switching between bottom-bar tabs: fade-through, no directional slide. */
     val tabEnter: EnterTransition = fadeIn(tween(MEDIUM, delayMillis = 60, easing = Standard))

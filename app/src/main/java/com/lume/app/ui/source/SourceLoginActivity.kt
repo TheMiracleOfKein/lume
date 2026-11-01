@@ -38,6 +38,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
 import com.lume.app.LumeApp
 import com.lume.app.R
+import com.lume.app.data.source.LibWebSession
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.LumeTheme
 import kotlinx.coroutines.launch
@@ -48,6 +49,16 @@ import kotlinx.coroutines.launch
  */
 class SourceLoginActivity : ComponentActivity() {
     private val container get() = (application as LumeApp).container
+
+    /** The user has touched the page after it first loaded (typed, tapped a button). */
+    private var userTouched = false
+    private var firstPageChecked = false
+
+    /** Access tokens of the old site session found on open; never saved. */
+    private val staleTokens = mutableSetOf<String>()
+
+    /** The heavy wipe runs once per screen, so a site that keeps the session can't loop it. */
+    private var wiped = false
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -104,8 +115,30 @@ class SourceLoginActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        onAuthJson = { raw ->
+                        onAuthJson = { raw, view ->
                             lifecycleScope.launch {
+                                val token = container.libAuth.parse(raw) ?: return@launch
+                                val accessToken = token.token?.accessToken.orEmpty()
+                                if (accessToken in staleTokens) return@launch
+                                // Signed out in Lume, yet the site already reports an account
+                                // before the user did anything: that's the old session.
+                                if (!userTouched && container.libAuth.getToken(sourceId) == null) {
+                                    staleTokens += accessToken
+                                    if (!wiped) {
+                                        wiped = true
+                                        status = getString(R.string.source_login_stale)
+                                        view.evaluateJavascript(
+                                            "(function(){try{localStorage.clear();sessionStorage.clear();}catch(e){}})()",
+                                            null,
+                                        )
+                                        val baseUrls = container.sources.sources.value.map { it.manifest.baseUrl }
+                                        LibWebSession.wipeAll(baseUrls) {
+                                            view.clearCache(false)
+                                            view.loadUrl(loginUrl)
+                                        }
+                                    }
+                                    return@launch
+                                }
                                 val saved = container.libAuth.saveRaw(sourceId, raw)
                                 if (saved != null) {
                                     status = getString(R.string.source_login_ok)
@@ -133,7 +166,7 @@ class SourceLoginActivity : ComponentActivity() {
     private fun LoginWebView(
         url: String,
         modifier: Modifier,
-        onAuthJson: (String) -> Unit,
+        onAuthJson: (String, WebView) -> Unit,
     ) {
         AndroidView(
             modifier = modifier,
@@ -148,11 +181,20 @@ class SourceLoginActivity : ComponentActivity() {
                     importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_YES
                     CookieManager.getInstance().setAcceptCookie(true)
                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+                    setOnTouchListener { _, _ ->
+                        if (firstPageChecked) userTouched = true
+                        false
+                    }
                     webViewClient = object : WebViewClient() {
                         override fun onPageFinished(view: WebView?, finishedUrl: String?) {
-                            view?.evaluateJavascript(
+                            view ?: return
+                            view.evaluateJavascript(
                                 "(function(){try{return localStorage.getItem('auth')||localStorage['auth']||null;}catch(e){return null;}})()",
                             ) { value ->
+                                // Report first, then count touches: a session found on open is the old one.
+                                val ready = firstPageChecked
+                                firstPageChecked = true
+                                if (!ready) userTouched = false
                                 if (value.isNullOrBlank() || value == "null") return@evaluateJavascript
                                 val unquoted = if (value.length >= 2 && value.first() == '"' && value.last() == '"') {
                                     value.substring(1, value.length - 1)
@@ -162,7 +204,7 @@ class SourceLoginActivity : ComponentActivity() {
                                     value
                                 }
                                 if (unquoted.contains("access_token")) {
-                                    onAuthJson(unquoted)
+                                    onAuthJson(unquoted, view)
                                 }
                             }
                         }

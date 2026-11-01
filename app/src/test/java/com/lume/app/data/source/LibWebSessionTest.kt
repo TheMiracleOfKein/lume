@@ -22,6 +22,12 @@ class LibWebSessionTest {
     }
 
     @Test
+    fun keepsOnlyClearancePairs() {
+        val raw = "mangalib_session=abc; cf_clearance=x=y; XSRF-TOKEN=t; __ddg1_=d; cf_clearance=x=y"
+        assertEquals(listOf("cf_clearance=x=y", "__ddg1_=d"), LibWebSession.clearancePairs(raw))
+    }
+
+    @Test
     fun parentDomainOfSubdomainOnly() {
         assertEquals("lib.social", LibWebSession.parentDomain("auth.lib.social"))
         assertNull(LibWebSession.parentDomain("mangalib.me"))

@@ -124,6 +124,11 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Library badge shows read of total; search results in the library get a status colour bar.
 - ⏸️ Search marks don't match a library title saved from another source.
 
+**v0.7.8: login, back and a fast library** ([details](#v078-login-back-and-a-fast-library))
+- ✅ The Lib login screen ignores a site session left over from before sign-out and clears it, so the login form shows.
+- ✅ Going back is instant on every screen; the back animation is gone.
+- ✅ A big library (600+ titles) opens at once instead of after about 10 seconds.
+
 **v0.7.7: Lib sign-out and back animation** ✅ released 2026-11-01 ([details](#v077-lib-sign-out-and-back-animation--released-2026-11-01))
 - ✅ Sign-out of a Lib site clears its web session, so another account can log in; the login screen offers saved passwords through autofill.
 - ✅ Going back shrinks the leaving screen into a rounded card with a shadow (the rounded corners left over from v0.3).
@@ -165,7 +170,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **Performance**
 - A frame-time benchmark for library and reader scrolling next to `StartupBenchmark`; the profile is recorded again (S).
-- ✅ **Rounded screen corners during the back gesture**: done in v0.7.7 through the navigation event dispatcher.
+- ⏸️ **Rounded screen corners during the back gesture**: added in v0.7.7, removed again in v0.7.8 (it looked different from screen to screen); going back is instant.
 
 ## v0.9: library and sources
 
@@ -324,7 +329,7 @@ Release notes: [docs/releases/v0.3.0.md](releases/v0.3.0.md).
 - ✅ **Smaller, faster release build.** R8 shrinking cut the APK from about 16 MB to 3 MB. A baseline profile speeds up startup.
 
 **Left over from v0.3**
-- ✅ **Rounded screen corners during the back gesture.** Removed in v0.3; back in v0.7.7, read from `NavigationEventDispatcher.transitionState` instead of the internal `Transition.isSeeking`.
+- ⏸️ **Rounded screen corners during the back gesture.** Removed in v0.3, back in v0.7.7, removed again in v0.7.8: going back is now instant everywhere.
 - ✅ **Measured baseline profile.** Done in v0.4: the `:baselineprofile` module records it on an emulator.
 - 🟡 **Device testing of v0.3.** v0.3 was released after builds and unit tests only. The device checklist (resume, motion, notifications, R8 build) is still to be worked through on real phones; it is in [DEVICE_TESTING.md](DEVICE_TESTING.md).
 
@@ -544,6 +549,14 @@ Release notes: [docs/releases/v0.7.6.md](releases/v0.7.6.md).
 - ✅ **Bell pool:** `title_prefs.autoDownload` is the bell; `LibraryUpdateWorker` checks the watched titles (at most 20) or the 20 most recently read.
 - ✅ **Library marks:** read/total badge; status colour bar in search from category names (`libraryStatusOf`).
 - ⏸️ Cross-source matching for search marks; a per-user setting for the pool size.
+
+### v0.7.8: login, back and a fast library
+
+Release notes: [docs/releases/v0.7.8.md](releases/v0.7.8.md).
+
+- ✅ **Login:** with no Lume token, a `localStorage.auth` found before the user touches the page is treated as stale: `LibWebSession.wipeAll` deletes all WebView storage and cookies (re-setting the sources' clearance cookies) and the page reloads; stale tokens are never saved. Logout expiry also sends `Secure; SameSite=None` variants.
+- ✅ **Back:** pop transitions are `None`; `BackGestureCard`, `BackGesture.kt` and the direct navigationevent dependency are removed.
+- ✅ **Library:** `observeLibraryStats` is one grouped pass instead of correlated `NOT IN` subqueries (synthetic 600 titles: 126 s → 0.4 s, same results); the library waits for the first answer instead of flashing empty.
 
 ### v0.7.7: Lib sign-out and back animation ✅ released 2026-11-01
 

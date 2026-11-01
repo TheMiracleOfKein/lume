@@ -77,12 +77,6 @@ import com.lume.app.ui.components.LocalShellBottomPadding
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.LumeLogo
 import com.lume.app.ui.nav.AppLinks
-import com.lume.app.ui.nav.BackGestureCard
-import com.lume.app.ui.nav.LocalBackGestureActive
-import com.lume.app.ui.nav.rememberBackGestureActive
-import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.DisposableEffect
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.screens.CatalogScreen
 import com.lume.app.ui.screens.CategoriesScreen
@@ -155,15 +149,7 @@ fun AppShell(nav: NavHostController) {
         }
     }
 
-    // Entries leaving by a pop (back button, back arrow or a committed gesture), recorded by the
-    // pop transition itself; a forward exit takes the entry out again (e.g. after a cancelled gesture).
-    val popping = remember { mutableStateMapOf<String, Unit>() }
-
-    CompositionLocalProvider(
-        LocalUseRail provides useRail,
-        LocalBackGestureActive provides rememberBackGestureActive(),
-        LocalPoppingIds provides popping,
-    ) {
+    CompositionLocalProvider(LocalUseRail provides useRail) {
     Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
         // No shell padding at all: each destination pads itself (see lumeComposable), so the
         // bottom bar sliding in or out never re-lays-out a screen mid-transition.
@@ -173,17 +159,12 @@ fun AppShell(nav: NavHostController) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(AppColors.background),
-            // Tabs fade through; drilling into a title / reader slides. Same specs everywhere.
+            // Tabs fade through; drilling into a title / reader slides. Going back (button, arrow
+            // or gesture) is instant on every screen: no pop animation for a gesture to scrub.
             enterTransition = { if (isTabSwitch()) Motion.tabEnter else Motion.screenEnter },
-            exitTransition = {
-                popping.remove(initialState.id)
-                if (isTabSwitch()) Motion.tabExit else Motion.screenExit
-            },
-            popEnterTransition = { if (isTabSwitch()) Motion.tabEnter else Motion.screenPopEnter },
-            popExitTransition = {
-                popping[initialState.id] = Unit
-                if (isTabSwitch()) Motion.tabExit else Motion.screenPopExit
-            },
+            exitTransition = { if (isTabSwitch()) Motion.tabExit else Motion.screenExit },
+            popEnterTransition = { Motion.screenPopEnter },
+            popExitTransition = { Motion.screenPopExit },
         ) {
             lumeComposable(Routes.Home) { HomeScreen(nav) }
             lumeComposable(Routes.Catalog) { CatalogScreen(nav) }
@@ -311,8 +292,6 @@ fun AppShell(nav: NavHostController) {
 
 private const val RAIL_MIN_WIDTH_DP = 600
 
-private val LocalPoppingIds = compositionLocalOf<MutableMap<String, Unit>> { mutableMapOf() }
-
 private fun NavHostController.navigateToTab(route: String) {
     navigate(route) {
         popUpTo(graph.findStartDestination().id) {
@@ -343,19 +322,14 @@ private fun NavGraphBuilder.lumeComposable(
         // Flips as soon as this screen starts leaving (also while a back gesture is in progress),
         // so the reader can bring the system bars back before the next screen is visible.
         val exiting = transition.targetState == EnterExitState.PostExit
-        val popping = LocalPoppingIds.current
-        val popped = exiting && entry.id in popping
-        DisposableEffect(entry.id) { onDispose { popping.remove(entry.id) } }
         CompositionLocalProvider(
             LocalShellBottomPadding provides bottomPadding,
             LocalNavExiting provides exiting,
         ) {
-            BackGestureCard(leaving = exiting && !isTab, popped = popped, background = AppColors.background) {
-                if (isTab && rail) {
-                    Box(Modifier.fillMaxSize().padding(start = LumeInsets.RailWidth)) { content(entry) }
-                } else {
-                    content(entry)
-                }
+            if (isTab && rail) {
+                Box(Modifier.fillMaxSize().padding(start = LumeInsets.RailWidth)) { content(entry) }
+            } else {
+                content(entry)
             }
         }
     }
