@@ -154,6 +154,14 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Per-page spinner; one shared zoom gesture; every back arrow is labelled "Back".
 - ⏸️ Links still open under the app lock (hidden by it); waiting for unlock needs the lock state in the shell.
 
+**v0.7.12: polish** ([details](#v0712-polish))
+- ✅ Main menu without the bottom-bar tabs; Home search opens the all-sources search with the query; History has clear-all.
+- ✅ Library grid adapts to the screen width; Settings and title details are width-capped on wide screens.
+- ✅ Dialogs and typed text survive rotation.
+- ✅ The library check reports failures; downloaded and local pages in natural order; one queue row per chapter; CBZ cache capped at 300 MB.
+- ✅ Sync: monotonic change stamps, long-lived removals, temp-then-rename writes, a message for "Sync now" while off.
+- ⏸️ Stronger sync key derivation (PBKDF2 600k): needs a new sync file format that older versions can't read.
+
 **v0.7.x: send downloads to a nearby device** (L)
 
 Sync moves your library and progress, never the downloaded pages. This moves the pages: pick downloaded chapters on one phone, and another phone nearby receives them, without the internet and without a server.
@@ -616,3 +624,16 @@ Release notes: [docs/releases/v0.7.11.md](releases/v0.7.11.md). From the full au
 - ✅ **Accessibility:** shared `BackButton` with `cd_back`.
 - ⏸️ Deep links while locked: see the summary above.
 - Next: v0.7.12 polish (download queue race, library check result, rotation state, sync, CBZ order, adaptive library grid, menu redesign, doc fixes).
+
+### v0.7.12: polish
+
+Release notes: [docs/releases/v0.7.12.md](releases/v0.7.12.md). From the full audit of v0.7.9 (static findings 10, 11, 13, 15, 16, 18 and 19, plus the menu redesign); device check in [v0.7.12-check.md](releases/v0.7.12-check.md).
+
+- ✅ **Downloads:** unique `(sourceId, titleId, chapterId)` index (migration 10 → 11, duplicates dropped first); WorkManager 2.12 already stops the dataSync worker on `onTimeout`, and stopped rows go back to pending.
+- ✅ **Library check:** failed and checked counts, `retry()` when every title fails, shown on Updates.
+- ✅ **Pages and caches:** `NaturalOrder` for CBZ and local folders; unpacked archive cache capped at 300 MB; `TitleRepository` caches are LRU (200).
+- ✅ **Rotation:** `rememberSaveable` for dialog flags and typed text on eight screens.
+- ✅ **Layout and menu:** adaptive library grid, 840 dp cap on Settings and title details; menu without the four tabs; Home search with the query; History clear-all. Settings → Sources already linked to the Sources screen.
+- ✅ **Sync:** `stampTime` monotonic stamps, tombstones kept 3650 days, `.tmp` then rename / WebDAV `MOVE`, "Sync is off" message.
+- ✅ **Docs:** PRIVACY (update check, `REQUEST_INSTALL_PACKAGES`), roadmap update-check default and order, README source count, DEVICE_TESTING for v0.7.1–v0.7.11; Lib folder names from string resources.
+- ⏸️ PBKDF2 iterations: see the summary above.
