@@ -1,6 +1,7 @@
 package com.lume.app.ui.screens.settings
 
 import android.text.format.DateUtils
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -28,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -49,6 +51,7 @@ fun SyncSettingsPage(vm: SettingsViewModel) {
     val settings by vm.prefs.syncSettings.collectAsState()
     val status by vm.prefs.syncStatus.collectAsState()
     val running by vm.syncRunning.collectAsState()
+    val context = LocalContext.current
     var webDavOpen by rememberSaveable { mutableStateOf(false) }
     var passphraseOpen by rememberSaveable { mutableStateOf(false) }
     val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -137,7 +140,9 @@ fun SyncSettingsPage(vm: SettingsViewModel) {
     SettingsGroup {
         SettingItem("sync_now") {
             SettingsLink(stringResource(R.string.sync_now), syncStatusLine(status.lastAt, status.error, status.devices)) {
-                if (!running && settings.ready) vm.syncNow()
+                if (running) return@SettingsLink
+                if (settings.ready) vm.syncNow()
+                else Toast.makeText(context, R.string.sync_off_message, Toast.LENGTH_SHORT).show()
             }
             if (running) {
                 LinearProgressIndicator(

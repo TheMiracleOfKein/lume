@@ -853,6 +853,12 @@
     <string name="sync_interval_hint">Lume also syncs when it starts.</string>
     <string name="sync_section_status">Status</string>
     <string name="sync_now">Sync now</string>
+    <string name="sync_off_message">Sync is off. Choose a sync mode first.</string>
+    <string name="lib_folder_reading">Reading</string>
+    <string name="lib_folder_planned">Planned</string>
+    <string name="lib_folder_dropped">Dropped</string>
+    <string name="lib_folder_read">Read</string>
+    <string name="lib_folder_favorite">Favorites</string>
     <string name="sync_never">Not synced yet</string>
     <string name="sync_last">Last sync %1$s</string>
     <plurals name="sync_devices">

@@ -3,7 +3,7 @@ package com.lume.app.data.source
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
-/** A bookmark folder on a MangaLib-family site ("Читаю", "В планах", or one the user made). */
+/** A bookmark folder on a MangaLib-family site ("Reading", "Planned", or one the user made). */
 data class LibBookmarkFolder(val id: String, val name: String)
 
 /** One bookmarked title. [titleId] is the Lume id (`/<slug_url>`). */
@@ -114,23 +114,20 @@ private fun parseLibTime(raw: String): Long? = runCatching {
 /** `status` value that asks `/bookmarks` for every bookmark, whatever folder it is in. */
 internal const val LIB_ALL_BOOKMARKS = "0"
 
-/** The statuses every Lib account has, by id. The user's own folders have large ids. */
-private val DEFAULT_LIB_FOLDERS = mapOf(
-    "1" to "Читаю",
-    "2" to "В планах",
-    "3" to "Брошено",
-    "4" to "Прочитано",
-    "5" to "Любимые",
-)
-
 /**
  * [siteFolders] plus a name for each built-in status in [usedIds] the site didn't list, so a
- * failed `/bookmarks/folder` call still leaves the standard folders as categories. The user's
- * own folders without a name stay unnamed: their titles are imported without that category.
+ * failed `/bookmarks/folder` call still leaves the standard folders as categories. [defaults] maps
+ * the statuses every Lib account has (ids 1 to 5; the user's own folders have large ids) to names
+ * in the app's language. The user's own folders without a name stay unnamed: their titles are
+ * imported without that category.
  */
-internal fun withDefaultLibFolders(siteFolders: List<LibBookmarkFolder>, usedIds: Set<String>): List<LibBookmarkFolder> {
+internal fun withDefaultLibFolders(
+    siteFolders: List<LibBookmarkFolder>,
+    usedIds: Set<String>,
+    defaults: Map<String, String>,
+): List<LibBookmarkFolder> {
     val known = siteFolders.mapTo(HashSet()) { it.id }
-    val extra = DEFAULT_LIB_FOLDERS.filterKeys { it in usedIds && it !in known }
+    val extra = defaults.filterKeys { it in usedIds && it !in known }.filterValues { it.isNotBlank() }
         .map { (id, name) -> LibBookmarkFolder(id, name) }
     return siteFolders + extra
 }
@@ -138,7 +135,7 @@ internal fun withDefaultLibFolders(siteFolders: List<LibBookmarkFolder>, usedIds
 /** The statuses an import brings over: reading, planned, dropped and read. Favourites and the user's own folders stay on the site. */
 internal val LIB_IMPORTED_STATUSES = listOf("1", "2", "3", "4")
 
-/** "Прочитано": every chapter of a title in it is marked read. */
+/** "Read": every chapter of a title in it is marked read. */
 internal const val LIB_STATUS_COMPLETED = "4"
 
 /** With no paging info, a full page means there may be more. */

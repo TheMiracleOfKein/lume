@@ -864,6 +864,12 @@
     <string name="sync_interval_hint">Lume также синхронизируется при запуске.</string>
     <string name="sync_section_status">Состояние</string>
     <string name="sync_now">Синхронизировать сейчас</string>
+    <string name="sync_off_message">Синхронизация выключена. Сначала выберите способ синхронизации.</string>
+    <string name="lib_folder_reading">Читаю</string>
+    <string name="lib_folder_planned">В планах</string>
+    <string name="lib_folder_dropped">Брошено</string>
+    <string name="lib_folder_read">Прочитано</string>
+    <string name="lib_folder_favorite">Любимые</string>
     <string name="sync_never">Ещё не синхронизировано</string>
     <string name="sync_last">Последняя синхронизация: %1$s</string>
     <plurals name="sync_devices">
