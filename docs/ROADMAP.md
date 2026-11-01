@@ -142,7 +142,7 @@ Patch releases from the v0.6 line, as needed.
 - ⏸️ Room keeps wiping the database on a downgrade: Android refuses to install an older APK over a newer one, so this happens only with `adb install -d`; removing it would crash instead.
 - ⏸️ OAuth `state` checks: the redirect goes to Lume's own link scheme and MyAnimeList already uses PKCE; planned with the tracker rework.
 
-**v0.7.11: reader and navigation** 🟡 ([details](#v0711-reader-and-navigation))
+**v0.7.11: reader and navigation** ✅ released 2026-11-01 ([details](#v0711-reader-and-navigation--released-2026-11-01))
 - ✅ Very tall webtoon pages (Asura's 800×~14,500 strips) draw as stacked slices instead of staying black.
 - ✅ Links from notifications, the widget, shortcuts and shared links open on top of the current screens; the menu no longer stacks duplicates.
 - ✅ The reader shows Back and the title while loading or failed; prev/next follow reading order, are greyed out at the ends, and pulling past the end says so.
@@ -570,7 +570,7 @@ Release notes: [docs/releases/v0.7.6.md](releases/v0.7.6.md).
 - ✅ **Library marks:** read/total badge; status colour bar in search from category names (`libraryStatusOf`).
 - ⏸️ Cross-source matching for search marks; a per-user setting for the pool size.
 
-### v0.7.11: reader and navigation
+### v0.7.11: reader and navigation ✅ released 2026-11-01
 
 Release notes: [docs/releases/v0.7.11.md](releases/v0.7.11.md). From the full audit of v0.7.9 (static findings 9, 12, 14 and 17); device check in [v0.7.11-check.md](releases/v0.7.11-check.md).
 
