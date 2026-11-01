@@ -1,5 +1,7 @@
 package com.lume.app.data.library
 
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -94,6 +96,8 @@ class LibraryUpdateWorker(
                     )
                 }
             }
+            // runCatching above also catches cancellation; a stopped job must stop here.
+            currentCoroutineContext().ensureActive()
             setProgress(workDataOf(KEY_DONE to index + 1, KEY_TOTAL to bookmarks.size))
         }
         app.prefs.setLibraryLastCheckedAt(System.currentTimeMillis())

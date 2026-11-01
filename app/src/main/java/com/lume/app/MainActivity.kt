@@ -14,6 +14,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.lifecycle.lifecycleScope
 import android.view.WindowManager
 import androidx.biometric.BiometricManager
@@ -73,7 +74,11 @@ class MainActivity : AppCompatActivity() {
                         modifier = Modifier.fillMaxSize(),
                         color = AppColors.background,
                     ) {
-                        LumeRoot()
+                        // While locked, screen readers and other accessibility services must not
+                        // read the library behind the lock screen.
+                        androidx.compose.foundation.layout.Box(
+                            if (locked.value) Modifier.clearAndSetSemantics {} else Modifier,
+                        ) { LumeRoot() }
                         if (locked.value) LockScreen(onUnlock = ::promptUnlock)
                     }
                 }
