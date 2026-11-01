@@ -127,10 +127,33 @@ class SyncMergeTest {
     @Test
     fun oldRemovalsAreForgotten() {
         val day = 24L * 60 * 60 * 1000
-        val own = state(lib, SyncEntry("gone", 0, deleted = true), SyncEntry("recent", 199 * day, deleted = true))
-        val merged = SyncMerge.merge(own, emptyList(), now = 200 * day)[lib]!!
+        val years = SyncMerge.TOMBSTONE_DAYS
+        val own = state(lib, SyncEntry("gone", 0, deleted = true), SyncEntry("recent", (years - 1) * day, deleted = true))
+        val merged = SyncMerge.merge(own, emptyList(), now = (years + 1) * day)[lib]!!
         assertFalse("gone" in merged)
         assertTrue("recent" in merged)
+    }
+
+    @Test
+    fun aRemovalOutlivesSixMonthsOffline() {
+        val day = 24L * 60 * 60 * 1000
+        val removed = state(lib, SyncEntry("a", 10 * day, deleted = true))
+        val stale = state(lib, SyncEntry("a", 5 * day, data = title("A")))
+        val merged = SyncMerge.merge(removed, listOf(stale), now = 400 * day)[lib]!!
+        assertTrue(merged["a"]!!.deleted)
+    }
+
+    @Test
+    fun stampsNeverGoBackwardsWhenTheClockIsBehind() {
+        assertEquals(500L, SyncMerge.stampTime(now = 500, lastSeen = 100))
+        assertEquals(901L, SyncMerge.stampTime(now = 500, lastSeen = 900))
+        val seen = SyncMerge.highestStamp(state(lib, SyncEntry("a", 900, data = title("A"))), state(lib, SyncEntry("b", 40, deleted = true)))
+        assertEquals(900L, seen)
+        assertEquals(0L, SyncMerge.highestStamp())
+        // An edit made with a slow clock still beats the version it replaces.
+        val previous = state(lib, SyncEntry("a", 900, data = title("A")))
+        val stamped = SyncMerge.stamp(mapOf(lib to mapOf("a" to title("A2"))), previous, SyncMerge.stampTime(500, 900), bootstrap = false, device = "d")
+        assertEquals(901L, stamped[lib]!!["a"]!!.changedAt)
     }
 
     @Test
