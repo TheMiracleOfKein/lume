@@ -32,9 +32,13 @@ import kotlinx.serialization.json.Json
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 
-class HistoryViewModel(app: AppContainer) : ViewModel() {
+class HistoryViewModel(private val app: AppContainer) : ViewModel() {
     val history: StateFlow<List<ProgressEntity>> =
         app.dao.observeHistory().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    fun clearAll() {
+        viewModelScope.launch { app.dao.clearAllProgress() }
+    }
 }
 
 /** Status and alternative title from the cached details, for filters and search. */

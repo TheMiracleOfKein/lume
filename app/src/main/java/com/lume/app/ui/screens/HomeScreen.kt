@@ -2,6 +2,7 @@ package com.lume.app.ui.screens
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.LocalShellBottomPadding
@@ -71,7 +72,8 @@ fun HomeScreen(nav: NavHostController) {
     val sourceId = vm.sourceId
     val loading = vm.loading
     val error = vm.error
-    var confirmClear by remember { mutableStateOf(false) }
+    var confirmClear by rememberSaveable { mutableStateOf(false) }
+    var searchText by rememberSaveable { mutableStateOf("") }
     val history by container.dao.observeHistory().collectAsState(initial = emptyList())
     val online by container.network.online.collectAsState()
     val downloads by container.dao.observeDownloads().collectAsState(initial = emptyList())
@@ -93,10 +95,13 @@ fun HomeScreen(nav: NavHostController) {
             .windowInsetsPadding(LumeInsets.statusBar),
     ) {
         QuickSearchBar(
-            value = "",
-            onValueChange = {},
-            onSubmit = { nav.navigate(Routes.Search) },
-            readOnly = true,
+            value = searchText,
+            onValueChange = { searchText = it },
+            onSubmit = {
+                val query = searchText.trim()
+                searchText = ""
+                nav.navigate(if (query.isEmpty()) Routes.Search else Routes.searchAll(query))
+            },
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         )
 
