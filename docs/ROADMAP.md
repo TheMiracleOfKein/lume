@@ -132,6 +132,16 @@ Patch releases from the v0.6 line, as needed.
 **v0.7.9: no back animation anywhere** ✅ released 2026-11-01 ([details](#v079-no-back-animation-anywhere--released-2026-11-01))
 - ✅ Android's own predictive-back animations (back-to-home card, login screens, bottom sheets) are off; the screen stays still during the back gesture.
 
+**v0.7.10: safety** ([details](#v0710-safety))
+- ✅ Downloads save to a temporary folder and count only when complete; leftovers from interrupted downloads are removed on start.
+- ✅ Backup restore runs in one transaction; backups, sync files and pages have size limits.
+- ✅ Source packs can't use a built-in source's id; download folder names can't leave their folder.
+- ✅ App updates come only from Lume's GitHub releases and must match their size and checksum.
+- ✅ One tracker token refresh at a time; a server error no longer signs out.
+- ✅ The app lock hides content from accessibility services.
+- ⏸️ Room keeps wiping the database on a downgrade: Android refuses to install an older APK over a newer one, so this happens only with `adb install -d`; removing it would crash instead.
+- ⏸️ OAuth `state` checks: the redirect goes to Lume's own link scheme and MyAnimeList already uses PKCE; planned with the tracker rework.
+
 **v0.7.7: Lib sign-out and back animation** ✅ released 2026-11-01 ([details](#v077-lib-sign-out-and-back-animation--released-2026-11-01))
 - ✅ Sign-out of a Lib site clears its web session, so another account can log in; the login screen offers saved passwords through autofill.
 - ✅ Going back shrinks the leaving screen into a rounded card with a shadow (the rounded corners left over from v0.3).
@@ -552,6 +562,19 @@ Release notes: [docs/releases/v0.7.6.md](releases/v0.7.6.md).
 - ✅ **Bell pool:** `title_prefs.autoDownload` is the bell; `LibraryUpdateWorker` checks the watched titles (at most 20) or the 20 most recently read.
 - ✅ **Library marks:** read/total badge; status colour bar in search from category names (`libraryStatusOf`).
 - ⏸️ Cross-source matching for search marks; a per-user setting for the pool size.
+
+### v0.7.10: safety
+
+Release notes: [docs/releases/v0.7.10.md](releases/v0.7.10.md). From the full audit of v0.7.9 (static findings 1–8, 10 and 11).
+
+- ✅ **Downloads:** temporary `.lume-part` folder, cleaned on failure and on start; safe folder names; queue progress writes only to running rows.
+- ✅ **Backup and sync:** restore in one transaction; 64 MB read limit (also unpacked); 48 MB per page.
+- ✅ **Source packs:** bundled ids and unsafe ids refused on import, load, restore and sync.
+- ✅ **Updates:** host, size and SHA-256 checks; pre-release ordering.
+- ✅ **Trackers:** serialized refresh for MyAnimeList, Kitsu and Shikimori; sign-out only on a refused refresh token.
+- ✅ **App lock:** content hidden from accessibility services while locked. Turning the lock on without a screen lock was already refused with a message.
+- ⏸️ Destructive downgrade and OAuth `state`: see the summary above.
+- Next: v0.7.11 reader and navigation (deep links, chapter ends, back-arrow labels, tall strips), v0.7.12 polish.
 
 ### v0.7.9: no back animation anywhere ✅ released 2026-11-01
 
