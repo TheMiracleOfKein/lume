@@ -129,6 +129,9 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Going back is instant on every screen; the back animation is gone.
 - ✅ A big library (600+ titles) opens at once instead of after about 10 seconds.
 
+**v0.7.9: no back animation anywhere** ([details](#v079-no-back-animation-anywhere))
+- ✅ Android's own predictive-back animations (back-to-home card, login screens, bottom sheets) are off; the screen stays still during the back gesture.
+
 **v0.7.7: Lib sign-out and back animation** ✅ released 2026-11-01 ([details](#v077-lib-sign-out-and-back-animation--released-2026-11-01))
 - ✅ Sign-out of a Lib site clears its web session, so another account can log in; the login screen offers saved passwords through autofill.
 - ✅ Going back shrinks the leaving screen into a rounded card with a shadow (the rounded corners left over from v0.3).
@@ -549,6 +552,12 @@ Release notes: [docs/releases/v0.7.6.md](releases/v0.7.6.md).
 - ✅ **Bell pool:** `title_prefs.autoDownload` is the bell; `LibraryUpdateWorker` checks the watched titles (at most 20) or the 20 most recently read.
 - ✅ **Library marks:** read/total badge; status colour bar in search from category names (`libraryStatusOf`).
 - ⏸️ Cross-source matching for search marks; a per-user setting for the pool size.
+
+### v0.7.9: no back animation anywhere
+
+Release notes: [docs/releases/v0.7.9.md](releases/v0.7.9.md).
+
+- ✅ **Back:** `enableOnBackInvokedCallback="false"` in the manifest; no system or in-app predictive-back animation is left. The opt-out is honoured on API 37 / targetSdk 37.
 
 ### v0.7.8: login, back and a fast library ✅ released 2026-11-01
 
