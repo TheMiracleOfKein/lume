@@ -55,7 +55,7 @@ apksigner verify --print-certs lume-vX.Y.Z.apk
 - Move a title to another source in one tap, with progress, bookmarks, categories, trackers and downloads.
 
 **Sources**
-- 11 built-in sources in English and Russian (listed below), plus your own JSON packs for Madara, LibSocial and HiveToons sites.
+- 12 built-in sources (11 sites in English and Russian, plus local files; listed below), plus your own JSON packs for Madara, LibSocial and HiveToons sites.
 - Global search with per-source results, filters and history.
 - Open a title link from the browser or share it to Lume.
 - Cloudflare and DDoS-Guard checks are solved in a built-in browser; sign-in for MangaLib, YaoiLib and HentaiLib.
