@@ -38,6 +38,8 @@ data class AppRelease(
     val pageUrl: String,
     val apkUrl: String?,
     val apkSize: Long,
+    /** The asset's SHA-256 in hex as GitHub reports it, or null for older releases. */
+    val apkSha256: String? = null,
 )
 
 sealed interface UpdateState {
@@ -168,6 +170,7 @@ class AppUpdater(
     }
 
     private suspend fun downloadApk(url: String, release: AppRelease): File {
+        if (!isTrustedApkUrl(url)) throw IOException("Unexpected download address")
         val dir = File(app.cacheDir, "shared/update").apply { mkdirs() }
         dir.listFiles()?.forEach { it.delete() }
         val target = File(dir, "lume-${release.version}.apk")
@@ -180,6 +183,7 @@ class AppUpdater(
             val total = body.contentLength().takeIf { it > 0 } ?: release.apkSize.takeIf { it > 0 }
             var read = 0L
             var lastReported = -1
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
             body.byteStream().use { input ->
                 part.outputStream().use { output ->
                     val buffer = ByteArray(64 * 1024)
@@ -188,6 +192,7 @@ class AppUpdater(
                         val n = input.read(buffer)
                         if (n < 0) break
                         output.write(buffer, 0, n)
+                        digest.update(buffer, 0, n)
                         read += n
                         if (total != null) {
                             val percent = (read * 100 / total).toInt()
@@ -198,6 +203,16 @@ class AppUpdater(
                         }
                     }
                 }
+            }
+            // A cut-off or altered file must never reach the installer.
+            if (release.apkSize > 0 && read != release.apkSize) {
+                part.delete()
+                throw IOException("The download is incomplete ($read of ${release.apkSize} bytes)")
+            }
+            val sha = digest.digest().joinToString("") { "%02x".format(it) }
+            if (release.apkSha256 != null && !release.apkSha256.equals(sha, ignoreCase = true)) {
+                part.delete()
+                throw IOException("The download doesn't match the release checksum")
             }
         }
         if (!part.renameTo(target)) throw IOException("Can't save the update")
@@ -229,12 +244,26 @@ internal fun parseRelease(obj: JsonObject): AppRelease? {
         pageUrl = obj.str("html_url").orEmpty(),
         apkUrl = apk?.str("browser_download_url"),
         apkSize = (apk?.get("size") as? JsonPrimitive)?.longOrNull ?: 0L,
+        // GitHub reports "sha256:<hex>" for assets uploaded since mid-2025.
+        apkSha256 = apk?.str("digest")?.takeIf { it.startsWith("sha256:", ignoreCase = true) }
+            ?.substringAfter(':')?.takeIf { it.length == 64 },
     )
 }
 
-/** True when [candidate] (like "0.7.5") is a later version than [current]. */
+/** Only release assets of Lume's own GitHub repository are downloaded, over HTTPS. */
+internal fun isTrustedApkUrl(url: String): Boolean {
+    val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return false
+    return uri.scheme == "https" && uri.host == "github.com" &&
+        uri.path.orEmpty().startsWith("/TheMiracleOfKein/lume/releases/download/")
+}
+
+/**
+ * True when [candidate] (like "0.7.5") is a later version than [current]. With equal numbers a
+ * final version is later than a pre-release of it ("1.0.0" after "1.0.0-rc1").
+ */
 internal fun isNewer(candidate: String, current: String): Boolean {
-    fun parts(v: String) = v.trim().removePrefix("v").substringBefore('-').split('.').map { it.toIntOrNull() ?: 0 }
+    fun clean(v: String) = v.trim().removePrefix("v")
+    fun parts(v: String) = clean(v).substringBefore('-').split('.').map { it.toIntOrNull() ?: 0 }
     val a = parts(candidate)
     val b = parts(current)
     for (i in 0 until maxOf(a.size, b.size)) {
@@ -242,5 +271,5 @@ internal fun isNewer(candidate: String, current: String): Boolean {
         val y = b.getOrElse(i) { 0 }
         if (x != y) return x > y
     }
-    return false
+    return !clean(candidate).contains('-') && clean(current).contains('-')
 }
