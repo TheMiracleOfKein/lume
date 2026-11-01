@@ -41,9 +41,6 @@
     <string name="menu_settings">Настройки</string>
     <string name="menu_downloads">Загрузки</string>
     <string name="menu_history">История</string>
-    <string name="menu_library">Закладки</string>
-    <string name="menu_home">Главная</string>
-    <string name="menu_catalog">Каталог</string>
 
     <string name="error_no_active_sources">Нет активных источников</string>
     <string name="error_no_sources">Нет источников</string>
@@ -74,6 +71,7 @@
     <string name="dialog_categories">Категории</string>
     <string name="categories_empty_hint">Сначала создайте категорию</string>
     <string name="history_empty">История пуста</string>
+    <string name="history_clear">Очистить историю</string>
     <string name="search_title">Поиск</string>
     <string name="search_mode_current">Текущий источник</string>
     <string name="search_mode_all">Все источники</string>
@@ -351,7 +349,6 @@
 
     <!-- Updates (v0.4) -->
     <string name="nav_updates">Обновления</string>
-    <string name="menu_updates">Обновления</string>
     <string name="updates_empty">Новых глав пока нет. Потяните вниз, чтобы проверить библиотеку.</string>
     <string name="updates_last_checked">Проверено %s</string>
     <string name="updates_today">Сегодня</string>
