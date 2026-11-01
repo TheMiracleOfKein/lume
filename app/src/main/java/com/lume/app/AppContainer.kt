@@ -60,7 +60,7 @@ class AppContainer(val app: Application) {
     val libraryChapters = LibraryChapters(database, dao)
     val titles = TitleRepository(sources, offlineCache, libraryChapters, dao)
     val downloadQueue = DownloadQueue(app, dao, downloads, sources, titles, prefs, network)
-    val backup = BackupRepository(app, dao, sources, prefs, titles, libraryChapters)
+    val backup = BackupRepository(app, dao, sources, prefs, titles, libraryChapters, database = database)
     val trackers = TrackerRegistry(http, dao, prefs)
     val trackerSync = TrackerSync(app, dao, trackers, prefs)
     val similarTitles = com.lume.app.data.similar.SimilarTitlesRepository(http, dao, trackers.anilist, trackers.myAnimeList)

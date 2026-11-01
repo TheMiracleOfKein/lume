@@ -297,14 +297,14 @@ class DownloadQueue(
                     val now = System.currentTimeMillis()
                     if (now - lastWrite > 300 || p >= 1f) {
                         lastWrite = now
-                        scope.launch { dao.updateDownloadQueueStatus(item.id, DownloadQueueEntity.STATUS_RUNNING, p) }
+                        scope.launch { dao.updateRunningDownloadProgress(item.id, p) }
                     }
                 },
             )
             dao.deleteDownloadQueueItem(item.id)
         } catch (e: CancellationException) {
-            store.abortPartial(item.sourceId, item.titleId, item.chapterId)
             withContext(NonCancellable) {
+                store.abortPartial(item.sourceId, item.titleId, item.chapterId)
                 // Paused: back to the queue. Cancelled by hand: the row is already gone.
                 if (dao.getDownloadQueueItem(item.id) != null) {
                     dao.updateDownloadQueueStatus(item.id, DownloadQueueEntity.STATUS_PENDING, 0f)

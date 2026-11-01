@@ -181,6 +181,7 @@
     <string name="engine_kind_platform">платформа</string>
     <string name="import_reject_engine">Импорт JSON только для семейств: madara, libsocial, hivetoons. Движок «%s» вшит в приложение и обновляется вместе с ним.</string>
     <string name="import_reject_local">Нельзя импортировать поверх встроенного Local</string>
+    <string name="import_reject_bundled">Пакет не может использовать id «%s»: он занят встроенным источником или содержит символы кроме букв, цифр, - и _</string>
 
     <string name="auth_title_anilist">Вход AniList</string>
     <string name="auth_title_shikimori">Вход Shikimori</string>

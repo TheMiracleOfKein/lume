@@ -192,6 +192,7 @@
     <string name="engine_kind_platform">platform</string>
     <string name="import_reject_engine">JSON import is only for families: madara, libsocial, hivetoons. Engine “%s” is built into the app and updates with it.</string>
     <string name="import_reject_local">Cannot import over the built-in Local source</string>
+    <string name="import_reject_bundled">A pack can\'t use the id “%s”: it belongs to a built-in source or has characters other than letters, digits, - and _</string>
 
     <!-- Auth / OAuth -->
     <string name="auth_title_anilist">AniList sign-in</string>

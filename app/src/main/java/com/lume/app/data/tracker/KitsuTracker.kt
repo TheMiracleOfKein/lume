@@ -6,6 +6,7 @@ import com.lume.app.data.network.AppHttp
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.util.urlEncode
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -69,6 +70,7 @@ class KitsuTracker(
         val request = Request.Builder().url(OAUTH).post(form).build()
         return http.okHttp.newCall(request).execute().use { response ->
             val text = response.body.string()
+            lastTokenStatus = if (response.isSuccessful) 0 else response.code
             if (!response.isSuccessful) return@use false
             val obj = json.parseToJsonElement(text).jsonObject
             val token = (obj["access_token"] as? JsonPrimitive)?.contentOrNull ?: return@use false
@@ -88,8 +90,20 @@ class KitsuTracker(
                 .add("client_secret", CLIENT_SECRET)
                 .build(),
         )
-        if (!ok) logout()
+        // Only a refused refresh token signs out; a server error may pass.
+        if (!ok && lastTokenStatus in 400..401) logout()
         return ok
+    }
+
+    /** HTTP status of the last refused token request (0 when it was not refused). */
+    private var lastTokenStatus = 0
+
+    private val refreshLock = kotlinx.coroutines.sync.Mutex()
+
+    /** Refreshes once for calls that got 401 with [stale] at the same time. */
+    private suspend fun refreshAfter(stale: String): Boolean = refreshLock.withLock {
+        val current = prefs.trackerValue(id, "access_token")
+        (current != null && current != stale) || refresh()
     }
 
     override suspend fun logout() {
@@ -105,7 +119,7 @@ class KitsuTracker(
         val first = http.okHttp.newCall(request(token)).execute()
         if (first.code != 401 || token == null) return@withContext first.use(read)
         first.close()
-        if (!refresh()) return@withContext null
+        if (!refreshAfter(token)) return@withContext null
         http.okHttp.newCall(request(prefs.trackerValue(id, "access_token"))).execute().use(read)
     }
 

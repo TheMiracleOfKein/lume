@@ -70,15 +70,17 @@ class SourceRegistry(
                 bundledIds += manifest.id
                 upsert(loaded, createEngine(manifest))
             }
+            bundledIds += "local"
             for (pack in dao.allSourcePacks()) {
                 runCatching {
                     val manifest = json.decodeFromString(SourceManifest.serializer(), pack.json)
+                    // A pack may never replace a built-in source (it would get that source's sign-in).
+                    if (manifest.id in bundledIds || !isValidPackId(manifest.id)) return@runCatching
                     // Legacy packs for non-family engines still load if already installed.
                     upsert(loaded, createEngine(manifest))
                 }
             }
             upsert(loaded, DispatchingSource(LocalEngine(context)))
-            bundledIds += "local"
             _sources.value = loaded
         } finally {
             // Even a broken bundled manifest must not leave background work waiting forever.
@@ -121,6 +123,9 @@ class SourceRegistry(
         }
         if (manifest.id == "local") {
             error(context.getString(R.string.import_reject_local))
+        }
+        if (isBundled(manifest.id) || !isValidPackId(manifest.id)) {
+            error(context.getString(R.string.import_reject_bundled, manifest.id))
         }
         createEngine(manifest) // validate engine wiring
         dao.upsertSourcePack(
@@ -289,6 +294,12 @@ internal fun CatalogSource.unwrapped(): CatalogSource {
     while (current is WrappingSource) current = current.inner
     return current
 }
+
+/**
+ * Ids an imported pack may use: letters, digits, `-` and `_`, up to 64 characters. The id names
+ * the source's download folder and its stored settings, so dots and slashes are not allowed.
+ */
+internal fun isValidPackId(id: String): Boolean = id.length in 1..64 && id.all { it.isLetterOrDigit() || it == '-' || it == '_' }
 
 /** Requests per second to the shared MangaLib-family API: one every half second. */
 internal const val LIB_API_RATE_LIMIT = 2.0

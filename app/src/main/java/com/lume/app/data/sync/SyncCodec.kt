@@ -1,5 +1,7 @@
 package com.lume.app.data.sync
 
+import com.lume.app.data.backup.MAX_BACKUP_BYTES
+import com.lume.app.data.backup.readCapped
 import java.io.ByteArrayOutputStream
 import java.security.SecureRandom
 import java.util.zip.GZIPInputStream
@@ -54,7 +56,7 @@ object SyncCodec {
             bytes
         }
         val plain = if (zipped.size > 1 && zipped[0] == 0x1f.toByte() && zipped[1] == 0x8b.toByte()) {
-            GZIPInputStream(zipped.inputStream()).use { it.readBytes() }
+            GZIPInputStream(zipped.inputStream()).use { it.readCapped(MAX_BACKUP_BYTES) }
         } else {
             zipped
         }

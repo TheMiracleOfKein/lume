@@ -1,5 +1,7 @@
 package com.lume.app.data.sync
 
+import com.lume.app.data.backup.MAX_BACKUP_BYTES
+import com.lume.app.data.backup.readCapped
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
@@ -35,7 +37,7 @@ class FolderSyncBackend(private val context: Context, private val tree: Uri) : S
 
     override suspend fun read(name: String): ByteArray = withContext(Dispatchers.IO) {
         val id = children().firstOrNull { it.second == name }?.first ?: throw SyncBackendException("$name: not found")
-        resolver.openInputStream(DocumentsContract.buildDocumentUriUsingTree(tree, id))?.use { it.readBytes() }
+        resolver.openInputStream(DocumentsContract.buildDocumentUriUsingTree(tree, id))?.use { it.readCapped(MAX_BACKUP_BYTES) }
             ?: throw SyncBackendException("$name: can't read")
     }
 
