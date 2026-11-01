@@ -71,6 +71,51 @@ import com.lume.app.ui.theme.AppColors
 
 // Reader controls: top and bottom bars, chapter dividers, hiding the controls on scroll.
 
+/** Bar shown while a chapter loads or failed to load: just Back and the names, if known. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun ReaderBackBar(titleName: String, chapterTitle: String, onBack: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.87f), 0.7f to Color.Black.copy(alpha = 0.6f), 1f to Color.Transparent))
+            .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BackButton(onClick = onBack, tint = Color.White)
+            Column(modifier = Modifier.weight(1f).padding(end = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                if (titleName.isNotEmpty()) {
+                    Text(
+                        text = titleName,
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                if (chapterTitle.isNotEmpty()) {
+                    Text(
+                        text = chapterTitle,
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ReaderTopBar(
@@ -165,6 +210,8 @@ internal fun ReaderBottomBar(
     /** Webtoon auto-scroll; null in the paged modes. */
     autoScroll: Boolean?,
     onToggleAutoScroll: () -> Unit,
+    hasPrev: Boolean,
+    hasNext: Boolean,
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onChapters: () -> Unit,
@@ -197,8 +244,12 @@ internal fun ReaderBottomBar(
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onPrev) {
-                Icon(Icons.Outlined.SkipPrevious, stringResource(R.string.cd_prev_chapter), tint = Color.White)
+            IconButton(onClick = onPrev, enabled = hasPrev) {
+                Icon(
+                    Icons.Outlined.SkipPrevious,
+                    stringResource(R.string.cd_prev_chapter),
+                    tint = Color.White.copy(alpha = if (hasPrev) 1f else 0.35f),
+                )
             }
             IconButton(onClick = onChapters) {
                 Icon(Icons.Outlined.FormatListNumbered, stringResource(R.string.cd_chapters), tint = Color.White)
@@ -226,8 +277,12 @@ internal fun ReaderBottomBar(
                     Icon(Icons.Outlined.Tune, stringResource(R.string.cd_settings), tint = Color.White)
                 }
             }
-            IconButton(onClick = onNext) {
-                Icon(Icons.Outlined.SkipNext, stringResource(R.string.cd_next_chapter), tint = Color.White)
+            IconButton(onClick = onNext, enabled = hasNext) {
+                Icon(
+                    Icons.Outlined.SkipNext,
+                    stringResource(R.string.cd_next_chapter),
+                    tint = Color.White.copy(alpha = if (hasNext) 1f else 0.35f),
+                )
             }
         }
     }
@@ -318,6 +373,51 @@ internal fun ChapterDividerBand(
                     .height(2.dp)
                     .background(AppColors.accent.copy(alpha = 0.55f)),
             )
+        }
+    }
+}
+
+/**
+ * Reports a drag that runs into the end of the strip (the scroll left over after the list or
+ * pager took what it could). [forwardIsNegative]: dragging toward negative x / y reads forward.
+ */
+@Composable
+internal fun rememberEdgeNotifier(
+    horizontal: Boolean,
+    forwardIsNegative: Boolean,
+    canForward: () -> Boolean,
+    canBackward: () -> Boolean,
+    onEdge: (forward: Boolean) -> Unit,
+): NestedScrollConnection {
+    val thresholdPx = with(LocalDensity.current) { 16.dp.toPx() }
+    val currentOnEdge by rememberUpdatedState(onEdge)
+    val currentCanForward by rememberUpdatedState(canForward)
+    val currentCanBackward by rememberUpdatedState(canBackward)
+    return remember(thresholdPx, horizontal, forwardIsNegative) {
+        object : NestedScrollConnection {
+            private var leftover = 0f
+
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (source != NestedScrollSource.UserInput) return Offset.Zero
+                val delta = if (horizontal) available.x else available.y
+                if (delta == 0f) return Offset.Zero
+                val forward = (delta < 0f) == forwardIsNegative
+                if (forward && currentCanForward() || !forward && currentCanBackward()) {
+                    leftover = 0f
+                    return Offset.Zero
+                }
+                leftover += kotlin.math.abs(delta)
+                if (leftover >= thresholdPx) {
+                    leftover = 0f
+                    currentOnEdge(forward)
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                leftover = 0f
+                return Velocity.Zero
+            }
         }
     }
 }
