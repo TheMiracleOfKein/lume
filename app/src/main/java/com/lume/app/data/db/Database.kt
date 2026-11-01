@@ -533,26 +533,36 @@ interface LibraryDao {
     /**
      * Unread = chapters (one per [LibraryChapterEntity.dedupeKey], so a chapter several teams
      * translated counts once) with no read copy.
+     *
+     * One pass over the chapters, grouped, instead of correlated subqueries per title: the old
+     * `NOT IN` form re-ran a subquery for every chapter and took many seconds on a big library.
      */
     @Query(
         """
         SELECT b.sourceId, b.titleId,
-            (SELECT COUNT(DISTINCT c.dedupeKey) FROM library_chapters c
-                WHERE c.sourceId = b.sourceId AND c.titleId = b.titleId) AS total,
-            (SELECT COUNT(DISTINCT c.dedupeKey) FROM library_chapters c
-                WHERE c.sourceId = b.sourceId AND c.titleId = b.titleId
-                AND c.dedupeKey NOT IN (
-                    SELECT o.dedupeKey FROM library_chapters o
-                    JOIN chapter_read r ON r.sourceId = o.sourceId AND r.titleId = o.titleId
-                        AND r.chapterId = o.chapterId
-                    WHERE o.sourceId = b.sourceId AND o.titleId = b.titleId)) AS unread,
-            (SELECT COUNT(*) FROM downloads d
-                WHERE d.sourceId = b.sourceId AND d.titleId = b.titleId) AS downloaded,
-            (SELECT p.updatedAt FROM reading_progress p
-                WHERE p.sourceId = b.sourceId AND p.titleId = b.titleId) AS lastReadAt,
-            (SELECT MAX(c.discoveredAt) FROM library_chapters c
-                WHERE c.sourceId = b.sourceId AND c.titleId = b.titleId) AS latestFoundAt
+            COALESCE(t.total, 0) AS total,
+            COALESCE(t.unread, 0) AS unread,
+            COALESCE(d.downloaded, 0) AS downloaded,
+            p.updatedAt AS lastReadAt,
+            t.latestFoundAt AS latestFoundAt
         FROM bookmarks b
+        LEFT JOIN (
+            SELECT k.sourceId, k.titleId, COUNT(*) AS total, SUM(k.isRead = 0) AS unread,
+                MAX(k.foundAt) AS latestFoundAt
+            FROM (
+                SELECT c.sourceId, c.titleId, MAX(r.chapterId IS NOT NULL) AS isRead,
+                    MAX(c.discoveredAt) AS foundAt
+                FROM library_chapters c
+                LEFT JOIN chapter_read r ON r.sourceId = c.sourceId AND r.titleId = c.titleId
+                    AND r.chapterId = c.chapterId
+                GROUP BY c.sourceId, c.titleId, c.dedupeKey
+            ) k
+            GROUP BY k.sourceId, k.titleId
+        ) t ON t.sourceId = b.sourceId AND t.titleId = b.titleId
+        LEFT JOIN (
+            SELECT sourceId, titleId, COUNT(*) AS downloaded FROM downloads GROUP BY sourceId, titleId
+        ) d ON d.sourceId = b.sourceId AND d.titleId = b.titleId
+        LEFT JOIN reading_progress p ON p.sourceId = b.sourceId AND p.titleId = b.titleId
         """,
     )
     fun observeLibraryStats(): Flow<List<LibraryTitleStats>>

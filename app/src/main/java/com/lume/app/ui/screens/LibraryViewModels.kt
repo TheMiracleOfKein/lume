@@ -61,8 +61,8 @@ class LibraryViewModel(private val app: AppContainer) : ViewModel() {
         info to links.associate { "${it.sourceId}\u0000${it.titleId}" to it.linked }
     }
 
-    /** Every library title with its counts, before category, search, filters and sorting. */
-    private val items: StateFlow<List<LibraryItem>> = combine(
+    /** Every library title with its counts, before category, search, filters and sorting; null until the first database answer. */
+    private val items: StateFlow<List<LibraryItem>?> = combine(
         dao.observeBookmarks(),
         dao.observeLibraryStats(),
         dao.observeTitleMeta(),
@@ -95,7 +95,7 @@ class LibraryViewModel(private val app: AppContainer) : ViewModel() {
                 sources = 1 + (linked[key] ?: 0),
             )
         }
-    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /** Selected category tab; null = all. */
     var categoryId by mutableStateOf<Long?>(null)
@@ -107,13 +107,14 @@ class LibraryViewModel(private val app: AppContainer) : ViewModel() {
     /** What the screen shows. Offline, only titles with downloads. */
     val visible: StateFlow<List<LibraryItem>> = combine(
         items, settings, snapshotFlow { categoryId }, snapshotFlow { search }, online,
-    ) { all, s, category, query, isOnline ->
+    ) { loadedItems, s, category, query, isOnline ->
+        val all = loadedItems.orEmpty()
         val base = if (isOnline) all else all.filter { it.downloaded > 0 }
         queryLibrary(base, s, category, query)
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     /** False until the first database answer, so an empty library isn't flashed on start. */
-    val loaded: StateFlow<Boolean> = items.map { true }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val loaded: StateFlow<Boolean> = items.map { it != null }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     init {
         // A deleted category can't stay selected.
@@ -171,7 +172,7 @@ class LibraryViewModel(private val app: AppContainer) : ViewModel() {
         anchorKey = null
     }
 
-    private fun selectedItems(): List<LibraryItem> = items.value.filter { it.key in selected }
+    private fun selectedItems(): List<LibraryItem> = items.value.orEmpty().filter { it.key in selected }
 
     /** Categories every selected title already has (the dialog starts from these). */
     fun commonCategories(): Set<Long> =
