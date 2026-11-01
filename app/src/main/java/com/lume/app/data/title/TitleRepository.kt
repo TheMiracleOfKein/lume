@@ -71,11 +71,11 @@ class TitleRepository(
     private val dao: LibraryDao,
 ) {
     /** Each source's own copy. */
-    private val memory = ConcurrentHashMap<String, CachedTitle>()
+    private val memory = LruMap<CachedTitle>(CACHE_ENTRIES)
 
     /** The last merged copy of titles with linked sources. */
-    private val merged = ConcurrentHashMap<String, CachedTitle>()
-    private val refreshedAt = ConcurrentHashMap<String, Long>()
+    private val merged = LruMap<CachedTitle>(CACHE_ENTRIES)
+    private val refreshedAt = LruMap<Long>(CACHE_ENTRIES)
     private val locks = ConcurrentHashMap<String, Mutex>()
 
     private fun key(sourceId: String, titleId: String) = "$sourceId\u0000$titleId"
@@ -302,6 +302,7 @@ class TitleRepository(
     }
 
     private companion object {
+        const val CACHE_ENTRIES = 200
         const val FRESH_FOR_MS = 2 * 60_000L
     }
 }
