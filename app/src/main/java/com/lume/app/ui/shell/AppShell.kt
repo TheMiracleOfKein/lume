@@ -143,7 +143,7 @@ fun AppShell(nav: NavHostController) {
     LaunchedEffect(lifecycle) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             AppLinks.pendingRoute.filterNotNull().collect { target ->
-                nav.navigateToTab(target)
+                nav.openLink(target)
                 AppLinks.consumed()
             }
         }
@@ -282,7 +282,7 @@ fun AppShell(nav: NavHostController) {
                 menuOpen = false
                 when (target) {
                     in MainTabRoutes -> nav.navigateToTab(target)
-                    else -> nav.navigate(target)
+                    else -> nav.navigate(target) { launchSingleTop = true }
                 }
             },
         )
@@ -291,6 +291,21 @@ fun AppShell(nav: NavHostController) {
 }
 
 private const val RAIL_MIN_WIDTH_DP = 600
+
+/**
+ * A route from a notification, widget or shared link. Tabs switch as usual; anything else is
+ * pushed on top of what the user has open, so Back returns to where they were. A reader link
+ * replaces an open reader instead of stacking a second one.
+ */
+private fun NavHostController.openLink(route: String) {
+    when {
+        route in MainTabRoutes -> navigateToTab(route)
+        route.startsWith("read/") -> navigate(route) {
+            popUpTo(Routes.Reader) { inclusive = true }
+        }
+        else -> navigate(route) { launchSingleTop = true }
+    }
+}
 
 private fun NavHostController.navigateToTab(route: String) {
     navigate(route) {
