@@ -362,6 +362,11 @@
     <string name="nav_updates">Updates</string>
     <string name="updates_empty">No new chapters yet. Pull down to check your library.</string>
     <string name="updates_last_checked">Checked %s</string>
+    <string name="updates_last_check_failed">Last check failed</string>
+    <plurals name="updates_last_checked_errors">
+        <item quantity="one">Checked %1$s · %2$d title failed</item>
+        <item quantity="other">Checked %1$s · %2$d titles failed</item>
+    </plurals>
     <string name="updates_today">Today</string>
     <string name="updates_yesterday">Yesterday</string>
     <string name="action_update_now">Update now</string>

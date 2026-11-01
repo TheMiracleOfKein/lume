@@ -351,6 +351,13 @@
     <string name="nav_updates">Обновления</string>
     <string name="updates_empty">Новых глав пока нет. Потяните вниз, чтобы проверить библиотеку.</string>
     <string name="updates_last_checked">Проверено %s</string>
+    <string name="updates_last_check_failed">Последняя проверка не удалась</string>
+    <plurals name="updates_last_checked_errors">
+        <item quantity="one">Проверено %1$s · не удалось: %2$d тайтл</item>
+        <item quantity="few">Проверено %1$s · не удалось: %2$d тайтла</item>
+        <item quantity="many">Проверено %1$s · не удалось: %2$d тайтлов</item>
+        <item quantity="other">Проверено %1$s · не удалось: %2$d тайтла</item>
+    </plurals>
     <string name="updates_today">Сегодня</string>
     <string name="updates_yesterday">Вчера</string>
     <string name="action_update_now">Обновить сейчас</string>

@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.lume.app.domain.AutoDownloadMode
+import com.lume.app.domain.LibraryCheckOutcome
 import com.lume.app.domain.LibraryDisplay
 import com.lume.app.domain.LibrarySettings
 import com.lume.app.domain.LibrarySort
@@ -171,6 +172,8 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val librarySourcesBadgeKey = booleanPreferencesKey("library_badge_sources")
     private val defaultCategoryKey = longPreferencesKey("default_category_id")
     private val libraryLastCheckedKey = longPreferencesKey("library_last_checked_at")
+    private val libraryLastCheckFailedKey = intPreferencesKey("library_last_check_failed")
+    private val libraryLastCheckTotalKey = intPreferencesKey("library_last_check_total")
 
     private val sourceSettingsKey = stringPreferencesKey("source_settings")
     private val disabledSourcesKey = stringSetPreferencesKey("disabled_sources")
@@ -415,6 +418,11 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     /** When the last library check finished (0 = never). */
     val libraryLastCheckedAt: StateFlow<Long> = state { it[libraryLastCheckedKey] ?: 0L }
 
+    /** How many titles the last library check tried and how many of them failed. */
+    val libraryLastCheck: StateFlow<LibraryCheckOutcome> = state {
+        LibraryCheckOutcome(it[libraryLastCheckTotalKey] ?: 0, it[libraryLastCheckFailedKey] ?: 0)
+    }
+
     /** Per-source setting values (source id → setting key → value); see [com.lume.app.domain.SourceSetting]. */
     val sourceSettings: StateFlow<Map<String, Map<String, String>>> = state { prefs ->
         prefs[sourceSettingsKey]?.let { raw ->
@@ -617,8 +625,12 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     /** Where the pack catalogue is read from; see `docs/packs/index.json`. */
     val packIndexUrl: StateFlow<String> = state { it[packIndexUrlKey]?.takeIf(String::isNotBlank) ?: DEFAULT_PACK_INDEX }
 
-    suspend fun setLibraryLastCheckedAt(time: Long) {
-        context.appDataStore.edit { it[libraryLastCheckedKey] = time }
+    suspend fun setLibraryLastCheck(time: Long, outcome: LibraryCheckOutcome) {
+        context.appDataStore.edit {
+            it[libraryLastCheckedKey] = time
+            it[libraryLastCheckTotalKey] = outcome.checked
+            it[libraryLastCheckFailedKey] = outcome.failed
+        }
     }
 
     suspend fun setDefaultCategoryId(id: Long?) {

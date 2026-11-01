@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -81,6 +82,7 @@ fun UpdatesScreen(nav: NavHostController) {
     val updates by vm.updates.collectAsState()
     val checking by vm.checking.collectAsState()
     val lastChecked by vm.lastCheckedAt.collectAsState()
+    val lastCheck by vm.lastCheck.collectAsState()
     val downloaded by vm.downloaded.collectAsState()
     val queued by vm.queued.collectAsState()
     val watched by vm.watchedCount.collectAsState()
@@ -107,12 +109,19 @@ fun UpdatesScreen(nav: NavHostController) {
                     fontWeight = FontWeight.Medium,
                 )
                 if (lastChecked > 0) {
+                    val ago = DateUtils.getRelativeTimeSpanString(lastChecked, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)
                     Text(
-                        stringResource(
-                            R.string.updates_last_checked,
-                            DateUtils.getRelativeTimeSpanString(lastChecked, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS),
-                        ),
-                        color = AppColors.textTertiary,
+                        when {
+                            lastCheck.allFailed -> stringResource(R.string.updates_last_check_failed)
+                            lastCheck.someFailed -> pluralStringResource(
+                                R.plurals.updates_last_checked_errors,
+                                lastCheck.failed,
+                                ago,
+                                lastCheck.failed,
+                            )
+                            else -> stringResource(R.string.updates_last_checked, ago)
+                        },
+                        color = if (lastCheck.allFailed || lastCheck.someFailed) AppColors.danger else AppColors.textTertiary,
                         fontSize = 12.sp,
                     )
                 }

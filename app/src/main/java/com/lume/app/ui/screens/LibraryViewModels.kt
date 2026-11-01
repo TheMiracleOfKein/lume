@@ -267,6 +267,7 @@ class UpdatesViewModel(private val app: AppContainer) : ViewModel() {
         app.dao.observeUpdates(limit = 500).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val lastCheckedAt: StateFlow<Long> = app.prefs.libraryLastCheckedAt
+    val lastCheck: StateFlow<com.lume.app.domain.LibraryCheckOutcome> = app.prefs.libraryLastCheck
 
     /** `sourceId\u0000titleId\u0000chapterId` of downloaded chapters. */
     val downloaded: StateFlow<Set<String>> = app.dao.observeDownloads()
