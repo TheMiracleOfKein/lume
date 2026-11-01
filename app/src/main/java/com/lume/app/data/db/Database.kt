@@ -211,7 +211,10 @@ data class TrackerLinkEntity(
     val lastSync: Long = System.currentTimeMillis(),
 )
 
-@Entity(tableName = "download_queue")
+@Entity(
+    tableName = "download_queue",
+    indices = [Index(value = ["sourceId", "titleId", "chapterId"], unique = true)],
+)
 data class DownloadQueueEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val sourceId: String,
@@ -483,6 +486,10 @@ interface LibraryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertDownloadQueue(item: DownloadQueueEntity): Long
 
+    /** New row only; -1 when the chapter is already in the queue. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertDownloadQueueIgnore(item: DownloadQueueEntity): Long
+
     @Query("UPDATE download_queue SET status = :status, progress = :progress WHERE id = :id")
     suspend fun updateDownloadQueueStatus(id: Long, status: String, progress: Float)
 
@@ -688,7 +695,7 @@ data class TitleJsonRow(val sourceId: String, val titleId: String, val titleJson
         LibraryChapterEntity::class,
         TitleSourceEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 abstract class LumeDatabase : RoomDatabase() {
@@ -822,7 +829,23 @@ abstract class LumeDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS: Array<Migration> get() = arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+        /** One queue row per chapter: duplicates are dropped (lowest id kept), then the index keeps them out. */
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "DELETE FROM download_queue WHERE id NOT IN " +
+                        "(SELECT MIN(id) FROM download_queue GROUP BY sourceId, titleId, chapterId)",
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS index_download_queue_sourceId_titleId_chapterId " +
+                        "ON download_queue (sourceId, titleId, chapterId)",
+                )
+            }
+        }
+
+        val MIGRATIONS: Array<Migration> get() = arrayOf(
+            MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
+        )
     }
 }
 

@@ -109,18 +109,19 @@ class DownloadQueue(
             return false
         }
         if (dao.getDownload(sourceId, titleId, chapter.id) != null) return false
-        dao.upsertDownloadQueue(
-            DownloadQueueEntity(
-                id = existing?.id ?: 0,
-                sourceId = sourceId,
-                titleId = titleId,
-                chapterId = chapter.id,
-                titleName = titleName,
-                chapterName = chapter.title,
-                coverUrl = coverUrl,
-                status = DownloadQueueEntity.STATUS_PENDING,
-            ),
+        val row = DownloadQueueEntity(
+            id = existing?.id ?: 0,
+            sourceId = sourceId,
+            titleId = titleId,
+            chapterId = chapter.id,
+            titleName = titleName,
+            chapterName = chapter.title,
+            coverUrl = coverUrl,
+            status = DownloadQueueEntity.STATUS_PENDING,
         )
+        // A row that is already there (done or failed) is reused by id; a new one that races
+        // another enqueue of the same chapter is ignored by the unique index instead of throwing.
+        if (existing != null) dao.upsertDownloadQueue(row) else if (dao.insertDownloadQueueIgnore(row) == -1L) return false
         return true
     }
 

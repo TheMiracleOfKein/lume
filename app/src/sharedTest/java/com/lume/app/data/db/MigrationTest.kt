@@ -132,6 +132,35 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate10To11DropsDuplicateQueueRowsAndAddsUniqueIndex() {
+        helper.createDatabase(dbName, 10).apply {
+            val cols = "(id, sourceId, titleId, chapterId, titleName, chapterName, status, progress, createdAt)"
+            execSQL("INSERT INTO download_queue $cols VALUES (1, 's', 't', 'c1', 'T', 'Ch 1', 'pending', 0, 1)")
+            execSQL("INSERT INTO download_queue $cols VALUES (2, 's', 't', 'c1', 'T', 'Ch 1', 'error', 0, 2)")
+            execSQL("INSERT INTO download_queue $cols VALUES (3, 's', 't', 'c2', 'T', 'Ch 2', 'pending', 0, 3)")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(dbName, 11, true, LumeDatabase.MIGRATION_10_11)
+
+        db.query("SELECT id FROM download_queue ORDER BY id").use {
+            assertEquals(2, it.count)
+            it.moveToFirst()
+            assertEquals(1, it.getInt(0))
+            it.moveToNext()
+            assertEquals(3, it.getInt(0))
+        }
+        db.execSQL(
+            "INSERT OR IGNORE INTO download_queue (sourceId, titleId, chapterId, titleName, chapterName, status, progress, createdAt) " +
+                "VALUES ('s', 't', 'c1', 'T', 'Ch 1', 'pending', 0, 9)",
+        )
+        db.query("SELECT COUNT(*) FROM download_queue").use {
+            it.moveToFirst()
+            assertEquals(2, it.getInt(0))
+        }
+    }
+
+    @Test
     fun freshDatabaseOpensWithAllMigrations() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         helper.createDatabase(dbName, 7).close()
