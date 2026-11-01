@@ -1,6 +1,7 @@
 package com.lume.app.data.source
 
 import android.content.Context
+import com.lume.app.data.ArchiveCache
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
@@ -14,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.lume.app.domain.ComicInfo
 import com.lume.app.domain.ImageBytes
+import com.lume.app.domain.NaturalOrder
 import com.lume.app.domain.parseComicInfo
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -51,10 +53,10 @@ class LocalEngine(
     }
 
     private fun seriesDirs(): List<File> =
-        rootDir().listFiles()?.filter { it.isDirectory }?.sortedBy { it.name.lowercase() }.orEmpty()
+        rootDir().listFiles()?.filter { it.isDirectory }?.sortedWith(compareBy(NaturalOrder) { it.name }).orEmpty()
 
     private fun chapterEntries(series: File): List<File> {
-        val children = series.listFiles()?.sortedBy { it.name.lowercase() }.orEmpty()
+        val children = series.listFiles()?.sortedWith(compareBy(NaturalOrder) { it.name }).orEmpty()
         return children.filter { child ->
             when {
                 child.isDirectory -> true
@@ -72,7 +74,7 @@ class LocalEngine(
     private fun imageFiles(dir: File): List<File> =
         dir.listFiles()
             ?.filter { it.isFile && isImage(it.name) }
-            ?.sortedBy { it.name.lowercase() }
+            ?.sortedWith(compareBy(NaturalOrder) { it.name })
             .orEmpty()
 
     private fun isImage(name: String): Boolean = ImageBytes.isImageName(name)
@@ -99,7 +101,7 @@ class LocalEngine(
         ZipFile(archive).use { zip ->
             val entry = zip.entries().asSequence()
                 .filter { !it.isDirectory && isImage(it.name) }
-                .minByOrNull { it.name.lowercase() } ?: return@runCatching null
+                .minWithOrNull(compareBy(NaturalOrder) { it.name }) ?: return@runCatching null
             out.mkdirs()
             val dest = File(out, "cover." + entry.name.substringAfterLast('.'))
             zip.getInputStream(entry).use { input -> dest.outputStream().use { input.copyTo(it) } }
@@ -243,9 +245,9 @@ class LocalEngine(
         ZipFile(archive).use { zip ->
             val entries = zip.entries().asSequence()
                 .filter { !it.isDirectory && isImage(it.name.substringAfterLast('/')) }
-                .sortedBy { it.name.lowercase() }
+                .sortedWith(compareBy(NaturalOrder) { it.name })
                 .toList()
-            val outDir = File(context.cacheDir, "local_zip/${archive.nameWithoutExtension}")
+            val outDir = File(context.cacheDir, "local_zip/n_${archive.nameWithoutExtension}")
             if (!outDir.exists()) outDir.mkdirs()
             val pages = mutableListOf<ComicPage>()
             entries.forEachIndexed { i, entry ->
@@ -258,6 +260,8 @@ class LocalEngine(
                 }
                 pages += ComicPage(index = i, imageUrl = dest.absolutePath)
             }
+            ArchiveCache.touch(outDir)
+            ArchiveCache.trim(outDir.parentFile ?: outDir, keep = outDir)
             return pages
         }
     }

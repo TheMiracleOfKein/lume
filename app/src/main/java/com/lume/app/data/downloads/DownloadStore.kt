@@ -7,12 +7,14 @@ import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.network.AppHttp
 import com.lume.app.data.offline.OfflineTitleCache
 import com.lume.app.data.source.SourceRegistry
+import com.lume.app.data.ArchiveCache
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.ComicInfo
 import com.lume.app.domain.ImageBytes
+import com.lume.app.domain.NaturalOrder
 import com.lume.app.domain.SourceFetchException
 import com.lume.app.domain.toXml
 import com.lume.app.data.prefs.AppPreferences
@@ -178,7 +180,7 @@ class DownloadStore(
         File(dir, CBZ_NAME).takeIf { it.isFile }?.let { return pagesFromCbz(it) }
         val files = dir.listFiles()
             ?.filter { it.isFile && it.length() > 0L && it.name != "meta.json" }
-            ?.sortedBy { it.name }
+            ?.sortedWith(compareBy(NaturalOrder) { it.name })
             .orEmpty()
         if (files.isEmpty()) return null
         return files.mapIndexed { i, f -> ComicPage(index = i, imageUrl = f.absolutePath) }
@@ -186,20 +188,23 @@ class DownloadStore(
 
     /** Pages of a CBZ download, unpacked once into the cache (the reader needs plain files). */
     private fun pagesFromCbz(archive: File): List<ComicPage>? = runCatching {
-        val outDir = File(context.cacheDir, "cbz/${archive.absolutePath.hashCode().toUInt()}_${archive.lastModified()}")
+        val outDir = File(context.cacheDir, "cbz/n${archive.absolutePath.hashCode().toUInt()}_${archive.lastModified()}")
         java.util.zip.ZipFile(archive).use { zip ->
             val entries = zip.entries().asSequence()
                 .filter { !it.isDirectory && ImageBytes.isImageName(it.name) }
-                .sortedBy { it.name }
+                .sortedWith(compareBy(NaturalOrder) { it.name })
                 .toList()
             if (!outDir.isDirectory) outDir.mkdirs()
-            entries.mapIndexed { i, entry ->
+            val pages = entries.mapIndexed { i, entry ->
                 val dest = File(outDir, "%04d.%s".format(i, entry.name.substringAfterLast('.')))
                 if (!dest.isFile || dest.length() == 0L) {
                     zip.getInputStream(entry).use { input -> dest.outputStream().use { input.copyTo(it) } }
                 }
                 ComicPage(index = i, imageUrl = dest.absolutePath)
             }
+            ArchiveCache.touch(outDir)
+            ArchiveCache.trim(outDir.parentFile ?: outDir, keep = outDir)
+            pages
         }.takeIf { it.isNotEmpty() }
     }.getOrNull()
 

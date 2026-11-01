@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
 import com.lume.app.domain.ImageBytes
+import com.lume.app.domain.NaturalOrder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -132,7 +133,7 @@ class LocalImporter(private val context: Context) {
                 out += Doc(id = c.getString(0), name = name, isDir = c.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR)
             }
         }
-        return out.sortedBy { it.name.lowercase() }
+        return out.sortedWith(compareBy(NaturalOrder) { it.name })
     }
 
     private fun queryName(tree: Uri, docId: String): String? {
