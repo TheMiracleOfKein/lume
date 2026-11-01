@@ -132,7 +132,7 @@ Patch releases from the v0.6 line, as needed.
 **v0.7.9: no back animation anywhere** ✅ released 2026-11-01 ([details](#v079-no-back-animation-anywhere--released-2026-11-01))
 - ✅ Android's own predictive-back animations (back-to-home card, login screens, bottom sheets) are off; the screen stays still during the back gesture.
 
-**v0.7.10: safety** ([details](#v0710-safety))
+**v0.7.10: safety** ✅ released 2026-11-01 ([details](#v0710-safety--released-2026-11-01))
 - ✅ Downloads save to a temporary folder and count only when complete; leftovers from interrupted downloads are removed on start.
 - ✅ Backup restore runs in one transaction; backups, sync files and pages have size limits.
 - ✅ Source packs can't use a built-in source's id; download folder names can't leave their folder.
@@ -563,7 +563,7 @@ Release notes: [docs/releases/v0.7.6.md](releases/v0.7.6.md).
 - ✅ **Library marks:** read/total badge; status colour bar in search from category names (`libraryStatusOf`).
 - ⏸️ Cross-source matching for search marks; a per-user setting for the pool size.
 
-### v0.7.10: safety
+### v0.7.10: safety ✅ released 2026-11-01
 
 Release notes: [docs/releases/v0.7.10.md](releases/v0.7.10.md). From the full audit of v0.7.9 (static findings 1–8, 10 and 11).
 
