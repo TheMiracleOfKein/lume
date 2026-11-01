@@ -154,7 +154,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Per-page spinner; one shared zoom gesture; every back arrow is labelled "Back".
 - ⏸️ Links still open under the app lock (hidden by it); waiting for unlock needs the lock state in the shell.
 
-**v0.7.12: polish** ([details](#v0712-polish))
+**v0.7.12: polish** ✅ released 2026-11-01 ([details](#v0712-polish--released-2026-11-01))
 - ✅ Main menu without the bottom-bar tabs; Home search opens the all-sources search with the query; History has clear-all.
 - ✅ Library grid adapts to the screen width; Settings and title details are width-capped on wide screens.
 - ✅ Dialogs and typed text survive rotation.
@@ -625,7 +625,7 @@ Release notes: [docs/releases/v0.7.11.md](releases/v0.7.11.md). From the full au
 - ⏸️ Deep links while locked: see the summary above.
 - Next: v0.7.12 polish (download queue race, library check result, rotation state, sync, CBZ order, adaptive library grid, menu redesign, doc fixes).
 
-### v0.7.12: polish
+### v0.7.12: polish ✅ released 2026-11-01
 
 Release notes: [docs/releases/v0.7.12.md](releases/v0.7.12.md). From the full audit of v0.7.9 (static findings 10, 11, 13, 15, 16, 18 and 19, plus the menu redesign); device check in [v0.7.12-check.md](releases/v0.7.12-check.md).
 
