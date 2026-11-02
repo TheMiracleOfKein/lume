@@ -14,6 +14,7 @@ import com.lume.app.domain.AutoDownloadMode
 import com.lume.app.domain.LibraryCheckOutcome
 import com.lume.app.domain.LibraryDisplay
 import com.lume.app.domain.LibrarySettings
+import com.lume.app.domain.UpdateRules
 import com.lume.app.domain.LibrarySort
 import com.lume.app.domain.ReaderMode
 import com.lume.app.domain.ReaderTheme
@@ -149,6 +150,10 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val readerWebtoonTapZonesKey = booleanPreferencesKey("reader_webtoon_tap_zones")
     private val libraryIntervalKey = intPreferencesKey("library_update_interval_hours")
     private val libraryWifiOnlyKey = booleanPreferencesKey("library_update_wifi_only")
+    private val librarySkipCompletedKey = booleanPreferencesKey("library_update_skip_completed")
+    private val librarySkipNotStartedKey = booleanPreferencesKey("library_update_skip_not_started")
+    private val librarySkipUnreadKey = booleanPreferencesKey("library_update_skip_unread")
+    private val libraryChargingOnlyKey = booleanPreferencesKey("library_update_charging_only")
     private val downloadsWifiOnlyKey = booleanPreferencesKey("downloads_wifi_only")
     private val globalSearchNsfwKey = booleanPreferencesKey("global_search_nsfw")
     private val libraryUpdatesKey = booleanPreferencesKey("library_updates_enabled")
@@ -170,6 +175,8 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val libraryUnreadBadgeKey = booleanPreferencesKey("library_badge_unread")
     private val libraryDownloadedBadgeKey = booleanPreferencesKey("library_badge_downloaded")
     private val librarySourcesBadgeKey = booleanPreferencesKey("library_badge_sources")
+    private val libraryFilterChipsKey = booleanPreferencesKey("library_filter_chips")
+    private val libraryContinueButtonKey = booleanPreferencesKey("library_continue_button")
     private val defaultCategoryKey = longPreferencesKey("default_category_id")
     private val libraryLastCheckedKey = longPreferencesKey("library_last_checked_at")
     private val libraryLastCheckFailedKey = intPreferencesKey("library_last_check_failed")
@@ -385,6 +392,16 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     /** Hours between background library checks (one of [LIBRARY_INTERVALS]). */
     val libraryUpdateIntervalHours: StateFlow<Int> = state { it[libraryIntervalKey]?.takeIf { h -> h in LIBRARY_INTERVALS } ?: 6 }
     val libraryUpdateWifiOnly: StateFlow<Boolean> = state { it[libraryWifiOnlyKey] ?: false }
+
+    /** Titles a library check leaves out, and whether background checks wait for the charger. */
+    val libraryUpdateRules: StateFlow<UpdateRules> = state {
+        UpdateRules(
+            skipCompleted = it[librarySkipCompletedKey] ?: false,
+            skipNotStarted = it[librarySkipNotStartedKey] ?: false,
+            skipUnread = it[librarySkipUnreadKey] ?: false,
+            chargingOnly = it[libraryChargingOnlyKey] ?: false,
+        )
+    }
     val downloadsWifiOnly: StateFlow<Boolean> = state { it[downloadsWifiOnlyKey] ?: false }
     val globalSearchNsfw: StateFlow<Boolean> = state { it[globalSearchNsfwKey] ?: true }
 
@@ -397,6 +414,8 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             unreadBadge = prefs[libraryUnreadBadgeKey] ?: true,
             downloadedBadge = prefs[libraryDownloadedBadgeKey] ?: true,
             sourcesBadge = prefs[librarySourcesBadgeKey] ?: true,
+            filterChips = prefs[libraryFilterChipsKey] ?: true,
+            continueButton = prefs[libraryContinueButtonKey] ?: false,
         )
     }
 
@@ -412,6 +431,8 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             it[libraryUnreadBadgeKey] = settings.unreadBadge
             it[libraryDownloadedBadgeKey] = settings.downloadedBadge
             it[librarySourcesBadgeKey] = settings.sourcesBadge
+            it[libraryFilterChipsKey] = settings.filterChips
+            it[libraryContinueButtonKey] = settings.continueButton
         }
     }
 
@@ -645,6 +666,15 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
 
     suspend fun setLibraryUpdateWifiOnly(value: Boolean) {
         context.appDataStore.edit { it[libraryWifiOnlyKey] = value }
+    }
+
+    suspend fun setLibraryUpdateRules(rules: UpdateRules) {
+        context.appDataStore.edit {
+            it[librarySkipCompletedKey] = rules.skipCompleted
+            it[librarySkipNotStartedKey] = rules.skipNotStarted
+            it[librarySkipUnreadKey] = rules.skipUnread
+            it[libraryChargingOnlyKey] = rules.chargingOnly
+        }
     }
 
     suspend fun setDownloadsWifiOnly(value: Boolean) {

@@ -37,6 +37,7 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
     val libraryUpdates by prefs.libraryUpdatesEnabled.collectAsState()
     val libraryInterval by prefs.libraryUpdateIntervalHours.collectAsState()
     val libraryWifiOnly by prefs.libraryUpdateWifiOnly.collectAsState()
+    val rules by prefs.libraryUpdateRules.collectAsState()
     val findOtherSources by prefs.findOtherSources.collectAsState()
 
     // The worker re-checks the permission before every notification, so the answer needs no handling.
@@ -90,7 +91,38 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
                         onCheckedChange = vm::setLibraryWifiOnly,
                     )
                 }
+                SettingItem("library_charging") {
+                    SwitchRow(
+                        label = stringResource(R.string.settings_library_charging_only),
+                        hint = stringResource(R.string.settings_library_charging_only_hint),
+                        checked = rules.chargingOnly,
+                        onCheckedChange = { value -> vm.setLibraryUpdateRules { it.copy(chargingOnly = value) } },
+                    )
+                }
             }
+        }
+        // These apply to "Update now" too, so they stay visible with the background check off.
+        SettingItem("library_skip_completed") {
+            SwitchRow(
+                label = stringResource(R.string.settings_library_skip_completed),
+                checked = rules.skipCompleted,
+                onCheckedChange = { value -> vm.setLibraryUpdateRules { it.copy(skipCompleted = value) } },
+            )
+        }
+        SettingItem("library_skip_not_started") {
+            SwitchRow(
+                label = stringResource(R.string.settings_library_skip_not_started),
+                checked = rules.skipNotStarted,
+                onCheckedChange = { value -> vm.setLibraryUpdateRules { it.copy(skipNotStarted = value) } },
+            )
+        }
+        SettingItem("library_skip_unread") {
+            SwitchRow(
+                label = stringResource(R.string.settings_library_skip_unread),
+                hint = stringResource(R.string.settings_library_skip_unread_hint),
+                checked = rules.skipUnread,
+                onCheckedChange = { value -> vm.setLibraryUpdateRules { it.copy(skipUnread = value) } },
+            )
         }
     }
     SettingsSectionTitle(R.string.settings_section_library)

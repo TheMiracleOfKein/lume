@@ -23,8 +23,15 @@ data class LibrarySettings(
     val unreadBadge: Boolean = true,
     val downloadedBadge: Boolean = true,
     val sourcesBadge: Boolean = true,
+    /** A row of filter chips above the titles, for one-tap filtering without the sheet. */
+    val filterChips: Boolean = true,
+    /** A play button on each started title that opens the reader where reading stopped. */
+    val continueButton: Boolean = false,
 ) {
     fun filter(key: LibraryFilter): TriState = filters[key] ?: TriState.Off
+
+    /** The same settings with [key] moved to its next state (off → include → exclude → off). */
+    fun cycled(key: LibraryFilter): LibrarySettings = copy(filters = filters + (key to filter(key).next()))
 
     val activeFilterCount: Int get() = filters.count { it.value != TriState.Off }
 }

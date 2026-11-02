@@ -48,6 +48,9 @@ class SourceRegistry(
 
     val activeSourceId: StateFlow<String?> = prefs.activeSourceId
 
+    /** The last failure of each source in this session (Sources screen). */
+    val health = SourceHealth()
+
     private val loadedOnce = CompletableDeferred<Unit>()
 
     /**
@@ -80,7 +83,7 @@ class SourceRegistry(
                     upsert(loaded, createEngine(manifest))
                 }
             }
-            upsert(loaded, DispatchingSource(LocalEngine(context)))
+            upsert(loaded, DispatchingSource(LocalEngine(context), health))
             _sources.value = loaded
         } finally {
             // Even a broken bundled manifest must not leave background work waiting forever.
@@ -217,7 +220,7 @@ class SourceRegistry(
         }
         val engine = buildEngine(manifest)
         val tracked = if (referers != null) ImageHostTrackingSource(engine, referers) else engine
-        return DispatchingSource(tracked)
+        return DispatchingSource(tracked, health)
     }
 
     private fun buildEngine(manifest: SourceManifest): CatalogSource =
@@ -259,20 +262,28 @@ private class ImageHostTrackingSource(
  * and then parse JSON / HTML in the caller's context, which for screens was the main thread —
  * right in the middle of screen transitions. One wrapper covers every engine.
  */
-private class DispatchingSource(private val delegate: CatalogSource) : CatalogSource by delegate, WrappingSource {
+private class DispatchingSource(
+    private val delegate: CatalogSource,
+    private val health: SourceHealth,
+) : CatalogSource by delegate, WrappingSource {
     override val inner: CatalogSource get() = delegate
-    override suspend fun getHome(): HomeFeed = withContext(Dispatchers.IO) { delegate.getHome() }
-    override suspend fun getLatest(page: Int) = withContext(Dispatchers.IO) { delegate.getLatest(page) }
-    override suspend fun getPopular(page: Int) = withContext(Dispatchers.IO) { delegate.getPopular(page) }
+
+    /** On [Dispatchers.IO], with the outcome recorded for the Sources screen. */
+    private suspend fun <T> io(block: suspend () -> T): T =
+        withContext(Dispatchers.IO) { health.track(delegate.manifest.id, block) }
+
+    override suspend fun getHome(): HomeFeed = io { delegate.getHome() }
+    override suspend fun getLatest(page: Int) = io { delegate.getLatest(page) }
+    override suspend fun getPopular(page: Int) = io { delegate.getPopular(page) }
 
     override suspend fun search(query: String, page: Int, filters: FilterList) =
-        withContext(Dispatchers.IO) { delegate.search(query, page, filters) }
+        io { delegate.search(query, page, filters) }
 
     override suspend fun loadFilters(): FilterList = withContext(Dispatchers.IO) { delegate.loadFilters() }
 
-    override suspend fun getTitle(id: String): TitleDetails = withContext(Dispatchers.IO) { delegate.getTitle(id) }
+    override suspend fun getTitle(id: String): TitleDetails = io { delegate.getTitle(id) }
     override suspend fun getChapters(titleId: String): List<Chapter> =
-        withContext(Dispatchers.IO) {
+        io {
             // Russian-only labels in the app language (Settings → General).
             delegate.getChapters(titleId).map { ch ->
                 val label = com.lume.app.domain.ChapterLabels.localize(ch.title)
@@ -280,8 +291,7 @@ private class DispatchingSource(private val delegate: CatalogSource) : CatalogSo
             }
         }
 
-    override suspend fun getPages(chapter: Chapter): List<ComicPage> =
-        withContext(Dispatchers.IO) { delegate.getPages(chapter) }
+    override suspend fun getPages(chapter: Chapter): List<ComicPage> = io { delegate.getPages(chapter) }
 }
 
 /** A registry wrapper around an engine; [unwrapped] peels them off to reach the engine itself. */

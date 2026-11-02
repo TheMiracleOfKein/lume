@@ -65,6 +65,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import android.text.format.DateUtils
+import androidx.compose.ui.text.style.TextOverflow
+import com.lume.app.data.source.SourceProblem
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,6 +101,7 @@ fun SourcesScreen(nav: NavHostController) {
     val disabled by vm.disabled.collectAsState()
     val pinned by vm.pinned.collectAsState()
     val importStatus by vm.importStatus.collectAsState()
+    val problems by vm.problems.collectAsState()
     val snack = remember { SnackbarHostState() }
     var settingsForId by rememberSaveable { mutableStateOf<String?>(null) }
     val settingsFor = sources.firstOrNull { it.manifest.id == settingsForId }
@@ -162,6 +166,7 @@ fun SourcesScreen(nav: NavHostController) {
                         loggedIn = token != null,
                         showLogin = isLib,
                         hasSettings = source.settings().isNotEmpty(),
+                        problem = problems[id],
                         modifier = animatedItem(),
                         onSelect = { vm.setActive(id) },
                         onBrowse = { nav.navigate(Routes.browse(id)) },
@@ -450,6 +455,8 @@ private fun SourceRow(
     loggedIn: Boolean,
     showLogin: Boolean,
     hasSettings: Boolean,
+    /** The source's last failure in this session, if its latest call failed. */
+    problem: SourceProblem?,
     modifier: Modifier,
     onSelect: () -> Unit,
     onBrowse: () -> Unit,
@@ -519,6 +526,18 @@ private fun SourceRow(
                 fontSize = 12.sp,
             )
             Text(source.manifest.baseUrl, color = AppColors.textTertiary, fontSize = 11.sp, maxLines = 1)
+            if (problem != null) {
+                val ago = DateUtils.getRelativeTimeSpanString(problem.at, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)
+                Text(
+                    if (problem.siteCheck) stringResource(R.string.source_problem_site_check, ago)
+                    else stringResource(R.string.source_problem, ago, problem.message),
+                    color = AppColors.danger,
+                    fontSize = 11.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
         }
         if (importingBookmarks) {
             CircularProgressIndicator(

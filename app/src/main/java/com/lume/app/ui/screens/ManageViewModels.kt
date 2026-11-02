@@ -15,6 +15,7 @@ import com.lume.app.data.prefs.ReaderSettings
 import com.lume.app.data.source.LibAuthToken
 import com.lume.app.data.source.LibWebSession
 import com.lume.app.domain.AutoDownloadMode
+import com.lume.app.domain.UpdateRules
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.PackEntry
 import com.lume.app.domain.PackState
@@ -133,7 +134,17 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
             enabled = prefs.libraryUpdatesEnabled.value,
             intervalHours = prefs.libraryUpdateIntervalHours.value,
             wifiOnly = prefs.libraryUpdateWifiOnly.value,
+            chargingOnly = prefs.libraryUpdateRules.value.chargingOnly,
         )
+    }
+
+    fun setLibraryUpdateRules(transform: (UpdateRules) -> UpdateRules) {
+        viewModelScope.launch {
+            val before = prefs.libraryUpdateRules.value
+            val next = transform(before)
+            prefs.setLibraryUpdateRules(next)
+            if (next.chargingOnly != before.chargingOnly) reschedule()
+        }
     }
 
     fun setThemeMode(mode: String) {
@@ -482,6 +493,9 @@ class SourcesViewModel(private val app: AppContainer) : ViewModel() {
     val activeId: StateFlow<String?> = app.sources.activeSourceId
     val disabled: StateFlow<Set<String>> = app.prefs.disabledSources
     val pinned: StateFlow<Set<String>> = app.prefs.pinnedSources
+
+    /** The last failure of each source in this session. */
+    val problems: StateFlow<Map<String, com.lume.app.data.source.SourceProblem>> = app.sources.health.problems
 
     var importUrl by mutableStateOf("")
     var busy by mutableStateOf(false)

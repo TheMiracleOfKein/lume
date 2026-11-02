@@ -30,6 +30,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -67,7 +70,12 @@ internal fun LibraryContent(
     bottomPadding: androidx.compose.ui.unit.Dp,
     onClick: (LibraryItem) -> Unit,
     onLongClick: (LibraryItem) -> Unit,
+    /** Null hides the Continue button (setting off, or while selecting). */
+    onContinue: ((LibraryItem) -> Unit)? = null,
 ) {
+    // Only titles already read have a spot to continue from.
+    fun continueFor(item: LibraryItem): (() -> Unit)? =
+        onContinue?.takeIf { item.lastReadAt != null }?.let { { it(item) } }
     when (settings.display) {
         LibraryDisplay.List -> LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -80,6 +88,7 @@ internal fun LibraryContent(
                     selected = item.key in selected,
                     onClick = { onClick(item) },
                     onLongClick = { onLongClick(item) },
+                    onContinue = continueFor(item),
                     modifier = animatedItem(),
                 )
             }
@@ -101,6 +110,7 @@ internal fun LibraryContent(
                         selected = item.key in selected,
                         onClick = { onClick(item) },
                         onLongClick = { onLongClick(item) },
+                        onContinue = continueFor(item),
                     )
                 }
             }
@@ -117,6 +127,7 @@ private fun LazyGridItemScope.LibraryGridCell(
     selected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    onContinue: (() -> Unit)?,
 ) {
     val shape = RoundedCornerShape(8.dp)
     Column(
@@ -170,6 +181,16 @@ private fun LazyGridItemScope.LibraryGridCell(
                     .align(Alignment.TopStart)
                     .padding(4.dp),
             )
+            if (onContinue != null) {
+                ContinueButton(
+                    onClick = onContinue,
+                    small = compact,
+                    // Compact cells have the title along the bottom: the button sits above it.
+                    modifier = Modifier
+                        .align(if (compact) Alignment.TopEnd else Alignment.BottomEnd)
+                        .padding(4.dp),
+                )
+            }
             if (selected) {
                 Box(
                     Modifier
@@ -268,6 +289,7 @@ private fun LibraryListRow(
     selected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    onContinue: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val background by animateColorAsState(
@@ -305,5 +327,30 @@ private fun LibraryListRow(
             }
         }
         CountBadges(item, settings, Modifier.padding(start = 8.dp))
+        if (onContinue != null) {
+            ContinueButton(onClick = onContinue, small = false, modifier = Modifier.padding(start = 8.dp))
+        }
+    }
+}
+
+/** A round play button that opens the reader where reading stopped. */
+@Composable
+private fun ContinueButton(onClick: () -> Unit, small: Boolean, modifier: Modifier = Modifier) {
+    val label = stringResource(R.string.library_continue)
+    Box(
+        modifier = modifier
+            .size(if (small) 28.dp else 36.dp)
+            .clip(CircleShape)
+            .background(AppColors.accent)
+            .clickable(onClickLabel = label, onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.Outlined.PlayArrow,
+            contentDescription = null,
+            tint = AppColors.onAccent,
+            modifier = Modifier.size(if (small) 18.dp else 22.dp),
+        )
     }
 }

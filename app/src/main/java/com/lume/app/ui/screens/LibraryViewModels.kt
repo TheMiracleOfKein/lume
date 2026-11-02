@@ -12,6 +12,10 @@ import com.lume.app.data.db.ProgressEntity
 import com.lume.app.data.db.DownloadQueueEntity
 import com.lume.app.data.db.TitleJsonRow
 import com.lume.app.data.db.UpdateRow
+import com.lume.app.data.db.TitlePrefsEntity
+import com.lume.app.data.db.WATCHED_TITLES_LIMIT
+import com.lume.app.domain.BulkBell
+import com.lume.app.domain.planBulkBell
 import com.lume.app.data.library.LibraryUpdateWorker
 import com.lume.app.data.library.parseCategoryIds
 import com.lume.app.domain.Chapter
@@ -140,6 +144,14 @@ class LibraryViewModel(private val app: AppContainer) : ViewModel() {
         viewModelScope.launch { app.prefs.setLibrarySettings(transform(settings.value)) }
     }
 
+    /**
+     * The continue point of [item] for its Continue button: the last chapter read (the reader
+     * resumes its own spot), or null when nothing was read in Lume yet (read marks from an import).
+     */
+    fun continuePoint(item: LibraryItem, onPoint: (ProgressEntity?) -> Unit) {
+        viewModelScope.launch { onPoint(dao.getProgress(item.sourceId, item.titleId)) }
+    }
+
     // ---- Selection ----------------------------------------------------------------------------
 
     var selected by mutableStateOf<Set<String>>(emptySet())
@@ -209,6 +221,37 @@ class LibraryViewModel(private val app: AppContainer) : ViewModel() {
     }
 
     fun removeFromLibrary() = bulk { app.library.remove(it.sourceId, it.titleId) }
+
+    /**
+     * The bell for every selected title: off when all of them have it, else on for the ones
+     * without it, as far as the [WATCHED_TITLES_LIMIT] pool allows. [onDone] gets the outcome.
+     */
+    fun toggleBells(onDone: (BulkBell) -> Unit) {
+        val targets = selectedItems()
+        clearSelection()
+        viewModelScope.launch {
+            val prefs = targets.associateWith { dao.getTitlePrefs(it.sourceId, it.titleId) }
+            val outcome = planBulkBell(
+                ringing = prefs.count { it.value?.autoDownload == true },
+                selected = targets.size,
+                watched = dao.watchedBookmarks().size,
+                limit = WATCHED_TITLES_LIMIT,
+            )
+            when (outcome) {
+                is BulkBell.Off -> prefs.values.forEach { p ->
+                    if (p?.autoDownload == true) dao.upsertTitlePrefs(p.copy(autoDownload = false))
+                }
+                is BulkBell.On -> prefs.entries
+                    .filter { it.value?.autoDownload != true }
+                    .take(outcome.added)
+                    .forEach { (item, p) ->
+                        val base = p ?: TitlePrefsEntity(sourceId = item.sourceId, titleId = item.titleId)
+                        dao.upsertTitlePrefs(base.copy(autoDownload = true))
+                    }
+            }
+            onDone(outcome)
+        }
+    }
 
     // ---- Reading lists ------------------------------------------------------------------------
 
