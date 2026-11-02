@@ -96,7 +96,7 @@ Patch releases from the v0.6 line, as needed.
 **v0.7.1: subscribed downloads** ✅ released 2026-10-26 ([details](#v071-subscribed-downloads--released-2026-10-26))
 - ✅ A bell on a library title subscribes it to new-chapter downloads; "Download new chapters" becomes Off / All titles / Subscribed.
 - ✅ AGP back to 9.2.1 so the installed Android Studio syncs the project; Gradle 9.8.2 and library updates.
-- ⏸️ Subscribing several titles at once from the library selection.
+- ✅ Subscribing several titles at once from the library selection: done in v0.7.13.
 - ⏸️ ViewModel tests: still for a later v0.7.x release.
 
 **v0.7.2: MangaLib bookmark import** ✅ released 2026-10-31 ([details](#v072-mangalib-bookmark-import--released-2026-10-31))
@@ -162,6 +162,15 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Sync: monotonic change stamps, long-lived removals, temp-then-rename writes, a message for "Sync now" while off.
 - ⏸️ Stronger sync key derivation (PBKDF2 600k): needs a new sync file format that older versions can't read.
 
+**v0.7.13: chips and leftovers** ([details](#v0713-chips-and-leftovers))
+- ✅ Genre chips on the title screen open the source filtered by that genre.
+- ✅ Library filter chips; the bell for several selected titles (left over from v0.7.1); a Continue button on covers.
+- ✅ "Already in the library?" when adding a title the library has from another source, with "Link to it".
+- ✅ Update checks can skip completed, unstarted and unread titles and wait for the charger (from the v0.9 "smarter updates" item; per-category updates still to come).
+- ✅ Source status on the Sources screen (from v0.9; this session only, not stored).
+- ✅ Release notes rendered as Markdown in the update dialog (left over from v0.7.5).
+- ⏸️ Genre filter inside the library: needs the genres stored per title (a database change).
+
 **v0.7.x: send downloads to a nearby device** (L)
 
 Sync moves your library and progress, never the downloaded pages. This moves the pages: pick downloaded chapters on one phone, and another phone nearby receives them, without the internet and without a server.
@@ -214,7 +223,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - **Any folder as download storage** (M). The reader reads pages through the Storage Access Framework instead of file paths.
 
 **Library**
-- **Smarter updates** (M): skip completed titles, titles you haven't started or titles with many unread chapters; update only some categories; only while charging.
+- 🟡 **Smarter updates** (M): skip completed titles, titles you haven't started or titles with unread chapters, and only while charging, are done in v0.7.13. Left: update only some categories.
 - **Statistics** (M): chapters and pages read, reading time, per title and per month. Only on the phone.
 - **Grouped notifications** per title, and a switch per category (S).
 - **Import a tracker list** (M): your AniList or MyAnimeList "Reading" list becomes library entries, found on your sources with the same matching as "Found for you".
@@ -223,7 +232,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 **Sources**
 - InkStory and Com-X.life ([ENGINES.md](ENGINES.md)) (M each).
 - **Offline parser tests** with saved pages for every engine (M), so a parser change is checked without the live sites.
-- **Source status in the app** (S): the last error per source on the Sources screen, so a broken source is visible before you open a title.
+- 🟡 **Source status in the app** (S): the last error per source on the Sources screen, so a broken source is visible before you open a title. Done in v0.7.13 for the running session; left: keeping it across restarts and showing it in global search.
 
 ## v0.10: on-device AI
 
@@ -566,7 +575,7 @@ Release notes: [docs/releases/v0.7.5.md](releases/v0.7.5.md).
 
 - ✅ **Import progress:** `LibBookmarkImport` runs in the app scope and reports `Fetching → Adding → Progress(done, total) → Finished`; Sources shows a card with the step and a bar, and the summary stays until closed.
 - ✅ **Updates:** `AppUpdater` checks `releases/latest` on start (every 6 h at most, can be turned off in About), downloads the APK with progress and opens the system installer. Skip hides a version from the automatic check.
-- ⏸️ Import as a WorkManager job that survives process death; release notes rendered as Markdown.
+- ⏸️ Import as a WorkManager job that survives process death. Release notes rendered as Markdown: done in v0.7.13.
 
 ### v0.7.6: request limit, bell pool and library marks ✅ released 2026-11-01
 
@@ -637,3 +646,15 @@ Release notes: [docs/releases/v0.7.12.md](releases/v0.7.12.md). From the full au
 - ✅ **Sync:** `stampTime` monotonic stamps, tombstones kept 3650 days, `.tmp` then rename / WebDAV `MOVE`, "Sync is off" message.
 - ✅ **Docs:** PRIVACY (update check, `REQUEST_INSTALL_PACKAGES`), roadmap update-check default and order, README source count, DEVICE_TESTING for v0.7.1–v0.7.11; Lib folder names from string resources.
 - ⏸️ PBKDF2 iterations: see the summary above.
+
+### v0.7.13: chips and leftovers
+
+Release notes: [docs/releases/v0.7.13.md](releases/v0.7.13.md); device check in [v0.7.13-check.md](releases/v0.7.13-check.md).
+
+- ✅ **Genres:** `FilterList.withGenre` and `browse/{sourceId}?genre=`; a text search when the source has no such filter.
+- ✅ **Library:** filter chips (`LibrarySettings.filterChips`), bulk bell (`planBulkBell`, pool of 20), Continue button (`continueButton`, off by default).
+- ✅ **Duplicates:** `sameNamed` against library names on add; link, open or add anyway.
+- ✅ **Updates:** `UpdateRules` (skip completed, not started, unread; charging only).
+- ✅ **Sources:** `SourceHealth` keeps each source's last failure for the session.
+- ✅ **Update dialog:** `util/Markdown`.
+- ⏸️ Library genre filter (database change).
