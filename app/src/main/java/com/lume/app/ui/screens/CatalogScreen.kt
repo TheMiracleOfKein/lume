@@ -57,11 +57,14 @@ import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 import com.lume.app.ui.theme.animatedItem
 
-/** [browseSourceId]: browse that source (opened from Sources) instead of the active one. */
+/**
+ * [browseSourceId]: browse that source (opened from Sources) instead of the active one.
+ * [genre]: opened from a genre on a title screen; the first chip lists the titles with it.
+ */
 @Composable
-fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null) {
+fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre: String? = null) {
     val container = LocalAppContainer.current
-    val vm: CatalogViewModel = viewModel { CatalogViewModel(container, browseSourceId) }
+    val vm: CatalogViewModel = viewModel { CatalogViewModel(container, browseSourceId, genre) }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val browseName = remember(browseSourceId) {
         browseSourceId?.let { id -> container.sources.sourceById(id)?.manifest?.name ?: id }
@@ -73,13 +76,20 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null) {
     val sectionLists = remember { mutableMapOf<String, LazyListState>() }
     // null: the popular list; else one of the source's browse sections.
     var section by rememberSaveable { mutableStateOf<String?>(null) }
+    // True while the genre chip (only there when opened from a genre) is the chosen one.
+    var genreOpen by rememberSaveable { mutableStateOf(vm.genreFeed != null) }
     val sections = vm.sections
     LaunchedEffect(sections) {
         if (section != null && sections.none { it.id == section }) section = null
     }
-    val popularFeed = section?.let { vm.sectionFeed(it) } ?: vm.popular
+    val genreFeed = vm.genreFeed
+    val genreList = rememberLazyListState()
+    val popularFeed = when {
+        genreOpen && genreFeed != null -> genreFeed
+        else -> section?.let { vm.sectionFeed(it) } ?: vm.popular
+    }
 
-    LaunchedEffect(tab, section, vm.sectionsEpoch) {
+    LaunchedEffect(tab, section, genreOpen, vm.sectionsEpoch) {
         when (tab) {
             0 -> vm.ensureLoaded(popularFeed)
             1 -> vm.ensureLoaded(vm.latest)
@@ -117,7 +127,7 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null) {
         ) { tabPane ->
             when (tabPane) {
                 0 -> Column(Modifier.fillMaxSize()) {
-                    if (sections.isNotEmpty()) {
+                    if (sections.isNotEmpty() || genreFeed != null) {
                         Row(
                             Modifier
                                 .fillMaxWidth()
@@ -126,16 +136,26 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null) {
                                 .padding(bottom = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            ChoiceChip(stringResource(R.string.catalog_tab_popular), selected = section == null, onClick = { section = null })
+                            if (genreFeed != null && vm.genre != null) {
+                                ChoiceChip(vm.genre, selected = genreOpen, onClick = { genreOpen = true })
+                            }
+                            ChoiceChip(
+                                stringResource(R.string.catalog_tab_popular),
+                                selected = !genreOpen && section == null,
+                                onClick = { genreOpen = false; section = null },
+                            )
                             sections.forEach { s ->
-                                ChoiceChip(s.name, selected = section == s.id, onClick = { section = s.id })
+                                ChoiceChip(s.name, selected = !genreOpen && section == s.id, onClick = { genreOpen = false; section = s.id })
                             }
                         }
                     }
                     CatalogFeedList(
                         vm = vm,
                         feed = popularFeed,
-                        listState = section?.let { id -> sectionLists.getOrPut(id) { LazyListState() } } ?: popularList,
+                        listState = when {
+                            genreOpen && genreFeed != null -> genreList
+                            else -> section?.let { id -> sectionLists.getOrPut(id) { LazyListState() } } ?: popularList
+                        },
                         onOpen = { id -> nav.navigate(Routes.title(vm.sourceId, id)) },
                     )
                 }

@@ -199,9 +199,16 @@ fun AppShell(nav: NavHostController) {
             lumeComposable(Routes.ReadingList) { ReadingListScreen(nav) }
             lumeComposable(
                 route = Routes.Browse,
-                arguments = listOf(navArgument("sourceId") { type = NavType.StringType }),
+                arguments = listOf(
+                    navArgument("sourceId") { type = NavType.StringType },
+                    navArgument("genre") { type = NavType.StringType; nullable = true; defaultValue = null },
+                ),
             ) { entry ->
-                CatalogScreen(nav, browseSourceId = entry.arguments!!.getString("sourceId")!!)
+                CatalogScreen(
+                    nav,
+                    browseSourceId = entry.arguments!!.getString("sourceId")!!,
+                    genre = entry.arguments!!.getString("genre"),
+                )
             }
             lumeComposable(
                 route = Routes.Title,
