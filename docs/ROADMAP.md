@@ -162,7 +162,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Sync: monotonic change stamps, long-lived removals, temp-then-rename writes, a message for "Sync now" while off.
 - ⏸️ Stronger sync key derivation (PBKDF2 600k): needs a new sync file format that older versions can't read.
 
-**v0.7.13: chips and leftovers** ([details](#v0713-chips-and-leftovers))
+**v0.7.13: chips and leftovers** ✅ released 2026-11-03 ([details](#v0713-chips-and-leftovers--released-2026-11-03))
 - ✅ Genre chips on the title screen open the source filtered by that genre.
 - ✅ Library filter chips; the bell for several selected titles (left over from v0.7.1); a Continue button on covers.
 - ✅ "Already in the library?" when adding a title the library has from another source, with "Link to it".
@@ -647,7 +647,7 @@ Release notes: [docs/releases/v0.7.12.md](releases/v0.7.12.md). From the full au
 - ✅ **Docs:** PRIVACY (update check, `REQUEST_INSTALL_PACKAGES`), roadmap update-check default and order, README source count, DEVICE_TESTING for v0.7.1–v0.7.11; Lib folder names from string resources.
 - ⏸️ PBKDF2 iterations: see the summary above.
 
-### v0.7.13: chips and leftovers
+### v0.7.13: chips and leftovers ✅ released 2026-11-03
 
 Release notes: [docs/releases/v0.7.13.md](releases/v0.7.13.md); device check in [v0.7.13-check.md](releases/v0.7.13-check.md).
 
