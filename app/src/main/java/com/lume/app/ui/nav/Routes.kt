@@ -16,7 +16,7 @@ object Routes {
     const val SettingsPage = "settings/{page}?focus={focus}"
     const val Downloads = "downloads"
     const val Categories = "categories"
-    const val Browse = "browse/{sourceId}"
+    const val Browse = "browse/{sourceId}?genre={genre}"
     const val About = "about"
     const val ReadingList = "reading-list"
     const val Title = "title/{sourceId}/{titleId}"
@@ -30,7 +30,9 @@ object Routes {
     /** Global search (all sources) for [query], started at once. */
     fun searchAll(query: String) = "search/all?q=${encode(query)}"
 
-    fun browse(sourceId: String) = "browse/${encode(sourceId)}"
+    /** Browse a source; with [genre], its catalogue opens filtered by that genre. */
+    fun browse(sourceId: String, genre: String? = null): String =
+        if (genre == null) "browse/${encode(sourceId)}" else "browse/${encode(sourceId)}?genre=${encode(genre)}"
 
     fun title(sourceId: String, titleId: String) =
         "title/$sourceId/${encode(titleId)}"

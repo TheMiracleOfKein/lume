@@ -16,6 +16,7 @@ import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.HomeFeed
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.TitleSummary
+import com.lume.app.domain.withGenre
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -147,10 +148,26 @@ class CatalogFeed(
  * Popular / latest of a catalogue. [fixedSourceId] browses that source without making it the
  * active one (Sources → Browse); null follows the active source.
  */
-class CatalogViewModel(private val app: AppContainer, private val fixedSourceId: String? = null) : ViewModel() {
+class CatalogViewModel(
+    private val app: AppContainer,
+    private val fixedSourceId: String? = null,
+    /** A genre tapped on a title screen: [genreFeed] lists the source's titles with it. */
+    val genre: String? = null,
+) : ViewModel() {
 
     val popular = CatalogFeed(app.http) { getPopular(it) }
     val latest = CatalogFeed(app.http) { getLatest(it) }
+
+    /**
+     * The catalogue with [genre] included in the site's own filters; a text search for the genre
+     * when the source has no filter by that name. Null without a genre.
+     */
+    val genreFeed: CatalogFeed? = genre?.let { name ->
+        CatalogFeed(app.http) { page ->
+            val filters = loadFilters().withGenre(name)
+            if (filters != null) search("", page, filters) else search(name, page)
+        }
+    }
 
     var sourceId by mutableStateOf(fixedSourceId.orEmpty())
         private set
@@ -185,7 +202,7 @@ class CatalogViewModel(private val app: AppContainer, private val fixedSourceId:
             val activeChanges = if (fixedSourceId == null) app.prefs.activeSourceId.drop(1) else emptyFlow()
             merge(app.http.networkEpoch.drop(1), activeChanges).collect {
                 sections = source()?.browseSections().orEmpty()
-                val stale = sectionFeeds.values.toList()
+                val stale = sectionFeeds.values.toList() + listOfNotNull(genreFeed)
                 (listOf(popular, latest) + stale).forEach { it.loadedOnce = false }
                 ensureLoaded(popular, force = true)
                 ensureLoaded(latest, force = latest.items.isNotEmpty())

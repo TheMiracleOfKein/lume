@@ -32,6 +32,8 @@ import com.lume.app.domain.LibraryUpdateResult
 import com.lume.app.domain.LinkedChapterId
 import com.lume.app.domain.dedupeChapters
 import com.lume.app.domain.inReadingOrder
+import com.lume.app.domain.isCompletedStatus
+import kotlinx.coroutines.flow.first
 import com.lume.app.ui.nav.AppLinks
 import com.lume.app.ui.nav.Routes
 import java.util.concurrent.TimeUnit
@@ -52,7 +54,22 @@ class LibraryUpdateWorker(
 
         // Only titles with the bell: checking hundreds of titles takes too long and strains the sites.
         // Until any title has one, the most recently read titles stand in.
-        val bookmarks = dao.watchedBookmarks().ifEmpty { dao.recentBookmarks(WATCHED_TITLES_LIMIT) }
+        val pool = dao.watchedBookmarks().ifEmpty { dao.recentBookmarks(WATCHED_TITLES_LIMIT) }
+        // Settings → Library: leave out finished, unstarted or unread titles when asked to.
+        val rules = app.prefs.libraryUpdateRules.value
+        val bookmarks = if (!rules.skipsAny) pool else {
+            val stats = dao.observeLibraryStats().first().associateBy { it.sourceId to it.titleId }
+            pool.filterNot { b ->
+                val s = stats[b.sourceId to b.titleId]
+                val status = runCatching { app.titles.ownCached(b.sourceId, b.titleId)?.details?.status }.getOrNull()
+                rules.skips(
+                    completed = isCompletedStatus(status),
+                    total = s?.total ?: 0,
+                    unread = s?.unread ?: 0,
+                    lastReadAt = s?.lastReadAt,
+                )
+            }
+        }
         setProgress(workDataOf(KEY_DONE to 0, KEY_TOTAL to bookmarks.size))
         for ((index, bookmark) in bookmarks.withIndex()) {
             if (app.sources.sourceById(bookmark.sourceId) != null) try {
@@ -204,7 +221,13 @@ class LibraryUpdateWorker(
         private const val CHANNEL_ID = "library_updates"
         private const val NOTIF_ID = 42
 
-        fun schedule(context: Context, enabled: Boolean, intervalHours: Int = 6, wifiOnly: Boolean = false) {
+        fun schedule(
+            context: Context,
+            enabled: Boolean,
+            intervalHours: Int = 6,
+            wifiOnly: Boolean = false,
+            chargingOnly: Boolean = false,
+        ) {
             val wm = WorkManager.getInstance(context)
             if (!enabled) {
                 wm.cancelUniqueWork(WORK_NAME)
@@ -212,6 +235,7 @@ class LibraryUpdateWorker(
             }
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(if (wifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED)
+                .setRequiresCharging(chargingOnly)
                 .build()
             val request = PeriodicWorkRequestBuilder<LibraryUpdateWorker>(intervalHours.toLong(), TimeUnit.HOURS)
                 .setConstraints(constraints)

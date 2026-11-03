@@ -328,6 +328,31 @@
     <string name="library_badge_unread">Прочитано из всех глав</string>
     <string name="library_badge_downloaded">Число скачанных</string>
     <string name="library_badge_sources">Число источников</string>
+    <string name="library_filter_chips">Фильтры над тайтлами</string>
+    <string name="library_filter_state_off">Выключен</string>
+    <string name="library_filter_state_include">Только эти</string>
+    <string name="library_filter_state_exclude">Скрыты</string>
+    <string name="library_continue_button">Кнопка «Продолжить» у начатых тайтлов</string>
+    <string name="library_continue">Продолжить чтение</string>
+    <string name="library_bell_action">Включить или выключить колокольчик</string>
+    <plurals name="library_bell_on">
+        <item quantity="one">Колокольчик включён у %d тайтла.</item>
+        <item quantity="few">Колокольчик включён у %d тайтлов.</item>
+        <item quantity="many">Колокольчик включён у %d тайтлов.</item>
+        <item quantity="other">Колокольчик включён у %d тайтла.</item>
+    </plurals>
+    <plurals name="library_bell_off">
+        <item quantity="one">Колокольчик выключен у %d тайтла.</item>
+        <item quantity="few">Колокольчик выключен у %d тайтлов.</item>
+        <item quantity="many">Колокольчик выключен у %d тайтлов.</item>
+        <item quantity="other">Колокольчик выключен у %d тайтла.</item>
+    </plurals>
+    <plurals name="library_bell_full">
+        <item quantity="one">%d не вошёл: колокольчик можно включить максимум у 20 тайтлов.</item>
+        <item quantity="few">%d не вошли: колокольчик можно включить максимум у 20 тайтлов.</item>
+        <item quantity="many">%d не вошли: колокольчик можно включить максимум у 20 тайтлов.</item>
+        <item quantity="other">%d не вошли: колокольчик можно включить максимум у 20 тайтлов.</item>
+    </plurals>
     <string name="library_sources_badge">Источников: %1$d</string>
     <string name="action_mark_read">Отметить прочитанным</string>
     <string name="action_mark_unread">Отметить непрочитанным</string>
@@ -477,6 +502,8 @@
     <string name="source_action_enable">Включить</string>
     <string name="source_action_more">Другие действия</string>
     <string name="source_disabled">отключён</string>
+    <string name="source_problem">Ошибка %1$s: %2$s</string>
+    <string name="source_problem_site_check">Сайт запросил проверку %1$s: откройте тайтл, чтобы пройти её</string>
     <string name="source_pinned">Закреплённые</string>
     <string name="sources_disabled_hint">Отключённые источники не участвуют в глобальном поиске.</string>
     <string name="sources_section_packs">Каталог паков</string>
@@ -656,6 +683,13 @@
     <!-- v0.6: один тайтл, много источников -->
     <string name="title_sources">Источники (%s)</string>
     <string name="title_also_on">Есть также на %s</string>
+    <string name="title_duplicate_title">Уже в библиотеке?</string>
+    <string name="title_duplicate_text">В библиотеке уже есть «%1$s» с %2$s. Лучше привяжите этот источник к нему: его главы заполнят пропуски, а главу, которая не открылась, можно будет прочитать отсюда.</string>
+    <string name="title_duplicate_text_linked">Этот тайтл уже привязан как источник к «%1$s» (%2$s) в библиотеке.</string>
+    <string name="title_duplicate_link">Привязать</string>
+    <string name="title_duplicate_open">Открыть его</string>
+    <string name="title_duplicate_add">Всё равно добавить</string>
+    <string name="title_duplicate_linked_done">Привязано к «%1$s»</string>
     <string name="title_also_on_hint">Привяжите их: они заполнят пропуски в списке глав, а главу, которая не открылась, можно будет прочитать с другого источника</string>
     <string name="title_similar">Похожие тайтлы</string>
     <string name="title_similar_from">Рекомендации %1$s. Нажмите на тайтл, чтобы найти его на ваших источниках</string>
@@ -726,6 +760,12 @@
     <string name="reader_double_tap_zoom_hint">Двойное нажатие увеличивает страницу, ещё одно — уменьшает</string>
     <string name="settings_library_auto_check_hint">Lume ищет новые главы в фоне и присылает уведомление</string>
     <string name="settings_wifi_only_hint">Проверка ждёт Wi-Fi и не тратит мобильный трафик</string>
+    <string name="settings_library_charging_only">Только во время зарядки</string>
+    <string name="settings_library_charging_only_hint">Фоновая проверка ждёт зарядку; «Обновить сейчас» запускается сразу</string>
+    <string name="settings_library_skip_completed">Пропускать завершённые</string>
+    <string name="settings_library_skip_not_started">Пропускать неначатые</string>
+    <string name="settings_library_skip_unread">Пропускать тайтлы с непрочитанными главами</string>
+    <string name="settings_library_skip_unread_hint">Тайтл снова проверяется, когда вы дочитаете вышедшие главы</string>
     <string name="settings_downloads_wifi_only_hint">Загрузки ждут Wi-Fi и не тратят мобильный трафик</string>
     <string name="settings_downloads_parallel_hint">Больше — быстрее, но некоторые сайты замедляют или блокируют быстрые загрузки</string>
     <string name="settings_search_nsfw_hint">Общий поиск опрашивает и источники с пометкой 18+</string>
@@ -756,6 +796,7 @@
     <string name="settings_kw_library_check">обновление, новые главы, уведомление, фон</string>
     <string name="settings_kw_interval">часы, частота, как часто</string>
     <string name="settings_kw_wifi">мобильные данные, трафик, сеть</string>
+    <string name="settings_kw_library_rules">проверка обновлений, пропускать, батарея, трафик, зарядка, завершённые, непрочитанные</string>
     <string name="settings_kw_find_sources">также на, привязка, объединить, другие источники</string>
     <string name="settings_kw_categories">папки, вкладки, категория по умолчанию</string>
     <string name="settings_kw_local">импорт, папка, cbz, zip, файлы</string>

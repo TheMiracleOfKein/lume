@@ -33,6 +33,16 @@ fun searchNames(details: TitleDetails): List<String> =
 /** Letters and digits only, lower case: "Solo Leveling!" == "solo leveling". */
 fun normalName(name: String): String = name.lowercase().filter { it.isLetterOrDigit() }
 
+/**
+ * The [library] entries named like one of [names] (after [normalName]): a title about to be
+ * added that the library already has, from another source or under another id.
+ */
+fun <T> sameNamed(names: List<String>, library: List<T>, nameOf: (T) -> String): List<T> {
+    val wanted = names.map(::normalName).filter { it.isNotEmpty() }.toSet()
+    if (wanted.isEmpty()) return emptyList()
+    return library.filter { normalName(nameOf(it)) in wanted }
+}
+
 private fun words(name: String): Set<String> =
     name.lowercase().split(Regex("""[^\p{L}\p{N}]+""")).filter { it.isNotEmpty() }.toSet()
 

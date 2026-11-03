@@ -36,6 +36,21 @@ import com.lume.app.R
 import com.lume.app.data.update.AppRelease
 import com.lume.app.data.update.UpdateState
 import com.lume.app.ui.theme.AppColors
+import com.lume.app.util.MdBlock
+import com.lume.app.util.MdSpan
+import com.lume.app.util.parseMarkdown
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.withStyle
 
 /**
  * The update dialog over the whole app: a found release with Download and install, the
@@ -168,8 +183,50 @@ private fun ReleaseNotes(release: AppRelease) {
     Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
         Text(stringResource(R.string.update_current_version, BuildConfig.VERSION_NAME), fontSize = 13.sp)
         if (release.notes.isNotBlank()) {
-            Spacer(Modifier.height(8.dp))
-            Text(release.notes.trim(), fontSize = 13.sp)
+            val blocks = remember(release.notes) { parseMarkdown(release.notes) }
+            blocks.forEachIndexed { index, block ->
+                // The notes repeat the version in their first heading; the dialog title has it.
+                if (index == 0 && block is MdBlock.Heading && block.level == 1) return@forEachIndexed
+                MarkdownBlock(block)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MarkdownBlock(block: MdBlock) {
+    val linkColor = AppColors.accent
+    val codeBackground = AppColors.card
+    val text = remember(block, linkColor, codeBackground) { block.spans.toAnnotated(linkColor, codeBackground) }
+    when (block) {
+        is MdBlock.Heading -> Text(
+            text,
+            fontSize = if (block.level <= 2) 15.sp else 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = 12.dp, bottom = 2.dp),
+        )
+        is MdBlock.Bullet -> Row(Modifier.padding(start = (block.depth * 14).dp, top = 3.dp)) {
+            Text(if (block.depth == 0) "•" else "◦", fontSize = 13.sp, modifier = Modifier.width(14.dp))
+            Text(text, fontSize = 13.sp)
+        }
+        is MdBlock.Paragraph -> Text(text, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+    }
+}
+
+private fun List<MdSpan>.toAnnotated(linkColor: Color, codeBackground: Color): AnnotatedString = buildAnnotatedString {
+    forEach { span ->
+        val style = SpanStyle(
+            fontWeight = if (span.bold) FontWeight.SemiBold else null,
+            fontStyle = if (span.italic) FontStyle.Italic else null,
+            fontFamily = if (span.code) FontFamily.Monospace else null,
+            background = if (span.code) codeBackground else Color.Unspecified,
+            color = if (span.url != null) linkColor else Color.Unspecified,
+        )
+        val url = span.url?.takeIf { it.startsWith("https://") || it.startsWith("http://") }
+        if (url != null) {
+            withLink(LinkAnnotation.Url(url, TextLinkStyles(style))) { append(span.text) }
+        } else {
+            withStyle(style) { append(span.text) }
         }
     }
 }

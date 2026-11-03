@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import com.lume.app.data.library.ReadingLists
 import com.lume.app.ui.components.shareFile
 import androidx.compose.runtime.setValue
@@ -76,10 +77,21 @@ import androidx.navigation.NavHostController
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.db.CategoryEntity
+import com.lume.app.domain.BulkBell
+import com.lume.app.domain.LibraryFilter
+import androidx.compose.material.icons.outlined.NotificationsActive
 import com.lume.app.domain.LibraryItem
+import com.lume.app.domain.LibrarySettings
+import com.lume.app.domain.TriState
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextDecoration
 import com.lume.app.ui.components.LocalShellBottomPadding
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.nav.Routes
+import com.lume.app.ui.nav.openReader
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 
@@ -100,6 +112,7 @@ fun LibraryScreen(nav: NavHostController) {
     var exporting by remember { mutableStateOf<List<LibraryItem>?>(null) }
     var savingName by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
+    val resources = LocalResources.current
     val saveList = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(ReadingLists.MIME)) { uri ->
         val items = exporting
         val name = savingName
@@ -152,6 +165,9 @@ fun LibraryScreen(nav: NavHostController) {
                 onSelect = { vm.categoryId = it },
                 onEdit = { nav.navigate(Routes.Categories) },
             )
+            if (settings.filterChips) {
+                FilterChipRow(settings = settings, onCycle = { filter -> vm.updateSettings { it.cycled(filter) } })
+            }
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 when {
                     !loaded -> Unit
@@ -170,6 +186,13 @@ fun LibraryScreen(nav: NavHostController) {
                         bottomPadding = bottomPadding + if (vm.selecting) SelectionBarHeight else 0.dp,
                         onClick = onClick,
                         onLongClick = onLongClick,
+                        onContinue = if (settings.continueButton && !vm.selecting) {
+                            { item ->
+                                vm.continuePoint(item) { p ->
+                                    if (p != null) nav.openReader(p.sourceId, p.titleId, p.chapterId) else open(item)
+                                }
+                            }
+                        } else null,
                     )
                 }
             }
@@ -188,6 +211,20 @@ fun LibraryScreen(nav: NavHostController) {
                 onMarkRead = vm::markRead,
                 onMarkUnread = vm::markUnread,
                 onDownload = vm::downloadUnread,
+                onBell = {
+                    vm.toggleBells { outcome ->
+                        val res = resources
+                        val text = when (outcome) {
+                            is BulkBell.Off -> res.getQuantityString(R.plurals.library_bell_off, outcome.removed, outcome.removed)
+                            is BulkBell.On -> {
+                                val added = res.getQuantityString(R.plurals.library_bell_on, outcome.added, outcome.added)
+                                if (outcome.skipped == 0) added
+                                else added + " " + res.getQuantityString(R.plurals.library_bell_full, outcome.skipped, outcome.skipped)
+                            }
+                        }
+                        Toast.makeText(context, text, Toast.LENGTH_LONG).show()
+                    }
+                },
                 onShare = { exporting = vm.exportItems() },
                 onRemove = { confirmRemove = true },
             )
@@ -413,12 +450,77 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
     )
 }
 
+/** The sheet's filters as chips: a tap goes off → only these → hide these → off. */
+@Composable
+private fun FilterChipRow(settings: LibrarySettings, onCycle: (LibraryFilter) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(start = 12.dp, end = 12.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        LibraryFilter.entries.forEach { filter ->
+            val state = settings.filter(filter)
+            val label = stringResource(filter.labelRes)
+            val stateText = stringResource(
+                when (state) {
+                    TriState.Off -> R.string.library_filter_state_off
+                    TriState.Include -> R.string.library_filter_state_include
+                    TriState.Exclude -> R.string.library_filter_state_exclude
+                },
+            )
+            val color by animateColorAsState(
+                when (state) {
+                    TriState.Off -> AppColors.textSecondary
+                    TriState.Include -> AppColors.accent
+                    TriState.Exclude -> AppColors.danger
+                },
+                Motion.short(),
+                label = "filterChipText",
+            )
+            val background by animateColorAsState(
+                if (state == TriState.Off) AppColors.card else AppColors.accentMuted,
+                Motion.short(),
+                label = "filterChipBackground",
+            )
+            Row(
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(background)
+                    .clickable(onClick = { onCycle(filter) })
+                    .semantics(mergeDescendants = true) { stateDescription = stateText }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (state != TriState.Off) {
+                    Icon(
+                        if (state == TriState.Include) Icons.Outlined.Check else Icons.Outlined.Remove,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(16.dp).padding(end = 2.dp),
+                    )
+                }
+                Text(
+                    text = label,
+                    color = color,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp,
+                    textDecoration = if (state == TriState.Exclude) TextDecoration.LineThrough else null,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun SelectionBar(
     onCategories: () -> Unit,
     onMarkRead: () -> Unit,
     onMarkUnread: () -> Unit,
     onDownload: () -> Unit,
+    onBell: () -> Unit,
     onShare: () -> Unit,
     onRemove: () -> Unit,
 ) {
@@ -436,6 +538,7 @@ private fun SelectionBar(
         SelectionAction(Icons.Outlined.DoneAll, stringResource(R.string.action_mark_read), onMarkRead)
         SelectionAction(Icons.Outlined.RemoveDone, stringResource(R.string.action_mark_unread), onMarkUnread)
         SelectionAction(Icons.Outlined.Download, stringResource(R.string.action_download_unread), onDownload)
+        SelectionAction(Icons.Outlined.NotificationsActive, stringResource(R.string.library_bell_action), onBell)
         SelectionAction(Icons.Outlined.Share, stringResource(R.string.reading_list_share), onShare)
         SelectionAction(Icons.Outlined.Delete, stringResource(R.string.action_remove), onRemove, AppColors.danger)
     }

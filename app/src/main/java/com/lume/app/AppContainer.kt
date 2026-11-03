@@ -109,6 +109,7 @@ class AppContainer(val app: Application) {
                 enabled = prefs.libraryUpdatesEnabled.value,
                 intervalHours = prefs.libraryUpdateIntervalHours.value,
                 wifiOnly = prefs.libraryUpdateWifiOnly.value,
+                chargingOnly = prefs.libraryUpdateRules.value.chargingOnly,
             )
         }
     }

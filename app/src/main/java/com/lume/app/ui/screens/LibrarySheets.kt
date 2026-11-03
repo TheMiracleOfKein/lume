@@ -92,7 +92,7 @@ internal fun LibrarySheet(settings: LibrarySettings, onChange: ((LibrarySettings
                         TriState.Exclude -> Icons.Outlined.IndeterminateCheckBox
                     },
                     iconTint = if (state == TriState.Off) AppColors.textSecondary else AppColors.accent,
-                    onClick = { onChange { it.copy(filters = it.filters + (filter to state.next())) } },
+                    onClick = { onChange { it.cycled(filter) } },
                 )
             }
             1 -> LibrarySort.entries.forEach { sort ->
@@ -147,6 +147,16 @@ internal fun LibrarySheet(settings: LibrarySettings, onChange: ((LibrarySettings
                     checked = settings.sourcesBadge,
                     onCheckedChange = { value -> onChange { it.copy(sourcesBadge = value) } },
                 )
+                SwitchRow(
+                    label = stringResource(R.string.library_filter_chips),
+                    checked = settings.filterChips,
+                    onCheckedChange = { value -> onChange { it.copy(filterChips = value) } },
+                )
+                SwitchRow(
+                    label = stringResource(R.string.library_continue_button),
+                    checked = settings.continueButton,
+                    onCheckedChange = { value -> onChange { it.copy(continueButton = value) } },
+                )
             }
         }
     }
@@ -169,7 +179,7 @@ private fun SheetRow(label: String, icon: ImageVector?, iconTint: Color, onClick
     }
 }
 
-private val LibraryFilter.labelRes: Int
+internal val LibraryFilter.labelRes: Int
     get() = when (this) {
         LibraryFilter.Unread -> R.string.library_filter_unread
         LibraryFilter.Downloaded -> R.string.library_filter_downloaded

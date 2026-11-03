@@ -339,6 +339,25 @@
     <string name="library_badge_unread">Show chapters read of total</string>
     <string name="library_badge_downloaded">Show downloaded count</string>
     <string name="library_badge_sources">Show the number of sources</string>
+    <string name="library_filter_chips">Filter chips above the titles</string>
+    <string name="library_filter_state_off">Off</string>
+    <string name="library_filter_state_include">Only these</string>
+    <string name="library_filter_state_exclude">Hidden</string>
+    <string name="library_continue_button">Continue button on started titles</string>
+    <string name="library_continue">Continue reading</string>
+    <string name="library_bell_action">Bell on or off</string>
+    <plurals name="library_bell_on">
+        <item quantity="one">The bell is on for %d title.</item>
+        <item quantity="other">The bell is on for %d titles.</item>
+    </plurals>
+    <plurals name="library_bell_off">
+        <item quantity="one">The bell is off for %d title.</item>
+        <item quantity="other">The bell is off for %d titles.</item>
+    </plurals>
+    <plurals name="library_bell_full">
+        <item quantity="one">%d left out: up to 20 titles can have the bell.</item>
+        <item quantity="other">%d left out: up to 20 titles can have the bell.</item>
+    </plurals>
     <string name="library_sources_badge">Sources: %1$d</string>
     <string name="action_mark_read">Mark as read</string>
     <string name="action_mark_unread">Mark as unread</string>
@@ -484,6 +503,8 @@
     <string name="source_action_enable">Enable</string>
     <string name="source_action_more">More actions</string>
     <string name="source_disabled">disabled</string>
+    <string name="source_problem">Failed %1$s: %2$s</string>
+    <string name="source_problem_site_check">Asked for a site check %1$s: open a title to pass it</string>
     <string name="source_pinned">Pinned</string>
     <string name="sources_disabled_hint">Disabled sources are left out of global search.</string>
     <string name="sources_section_packs">Pack catalogue</string>
@@ -655,6 +676,13 @@
     <!-- v0.6: one title, many sources -->
     <string name="title_sources">Sources (%s)</string>
     <string name="title_also_on">Also on %s</string>
+    <string name="title_duplicate_title">Already in the library?</string>
+    <string name="title_duplicate_text">Your library has “%1$s” from %2$s. Link this source to it instead: its chapters fill gaps, and a chapter that fails loads from here.</string>
+    <string name="title_duplicate_text_linked">This title is already a source of “%1$s” (%2$s) in your library.</string>
+    <string name="title_duplicate_link">Link to it</string>
+    <string name="title_duplicate_open">Open it</string>
+    <string name="title_duplicate_add">Add anyway</string>
+    <string name="title_duplicate_linked_done">Linked to “%1$s”</string>
     <string name="title_also_on_hint">Link them to fill gaps in the chapter list and to read a chapter from another source when one fails</string>
     <string name="title_similar">Similar titles</string>
     <string name="title_similar_from">Recommended on %1$s. Tap one to search your sources for it</string>
@@ -725,6 +753,12 @@
     <string name="reader_double_tap_zoom_hint">Double-tap a page to zoom in, and again to zoom out</string>
     <string name="settings_library_auto_check_hint">Lume looks for new chapters in the background and sends a notification</string>
     <string name="settings_wifi_only_hint">Checks wait for Wi-Fi instead of using mobile data</string>
+    <string name="settings_library_charging_only">Only while charging</string>
+    <string name="settings_library_charging_only_hint">Background checks wait for the charger; Update now runs at once</string>
+    <string name="settings_library_skip_completed">Skip completed titles</string>
+    <string name="settings_library_skip_not_started">Skip titles you haven\'t started</string>
+    <string name="settings_library_skip_unread">Skip titles with unread chapters</string>
+    <string name="settings_library_skip_unread_hint">Check a title again once you have caught up on it</string>
     <string name="settings_downloads_wifi_only_hint">Downloads wait for Wi-Fi instead of using mobile data</string>
     <string name="settings_downloads_parallel_hint">More is faster, but some sites slow down or block quick downloads</string>
     <string name="settings_search_nsfw_hint">Global search also asks the sources marked 18+</string>
@@ -755,6 +789,7 @@
     <string name="settings_kw_library_check">update, new chapters, notification, background</string>
     <string name="settings_kw_interval">hours, frequency, how often</string>
     <string name="settings_kw_wifi">mobile data, cellular, network</string>
+    <string name="settings_kw_library_rules">update check, skip, battery, data, charger, completed, unread</string>
     <string name="settings_kw_find_sources">also on, link, merge, other sources</string>
     <string name="settings_kw_categories">folders, tabs, default category</string>
     <string name="settings_kw_local">import, folder, cbz, zip, files</string>

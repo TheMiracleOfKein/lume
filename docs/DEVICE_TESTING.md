@@ -166,6 +166,17 @@ Needs a MangaLib account (HentaiLib and YaoiLib too, if you use them).
 - [ ] Pages show a spinner while they load.
 - [ ] TalkBack announces every back arrow as "Back".
 
+## v0.7.13: chips and leftovers
+
+- [ ] Tap a genre on a MangaDex, Lib site and Madara title: the catalogue opens with that genre chip selected and titles of that genre; Back returns to the title.
+- [ ] Library filter chips: each goes off → only these → hidden → off and the list follows; the switch in Display hides the row.
+- [ ] Select titles → bell: the toast counts them; with 20 bells already, the extra ones are left out and the toast says so.
+- [ ] Continue button on: the play button shows only on titles you've read and opens the reader at the spot; titles with only imported read marks open their page.
+- [ ] Add a title that's already in the library from another source: the dialog appears; "Link to it" adds the source, "Add anyway" adds a second entry.
+- [ ] Skip rules and "Only while charging": a check leaves out the matching titles; the background check waits for the charger.
+- [ ] A failing source (region block, site check) shows its red status line on Sources, and it goes away after a successful request.
+- [ ] The update dialog shows formatted notes (headings, lists, bold).
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.

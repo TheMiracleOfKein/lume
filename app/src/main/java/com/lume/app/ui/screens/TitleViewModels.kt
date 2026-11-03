@@ -28,6 +28,8 @@ import com.lume.app.domain.chaptersBefore
 import com.lume.app.domain.nextUnread
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.TitleDetails
+import com.lume.app.domain.allNames
+import com.lume.app.domain.sameNamed
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
@@ -265,14 +267,58 @@ class TitleViewModel(app: AppContainer, sourceId: String, titleId: String) : Tit
         }
     }
 
+    /**
+     * A library title with the same name, found when this one was about to be added: the screen
+     * asks whether to link this source to it, open it, or add this one anyway.
+     */
+    var duplicate by mutableStateOf<LibraryDuplicate?>(null)
+        private set
+
     fun toggleLibrary() {
         val d = details ?: return
         viewModelScope.launch {
             if (inLibrary.value) {
                 app.library.remove(sourceId, titleId)
-            } else {
-                app.library.add(sourceId, titleId, d.title, d.coverUrl, d.typeLabel)
+                return@launch
             }
+            val other = sameNamed(allNames(d), dao.allBookmarks()) { it.titleName }
+                .firstOrNull { it.sourceId != sourceId || it.titleId != titleId }
+            if (other == null) {
+                app.library.add(sourceId, titleId, d.title, d.coverUrl, d.typeLabel)
+                return@launch
+            }
+            val linked = dao.titleSources(other.sourceId, other.titleId).any {
+                it.linkSourceId == sourceId && it.linkTitleId == titleId && it.state == TitleSourceEntity.LINKED
+            }
+            duplicate = LibraryDuplicate(
+                sourceId = other.sourceId,
+                titleId = other.titleId,
+                titleName = other.titleName,
+                sourceName = app.sources.sourceById(other.sourceId)?.manifest?.name ?: other.sourceId,
+                linked = linked,
+            )
+        }
+    }
+
+    fun dismissDuplicate() {
+        duplicate = null
+    }
+
+    /** Adds this title next to the library title of the same name. */
+    fun addDespiteDuplicate() {
+        val d = details ?: return
+        duplicate = null
+        viewModelScope.launch { app.library.add(sourceId, titleId, d.title, d.coverUrl, d.typeLabel) }
+    }
+
+    /** Links this source to the library title of the same name instead of adding a second entry. */
+    fun linkToDuplicate(onDone: () -> Unit) {
+        val d = details ?: return
+        val dup = duplicate ?: return
+        duplicate = null
+        viewModelScope.launch {
+            app.titleSources.link(dup.sourceId, dup.titleId, sourceId, titleId, d.title, d.coverUrl)
+            onDone()
         }
     }
 }
@@ -425,3 +471,12 @@ class ChaptersViewModel(app: AppContainer, sourceId: String, titleId: String) : 
 
     fun cancelDownload(chapterId: String) = app.downloadQueue.cancel(sourceId, titleId, chapterId)
 }
+
+/** A library title with the same name as the one being added; [linked]: this one is already its source. */
+data class LibraryDuplicate(
+    val sourceId: String,
+    val titleId: String,
+    val titleName: String,
+    val sourceName: String,
+    val linked: Boolean,
+)

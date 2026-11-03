@@ -164,6 +164,23 @@ fun FilterList.include(id: String): FilterList =
     }
 
 /**
+ * This list with the genre or tag named [genre] included (a tap on a genre on the title screen),
+ * or null when the source has no check or tri-state filter by that name. Names match ignoring
+ * case and the separators sites mix ("Sci-Fi", "sci fi", "Sci_fi").
+ */
+fun FilterList.withGenre(genre: String): FilterList? {
+    val key = genreKey(genre)
+    if (key.isEmpty()) return null
+    val match = flat().firstOrNull {
+        (it is SourceFilter.Check || it is SourceFilter.TriState) && genreKey(it.name) == key
+    } ?: return null
+    return include(match.id)
+}
+
+private fun genreKey(name: String): String =
+    name.trim().lowercase().replace(Regex("[\\s_\\-–—/]+"), " ").trim()
+
+/**
  * An extra catalogue feed of a source besides popular and latest ("New titles", "Top rated").
  * It is a search without text, with [filters] set the way the feed needs them.
  */

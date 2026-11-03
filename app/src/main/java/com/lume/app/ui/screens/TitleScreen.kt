@@ -366,6 +366,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         if (d.genres.isNotEmpty()) {
                             Spacer(Modifier.height(12.dp))
                             Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                                // A tap opens this source's catalogue with the genre in its filters.
                                 d.genres.forEach { genre ->
                                     Text(
                                         text = genre,
@@ -375,6 +376,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                             .padding(end = 8.dp)
                                             .clip(RoundedCornerShape(16.dp))
                                             .background(AppColors.card)
+                                            .clickable { nav.navigate(Routes.browse(sourceId, genre)) }
                                             .padding(horizontal = 10.dp, vertical = 6.dp),
                                     )
                                 }
@@ -447,6 +449,38 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
             coverUrl = details?.coverUrl,
             typeLabel = details?.typeLabel,
             onDismiss = { showTrackers = false },
+        )
+    }
+
+    vm.duplicate?.let { dup ->
+        val linkedText = stringResource(R.string.title_duplicate_linked_done, dup.titleName)
+        AlertDialog(
+            onDismissRequest = vm::dismissDuplicate,
+            title = { Text(stringResource(R.string.title_duplicate_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        if (dup.linked) R.string.title_duplicate_text_linked else R.string.title_duplicate_text,
+                        dup.titleName,
+                        dup.sourceName,
+                    ),
+                )
+            },
+            confirmButton = {
+                if (dup.linked) {
+                    TextButton(onClick = {
+                        vm.dismissDuplicate()
+                        nav.navigate(Routes.title(dup.sourceId, dup.titleId))
+                    }) { Text(stringResource(R.string.title_duplicate_open)) }
+                } else {
+                    TextButton(onClick = {
+                        vm.linkToDuplicate { Toast.makeText(context, linkedText, Toast.LENGTH_SHORT).show() }
+                    }) { Text(stringResource(R.string.title_duplicate_link)) }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = vm::addDespiteDuplicate) { Text(stringResource(R.string.title_duplicate_add)) }
+            },
         )
     }
 }
