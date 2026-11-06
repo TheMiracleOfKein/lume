@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -136,6 +138,8 @@ fun SourcesScreen(nav: NavHostController) {
         LazyColumn(
             modifier = Modifier
                 .padding(padding)
+                .consumeWindowInsets(padding)
+                .imePadding()
                 .fillMaxSize()
                 .background(AppColors.background),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -258,7 +262,7 @@ private fun BookmarkImportCard(status: LibImportStatus, onDismiss: () -> Unit, m
                     )
                 }
                 TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) {
-                    Text(stringResource(R.string.action_close), color = AppColors.accent)
+                    Text(stringResource(R.string.action_close), color = AppColors.accentText)
                 }
             }
         }
@@ -356,12 +360,12 @@ private fun PackCatalogue(vm: SourcesViewModel) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         pluralStringResource(R.plurals.sources_packs_updates, updates, updates),
-                        color = AppColors.accent,
+                        color = AppColors.accentText,
                         fontSize = 13.sp,
                         modifier = Modifier.weight(1f),
                     )
                     TextButton(onClick = vm::updateAllPacks, enabled = !vm.busy) {
-                        Text(stringResource(R.string.sources_packs_update_all), color = AppColors.accent)
+                        Text(stringResource(R.string.sources_packs_update_all), color = AppColors.accentText)
                     }
                 }
             }
@@ -391,10 +395,10 @@ private fun PackCatalogue(vm: SourcesViewModel) {
                             modifier = Modifier.padding(end = 8.dp),
                         )
                         PackState.NotInstalled -> TextButton(onClick = { vm.installPack(row.entry) }, enabled = !vm.busy) {
-                            Text(stringResource(R.string.sources_pack_install), color = AppColors.accent)
+                            Text(stringResource(R.string.sources_pack_install), color = AppColors.accentText)
                         }
                         PackState.UpdateAvailable -> TextButton(onClick = { vm.installPack(row.entry) }, enabled = !vm.busy) {
-                            Text(stringResource(R.string.sources_pack_update, row.entry.version), color = AppColors.accent)
+                            Text(stringResource(R.string.sources_pack_update, row.entry.version), color = AppColors.accentText)
                         }
                     }
                 }
@@ -495,7 +499,7 @@ private fun SourceRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(source.manifest.name, color = AppColors.textPrimary, fontSize = 15.sp)
                 Spacer(Modifier.padding(horizontal = 4.dp))
-                Text(langBadge, color = AppColors.accent, fontSize = 11.sp)
+                Text(langBadge, color = AppColors.accentText, fontSize = 11.sp)
                 if (pinned) {
                     Icon(
                         Icons.Outlined.PushPin,
@@ -551,7 +555,7 @@ private fun SourceRow(
                 Icon(
                     if (loggedIn) Icons.AutoMirrored.Outlined.Logout else Icons.AutoMirrored.Outlined.Login,
                     contentDescription = null,
-                    tint = if (loggedIn) AppColors.accent else AppColors.textSecondary,
+                    tint = if (loggedIn) AppColors.accentText else AppColors.textSecondary,
                 )
             }
         }

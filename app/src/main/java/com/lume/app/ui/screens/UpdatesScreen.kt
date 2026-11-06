@@ -31,6 +31,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import com.lume.app.ui.components.LumeRefreshIndicator
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -145,9 +150,14 @@ fun UpdatesScreen(nav: NavHostController) {
                 }
             }
         }
+        val refreshState = rememberPullToRefreshState()
         PullToRefreshBox(
             isRefreshing = checking != null,
             onRefresh = vm::updateNow,
+            state = refreshState,
+            indicator = {
+                LumeRefreshIndicator(refreshState, checking != null, Modifier.align(Alignment.TopCenter))
+            },
             modifier = Modifier.fillMaxSize(),
         ) {
             if (updates.isEmpty()) {
@@ -220,22 +230,24 @@ private fun UpdateRowItem(
     modifier: Modifier = Modifier,
 ) {
     var menu by remember { mutableStateOf(false) }
+    val readDescription = stringResource(R.string.cd_read)
     Box(modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .semantics { if (row.read) stateDescription = readDescription }
                 .combinedClickable(onClick = onOpen, onLongClick = { menu = true })
                 .padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(Modifier.alpha(if (row.read) 0.45f else 1f)) {
+            Box(Modifier.alpha(if (row.read) 0.6f else 1f)) {
                 CoverImage(url = row.coverUrl, width = 40.dp, height = 54.dp, radius = 6.dp)
             }
             Spacer(Modifier.width(12.dp))
             Column(
                 Modifier
                     .weight(1f)
-                    .alpha(if (row.read) 0.45f else 1f),
+                    .alpha(if (row.read) 0.6f else 1f),
             ) {
                 Text(row.titleName, color = AppColors.textPrimary, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
@@ -246,12 +258,20 @@ private fun UpdateRowItem(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            if (row.read) {
+                Icon(
+                    Icons.Outlined.Check,
+                    contentDescription = null,
+                    tint = AppColors.textSecondary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
             Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                 when {
                     downloaded -> Icon(
                         Icons.Outlined.DownloadDone,
                         contentDescription = stringResource(R.string.cd_downloaded),
-                        tint = AppColors.accent,
+                        tint = AppColors.accentText,
                     )
                     queued -> CircularProgressIndicator(color = AppColors.accent, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
                     else -> IconButton(onClick = onDownload) {

@@ -4,6 +4,10 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.systemBarsIgnoringVisibility
 import androidx.compose.runtime.Composable
@@ -17,6 +21,17 @@ import androidx.compose.ui.unit.dp
  * on tab screens, 0 elsewhere). Fixed per destination, so nothing re-pads mid-transition.
  */
 val LocalShellBottomPadding = staticCompositionLocalOf { 0.dp }
+
+/**
+ * Bottom content padding for a list: the shell's padding on tab screens, or the navigation bar
+ * on pushed screens (where the shell adds none).
+ */
+@Composable
+fun listBottomPadding(): Dp {
+    val shell = LocalShellBottomPadding.current
+    val navBar = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    return if (shell > 0.dp) shell else navBar
+}
 
 /** The shell shows a navigation rail (wide screens) instead of the bottom bar. */
 val LocalUseRail = staticCompositionLocalOf { false }
@@ -40,6 +55,10 @@ object LumeInsets {
     @OptIn(ExperimentalLayoutApi::class)
     val scaffold: WindowInsets
         @Composable get() = WindowInsets.systemBarsIgnoringVisibility
+
+    /** Cutout and navigation bar on the sides (landscape); the rail and tab pages stay clear of them. */
+    val sides: WindowInsets
+        @Composable get() = WindowInsets.displayCutout.union(WindowInsets.navigationBars)
 
     /** Height of the shell's bottom bar without the navigation-bar inset. */
     val BottomBarHeight: Dp = 59.dp

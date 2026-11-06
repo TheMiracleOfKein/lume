@@ -6,7 +6,18 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.webkit.CookieManager
+import android.webkit.WebChromeClient
 import android.webkit.WebView
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.text.style.TextOverflow
+import com.lume.app.ui.theme.LumeSystemBars
+import com.lume.app.ui.theme.ThemeMode
+import com.lume.app.ui.theme.isDark
 import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -73,10 +84,23 @@ class SourceLoginActivity : ComponentActivity() {
         }
         val loginUrl = source.manifest.baseUrl.trimEnd('/') + "/"
         enableEdgeToEdge()
+        val prefs = container.prefs
         setContent {
-            LumeTheme(darkTheme = true) {
+            val themeMode by prefs.themeMode.collectAsState()
+            val pureBlack by prefs.pureBlack.collectAsState()
+            val dynamicColor by prefs.dynamicColor.collectAsState()
+            val dark = isDark(ThemeMode.fromKey(themeMode) ?: ThemeMode.Dark)
+            LumeSystemBars(dark)
+            LumeTheme(darkTheme = dark, pureBlack = pureBlack, dynamicColor = dynamicColor) {
                 var status by remember { mutableStateOf(getString(R.string.source_login_hint)) }
+                var progress by remember { mutableIntStateOf(0) }
+                var web by remember { mutableStateOf<WebView?>(null) }
+                BackHandler {
+                    val w = web
+                    if (w != null && w.canGoBack()) w.goBack() else finish()
+                }
                 Scaffold(
+                    modifier = Modifier.imePadding(),
                     containerColor = AppColors.background,
                     topBar = {
                         TopAppBar(
@@ -84,20 +108,32 @@ class SourceLoginActivity : ComponentActivity() {
                                 Text(
                                     stringResource(R.string.source_login_title, source.manifest.name),
                                     color = AppColors.textPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             },
                             navigationIcon = {
                                 BackButton(onClick = { finish() })
                             },
-                            actions = {
-                                TextButton(onClick = { finish() }) {
-                                    Text(stringResource(R.string.action_close), color = AppColors.accent)
-                                }
-                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = AppColors.background,
+                                scrolledContainerColor = AppColors.background,
+                                titleContentColor = AppColors.textPrimary,
+                                navigationIconContentColor = AppColors.textPrimary,
+                                actionIconContentColor = AppColors.textPrimary,
+                            ),
                         )
                     },
                 ) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding)) {
+                    if (progress in 1..99) {
+                        LinearProgressIndicator(
+                            progress = { progress / 100f },
+                            modifier = Modifier.fillMaxWidth(),
+                            color = AppColors.accent,
+                            trackColor = AppColors.cardHigh,
+                        )
+                    }
                     Text(
                         status,
                         color = AppColors.textSecondary,
@@ -109,6 +145,8 @@ class SourceLoginActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
+                        onCreated = { web = it },
+                        onProgress = { progress = it },
                         onAuthJson = { raw, view ->
                             lifecycleScope.launch {
                                 val token = container.libAuth.parse(raw) ?: return@launch
@@ -160,12 +198,24 @@ class SourceLoginActivity : ComponentActivity() {
     private fun LoginWebView(
         url: String,
         modifier: Modifier,
+        onCreated: (WebView?) -> Unit,
+        onProgress: (Int) -> Unit,
         onAuthJson: (String, WebView) -> Unit,
     ) {
         AndroidView(
             modifier = modifier,
+            onRelease = {
+                onCreated(null)
+                it.destroy()
+            },
             factory = { ctx ->
                 WebView(ctx).apply {
+                    onCreated(this)
+                    webChromeClient = object : WebChromeClient() {
+                        override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                            onProgress(newProgress)
+                        }
+                    }
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
                     // Share the app UA so cookies set during login (incl. anti-bot clearance) stay valid.

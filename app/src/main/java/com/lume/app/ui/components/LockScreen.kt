@@ -37,7 +37,7 @@ fun LockScreen(onUnlock: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(Icons.Outlined.Lock, null, tint = AppColors.accent, modifier = Modifier.size(48.dp))
+        Icon(Icons.Outlined.Lock, null, tint = AppColors.accentText, modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(16.dp))
         Text(stringResource(R.string.app_lock_title), color = AppColors.textPrimary, fontSize = 18.sp)
         Spacer(Modifier.height(16.dp))

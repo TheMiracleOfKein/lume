@@ -956,4 +956,8 @@
     <string name="reader_eink_hint">Серые контрастные страницы и перелистывание без анимации — для экранов на электронных чернилах.</string>
     <string name="reader_brightness_own">Своя яркость при чтении</string>
     <string name="reader_brightness">Яркость: %1$d %%</string>
+    <!-- Downloads delete confirmation -->
+    <string name="cd_delete_title_downloads">Удалить загрузки этого тайтла</string>
+    <string name="dialog_delete_title_downloads_text">Удалить скачанные главы «%s»?</string>
+    <string name="dialog_delete_chapter_download_text">Удалить скачанную главу «%s»?</string>
 </resources>

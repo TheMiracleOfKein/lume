@@ -6,7 +6,15 @@ import android.webkit.CookieManager
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -56,10 +64,19 @@ fun CloudflareChallengeOverlay(
     }
     val origin = "${uri.scheme}://${uri.host}/"
 
+    var web by remember { mutableStateOf<WebView?>(null) }
+    BackHandler {
+        val w = web
+        if (w != null && w.canGoBack()) w.goBack() else onDismiss()
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.background),
+            .background(AppColors.background)
+            // Swallow taps so they don't reach the app underneath.
+            .pointerInput(Unit) { detectTapGestures { } }
+            .systemBarsPadding()
+            .imePadding(),
     ) {
         Text(
             text = stringResource(R.string.cf_title),
@@ -78,8 +95,13 @@ fun CloudflareChallengeOverlay(
                 .weight(1f)
                 .fillMaxWidth()
                 .padding(top = 8.dp),
+            onRelease = {
+                web = null
+                it.destroy()
+            },
             factory = { context ->
                 WebView(context).apply {
+                    web = this
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -110,7 +132,7 @@ fun CloudflareChallengeOverlay(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
         ) {
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.action_cancel), color = AppColors.textSecondary)

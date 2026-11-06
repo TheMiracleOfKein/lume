@@ -7,7 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.PaddingValues
 import com.lume.app.ui.components.LumeInsets
-import com.lume.app.ui.components.LocalShellBottomPadding
+import com.lume.app.ui.components.listBottomPadding
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -171,7 +171,7 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
                             Text(stringResource(R.string.library_empty), color = AppColors.textSecondary)
                         }
                     } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalShellBottomPadding.current)) {
+                        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = listBottomPadding())) {
                             items(bookmarks, key = { "${it.sourceId}:${it.titleId}" }) { item ->
                                 TitleListRow(
                                     modifier = animatedItem(),
@@ -220,7 +220,7 @@ private fun CatalogFeedList(
             else -> LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = LocalShellBottomPadding.current),
+                contentPadding = PaddingValues(bottom = listBottomPadding()),
             ) {
                 items(feed.items, key = { it.id }) { item ->
                     TitleListRow(

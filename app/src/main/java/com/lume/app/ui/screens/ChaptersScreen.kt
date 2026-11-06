@@ -17,7 +17,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -181,7 +187,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                         vm.downloadNext(null, displayed)
                                     },
                                 )
-                                HorizontalDivider()
+                                HorizontalDivider(color = AppColors.divider)
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.chapters_delete_downloads), color = AppColors.danger) },
                                     enabled = downloadedIds.isNotEmpty(),
@@ -302,7 +308,7 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
         ModalBottomSheet(
             onDismissRequest = { sheetOpen = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = AppColors.surface,
+            containerColor = AppColors.card,
         ) {
             ChapterFilterSheet(options = options, onToggle = vm::toggleFilter, onSort = vm::toggleSort)
         }
@@ -351,8 +357,8 @@ private fun TeamChips(
 
 @Composable
 private fun TeamChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val color by animateColorAsState(if (selected) AppColors.accent else AppColors.textSecondary, Motion.short(), label = "teamText")
-    val background by animateColorAsState(if (selected) AppColors.accentMuted else AppColors.card, Motion.short(), label = "teamBg")
+    val color by animateColorAsState(if (selected) AppColors.textPrimary else AppColors.textSecondary, Motion.short(), label = "teamText")
+    val background by animateColorAsState(if (selected) AppColors.selection else AppColors.card, Motion.short(), label = "teamBg")
     Text(
         label,
         color = color,
@@ -388,7 +394,7 @@ private fun ChapterRow(
     modifier: Modifier = Modifier,
 ) {
     val background by animateColorAsState(
-        if (selected) AppColors.accentMuted else Color.Transparent,
+        if (selected) AppColors.selection else Color.Transparent,
         Motion.short(),
         label = "chapterSelected",
     )
@@ -403,7 +409,7 @@ private fun ChapterRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 chapter.title,
-                color = if (isRead && !isCurrent) AppColors.textTertiary else AppColors.textPrimary,
+                color = if (isRead && !isCurrent && !selected) AppColors.textTertiary else AppColors.textPrimary,
                 fontSize = 14.sp,
             )
             val meta = listOfNotNull(
@@ -413,7 +419,7 @@ private fun ChapterRow(
                 partial?.let { (page, count) -> stringResource(R.string.chapter_progress_pages, page, count) },
             ).joinToString(" · ")
             if (meta.isNotEmpty()) {
-                Text(meta, color = AppColors.textTertiary, fontSize = 11.sp)
+                Text(meta, color = if (selected) AppColors.textSecondary else AppColors.textTertiary,fontSize = 11.sp)
             }
         }
         // Fixed-width slots: a row never changes width as its status or download state changes,
@@ -423,7 +429,7 @@ private fun ChapterRow(
                 isCurrent -> Icon(
                     Icons.Outlined.PlayArrow,
                     contentDescription = stringResource(R.string.cd_current),
-                    tint = AppColors.accent,
+                    tint = AppColors.accentText,
                     modifier = Modifier.size(20.dp),
                 )
                 isRead -> Icon(
@@ -461,7 +467,7 @@ private fun ChapterRow(
                 isDownloaded -> Icon(
                     Icons.Outlined.DownloadDone,
                     contentDescription = stringResource(R.string.cd_downloaded),
-                    tint = AppColors.accent,
+                    tint = AppColors.accentText,
                     modifier = Modifier.size(24.dp),
                 )
                 !selecting -> IconButton(onClick = onDownload) {
@@ -485,7 +491,10 @@ private fun ChapterSelectionBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(AppColors.cardHigh)
-            .navigationBarsPadding()
+            .windowInsetsPadding(
+                WindowInsets.navigationBars.union(WindowInsets.displayCutout)
+                    .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
+            )
             .height(56.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
@@ -524,7 +533,7 @@ private fun ChapterFilterSheet(options: ChapterListOptions, onToggle: (Int) -> U
                 Icon(
                     if (on) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
                     contentDescription = null,
-                    tint = if (on) AppColors.accent else AppColors.textSecondary,
+                    tint = if (on) AppColors.accentText else AppColors.textSecondary,
                 )
                 Spacer(Modifier.width(16.dp))
                 Text(stringResource(chapterFilterLabel(bit)), color = AppColors.textPrimary, fontSize = 15.sp)
@@ -537,7 +546,7 @@ private fun ChapterFilterSheet(options: ChapterListOptions, onToggle: (Int) -> U
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Outlined.SwapVert, contentDescription = null, tint = AppColors.accent)
+            Icon(Icons.Outlined.SwapVert, contentDescription = null, tint = AppColors.accentText)
             Spacer(Modifier.width(16.dp))
             Text(
                 stringResource(if (options.ascending) R.string.chapters_sort_oldest else R.string.chapters_sort_newest),

@@ -29,6 +29,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.foundation.clickable
@@ -185,10 +186,11 @@ private fun LazyGridItemScope.LibraryGridCell(
                 ContinueButton(
                     onClick = onContinue,
                     small = compact,
-                    // Compact cells have the title along the bottom: the button sits above it.
+                    // Compact cells have the title along the bottom: the button sits above it,
+                    // clear of the badges at the top.
                     modifier = Modifier
-                        .align(if (compact) Alignment.TopEnd else Alignment.BottomEnd)
-                        .padding(4.dp),
+                        .align(Alignment.BottomEnd)
+                        .padding(start = 4.dp, top = 4.dp, end = 4.dp, bottom = if (compact) 44.dp else 4.dp),
                 )
             }
             if (selected) {
@@ -293,7 +295,7 @@ private fun LibraryListRow(
     modifier: Modifier = Modifier,
 ) {
     val background by animateColorAsState(
-        if (selected) AppColors.accentMuted else Color.Transparent,
+        if (selected) AppColors.selection else Color.Transparent,
         Motion.short(),
         label = "rowSelected",
     )
@@ -305,6 +307,14 @@ private fun LibraryListRow(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (selected) {
+            Icon(
+                Icons.Outlined.CheckCircle,
+                contentDescription = null,
+                tint = AppColors.accentText,
+                modifier = Modifier.padding(end = 10.dp).size(22.dp),
+            )
+        }
         CoverImage(url = item.coverUrl, width = 48.dp, height = 64.dp, radius = 6.dp)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {

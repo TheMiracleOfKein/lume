@@ -33,6 +33,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.union
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -71,29 +77,58 @@ import com.lume.app.ui.theme.AppColors
 
 // Reader controls: top and bottom bars, chapter dividers, hiding the controls on scroll.
 
-/** Bar shown while a chapter loads or failed to load: just Back and the names, if known. */
+/** Dark scrim behind a top bar: solid enough over the whole bar, fading out in an extra strip below it. */
+private fun Modifier.topScrim(): Modifier = drawBehind {
+    val fade = 20.dp.toPx()
+    val total = size.height + fade
+    drawRect(
+        brush = Brush.verticalGradient(
+            0f to Color.Black.copy(alpha = 0.87f),
+            size.height / total to Color.Black.copy(alpha = 0.7f),
+            1f to Color.Transparent,
+            startY = 0f,
+            endY = total,
+        ),
+        size = Size(size.width, total),
+    )
+}
+
+/** Side insets (cutout, landscape navigation bar) for bar content; the scrim stays full width. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun ReaderBackBar(titleName: String, chapterTitle: String, onBack: () -> Unit) {
+private fun Modifier.barSideInsets(): Modifier = windowInsetsPadding(
+    WindowInsets.displayCutout.union(WindowInsets.navigationBarsIgnoringVisibility).only(WindowInsetsSides.Horizontal),
+)
+
+/**
+ * Bar shown while a chapter loads or failed to load: just Back and the names, if known.
+ * On a light reader background ([dark] false) it is a plain bar in the reader theme colours.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun ReaderBackBar(titleName: String, chapterTitle: String, onBack: () -> Unit, dark: Boolean = true) {
+    val main = if (dark) Color.White else AppColors.textPrimary
+    val sub = if (dark) Color.White.copy(alpha = 0.75f) else AppColors.textSecondary
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.87f), 0.7f to Color.Black.copy(alpha = 0.6f), 1f to Color.Transparent))
+            .then(if (dark) Modifier.topScrim() else Modifier)
             .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
     ) {
         Row(
             modifier = Modifier
+                .barSideInsets()
                 .fillMaxWidth()
                 .height(56.dp)
                 .padding(horizontal = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            BackButton(onClick = onBack, tint = Color.White)
+            BackButton(onClick = onBack, tint = main)
             Column(modifier = Modifier.weight(1f).padding(end = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 if (titleName.isNotEmpty()) {
                     Text(
                         text = titleName,
-                        color = Color.White,
+                        color = main,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
@@ -104,7 +139,7 @@ internal fun ReaderBackBar(titleName: String, chapterTitle: String, onBack: () -
                 if (chapterTitle.isNotEmpty()) {
                     Text(
                         text = chapterTitle,
-                        color = Color.White.copy(alpha = 0.75f),
+                        color = sub,
                         fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -133,12 +168,13 @@ internal fun ReaderTopBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.87f), 0.7f to Color.Black.copy(alpha = 0.6f), 1f to Color.Transparent))
+            .topScrim()
             // Stable position whether or not the status bar is currently shown.
             .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility),
     ) {
         Row(
             modifier = Modifier
+                .barSideInsets()
                 .fillMaxWidth()
                 .height(56.dp)
                 .padding(horizontal = 2.dp),
@@ -222,8 +258,15 @@ internal fun ReaderBottomBar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.87f))))
-            .windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility)
+            .background(
+                Brush.verticalGradient(
+                    0f to Color.Black.copy(alpha = 0f),
+                    0.15f to Color.Black.copy(alpha = 0.55f),
+                    1f to Color.Black.copy(alpha = 0.87f),
+                ),
+            )
+            .windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility.only(WindowInsetsSides.Bottom))
+            .barSideInsets()
             .padding(bottom = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -232,9 +275,9 @@ internal fun ReaderBottomBar(
         } else if (pageLabel != null) {
             Text(
                 text = pageLabel,
-                color = AppColors.textSecondary,
+                color = Color.White.copy(alpha = 0.75f),
                 fontSize = 13.sp,
-                modifier = Modifier.padding(bottom = 8.dp),
+                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
             )
         }
         Row(
@@ -301,7 +344,7 @@ private fun PageSlider(pageLabel: String?, pageIndex: Int, pageCount: Int, rever
     ) {
         Text(
             text = if (pageLabel != null || dragging != null) "${shown + 1}" else "",
-            color = AppColors.textSecondary,
+            color = Color.White.copy(alpha = 0.75f),
             fontSize = 13.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.width(36.dp),
@@ -322,7 +365,7 @@ private fun PageSlider(pageLabel: String?, pageIndex: Int, pageCount: Int, rever
         }
         Text(
             text = if (pageLabel != null || dragging != null) "$pageCount" else "",
-            color = AppColors.textSecondary,
+            color = Color.White.copy(alpha = 0.75f),
             fontSize = 13.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.width(36.dp),
@@ -357,7 +400,7 @@ internal fun ChapterDividerBand(
             )
             Text(
                 text = stringResource(R.string.reader_chapter_separator, title),
-                color = AppColors.accent,
+                color = AppColors.accentText,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,

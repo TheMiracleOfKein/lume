@@ -19,6 +19,12 @@ data class LumeColors(
     val divider: Color,
     val navBar: Color,
     val search: Color,
+    /** Borders of outlined fields and buttons (dividers stay [divider]). */
+    val outline: Color,
+    /** Accent for text and icons on [surface]/[background]; readable in the light theme. */
+    val accentText: Color,
+    /** Background of selected rows and chips; [textPrimary] content stays readable on it. */
+    val selection: Color,
     /** Text and icons drawn on [accent]. */
     val onAccent: Color = Color.Black,
 )
@@ -33,10 +39,13 @@ val DarkLumeColors = LumeColors(
     danger = Color(0xFFE57373),
     textPrimary = Color(0xFFFFFFFF),
     textSecondary = Color(0xFF9A9A9A),
-    textTertiary = Color(0xFF6E6E6E),
+    textTertiary = Color(0xFF858585),
     divider = Color(0xFF2A2A2A),
     navBar = Color(0xFF161616),
     search = Color(0xFF2A2A2C),
+    outline = Color(0xFF5A5A5E),
+    accentText = Color(0xFFF5A524),
+    selection = Color(0xFF46361E),
 )
 
 val LightLumeColors = LumeColors(
@@ -53,6 +62,9 @@ val LightLumeColors = LumeColors(
     divider = Color(0xFFD8D8DC),
     navBar = Color(0xFFF0F0F2),
     search = Color(0xFFE8E8EA),
+    outline = Color(0xFF9A9AA0),
+    accentText = Color(0xFFA8650A),
+    selection = Color(0xFFFDEDD3),
 )
 
 /** Dark theme on pure black, for OLED screens. */
@@ -64,6 +76,8 @@ val AmoledLumeColors = DarkLumeColors.copy(
     divider = Color(0xFF1C1C1C),
     navBar = Color.Black,
     search = Color(0xFF1A1A1A),
+    outline = Color(0xFF4A4A4E),
+    selection = Color(0xFF3B2B12),
 )
 
 val LocalLumeColors = staticCompositionLocalOf { DarkLumeColors }
@@ -101,4 +115,10 @@ object AppColors {
         @Composable @ReadOnlyComposable get() = LocalLumeColors.current.search
     val onAccent: Color
         @Composable @ReadOnlyComposable get() = LocalLumeColors.current.onAccent
+    val outline: Color
+        @Composable @ReadOnlyComposable get() = LocalLumeColors.current.outline
+    val accentText: Color
+        @Composable @ReadOnlyComposable get() = LocalLumeColors.current.accentText
+    val selection: Color
+        @Composable @ReadOnlyComposable get() = LocalLumeColors.current.selection
 }

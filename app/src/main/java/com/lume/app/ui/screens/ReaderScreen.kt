@@ -55,6 +55,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.ui.graphics.luminance
+import com.lume.app.ui.theme.LumeTheme
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
@@ -193,6 +198,17 @@ fun ReaderScreen(
     DisposableEffect(insetsController) {
         onDispose { insetsController?.show(WindowInsetsCompat.Type.systemBars()) }
     }
+    // The chrome is always dark, so the system bar icons are white while reading.
+    DisposableEffect(insetsController) {
+        val previousStatus = insetsController?.isAppearanceLightStatusBars
+        val previousNav = insetsController?.isAppearanceLightNavigationBars
+        insetsController?.isAppearanceLightStatusBars = false
+        insetsController?.isAppearanceLightNavigationBars = false
+        onDispose {
+            previousStatus?.let { insetsController?.isAppearanceLightStatusBars = it }
+            previousNav?.let { insetsController?.isAppearanceLightNavigationBars = it }
+        }
+    }
 
     val readerBg = when (settings.theme) {
         ReaderTheme.Light -> Color(0xFFF2F2F2)
@@ -301,23 +317,28 @@ fun ReaderScreen(
             modifier = Modifier.fillMaxSize(),
         ) { pane ->
             when (pane) {
-                LoadState.Loading -> Box(Modifier.fillMaxSize()) {
-                    LoadingBox()
-                    ReaderBackBar(vm.titleName, vm.currentChapter?.title.orEmpty(), onBack = { nav.popBackStack() })
+                LoadState.Loading -> ReaderPageTheme(readerBg) {
+                    Box(Modifier.fillMaxSize()) {
+                        LoadingBox()
+                        ReaderBackBar(vm.titleName, vm.currentChapter?.title.orEmpty(), onBack = { nav.popBackStack() }, dark = readerBg.luminance() < 0.5f)
+                    }
                 }
-                LoadState.Error -> Box(Modifier.fillMaxSize()) {
-                    ErrorRetryBox(
-                        message = vm.error.orEmpty(),
-                        onRetry = vm::retry,
-                        onCloudflare = vm.cloudflareUri?.let { { vm.solveChallenge() } },
-                    )
-                    ReaderBackBar(vm.titleName, vm.currentChapter?.title.orEmpty(), onBack = { nav.popBackStack() })
+                LoadState.Error -> ReaderPageTheme(readerBg) {
+                    Box(Modifier.fillMaxSize()) {
+                        ErrorRetryBox(
+                            message = vm.error.orEmpty(),
+                            onRetry = vm::retry,
+                            onCloudflare = vm.cloudflareUri?.let { { vm.solveChallenge() } },
+                        )
+                        ReaderBackBar(vm.titleName, vm.currentChapter?.title.orEmpty(), onBack = { nav.popBackStack() }, dark = readerBg.luminance() < 0.5f)
+                    }
                 }
                 else -> Box(Modifier.fillMaxSize()) {
                     val toggleChrome = { chromeVisible = !chromeVisible }
                     val hideChrome = { if (settings.immersive) chromeVisible = false }
                     val colorFilter = remember(settings.colorFilter, settings.eInk) { readerColorFilter(settings) }
                     key(vm.session) {
+                      ReaderPageTheme(readerBg) {
                         when (settings.mode) {
                             ReaderMode.Webtoon -> WebtoonReader(
                                 vm = vm,
@@ -340,6 +361,7 @@ fun ReaderScreen(
                                 onEdge = onEdge,
                             )
                         }
+                      }
                     }
 
                     if (settings.dim > 0f) {
@@ -368,7 +390,10 @@ fun ReaderScreen(
                         modifier = Modifier.align(Alignment.BottomCenter),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        SnackbarHost(snackbar)
+                        SnackbarHost(
+                            snackbar,
+                            modifier = if (chromeVisible) Modifier else Modifier.windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility),
+                        )
                         AnimatedVisibility(
                             visible = chromeVisible,
                             enter = Motion.barEnterFromBottom,
@@ -453,6 +478,7 @@ fun ReaderScreen(
                                 vm.jumpTo(bookmark)
                             },
                             onDelete = { vm.deletePageBookmark(bookmark.id) },
+                            containerColor = AppColors.surface,
                         )
                     }
                 }
@@ -470,6 +496,13 @@ fun ReaderScreen(
             },
         )
     }
+}
+
+/** Resolves the app colours against the reader background, so text on the pages stays readable. */
+@Composable
+private fun ReaderPageTheme(readerBg: Color, content: @Composable () -> Unit) {
+    val dark = readerBg.luminance() < 0.5f
+    LumeTheme(darkTheme = dark, pureBlack = dark, dynamicColor = false, content = content)
 }
 
 /** How long to wait for the anchor page's real height before giving up on the fine restore. */

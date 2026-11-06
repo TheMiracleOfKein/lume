@@ -63,7 +63,7 @@ fun SettingItem(id: String, content: @Composable () -> Unit) {
     val focused = LocalSettingsFocus.current == id
     val requester = remember { BringIntoViewRequester() }
     val glow = remember { Animatable(Color.Transparent) }
-    val highlight = AppColors.accentMuted
+    val highlight = AppColors.selection
     LaunchedEffect(focused) {
         if (!focused) return@LaunchedEffect
         // Let the page lay out (and the enter transition settle) before scrolling.
@@ -172,7 +172,7 @@ fun SettingsStatus(message: String?) {
     ) {
         Text(
             message.orEmpty(),
-            color = AppColors.accent,
+            color = AppColors.accentText,
             fontSize = 13.sp,
             modifier = Modifier.padding(top = 12.dp),
         )

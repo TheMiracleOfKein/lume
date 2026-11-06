@@ -935,4 +935,8 @@
     <string name="reader_eink_hint">Grey, high-contrast pages and page turns without animation, for e-ink screens.</string>
     <string name="reader_brightness_own">Own brightness while reading</string>
     <string name="reader_brightness">Brightness: %1$d %%</string>
+    <!-- Downloads delete confirmation -->
+    <string name="cd_delete_title_downloads">Delete downloads of this title</string>
+    <string name="dialog_delete_title_downloads_text">Delete downloaded chapters of «%s»?</string>
+    <string name="dialog_delete_chapter_download_text">Delete the downloaded «%s»?</string>
 </resources>

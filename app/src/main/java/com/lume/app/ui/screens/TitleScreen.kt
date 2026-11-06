@@ -50,6 +50,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import com.lume.app.ui.components.LumeRefreshIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -175,7 +177,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                             Icon(
                                 if (subscribed) Icons.Outlined.NotificationsActive else Icons.Outlined.NotificationsNone,
                                 contentDescription = stringResource(if (subscribed) R.string.cd_unsubscribe else R.string.cd_subscribe),
-                                tint = if (subscribed) AppColors.accent else AppColors.textPrimary,
+                                tint = if (subscribed) AppColors.accentText else AppColors.textPrimary,
                             )
                         }
                     }
@@ -185,7 +187,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         Icon(
                             if (bookmarked) Icons.Outlined.Bookmark else Icons.Outlined.BookmarkBorder,
                             contentDescription = stringResource(R.string.cd_bookmark),
-                            tint = if (bookmarked) AppColors.accent else AppColors.textPrimary,
+                            tint = if (bookmarked) AppColors.accentText else AppColors.textPrimary,
                         )
                     }
                 },
@@ -194,6 +196,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
             )
         },
     ) { padding ->
+        val refreshState = rememberPullToRefreshState()
         AnimatedLoadState(
             state = loadStateOf(vm.loading, vm.error),
             modifier = Modifier.fillMaxSize(),
@@ -209,6 +212,10 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                 else -> PullToRefreshBox(
                     isRefreshing = vm.refreshing,
                     onRefresh = vm::refresh,
+                    state = refreshState,
+                    indicator = {
+                        LumeRefreshIndicator(refreshState, vm.refreshing, Modifier.align(Alignment.TopCenter))
+                    },
                     modifier = Modifier
                         .padding(padding)
                         .fillMaxSize(),
@@ -584,6 +591,7 @@ private fun TrackersDialog(
     var loading by remember { mutableStateOf(false) }
     var syncing by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
+    var isError by remember { mutableStateOf(false) }
     var remotePreview by remember { mutableStateOf<String?>(null) }
     var editing by rememberSaveable { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -603,6 +611,7 @@ private fun TrackersDialog(
                             link.copy(status = saved.status?.name, score = saved.score, lastSync = System.currentTimeMillis()),
                         )
                     }
+                    isError = false
                     message = resources.getString(R.string.tracker_edit_saved, selectedTracker.displayName)
                     remotePreview = resources.getString(R.string.tracker_preview_progress, remoteId, saved.chaptersRead.toString())
                 }
@@ -644,12 +653,12 @@ private fun TrackersDialog(
                 message?.let { text ->
                     Text(
                         text = text,
-                        color = AppColors.accent,
+                        color = if (isError) AppColors.danger else AppColors.textPrimary,
                         fontSize = 13.sp,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
-                            .background(AppColors.surface)
+                            .background(AppColors.cardHigh)
                             .padding(10.dp),
                     )
                     Spacer(modifier = Modifier.height(10.dp))
@@ -658,7 +667,7 @@ private fun TrackersDialog(
                     trackers.forEach { t ->
                         val selected = t.id == selectedTracker.id
                         val color by animateColorAsState(
-                            if (selected) AppColors.accent else AppColors.textSecondary,
+                            if (selected) AppColors.accentText else AppColors.textSecondary,
                             Motion.short(),
                             label = "tracker",
                         )
@@ -689,6 +698,7 @@ private fun TrackersDialog(
                             onClick = {
                                 scope.launch {
                                     selectedTracker.unlink(sourceId, titleId)
+                                    isError = false
                                     message = resources.getString(R.string.tracker_unlinked)
                                 }
                             },
@@ -706,6 +716,7 @@ private fun TrackersDialog(
                     onClick = {
                         scope.launch {
                             syncing = true
+                            isError = false
                             message = resources.getString(R.string.tracker_syncing)
                             val result = runCatching {
                                 container.trackerSync.syncTitle(
@@ -717,6 +728,7 @@ private fun TrackersDialog(
                                     typeLabel = typeLabel,
                                 )
                             }
+                            isError = result.isFailure
                             message = result.fold(
                                 onSuccess = { it.displayText() },
                                 onFailure = {
@@ -779,8 +791,12 @@ private fun TrackersDialog(
                         scope.launch {
                             loading = true
                             message = null
+                            isError = false
                             results = runCatching { selectedTracker.search(query) }
-                                .onFailure { message = it.message }
+                                .onFailure {
+                                    isError = true
+                                    message = it.message
+                                }
                                 .getOrDefault(emptyList())
                             if (results.isEmpty() && message == null) {
                                 message = resources.getString(R.string.search_empty)
@@ -814,6 +830,7 @@ private fun TrackersDialog(
                                         item.remoteId,
                                         item.url,
                                     )
+                                    isError = false
                                     message = resources.getString(R.string.tracker_linked_with, item.title)
                                 }
                             }
@@ -834,6 +851,7 @@ private fun TrackersDialog(
                         if (id.isEmpty()) return@TextButton
                         scope.launch {
                             selectedTracker.link(sourceId, titleId, id)
+                            isError = false
                             message = resources.getString(R.string.tracker_linked, id)
                         }
                     },

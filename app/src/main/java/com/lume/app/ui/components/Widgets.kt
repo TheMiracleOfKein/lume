@@ -299,7 +299,7 @@ fun ErrorRetryBox(
         }
         if (onCloudflare != null) {
             TextButton(onClick = onCloudflare) {
-                Text("Cloudflare", color = AppColors.accent)
+                Text("Cloudflare", color = AppColors.accentText)
             }
         }
     }

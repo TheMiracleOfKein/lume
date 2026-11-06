@@ -48,10 +48,12 @@
         </receiver>
         <activity
             android:name=".ui.source.SourceLoginActivity"
+            android:windowSoftInputMode="adjustResize"
             android:exported="false"
             android:theme="@style/Theme.Lume" />
         <activity
             android:name=".ui.tracker.TrackerAuthActivity"
+            android:windowSoftInputMode="adjustResize"
             android:exported="false"
             android:theme="@style/Theme.Lume" />
         <activity

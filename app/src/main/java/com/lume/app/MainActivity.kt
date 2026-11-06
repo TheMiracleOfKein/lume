@@ -30,6 +30,7 @@ import com.lume.app.ui.nav.AppLinks
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.shell.LumeRoot
 import com.lume.app.ui.theme.AppColors
+import com.lume.app.ui.theme.LumeSystemBars
 import com.lume.app.ui.theme.LumeTheme
 import kotlinx.coroutines.launch
 
@@ -64,9 +65,11 @@ class MainActivity : AppCompatActivity() {
             val themeMode by container.prefs.themeMode.collectAsState()
             val pureBlack by container.prefs.pureBlack.collectAsState()
             val dynamicColor by container.prefs.dynamicColor.collectAsState()
+            val dark = isDark(ThemeMode.fromKey(themeMode) ?: ThemeMode.Dark)
+            LumeSystemBars(dark)
             CompositionLocalProvider(LocalAppContainer provides container) {
                 LumeTheme(
-                    darkTheme = isDark(ThemeMode.fromKey(themeMode) ?: ThemeMode.Dark),
+                    darkTheme = dark,
                     pureBlack = pureBlack,
                     dynamicColor = dynamicColor,
                 ) {
