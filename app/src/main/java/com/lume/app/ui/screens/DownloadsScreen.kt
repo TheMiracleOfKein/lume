@@ -266,6 +266,7 @@ fun DownloadsScreen(nav: NavHostController) {
                                         url = group.coverUrl,
                                         width = 48.dp,
                                         height = 64.dp,
+                                        radius = 6.dp,
                                     )
                                 }
                                 Column(

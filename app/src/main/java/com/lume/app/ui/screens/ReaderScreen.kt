@@ -20,6 +20,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lume.app.ui.components.BookmarkNoteDialog
 import com.lume.app.ui.components.LocalNavExiting
 import com.lume.app.ui.components.PageBookmarkRow
+import com.lume.app.ui.components.SheetHeader
 import com.lume.app.ui.nav.openTitleFromReader
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.withTimeoutOrNull
@@ -433,7 +434,6 @@ fun ReaderScreen(
             onDismissRequest = { settingsOpen = false },
             sheetState = sheetState,
             containerColor = AppColors.surface,
-            dragHandle = null,
         ) {
             ReaderSettingsSheet(
                 settings = settings,
@@ -454,13 +454,7 @@ fun ReaderScreen(
             sheetState = sheetState,
             containerColor = AppColors.surface,
         ) {
-            Text(
-                stringResource(R.string.bookmarks_title),
-                color = AppColors.textPrimary,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+            SheetHeader(stringResource(R.string.bookmarks_title), Modifier.padding(horizontal = 16.dp))
             if (pageBookmarks.isEmpty()) {
                 Text(
                     stringResource(R.string.bookmarks_empty),

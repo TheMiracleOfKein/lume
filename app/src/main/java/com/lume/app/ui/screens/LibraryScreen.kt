@@ -324,7 +324,7 @@ private fun LibraryTopBar(
                 Text(
                     stringResource(R.string.library_selected, vm.selected.size),
                     color = AppColors.textPrimary,
-                    fontSize = 18.sp,
+                    fontSize = 20.sp,
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = vm::selectAll) {

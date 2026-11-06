@@ -14,7 +14,7 @@ import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.lume.app.R
 import com.lume.app.domain.SearchableSetting
@@ -31,7 +31,7 @@ enum class SettingsPage(
     Library("library", R.string.settings_section_library_updates, R.string.settings_summary_library, Icons.AutoMirrored.Outlined.LibraryBooks),
     Downloads("downloads", R.string.settings_section_downloads, R.string.settings_summary_downloads, Icons.Outlined.Download),
     Sources("sources", R.string.settings_section_sources, R.string.settings_summary_sources, Icons.Outlined.Explore),
-    Trackers("trackers", R.string.settings_trackers, R.string.settings_summary_trackers, Icons.Outlined.Sync),
+    Trackers("trackers", R.string.settings_trackers, R.string.settings_summary_trackers, Icons.Outlined.Link),
     Sync("sync", R.string.settings_section_sync, R.string.settings_summary_sync, Icons.Outlined.CloudSync),
     Backup("backup", R.string.settings_section_backup, R.string.settings_summary_backup, Icons.Outlined.Backup),
     Privacy("privacy", R.string.settings_section_privacy, R.string.settings_summary_privacy, Icons.Outlined.Shield),

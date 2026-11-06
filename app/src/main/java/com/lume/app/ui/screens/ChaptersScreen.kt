@@ -56,6 +56,8 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -211,17 +213,12 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                             Icon(Icons.Outlined.SwapVert, contentDescription = stringResource(R.string.cd_sort), tint = AppColors.textPrimary)
                         }
                         IconButton(onClick = { sheetOpen = true }) {
-                            Box {
+                            BadgedBox(
+                                badge = {
+                                    if (options.filter != 0) Badge(containerColor = AppColors.accent)
+                                },
+                            ) {
                                 Icon(Icons.Outlined.FilterList, stringResource(R.string.cd_chapter_filters), tint = AppColors.textPrimary)
-                                if (options.filter != 0) {
-                                    Box(
-                                        Modifier
-                                            .align(Alignment.TopEnd)
-                                            .size(8.dp)
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(AppColors.accent),
-                                    )
-                                }
                             }
                         }
                     }

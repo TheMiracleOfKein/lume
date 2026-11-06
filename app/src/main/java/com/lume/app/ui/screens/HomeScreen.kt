@@ -195,7 +195,7 @@ fun HomeScreen(nav: NavHostController) {
                                         modifier = Modifier.weight(1f),
                                     )
                                     TextButton(onClick = { confirmClear = true }) {
-                                        Text(stringResource(R.string.action_clear), color = AppColors.accentText, fontSize = 12.sp)
+                                        Text(stringResource(R.string.action_clear), color = AppColors.accentText)
                                     }
                                 }
                             }

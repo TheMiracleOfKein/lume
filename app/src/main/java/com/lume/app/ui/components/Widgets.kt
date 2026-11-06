@@ -32,6 +32,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -229,7 +230,7 @@ fun TitleListRow(
                     Text(
                         text = badge,
                         color = AppColors.onAccent,
-                        fontSize = 10.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier
                             .padding(start = 8.dp)
@@ -400,7 +401,7 @@ fun CoverCard(
                         .background(Color.Black.copy(alpha = 0.7f))
                         .padding(horizontal = 6.dp, vertical = 2.dp),
                 ) {
-                    Text(badge, color = Color.White, fontSize = 10.sp, maxLines = 1)
+                    Text(badge, color = Color.White, fontSize = 11.sp, maxLines = 1)
                 }
             }
         }
@@ -473,5 +474,31 @@ fun TooltipIconButton(icon: ImageVector, label: String, onClick: () -> Unit, tin
         state = rememberTooltipState(),
     ) {
         IconButton(onClick = onClick) { Icon(icon, contentDescription = label, tint = tint) }
+    }
+}
+
+/**
+ * Title row of a bottom sheet: one title size everywhere, with an optional close button.
+ * Sheets keep the default drag handle above it.
+ */
+@Composable
+fun SheetHeader(title: String, modifier: Modifier = Modifier, onClose: (() -> Unit)? = null) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            color = AppColors.textPrimary,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .weight(1f)
+                .padding(vertical = 8.dp),
+        )
+        if (onClose != null) {
+            TooltipIconButton(Icons.Outlined.Close, stringResource(R.string.action_close), onClose)
+        }
     }
 }

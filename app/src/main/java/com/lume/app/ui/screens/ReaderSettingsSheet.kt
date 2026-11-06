@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lume.app.R
+import com.lume.app.ui.components.SheetHeader
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.data.prefs.ReaderSettings
 import com.lume.app.domain.ReaderMode
@@ -68,20 +69,9 @@ internal fun ReaderSettingsSheet(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 28.dp),
+            .padding(start = 16.dp, end = 16.dp, bottom = 28.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(R.string.settings_title),
-                color = AppColors.textPrimary,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-            )
-            IconButton(onClick = onClose) {
-                Icon(Icons.Outlined.Close, stringResource(R.string.action_close), tint = AppColors.textPrimary)
-            }
-        }
+        SheetHeader(stringResource(R.string.settings_title), onClose = onClose)
         Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.reader_mode), color = AppColors.textSecondary, fontSize = 13.sp)
         Spacer(Modifier.height(10.dp))

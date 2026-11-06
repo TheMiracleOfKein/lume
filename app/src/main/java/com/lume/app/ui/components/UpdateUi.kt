@@ -174,7 +174,7 @@ fun UpdateSection() {
             Button(
                 onClick = { updater.check() },
                 enabled = !busy,
-                colors = ButtonDefaults.buttonColors(containerColor = AppColors.accent),
+                colors = ButtonDefaults.buttonColors(containerColor = AppColors.accent, contentColor = AppColors.onAccent),
             ) { Text(stringResource(R.string.update_check_now)) }
         }
         SwitchRow(
@@ -188,7 +188,7 @@ fun UpdateSection() {
 @Composable
 private fun ReleaseNotes(release: AppRelease) {
     Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
-        Text(stringResource(R.string.update_current_version, BuildConfig.VERSION_NAME), fontSize = 13.sp)
+        Text(stringResource(R.string.update_current_version, BuildConfig.VERSION_NAME), color = AppColors.textSecondary, fontSize = 13.sp)
         if (release.notes.isNotBlank()) {
             val blocks = remember(release.notes) { parseMarkdown(release.notes) }
             blocks.forEachIndexed { index, block ->
@@ -208,15 +208,16 @@ private fun MarkdownBlock(block: MdBlock) {
     when (block) {
         is MdBlock.Heading -> Text(
             text,
+            color = AppColors.textPrimary,
             fontSize = if (block.level <= 2) 15.sp else 14.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(top = 12.dp, bottom = 2.dp),
         )
         is MdBlock.Bullet -> Row(Modifier.padding(start = (block.depth * 14).dp, top = 3.dp)) {
-            Text(if (block.depth == 0) "•" else "◦", fontSize = 13.sp, modifier = Modifier.width(14.dp))
-            Text(text, fontSize = 13.sp)
+            Text(if (block.depth == 0) "•" else "◦", color = AppColors.textPrimary, fontSize = 13.sp, modifier = Modifier.width(14.dp))
+            Text(text, color = AppColors.textPrimary, fontSize = 13.sp)
         }
-        is MdBlock.Paragraph -> Text(text, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+        is MdBlock.Paragraph -> Text(text, color = AppColors.textPrimary, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -247,6 +248,7 @@ private fun DownloadBar(fraction: Float?) {
             LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth(), color = AppColors.accent)
             Text(
                 "${(fraction * 100).toInt()}%",
+                color = AppColors.textSecondary,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(top = 4.dp),
             )

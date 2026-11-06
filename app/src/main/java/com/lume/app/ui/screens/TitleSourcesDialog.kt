@@ -242,7 +242,7 @@ fun TitleSourcesDialog(vm: TitleViewModel, titleName: String, onDismiss: () -> U
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(text, color = AppColors.textSecondary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+    Text(text, color = AppColors.textSecondary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
 }
 
 /** One source on one line: its name over the title (and an optional note), actions on the right. */

@@ -505,7 +505,7 @@ private fun NavSlot(
             Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
         }
         Spacer(Modifier.height(1.dp))
-        Text(label, color = color, fontSize = 10.sp)
+        Text(label, color = color, fontSize = 11.sp)
     }
 }
 

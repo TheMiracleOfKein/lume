@@ -70,6 +70,7 @@ class ContinueWidget : AppWidgetProvider() {
                 val cover = covers.getOrNull(i)
                 if (cover != null) views.setImageViewBitmap(COVERS[i], cover) else views.setImageViewResource(COVERS[i], android.R.color.transparent)
                 views.setOnClickPendingIntent(ITEMS[i], pending(context, REQUEST_ITEM + i, intentFor(entry.route)))
+                views.setContentDescription(ITEMS[i], "${entry.titleName}, ${entry.chapterName}")
             }
             return views
         }

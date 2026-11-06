@@ -32,8 +32,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import com.lume.app.ui.components.BackButton
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
-import androidx.compose.material.icons.outlined.Bookmark
-import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.Share
@@ -188,7 +188,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         onClick = { vm.toggleLibrary() },
                     ) {
                         Icon(
-                            if (bookmarked) Icons.Outlined.Bookmark else Icons.Outlined.BookmarkBorder,
+                            if (bookmarked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                             contentDescription = stringResource(if (bookmarked) R.string.cd_remove_from_library else R.string.cd_add_to_library),
                             tint = if (bookmarked) AppColors.accentText else AppColors.textPrimary,
                         )
@@ -823,13 +823,15 @@ private fun TrackersDialog(
                             loading = false
                         }
                     },
+                    enabled = !loading,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AppColors.accent,
                         contentColor = AppColors.onAccent,
                     ),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        if (loading) stringResource(R.string.ellipsis)
+                        if (loading) stringResource(R.string.tracker_searching)
                         else stringResource(R.string.action_search),
                     )
                 }
