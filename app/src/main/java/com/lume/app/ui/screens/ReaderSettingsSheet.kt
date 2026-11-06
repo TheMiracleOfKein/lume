@@ -287,7 +287,7 @@ internal fun ReaderSettingsSheet(
         Spacer(Modifier.height(8.dp))
         Text(
             text = stringResource(R.string.reader_save_for_title),
-            color = AppColors.accent,
+            color = AppColors.accentText,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier
@@ -330,7 +330,7 @@ private fun ModeCard(
         Spacer(Modifier.height(6.dp))
         Text(
             text = label,
-            color = if (selected) AppColors.accent else AppColors.textSecondary,
+            color = if (selected) AppColors.accentText else AppColors.textSecondary,
             fontSize = 12.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
         )

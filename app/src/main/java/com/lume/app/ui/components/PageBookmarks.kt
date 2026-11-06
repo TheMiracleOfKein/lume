@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -82,6 +83,7 @@ fun PageBookmarkRow(
     onOpen: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    containerColor: Color = AppColors.background,
 ) {
     val dismiss = rememberSwipeToDismissBoxState()
     val currentOnDelete by rememberUpdatedState(onDelete)
@@ -99,7 +101,7 @@ fun PageBookmarkRow(
                     .fillMaxSize()
                     .background(AppColors.danger.copy(alpha = 0.25f))
                     .padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterEnd,
+                contentAlignment = if (dismiss.dismissDirection == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd,
             ) {
                 Icon(Icons.Outlined.Delete, null, tint = AppColors.danger)
             }
@@ -108,7 +110,7 @@ fun PageBookmarkRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(AppColors.background)
+                .background(containerColor)
                 .clickable(onClick = onOpen)
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -164,7 +166,7 @@ fun BookmarkNoteDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = { onSave(text) }) { Text(stringResource(R.string.action_save), color = AppColors.accent) }
+            TextButton(onClick = { onSave(text) }) { Text(stringResource(R.string.action_save), color = AppColors.accentText) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }

@@ -280,7 +280,7 @@ internal fun ReaderPageImage(
                     else -> Modifier.fillMaxWidth().heightIn(min = placeholderHeight)
                 },
             )
-            .background(Color.Black.copy(alpha = 0.12f)),
+            .background(AppColors.textPrimary.copy(alpha = 0.07f)),
         contentAlignment = Alignment.Center,
     ) {
         val pageModifier = Modifier
@@ -336,7 +336,7 @@ internal fun ReaderPageImage(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(stringResource(R.string.page_load_failed), color = AppColors.textSecondary, fontSize = 13.sp)
                 TextButton(onClick = { failed = false; attempt++ }) {
-                    Text(stringResource(R.string.action_retry), color = AppColors.accent)
+                    Text(stringResource(R.string.action_retry), color = AppColors.accentText)
                 }
             }
         }
