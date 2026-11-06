@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.mutableStateOf
@@ -75,6 +76,31 @@ fun DownloadsScreen(nav: NavHostController) {
     val expanded = vm.expanded
     val context = LocalContext.current
     val (usageByTitle, usageTotal) = vm.usage
+    var pending by remember { mutableStateOf<PendingDelete?>(null) }
+
+    pending?.let { p ->
+        AlertDialog(
+            onDismissRequest = { pending = null },
+            title = { Text(stringResource(R.string.dialog_delete_downloads_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        if (p.chapterId == null) R.string.dialog_delete_title_downloads_text else R.string.dialog_delete_chapter_download_text,
+                        p.name,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (p.chapterId == null) vm.deleteTitle(p.sourceId, p.titleId) else vm.deleteChapter(p.sourceId, p.titleId, p.chapterId)
+                    pending = null
+                }) { Text(stringResource(R.string.action_delete), color = AppColors.danger) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pending = null }) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
+    }
 
     Scaffold(
         containerColor = AppColors.background,
@@ -131,7 +157,7 @@ fun DownloadsScreen(nav: NavHostController) {
                             ) {
                                 Text(
                                     if (paused) stringResource(R.string.downloads_paused) else stringResource(R.string.downloads_queued),
-                                    color = if (paused) AppColors.accent else AppColors.textSecondary,
+                                    color = if (paused) AppColors.accentText else AppColors.textSecondary,
                                     fontSize = 13.sp,
                                     modifier = Modifier.weight(1f).padding(vertical = 10.dp),
                                 )
@@ -172,7 +198,7 @@ fun DownloadsScreen(nav: NavHostController) {
                                     )
                                 }
                                 IconButton(onClick = { vm.cancel(item.id) }) {
-                                    Icon(Icons.Outlined.Close, stringResource(R.string.action_cancel), tint = AppColors.danger)
+                                    Icon(Icons.Outlined.Close, stringResource(R.string.action_cancel), tint = AppColors.textSecondary)
                                 }
                             }
                         }
@@ -191,7 +217,7 @@ fun DownloadsScreen(nav: NavHostController) {
                                 )
                                 if (failedQueue.size > 1) {
                                     TextButton(onClick = vm::retryAll) {
-                                        Text(stringResource(R.string.downloads_retry_all), color = AppColors.accent, fontSize = 13.sp)
+                                        Text(stringResource(R.string.downloads_retry_all), color = AppColors.accentText, fontSize = 13.sp)
                                     }
                                 }
                             }
@@ -213,7 +239,7 @@ fun DownloadsScreen(nav: NavHostController) {
                                     )
                                 }
                                 TextButton(onClick = { vm.retry(item.id) }) {
-                                    Text(stringResource(R.string.action_retry), color = AppColors.accent)
+                                    Text(stringResource(R.string.action_retry), color = AppColors.accentText)
                                 }
                                 IconButton(onClick = { vm.cancel(item.id) }) {
                                     Icon(Icons.Outlined.Close, stringResource(R.string.action_cancel), tint = AppColors.textSecondary)
@@ -261,10 +287,10 @@ fun DownloadsScreen(nav: NavHostController) {
                                 }
                                 IconButton(
                                     onClick = {
-                                        vm.deleteTitle(group.sourceId, group.titleId)
+                                        pending = PendingDelete(group.sourceId, group.titleId, null, group.titleName)
                                     },
                                 ) {
-                                    Icon(Icons.Outlined.Delete, null, tint = AppColors.danger)
+                                    Icon(Icons.Outlined.Delete, stringResource(R.string.cd_delete_title_downloads), tint = AppColors.danger)
                                 }
                                 IconButton(
                                     onClick = {
@@ -304,12 +330,12 @@ fun DownloadsScreen(nav: NavHostController) {
                                             }
                                             IconButton(
                                                 onClick = {
-                                                    vm.deleteChapter(item.sourceId, item.titleId, item.chapterId)
+                                                    pending = PendingDelete(item.sourceId, item.titleId, item.chapterId, item.chapterName)
                                                 },
                                             ) {
                                                 Icon(
                                                     Icons.Outlined.Delete,
-                                                    null,
+                                                    stringResource(R.string.cd_delete_download),
                                                     tint = AppColors.danger,
                                                     modifier = Modifier.size(20.dp),
                                                 )
@@ -325,6 +351,9 @@ fun DownloadsScreen(nav: NavHostController) {
         }
     }
 }
+
+/** A delete waiting for confirmation: a whole title (chapterId null) or one chapter. */
+private data class PendingDelete(val sourceId: String, val titleId: String, val chapterId: String?, val name: String)
 
 /** Move a waiting download: first, up or down. */
 @Composable

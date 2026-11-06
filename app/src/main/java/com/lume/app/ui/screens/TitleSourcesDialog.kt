@@ -127,7 +127,7 @@ fun TitleSourcesDialog(vm: TitleViewModel, titleName: String, onDismiss: () -> U
                             SmallIconButton(Icons.Outlined.Close, stringResource(R.string.action_not_now), enabled = !vm.busy) {
                                 vm.dismiss(row)
                             }
-                            SmallIconButton(Icons.Outlined.AddLink, stringResource(R.string.action_link), enabled = !vm.busy, tint = AppColors.accent) {
+                            SmallIconButton(Icons.Outlined.AddLink, stringResource(R.string.action_link), enabled = !vm.busy, tint = AppColors.accentText) {
                                 vm.linkSuggestion(row)
                             }
                         }
@@ -163,13 +163,13 @@ fun TitleSourcesDialog(vm: TitleViewModel, titleName: String, onDismiss: () -> U
                             Icon(
                                 Icons.Outlined.Check,
                                 stringResource(R.string.sources_linked_label),
-                                tint = AppColors.accent,
+                                tint = AppColors.accentText,
                                 modifier = Modifier
                                     .padding(horizontal = 10.dp)
                                     .size(20.dp),
                             )
                         } else {
-                            SmallIconButton(Icons.Outlined.AddLink, stringResource(R.string.action_link), enabled = !vm.busy, tint = AppColors.accent) {
+                            SmallIconButton(Icons.Outlined.AddLink, stringResource(R.string.action_link), enabled = !vm.busy, tint = AppColors.accentText) {
                                 vm.link(candidate)
                             }
                             MoreMenu(
@@ -229,7 +229,7 @@ fun TitleSourcesDialog(vm: TitleViewModel, titleName: String, onDismiss: () -> U
                                 is SourceConfirm.Unlink -> R.string.action_unlink
                             },
                         ),
-                        color = if (c is SourceConfirm.Unlink) AppColors.danger else AppColors.accent,
+                        color = if (c is SourceConfirm.Unlink) AppColors.danger else AppColors.accentText,
                     )
                 }
             },
@@ -272,7 +272,7 @@ private fun SourceRow(
             )
             Text(title, color = AppColors.textSecondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (note != null) {
-                Text(note, color = if (noteAccent) AppColors.accent else AppColors.textTertiary, fontSize = 12.sp, maxLines = 1)
+                Text(note, color = if (noteAccent) AppColors.accentText else AppColors.textTertiary, fontSize = 12.sp, maxLines = 1)
             }
         }
         actions()

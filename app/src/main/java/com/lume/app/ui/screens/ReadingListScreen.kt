@@ -256,7 +256,7 @@ private fun ReadingListEntryRow(row: ReadingListRow, checked: Boolean, onToggle:
             val source = row.entry.sourceName ?: row.entry.sourceId
             Text(source, color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
             when (row.state) {
-                ReadingListState.InLibrary -> StateNote(stringResource(R.string.reading_list_in_library), AppColors.accent)
+                ReadingListState.InLibrary -> StateNote(stringResource(R.string.reading_list_in_library), AppColors.accentText)
                 ReadingListState.NoSource -> StateNote(stringResource(R.string.reading_list_no_source), AppColors.danger)
                 ReadingListState.New -> Unit
             }

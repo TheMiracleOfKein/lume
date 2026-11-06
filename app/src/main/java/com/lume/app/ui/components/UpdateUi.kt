@@ -195,7 +195,7 @@ private fun ReleaseNotes(release: AppRelease) {
 
 @Composable
 private fun MarkdownBlock(block: MdBlock) {
-    val linkColor = AppColors.accent
+    val linkColor = AppColors.accentText
     val codeBackground = AppColors.card
     val text = remember(block, linkColor, codeBackground) { block.spans.toAnnotated(linkColor, codeBackground) }
     when (block) {

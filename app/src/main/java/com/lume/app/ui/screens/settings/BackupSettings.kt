@@ -73,7 +73,7 @@ fun BackupSettings(nav: NavHostController, vm: SettingsViewModel) {
         vm.importProgress?.let { (done, total) ->
             Text(
                 stringResource(R.string.backup_mihon_progress, done, total),
-                color = AppColors.accent,
+                color = AppColors.accentText,
                 fontSize = 13.sp,
                 modifier = Modifier.padding(start = 4.dp, bottom = 4.dp),
             )

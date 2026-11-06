@@ -26,6 +26,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -201,14 +204,16 @@ private fun WebDavDialog(
 ) {
     var url by rememberSaveable { mutableStateOf(settings.webDavUrl) }
     var user by rememberSaveable { mutableStateOf(settings.webDavUser) }
-    var password by rememberSaveable { mutableStateOf(settings.webDavPassword) }
+    var password by remember { mutableStateOf(settings.webDavPassword) }
     val valid = url.trim().let { it.startsWith("https://") || it.startsWith("http://") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = AppColors.surface,
         title = { Text(stringResource(R.string.sync_webdav_server)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
@@ -247,10 +252,9 @@ private fun WebDavDialog(
 
 @Composable
 private fun PassphraseDialog(current: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
-    var value by rememberSaveable { mutableStateOf(current) }
+    var value by remember { mutableStateOf(current) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = AppColors.surface,
         title = { Text(stringResource(R.string.sync_passphrase)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

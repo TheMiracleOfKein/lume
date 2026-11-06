@@ -244,7 +244,7 @@ private fun ChipGroup(group: SourceFilter.Group, change: (String, (SourceFilter)
             if (long && chosen.isNotEmpty()) {
                 Text(
                     chosen.joinToString(),
-                    color = AppColors.accent,
+                    color = AppColors.accentText,
                     fontSize = 12.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -254,13 +254,13 @@ private fun ChipGroup(group: SourceFilter.Group, change: (String, (SourceFilter)
         if (long) {
             Text(
                 if (open) stringResource(R.string.filters_fold) else stringResource(R.string.filters_show_all, group.filters.size),
-                color = AppColors.accent,
+                color = AppColors.accentText,
                 fontSize = 13.sp,
             )
             Icon(
                 if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                 contentDescription = null,
-                tint = AppColors.accent,
+                tint = AppColors.accentText,
             )
         }
     }
@@ -313,7 +313,7 @@ private fun TriStateChip(filter: SourceFilter.TriState, onClick: () -> Unit) {
     val exclude = filter.state == 2
     val background by animateColorAsState(
         when {
-            include -> AppColors.accentMuted
+            include -> AppColors.selection
             exclude -> AppColors.danger.copy(alpha = 0.16f)
             else -> AppColors.card
         },

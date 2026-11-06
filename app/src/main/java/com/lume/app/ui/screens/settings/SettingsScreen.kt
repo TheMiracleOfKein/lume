@@ -244,7 +244,7 @@ private fun SearchResultRow(result: SearchableSetting, icon: ImageVector, onClic
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(result.title, color = AppColors.textPrimary, fontSize = 15.sp)
-            Text(result.section, color = AppColors.accent, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+            Text(result.section, color = AppColors.accentText, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
             if (result.hint.isNotBlank()) {
                 Text(
                     result.hint,
@@ -265,9 +265,9 @@ private fun SectionIcon(icon: ImageVector) {
         modifier = Modifier
             .size(36.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(AppColors.accentMuted),
+            .background(AppColors.cardHigh),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = AppColors.accent, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription = null, tint = AppColors.accentText, modifier = Modifier.size(20.dp))
     }
 }

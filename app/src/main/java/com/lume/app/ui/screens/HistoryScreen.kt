@@ -78,7 +78,7 @@ fun HistoryScreen(nav: NavHostController) {
                 actions = {
                     if (history.isNotEmpty()) {
                         IconButton(onClick = { confirmClear = true }) {
-                            Icon(Icons.Outlined.DeleteSweep, stringResource(R.string.history_clear), tint = AppColors.textSecondary)
+                            Icon(Icons.Outlined.DeleteSweep, stringResource(R.string.history_clear), tint = AppColors.textPrimary)
                         }
                     }
                 },
