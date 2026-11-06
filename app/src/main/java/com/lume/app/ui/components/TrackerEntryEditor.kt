@@ -165,7 +165,7 @@ private fun DateField(label: String, value: String, onChange: (String) -> Unit) 
                 TextButton(onClick = { onChange(LocalDate.now().toString()) }) { Text(stringResource(R.string.tracker_edit_today)) }
                 if (value.isNotEmpty()) {
                     IconButton(onClick = { onChange("") }) {
-                        Icon(Icons.Default.Close, stringResource(R.string.action_clear), tint = AppColors.textSecondary)
+                        Icon(Icons.Default.Close, stringResource(R.string.cd_clear_date), tint = AppColors.textSecondary)
                     }
                 }
             }

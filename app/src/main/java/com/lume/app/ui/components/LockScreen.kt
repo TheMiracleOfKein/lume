@@ -1,5 +1,6 @@
 package com.lume.app.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -19,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,6 +31,8 @@ import com.lume.app.ui.theme.AppColors
 /** Covers the app while the app lock waits for the screen lock. */
 @Composable
 fun LockScreen(onUnlock: () -> Unit) {
+    // Back must not reach the app underneath while it is covered.
+    BackHandler {}
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -39,7 +44,12 @@ fun LockScreen(onUnlock: () -> Unit) {
     ) {
         Icon(Icons.Outlined.Lock, null, tint = AppColors.accentText, modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(16.dp))
-        Text(stringResource(R.string.app_lock_title), color = AppColors.textPrimary, fontSize = 18.sp)
+        Text(
+            stringResource(R.string.app_lock_title),
+            color = AppColors.textPrimary,
+            fontSize = 18.sp,
+            modifier = Modifier.semantics { heading() },
+        )
         Spacer(Modifier.height(16.dp))
         Button(
             onClick = onUnlock,

@@ -17,7 +17,12 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -409,15 +414,11 @@ private fun BottomNavBar(
                 modifier = Modifier.weight(1f),
                 onClick = { onSelect(Routes.Catalog) },
             )
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxSize()
-                    .clickable { onSelect(Routes.Home) },
-                contentAlignment = Alignment.Center,
-            ) {
-                LumeLogo(selected = currentRoute == Routes.Home, size = 30.dp)
-            }
+            HomeSlot(
+                selected = currentRoute == Routes.Home,
+                onClick = { onSelect(Routes.Home) },
+                modifier = Modifier.weight(1f).fillMaxSize(),
+            )
             NavSlot(
                 selected = currentRoute == Routes.Updates,
                 label = stringResource(R.string.nav_updates),
@@ -459,9 +460,7 @@ private fun NavRail(currentRoute: String?, onSelect: (String?) -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 val slot = Modifier.fillMaxWidth().height(slotHeight)
-                Box(slot.clickable { onSelect(Routes.Home) }, contentAlignment = Alignment.Center) {
-                    LumeLogo(selected = currentRoute == Routes.Home, size = 30.dp)
-                }
+                HomeSlot(currentRoute == Routes.Home, { onSelect(Routes.Home) }, slot)
                 NavSlot(currentRoute == Routes.Library, stringResource(R.string.nav_library), Icons.Outlined.Bookmark, { onSelect(Routes.Library) }, slot)
                 NavSlot(currentRoute == Routes.Catalog, stringResource(R.string.nav_catalog), Icons.Outlined.GridView, { onSelect(Routes.Catalog) }, slot)
                 NavSlot(currentRoute == Routes.Updates, stringResource(R.string.nav_updates), Icons.Outlined.NewReleases, { onSelect(Routes.Updates) }, slot)
@@ -485,15 +484,41 @@ private fun NavSlot(
         Motion.short(),
         label = "navSlot",
     )
+    val pill by animateColorAsState(
+        if (selected) AppColors.selection else Color.Transparent,
+        Motion.short(),
+        label = "navPill",
+    )
     Column(
         modifier = modifier
             .fillMaxSize()
-            .clickable(onClick = onClick),
+            .selectable(selected = selected, role = Role.Tab, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(22.dp))
-        Spacer(Modifier.height(2.dp))
+        Box(
+            modifier = Modifier
+                .size(width = 44.dp, height = 26.dp)
+                .background(pill, RoundedCornerShape(13.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.height(1.dp))
         Text(label, color = color, fontSize = 10.sp)
+    }
+}
+
+/** The centre Home destination: the app logo, announced as "Home". */
+@Composable
+private fun HomeSlot(selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val label = stringResource(R.string.nav_home)
+    Box(
+        modifier = modifier
+            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        LumeLogo(selected = selected, size = 30.dp, contentDescription = null, ringed = true)
     }
 }

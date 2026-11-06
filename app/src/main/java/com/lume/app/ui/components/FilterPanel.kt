@@ -13,6 +13,9 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.selection.triStateToggleable
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextDecoration
@@ -193,10 +196,11 @@ private fun FilterItem(filter: SourceFilter, change: (String, (SourceFilter) -> 
             }
             val next = { change(filter.id) { (it as SourceFilter.TriState).copy(state = (filter.state + 1) % 3) } }
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable(onClick = next),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                    .triStateToggleable(state = state, role = Role.Checkbox, onClick = next),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TriStateCheckbox(state = state, onClick = next, colors = filterCheckboxColors())
+                TriStateCheckbox(state = state, onClick = null, colors = filterCheckboxColors())
                 Text(filter.name, color = AppColors.textPrimary, fontSize = 14.sp)
             }
         }
@@ -386,10 +390,11 @@ private fun FilterLabel(text: String) {
 @Composable
 fun CheckRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { onChange(!checked) },
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+            .toggleable(value = checked, role = Role.Checkbox, onValueChange = onChange),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(checked = checked, onCheckedChange = onChange, colors = filterCheckboxColors())
+        Checkbox(checked = checked, onCheckedChange = null, colors = filterCheckboxColors())
         Text(label, color = AppColors.textPrimary, fontSize = 14.sp)
     }
 }

@@ -237,7 +237,7 @@ private fun UpdateRowItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics { if (row.read) stateDescription = readDescription }
-                .combinedClickable(onClick = onOpen, onLongClick = { menu = true })
+                .combinedClickable(onClick = onOpen, onLongClickLabel = stringResource(R.string.source_action_more), onLongClick = { menu = true })
                 .padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

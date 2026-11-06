@@ -5,6 +5,9 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -76,13 +79,13 @@ internal fun ReaderSettingsSheet(
                 modifier = Modifier.weight(1f),
             )
             IconButton(onClick = onClose) {
-                Icon(Icons.Outlined.Close, null, tint = AppColors.textPrimary)
+                Icon(Icons.Outlined.Close, stringResource(R.string.action_close), tint = AppColors.textPrimary)
             }
         }
         Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.reader_mode), color = AppColors.textSecondary, fontSize = 13.sp)
         Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ModeCard(
                 selected = settings.mode == ReaderMode.Rtl,
                 icon = Icons.Outlined.SwipeLeft,
@@ -325,7 +328,7 @@ private fun ModeCard(
             .clip(RoundedCornerShape(12.dp))
             .background(background)
             .border(1.dp, border, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

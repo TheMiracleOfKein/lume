@@ -2,6 +2,9 @@ package com.lume.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -485,13 +488,13 @@ private fun SourceRow(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .clickable(onClick = onSelect)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onSelect)
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(
             selected = selected,
-            onClick = onSelect,
+            onClick = null,
             colors = RadioButtonDefaults.colors(
                 selectedColor = AppColors.accent,
                 unselectedColor = AppColors.textSecondary,
@@ -563,7 +566,7 @@ private fun SourceRow(
             IconButton(onClick = { if (loggedIn) onLogout() else onLogin() }) {
                 Icon(
                     if (loggedIn) Icons.AutoMirrored.Outlined.Logout else Icons.AutoMirrored.Outlined.Login,
-                    contentDescription = null,
+                    contentDescription = stringResource(if (loggedIn) R.string.action_logout else R.string.action_login),
                     tint = if (loggedIn) AppColors.accentText else AppColors.textSecondary,
                 )
             }

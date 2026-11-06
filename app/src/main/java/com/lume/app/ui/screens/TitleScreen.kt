@@ -189,7 +189,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                     ) {
                         Icon(
                             if (bookmarked) Icons.Outlined.Bookmark else Icons.Outlined.BookmarkBorder,
-                            contentDescription = stringResource(R.string.cd_bookmark),
+                            contentDescription = stringResource(if (bookmarked) R.string.cd_remove_from_library else R.string.cd_add_to_library),
                             tint = if (bookmarked) AppColors.accentText else AppColors.textPrimary,
                         )
                     }

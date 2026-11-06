@@ -8,6 +8,7 @@ import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.LocalShellBottomPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -281,7 +282,7 @@ private fun ContinueCard(item: ProgressEntity, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .width(110.dp)
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
     ) {
         CoverImage(url = item.coverUrl, width = 110.dp, height = 150.dp, radius = 8.dp)
         LinearProgressIndicator(

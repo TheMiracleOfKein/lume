@@ -8,6 +8,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -95,6 +99,7 @@ import com.lume.app.domain.LinkedChapterId
 import com.lume.app.domain.chapterBranches
 import com.lume.app.domain.chapterListView
 import com.lume.app.ui.components.AnimatedLoadState
+import com.lume.app.ui.components.TooltipIconButton
 import com.lume.app.ui.components.ErrorRetryBox
 import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
@@ -347,6 +352,7 @@ private fun TeamChips(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .selectableGroup()
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -373,7 +379,7 @@ private fun TeamChip(label: String, selected: Boolean, onClick: () -> Unit) {
             .minimumInteractiveComponentSize()
             .clip(RoundedCornerShape(16.dp))
             .background(background)
-            .clickable(onClick = onClick)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 7.dp),
     )
 }
@@ -407,7 +413,7 @@ private fun ChapterRow(
         modifier = modifier
             .fillMaxWidth()
             .background(background)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .combinedClickable(onClick = onClick, onLongClickLabel = stringResource(R.string.cd_long_press_select), onLongClick = onLongClick)
             .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -514,7 +520,7 @@ private fun ChapterSelectionBar(
 
 @Composable
 private fun BarAction(icon: ImageVector, label: String, onClick: () -> Unit, tint: Color = AppColors.textPrimary) {
-    IconButton(onClick = onClick) { Icon(icon, contentDescription = label, tint = tint) }
+    TooltipIconButton(icon, label, onClick, tint)
 }
 
 @Composable
@@ -531,7 +537,7 @@ private fun ChapterFilterSheet(options: ChapterListOptions, onToggle: (Int) -> U
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onToggle(bit) }
+                    .toggleable(value = on, role = Role.Checkbox, onValueChange = { onToggle(bit) })
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

@@ -37,6 +37,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -140,7 +141,8 @@ private fun LazyGridItemScope.LibraryGridCell(
                 fadeOutSpec = Motion.itemFade(),
             )
             .clip(shape)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+            .combinedClickable(onClick = onClick, onLongClickLabel = stringResource(R.string.cd_long_press_select), onLongClick = onLongClick)
+            .semantics { this.selected = selected },
     ) {
         Box(
             modifier = Modifier
@@ -304,7 +306,8 @@ private fun LibraryListRow(
         modifier = modifier
             .fillMaxWidth()
             .background(background)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .combinedClickable(onClick = onClick, onLongClickLabel = stringResource(R.string.cd_long_press_select), onLongClick = onLongClick)
+            .semantics { this.selected = selected }
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

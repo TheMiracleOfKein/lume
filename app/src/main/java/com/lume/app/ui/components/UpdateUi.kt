@@ -27,6 +27,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -160,7 +163,7 @@ fun UpdateSection() {
             is UpdateState.ReadyToInstall -> stringResource(R.string.update_ready_title, s.release.version)
             is UpdateState.Failed -> stringResource(R.string.update_status_failed, s.message)
         }
-        Text(status, color = AppColors.textSecondary, fontSize = 13.sp)
+        Text(status, color = AppColors.textSecondary, fontSize = 13.sp, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
         (state as? UpdateState.Downloading)?.let {
             Spacer(Modifier.height(8.dp))
             DownloadBar(it.fraction)

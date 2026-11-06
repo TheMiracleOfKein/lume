@@ -4,6 +4,9 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -238,7 +241,13 @@ private fun ReadingListEntryRow(row: ReadingListRow, checked: Boolean, onToggle:
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (new) Modifier.clickable(onClick = onToggle) else Modifier)
+            .then(
+                if (new) {
+                    Modifier.toggleable(value = checked, role = Role.Checkbox, onValueChange = { onToggle() })
+                } else {
+                    Modifier
+                },
+            )
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -264,7 +273,7 @@ private fun ReadingListEntryRow(row: ReadingListRow, checked: Boolean, onToggle:
         if (new) {
             Checkbox(
                 checked = checked,
-                onCheckedChange = { onToggle() },
+                onCheckedChange = null,
                 colors = CheckboxDefaults.colors(checkedColor = AppColors.accent, checkmarkColor = AppColors.onAccent),
             )
         }

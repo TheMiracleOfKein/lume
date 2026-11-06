@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.BookmarkAdd
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -185,7 +186,7 @@ internal fun ReaderTopBar(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .clickable(onClick = onOpenTitle),
+                    .clickable(role = Role.Button, onClick = onOpenTitle),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
@@ -303,7 +304,7 @@ internal fun ReaderBottomBar(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .combinedClickable(onClick = onBookmark, onLongClick = onBookmarkList),
+                    .combinedClickable(onClick = onBookmark, onLongClickLabel = stringResource(R.string.cd_long_press_bookmarks), onLongClick = onBookmarkList),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(Icons.Outlined.BookmarkAdd, stringResource(R.string.cd_bookmark_spot), tint = Color.White)

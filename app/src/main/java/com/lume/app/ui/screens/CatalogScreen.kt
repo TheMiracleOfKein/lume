@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.PaddingValues
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.listBottomPadding
@@ -119,7 +120,7 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
                 )
             }
         }
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().selectableGroup().padding(horizontal = 4.dp, vertical = 8.dp)) {
             SegmentTab(stringResource(R.string.catalog_tab_popular), selected = tab == 0, modifier = Modifier.weight(1f)) { tab = 0 }
             SegmentTab(stringResource(R.string.catalog_tab_updates), selected = tab == 1, modifier = Modifier.weight(1f)) { tab = 1 }
             // A browsed source has no library tab: the library is the same for every source.

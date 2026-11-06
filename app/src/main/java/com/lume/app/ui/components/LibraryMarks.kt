@@ -5,6 +5,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.lume.app.R
 import com.lume.app.LocalAppContainer
 import com.lume.app.data.library.parseCategoryIds
 import com.lume.app.domain.LibraryStatus
@@ -37,3 +39,15 @@ fun rememberLibraryMarks(): Map<String, LibraryStatus> {
 }
 
 fun libraryMarkKey(sourceId: String, titleId: String): String = "$sourceId\u0000$titleId"
+
+/** The spoken form of the colour bar for a library title of this status. */
+@Composable
+fun libraryStatusLabel(status: LibraryStatus): String = stringResource(
+    when (status) {
+        LibraryStatus.Reading -> R.string.track_status_reading
+        LibraryStatus.Planned -> R.string.track_status_planned
+        LibraryStatus.Dropped -> R.string.track_status_dropped
+        LibraryStatus.Completed -> R.string.track_status_completed
+        LibraryStatus.Other -> R.string.cd_in_library
+    },
+)

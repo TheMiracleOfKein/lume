@@ -31,6 +31,7 @@
     <string name="error_prefix">Ошибка: %s</string>
     <string name="ellipsis">…</string>
 
+    <string name="nav_home">Главная</string>
     <string name="nav_library">Закладки</string>
     <string name="nav_catalog">Каталог</string>
     <string name="nav_history">История</string>
@@ -288,6 +289,11 @@
     <string name="reader_bookmark_add_note">Добавить заметку</string>
     <string name="cd_bookmark_spot">Закладка на это место (удерживайте — список)</string>
     <string name="cd_add_to_library">Добавить в библиотеку</string>
+    <string name="cd_clear_date">Очистить дату</string>
+    <string name="cd_filters_active">Фильтры включены</string>
+    <string name="cd_in_library">В библиотеке</string>
+    <string name="cd_long_press_select">Выбрать</string>
+    <string name="cd_long_press_bookmarks">Список закладок</string>
     <string name="cd_remove_from_library">Убрать из библиотеки</string>
     <string name="bookmarks_title">Закладки</string>
     <string name="bookmarks_empty">Закладок пока нет. В читалке нажмите кнопку закладки, чтобы отметить место.</string>

@@ -63,6 +63,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -107,6 +109,7 @@ fun MainMenu(
     val currentOnClose by rememberUpdatedState(onClose)
     val currentVisible by rememberUpdatedState(visible)
 
+    val menuTitle = stringResource(R.string.nav_menu)
     BackHandler(enabled = visible, onBack = onClose)
     LaunchedEffect(visible, panelWidth) {
         if (panelWidth <= 0f) return@LaunchedEffect
@@ -138,7 +141,7 @@ fun MainMenu(
                 .fillMaxSize()
                 .graphicsLayer { alpha = openFraction() }
                 .background(Color.Black.copy(alpha = 0.54f))
-                .clickable(enabled = visible, interactionSource = null, indication = null, onClick = onClose),
+                .clickable(enabled = visible, onClickLabel = stringResource(R.string.action_close), interactionSource = null, indication = null, onClick = onClose),
         )
         MenuPanel(
             darkTheme = darkTheme,
@@ -148,6 +151,7 @@ fun MainMenu(
             onNavigate = onNavigate,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
+                .semantics { paneTitle = menuTitle }
                 .onSizeChanged { size ->
                     val w = size.width.toFloat()
                     if (w != panelWidth) {

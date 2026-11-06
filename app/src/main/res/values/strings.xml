@@ -34,6 +34,7 @@
     <string name="ellipsis">…</string>
 
     <!-- Nav / menu -->
+    <string name="nav_home">Home</string>
     <string name="nav_library">Library</string>
     <string name="nav_catalog">Catalog</string>
     <string name="nav_history">History</string>
@@ -299,6 +300,11 @@
     <string name="reader_bookmark_add_note">Add note</string>
     <string name="cd_bookmark_spot">Bookmark this spot (hold for the list)</string>
     <string name="cd_add_to_library">Add to library</string>
+    <string name="cd_clear_date">Clear date</string>
+    <string name="cd_filters_active">Filters on</string>
+    <string name="cd_in_library">In library</string>
+    <string name="cd_long_press_select">Select</string>
+    <string name="cd_long_press_bookmarks">Bookmark list</string>
     <string name="cd_remove_from_library">Remove from library</string>
     <string name="bookmarks_title">Bookmarks</string>
     <string name="bookmarks_empty">No bookmarks yet. In the reader, tap the bookmark button to pin a spot.</string>
