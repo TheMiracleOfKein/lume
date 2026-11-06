@@ -53,6 +53,7 @@ import com.lume.app.ui.components.CoverCard
 import com.lume.app.ui.components.CoverImage
 import com.lume.app.ui.components.ErrorRetryBox
 import com.lume.app.ui.components.LoadState
+import com.lume.app.ui.components.LumeRefreshIndicator
 import com.lume.app.ui.components.LoadingBox
 import com.lume.app.ui.components.QuickSearchBar
 import com.lume.app.ui.components.SectionHeader
@@ -115,7 +116,7 @@ fun HomeScreen(nav: NavHostController) {
             modifier = Modifier.fillMaxSize(),
         ) { pane ->
             when (pane) {
-                LoadState.Empty -> {
+                LoadState.Empty -> Column(Modifier.fillMaxSize()) {
                     Text(
                         stringResource(R.string.home_offline_downloaded),
                         color = AppColors.textSecondary,
@@ -123,11 +124,11 @@ fun HomeScreen(nav: NavHostController) {
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
                     if (offlineTitles.isEmpty()) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                             Text(stringResource(R.string.home_no_downloaded), color = AppColors.textSecondary, fontSize = 15.sp)
                         }
                     } else {
-                        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalShellBottomPadding.current)) {
+                        LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(bottom = LocalShellBottomPadding.current)) {
                             items(offlineTitles, key = { "${it.first}:${it.second}" }) { (sid, tid, item) ->
                                 TitleListRow(
                                     modifier = animatedItem(),
@@ -153,6 +154,9 @@ fun HomeScreen(nav: NavHostController) {
                         onRefresh = vm::refresh,
                         state = ptrState,
                         modifier = Modifier.fillMaxSize(),
+                        indicator = {
+                            LumeRefreshIndicator(ptrState, loading, Modifier.align(Alignment.TopCenter))
+                        },
                     ) {
                     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalShellBottomPadding.current)) {
                         item {
@@ -191,7 +195,7 @@ fun HomeScreen(nav: NavHostController) {
                                         modifier = Modifier.weight(1f),
                                     )
                                     TextButton(onClick = { confirmClear = true }) {
-                                        Text(stringResource(R.string.action_clear), color = AppColors.accent, fontSize = 12.sp)
+                                        Text(stringResource(R.string.action_clear), color = AppColors.accentText, fontSize = 12.sp)
                                     }
                                 }
                             }

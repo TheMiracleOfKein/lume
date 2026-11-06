@@ -20,6 +20,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -349,7 +359,17 @@ private fun NavGraphBuilder.lumeComposable(
             LocalNavExiting provides exiting,
         ) {
             if (isTab && rail) {
-                Box(Modifier.fillMaxSize().padding(start = LumeInsets.RailWidth)) { content(entry) }
+                // Clear the rail (plus any cutout or side bar next to it) and the opposite side inset.
+                val dir = LocalLayoutDirection.current
+                val sides = LumeInsets.sides.asPaddingValues()
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(
+                            start = LumeInsets.RailWidth + if (dir == LayoutDirection.Ltr) sides.calculateLeftPadding(dir) else sides.calculateRightPadding(dir),
+                            end = if (dir == LayoutDirection.Ltr) sides.calculateRightPadding(dir) else sides.calculateLeftPadding(dir),
+                        ),
+                ) { content(entry) }
             } else {
                 content(entry)
             }
@@ -420,24 +440,33 @@ private fun BottomNavBar(
 @Composable
 private fun NavRail(currentRoute: String?, onSelect: (String?) -> Unit) {
     Row(Modifier.fillMaxHeight()) {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxHeight()
-                .width(LumeInsets.RailWidth - 1.dp)
                 .background(AppColors.navBar)
-                .statusBarsPadding()
-                .navigationBarsPadding(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+                .windowInsetsPadding(LumeInsets.sides.only(WindowInsetsSides.Start))
+                .width(LumeInsets.RailWidth - 1.dp)
+                .windowInsetsPadding(
+                    WindowInsets.statusBars.only(WindowInsetsSides.Top)
+                        .union(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)),
+                ),
+            contentAlignment = Alignment.Center,
         ) {
-            val slot = Modifier.fillMaxWidth().height(72.dp)
-            Box(slot.clickable { onSelect(Routes.Home) }, contentAlignment = Alignment.Center) {
-                LumeLogo(selected = currentRoute == Routes.Home, size = 30.dp)
+            // Short landscape screens: smaller slots, and the column scrolls if it still doesn't fit.
+            val slotHeight = if (maxHeight < 480.dp) 56.dp else 72.dp
+            Column(
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                val slot = Modifier.fillMaxWidth().height(slotHeight)
+                Box(slot.clickable { onSelect(Routes.Home) }, contentAlignment = Alignment.Center) {
+                    LumeLogo(selected = currentRoute == Routes.Home, size = 30.dp)
+                }
+                NavSlot(currentRoute == Routes.Library, stringResource(R.string.nav_library), Icons.Outlined.Bookmark, { onSelect(Routes.Library) }, slot)
+                NavSlot(currentRoute == Routes.Catalog, stringResource(R.string.nav_catalog), Icons.Outlined.GridView, { onSelect(Routes.Catalog) }, slot)
+                NavSlot(currentRoute == Routes.Updates, stringResource(R.string.nav_updates), Icons.Outlined.NewReleases, { onSelect(Routes.Updates) }, slot)
+                NavSlot(false, stringResource(R.string.nav_menu), Icons.Outlined.Menu, { onSelect(null) }, slot)
             }
-            NavSlot(currentRoute == Routes.Library, stringResource(R.string.nav_library), Icons.Outlined.Bookmark, { onSelect(Routes.Library) }, slot)
-            NavSlot(currentRoute == Routes.Catalog, stringResource(R.string.nav_catalog), Icons.Outlined.GridView, { onSelect(Routes.Catalog) }, slot)
-            NavSlot(currentRoute == Routes.Updates, stringResource(R.string.nav_updates), Icons.Outlined.NewReleases, { onSelect(Routes.Updates) }, slot)
-            NavSlot(false, stringResource(R.string.nav_menu), Icons.Outlined.Menu, { onSelect(null) }, slot)
         }
         VerticalDivider(color = AppColors.divider, thickness = 1.dp)
     }

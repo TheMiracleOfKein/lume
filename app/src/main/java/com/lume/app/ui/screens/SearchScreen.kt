@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -147,6 +149,8 @@ fun SearchScreen(nav: NavHostController, globalQuery: String? = null) {
         Column(
             modifier = Modifier
                 .padding(padding)
+                .consumeWindowInsets(padding)
+                .imePadding()
                 .fillMaxSize()
                 .background(AppColors.background),
         ) {
@@ -188,7 +192,7 @@ fun SearchScreen(nav: NavHostController, globalQuery: String? = null) {
                         Icon(
                             Icons.Outlined.Tune,
                             contentDescription = stringResource(R.string.filters_title),
-                            tint = if (vm.filtersActive) AppColors.accent else AppColors.textSecondary,
+                            tint = if (vm.filtersActive) AppColors.accentText else AppColors.textSecondary,
                         )
                         if (vm.filtersActive) {
                             Box(
@@ -320,7 +324,7 @@ private fun SearchHistory(
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(onClick = onClear) {
-                    Text(stringResource(R.string.search_history_clear), color = AppColors.accent, fontSize = 13.sp)
+                    Text(stringResource(R.string.search_history_clear), color = AppColors.accentText, fontSize = 13.sp)
                 }
             }
         }
@@ -386,7 +390,7 @@ private fun GlobalResults(
                     progress = { done.toFloat() / total },
                     modifier = Modifier.fillMaxWidth(),
                     color = AppColors.accent,
-                    trackColor = AppColors.surface,
+                    trackColor = AppColors.card,
                 )
             }
         }
@@ -460,7 +464,7 @@ private fun SourceResultRow(
                     modifier = Modifier.padding(end = 8.dp),
                 )
                 is SourceState.Failed -> TextButton(onClick = onRetry) {
-                    Text(stringResource(R.string.action_retry), color = AppColors.accent, fontSize = 12.sp)
+                    Text(stringResource(R.string.action_retry), color = AppColors.accentText, fontSize = 12.sp)
                 }
             }
         }

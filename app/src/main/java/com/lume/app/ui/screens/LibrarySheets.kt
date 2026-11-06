@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -66,7 +69,7 @@ internal fun LibrarySheet(settings: LibrarySettings, onChange: ((LibrarySettings
         SecondaryTabRow(
             selectedTabIndex = tab,
             containerColor = AppColors.surface,
-            contentColor = AppColors.accent,
+            contentColor = AppColors.accentText,
             divider = {},
             indicator = {
                 TabRowDefaults.SecondaryIndicator(Modifier.tabIndicatorOffset(tab), color = AppColors.accent)
@@ -76,7 +79,7 @@ internal fun LibrarySheet(settings: LibrarySettings, onChange: ((LibrarySettings
                 Tab(
                     selected = tab == index,
                     onClick = { tab = index },
-                    text = { Text(stringResource(label), color = if (tab == index) AppColors.accent else AppColors.textSecondary) },
+                    text = { Text(stringResource(label), color = if (tab == index) AppColors.accentText else AppColors.textSecondary) },
                 )
             }
         }
@@ -91,7 +94,11 @@ internal fun LibrarySheet(settings: LibrarySettings, onChange: ((LibrarySettings
                         TriState.Include -> Icons.Outlined.CheckBox
                         TriState.Exclude -> Icons.Outlined.IndeterminateCheckBox
                     },
-                    iconTint = if (state == TriState.Off) AppColors.textSecondary else AppColors.accent,
+                    iconTint = when (state) {
+                        TriState.Off -> AppColors.textSecondary
+                        TriState.Include -> AppColors.accentText
+                        TriState.Exclude -> AppColors.danger
+                    },
                     onClick = { onChange { it.cycled(filter) } },
                 )
             }
@@ -104,7 +111,7 @@ internal fun LibrarySheet(settings: LibrarySettings, onChange: ((LibrarySettings
                         settings.ascending -> Icons.Outlined.ArrowUpward
                         else -> Icons.Outlined.ArrowDownward
                     },
-                    iconTint = AppColors.accent,
+                    iconTint = AppColors.accentText,
                     onClick = {
                         onChange {
                             if (it.sort == sort) it.copy(ascending = !it.ascending)
@@ -114,7 +121,7 @@ internal fun LibrarySheet(settings: LibrarySettings, onChange: ((LibrarySettings
                     },
                 )
             }
-            else -> Column(Modifier.padding(horizontal = 16.dp)) {
+            else -> Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
                 Text(
                     stringResource(R.string.library_layout),
                     color = AppColors.textSecondary,
@@ -219,7 +226,7 @@ internal fun CategoryAssignDialog(
             if (categories.isEmpty()) {
                 Text(stringResource(R.string.categories_empty_hint), color = AppColors.textSecondary)
             } else {
-                Column {
+                Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
                     categories.forEach { cat ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,

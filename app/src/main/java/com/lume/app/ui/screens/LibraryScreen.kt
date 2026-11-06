@@ -41,10 +41,13 @@ import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.FlipToBack
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.RemoveDone
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.ui.semantics.contentDescription
@@ -426,12 +429,12 @@ private fun CategoryRow(
 @Composable
 private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) {
     val color by animateColorAsState(
-        if (selected) AppColors.accent else AppColors.textSecondary,
+        if (selected) AppColors.textPrimary else AppColors.textSecondary,
         Motion.short(),
         label = "chipText",
     )
     val background by animateColorAsState(
-        if (selected) AppColors.accentMuted else AppColors.card,
+        if (selected) AppColors.selection else AppColors.card,
         Motion.short(),
         label = "chipBackground",
     )
@@ -473,14 +476,14 @@ private fun FilterChipRow(settings: LibrarySettings, onCycle: (LibraryFilter) ->
             val color by animateColorAsState(
                 when (state) {
                     TriState.Off -> AppColors.textSecondary
-                    TriState.Include -> AppColors.accent
+                    TriState.Include -> AppColors.textPrimary
                     TriState.Exclude -> AppColors.danger
                 },
                 Motion.short(),
                 label = "filterChipText",
             )
             val background by animateColorAsState(
-                if (state == TriState.Off) AppColors.card else AppColors.accentMuted,
+                if (state == TriState.Off) AppColors.card else AppColors.selection,
                 Motion.short(),
                 label = "filterChipBackground",
             )
@@ -536,12 +539,29 @@ private fun SelectionBar(
     ) {
         SelectionAction(Icons.AutoMirrored.Outlined.Label, stringResource(R.string.dialog_categories), onCategories)
         SelectionAction(Icons.Outlined.DoneAll, stringResource(R.string.action_mark_read), onMarkRead)
-        SelectionAction(Icons.Outlined.RemoveDone, stringResource(R.string.action_mark_unread), onMarkUnread)
         SelectionAction(Icons.Outlined.Download, stringResource(R.string.action_download_unread), onDownload)
-        SelectionAction(Icons.Outlined.NotificationsActive, stringResource(R.string.library_bell_action), onBell)
-        SelectionAction(Icons.Outlined.Share, stringResource(R.string.reading_list_share), onShare)
+        Box {
+            var moreOpen by remember { mutableStateOf(false) }
+            IconButton(onClick = { moreOpen = true }) {
+                Icon(Icons.Outlined.MoreVert, stringResource(R.string.source_action_more), tint = AppColors.textPrimary)
+            }
+            DropdownMenu(expanded = moreOpen, onDismissRequest = { moreOpen = false }) {
+                MoreItem(Icons.Outlined.RemoveDone, stringResource(R.string.action_mark_unread)) { moreOpen = false; onMarkUnread() }
+                MoreItem(Icons.Outlined.NotificationsActive, stringResource(R.string.library_bell_action)) { moreOpen = false; onBell() }
+                MoreItem(Icons.Outlined.Share, stringResource(R.string.reading_list_share)) { moreOpen = false; onShare() }
+            }
+        }
         SelectionAction(Icons.Outlined.Delete, stringResource(R.string.action_remove), onRemove, AppColors.danger)
     }
+}
+
+@Composable
+private fun MoreItem(icon: ImageVector, label: String, onClick: () -> Unit) {
+    DropdownMenuItem(
+        text = { Text(label, color = AppColors.textPrimary) },
+        leadingIcon = { Icon(icon, contentDescription = null, tint = AppColors.textSecondary) },
+        onClick = onClick,
+    )
 }
 
 @Composable

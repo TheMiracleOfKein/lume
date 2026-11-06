@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -191,6 +192,7 @@ private fun MenuPanel(
             .clip(RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp))
             .background(AppColors.background)
             .statusBarsPadding()
+            .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 24.dp),
     ) {
