@@ -65,7 +65,7 @@
     <string name="catalog_tab_updates">Обновления</string>
     <string name="catalog_tab_library">Закладки</string>
     <string name="catalog_library_empty">Закладок из этого источника пока нет</string>
-    <string name="library_empty">Нет закладок</string>
+    <string name="library_empty">Библиотека пуста</string>
     <string name="library_offline_only">Офлайн · только скачанные из библиотеки</string>
     <string name="category_all">Все</string>
     <string name="badge_new">новое</string>
@@ -271,6 +271,7 @@
     <string name="reader_volume_keys">Листать кнопками громкости</string>
     <string name="reader_tap_zones">Листать касанием края экрана</string>
     <string name="search_source_timeout">Нет ответа за 15 с</string>
+    <string name="search_source_bad_response">Источник вернул неожиданный ответ</string>
     <string name="search_source_empty">Ничего не найдено</string>
     <plurals name="search_source_count">
         <item quantity="one">%d результат</item>

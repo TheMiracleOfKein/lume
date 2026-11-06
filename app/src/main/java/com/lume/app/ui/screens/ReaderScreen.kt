@@ -456,7 +456,11 @@ fun ReaderScreen(
             sheetState = sheetState,
             containerColor = AppColors.surface,
         ) {
-            SheetHeader(stringResource(R.string.bookmarks_title), Modifier.padding(horizontal = 16.dp))
+            SheetHeader(
+                stringResource(R.string.bookmarks_title),
+                Modifier.padding(horizontal = 16.dp),
+                onClose = { scope.launch { sheetState.hide() }.invokeOnCompletion { bookmarksOpen = false } },
+            )
             if (pageBookmarks.isEmpty()) {
                 Text(
                     stringResource(R.string.bookmarks_empty),
@@ -490,6 +494,8 @@ fun ReaderScreen(
                     }
                 }
             }
+            // The reader's own host sits behind the sheet; this one shows the same state (Undo) above it.
+            SnackbarHost(snackbar)
         }
     }
 
