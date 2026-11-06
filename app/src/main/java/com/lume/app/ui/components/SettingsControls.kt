@@ -70,7 +70,7 @@ fun lumeSliderColors(): SliderColors = SliderDefaults.colors(
 fun SettingsSection(title: String, modifier: Modifier = Modifier) {
     Text(
         text = title.uppercase(),
-        color = AppColors.accent,
+        color = AppColors.accentText,
         fontSize = 12.sp,
         fontWeight = FontWeight.SemiBold,
         letterSpacing = 0.8.sp,
