@@ -177,8 +177,17 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Reader bars readable over light pages and clear of cutouts; reader overlays coloured from the reader background.
 - ✅ Overlaps fixed: Home offline list, browse list under the nav bar, nav rail in landscape, compact grid badges, library selection bar, Cloudflare overlay, keyboard over login fields.
 - ✅ Confirmation before deleting downloads; passwords kept out of saved screen state.
-- 🟡 The rest of the UI audit (text clipping, touch targets, accessibility labels, icon consistency, strings and plurals) is planned for v0.7.15.
+- ✅ The rest of the UI audit shipped in v0.7.15.
 - ⏸️ Chapter list jumps when the selection bar appears (O17): needs the bar moved out of the Scaffold.
+
+**v0.7.15: UI fixes, part two** ([details](#v0715-ui-fixes-part-two))
+- ✅ Text that ends with "…" instead of being cut off, and rows that grow with large fonts.
+- ✅ 48 dp touch areas for chips and small buttons.
+- ✅ TalkBack: labels, one tap target per row, selected states, headings, live status, tooltips; a visible selected pill in the nav bar.
+- ✅ One icon for each action (heart for the library everywhere), a shared sheet header, widget fixes.
+- ✅ Russian plurals, translated reader modes, locale-aware scores.
+- ✅ Empty and error states, confirmations before clearing data, Undo for deleted bookmarks, a password eye, keyboard Next/Done.
+- ⏸️ Design-level spacing and radius standardisation (I9 leftovers) and hiding the content behind the menu drawer from TalkBack (A12): need a design pass.
 
 **v0.7.x: send downloads to a nearby device** (L)
 
@@ -679,3 +688,15 @@ Release notes: [docs/releases/v0.7.14.md](releases/v0.7.14.md); device check in 
 - ✅ **WebView screens:** theme, keyboard, Back in history, load progress, WebView destroyed on release; Cloudflare overlay consumes taps.
 - ✅ **Safety:** delete confirmation in Downloads; `remember` instead of `rememberSaveable` for passwords.
 - ⏸️ O17 chapter list jump (see the summary).
+
+### v0.7.15: UI fixes, part two
+
+Release notes: [docs/releases/v0.7.15.md](releases/v0.7.15.md); device check in [v0.7.15-check.md](releases/v0.7.15-check.md).
+
+- ✅ **Text (X1-X12):** `maxLines` + ellipsis, `heightIn(min)` instead of fixed heights, `FlowRow` for menu chips and update dialog buttons, centred `EmptyBox` / `ErrorRetryBox`.
+- ✅ **Touch targets (S1-S7):** `minimumInteractiveComponentSize()` on chips, Continue button and small buttons.
+- ✅ **Accessibility (A1-A13):** row-level `toggleable` / `selectable`, `NavSlot` pill and `HomeSlot`, `TooltipIconButton`, `heading()`, live regions, long-press labels, state descriptions.
+- ✅ **Icons (I1-I12):** heart for the library, MoreVert and Tune in the reader, RTL skip icons, `SheetHeader`, widget size, placeholder and radii.
+- ✅ **Strings (L1-L7):** `ReaderMode.labelRes`, plurals, locale score format.
+- ✅ **Behaviour (B2-B5, B7-B11):** "No chapters yet", mode-specific reader settings, tracker save error, `ConfirmDialog`, catalog empty and load-more retry, Home refresh notice, search hint, `PasswordField`, bookmark Undo, tracker logout confirm, tall-page decode spinner.
+- ⏸️ I9 radius and spacing standardisation, A12 drawer background hiding, L3 brand names and glyphs.
