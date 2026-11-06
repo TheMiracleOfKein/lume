@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#121212</color>
-    <!-- AppCompat required: MainActivity extends AppCompatActivity (per-app locales). -->
+    <!-- AppCompat required: MainActivity extends AppCompatActivity (per-app locales). Light window; values-night has the dark one. -->
     <style name="Theme.Lume" parent="Theme.AppCompat.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/black</item>
-        <item name="android:windowBackground">@android:color/black</item>
-        <item name="colorPrimary">#121212</item>
-        <item name="colorPrimaryDark">#000000</item>
-        <item name="colorAccent">#FFCC00</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">#F4F4F5</item>
+        <item name="colorPrimary">#F4F4F5</item>
+        <item name="colorPrimaryDark">#F4F4F5</item>
+        <item name="colorAccent">#F5A524</item>
     </style>
 </resources>

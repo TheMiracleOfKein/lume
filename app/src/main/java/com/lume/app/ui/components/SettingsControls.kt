@@ -43,15 +43,26 @@ fun lumeSwitchColors(): SwitchColors = SwitchDefaults.colors(
     uncheckedThumbColor = AppColors.textSecondary,
     uncheckedTrackColor = AppColors.cardHigh,
     uncheckedBorderColor = AppColors.cardHigh,
+    disabledCheckedThumbColor = Color.White.copy(alpha = 0.38f),
+    disabledCheckedTrackColor = AppColors.accent.copy(alpha = 0.38f),
+    disabledCheckedBorderColor = AppColors.accent.copy(alpha = 0.38f),
+    disabledUncheckedThumbColor = AppColors.textSecondary.copy(alpha = 0.38f),
+    disabledUncheckedTrackColor = AppColors.cardHigh.copy(alpha = 0.38f),
+    disabledUncheckedBorderColor = AppColors.cardHigh.copy(alpha = 0.38f),
 )
 
 @Composable
 fun lumeSliderColors(): SliderColors = SliderDefaults.colors(
     thumbColor = AppColors.accent,
     activeTrackColor = AppColors.accent,
-    activeTickColor = Color.Black.copy(alpha = 0.35f),
+    activeTickColor = AppColors.onAccent.copy(alpha = 0.35f),
     inactiveTrackColor = AppColors.cardHigh,
     inactiveTickColor = AppColors.textTertiary,
+    disabledThumbColor = AppColors.accent.copy(alpha = 0.38f),
+    disabledActiveTrackColor = AppColors.accent.copy(alpha = 0.38f),
+    disabledActiveTickColor = AppColors.onAccent.copy(alpha = 0.12f),
+    disabledInactiveTrackColor = AppColors.cardHigh.copy(alpha = 0.38f),
+    disabledInactiveTickColor = AppColors.textTertiary.copy(alpha = 0.38f),
 )
 
 /** Section title used to group settings. */
