@@ -171,6 +171,15 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Release notes rendered as Markdown in the update dialog (left over from v0.7.5).
 - ⏸️ Genre filter inside the library: needs the genres stored per title (a database change).
 
+**v0.7.14: UI fixes, part one** ([details](#v0714-ui-fixes-part-one))
+- ✅ System bar icons follow the app theme; login screens use the app theme; the reader keeps white bar icons.
+- ✅ Visible outlines, a readable light-theme accent and a readable selection colour; every Material role mapped to Lume colours.
+- ✅ Reader bars readable over light pages and clear of cutouts; reader overlays coloured from the reader background.
+- ✅ Overlaps fixed: Home offline list, browse list under the nav bar, nav rail in landscape, compact grid badges, library selection bar, Cloudflare overlay, keyboard over login fields.
+- ✅ Confirmation before deleting downloads; passwords kept out of saved screen state.
+- 🟡 The rest of the UI audit (text clipping, touch targets, accessibility labels, icon consistency, strings and plurals) is planned for v0.7.15.
+- ⏸️ Chapter list jumps when the selection bar appears (O17): needs the bar moved out of the Scaffold.
+
 **v0.7.x: send downloads to a nearby device** (L)
 
 Sync moves your library and progress, never the downloaded pages. This moves the pages: pick downloaded chapters on one phone, and another phone nearby receives them, without the internet and without a server.
@@ -658,3 +667,15 @@ Release notes: [docs/releases/v0.7.13.md](releases/v0.7.13.md); device check in 
 - ✅ **Sources:** `SourceHealth` keeps each source's last failure for the session.
 - ✅ **Update dialog:** `util/Markdown`.
 - ⏸️ Library genre filter (database change).
+
+### v0.7.14: UI fixes, part one
+
+Release notes: [docs/releases/v0.7.14.md](releases/v0.7.14.md); device check in [v0.7.14-check.md](releases/v0.7.14-check.md).
+
+- ✅ **Theme:** `outline`, `accentText` and `selection` tokens; full `schemeOf` role map; light and dark window themes.
+- ✅ **System bars:** `ui/theme/SystemBars.kt` in all three activities; the reader forces light-content bars.
+- ✅ **Reader:** top and bottom scrims, horizontal cutout insets, snackbar inset, reader-theme overlays.
+- ✅ **Layout:** Home offline column, `listBottomPadding()`, scrolling and compact nav rail, `LumeInsets.sides`, compact grid Continue button, selection bar overflow menu, scrolling sheets and dialogs, `imePadding` on Search and Sources.
+- ✅ **WebView screens:** theme, keyboard, Back in history, load progress, WebView destroyed on release; Cloudflare overlay consumes taps.
+- ✅ **Safety:** delete confirmation in Downloads; `remember` instead of `rememberSaveable` for passwords.
+- ⏸️ O17 chapter list jump (see the summary).
