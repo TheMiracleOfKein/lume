@@ -31,21 +31,42 @@ enum class ThemeMode(val key: String) {
 
 private fun schemeOf(colors: LumeColors, dark: Boolean): ColorScheme {
     val base = if (dark) darkColorScheme() else lightColorScheme()
+    // Every role is mapped, so no Material baseline (purple) colour leaks into a component.
     return base.copy(
-        primary = colors.accent,
+        primary = colors.accentText,
         onPrimary = colors.onAccent,
-        secondary = colors.accentMuted,
+        primaryContainer = colors.selection,
+        onPrimaryContainer = colors.textPrimary,
+        inversePrimary = colors.accent,
+        secondary = colors.accentText,
+        onSecondary = colors.onAccent,
+        secondaryContainer = colors.selection,
+        onSecondaryContainer = colors.textPrimary,
+        tertiary = colors.accentText,
+        onTertiary = colors.onAccent,
+        tertiaryContainer = colors.selection,
+        onTertiaryContainer = colors.textPrimary,
         background = colors.background,
+        onBackground = colors.textPrimary,
         surface = colors.surface,
+        onSurface = colors.textPrimary,
         surfaceVariant = colors.card,
+        onSurfaceVariant = colors.textSecondary,
+        surfaceTint = colors.accent,
+        surfaceBright = colors.cardHigh,
+        surfaceDim = colors.background,
+        surfaceContainerLowest = colors.background,
+        surfaceContainerLow = colors.surface,
         surfaceContainer = colors.surface,
         surfaceContainerHigh = colors.card,
         surfaceContainerHighest = colors.cardHigh,
-        onBackground = colors.textPrimary,
-        onSurface = colors.textPrimary,
-        onSurfaceVariant = colors.textSecondary,
+        inverseSurface = colors.textPrimary,
+        inverseOnSurface = colors.background,
         error = colors.danger,
-        outline = colors.divider,
+        onError = if (dark) Color.Black else Color.White,
+        outline = colors.outline,
+        outlineVariant = colors.divider,
+        scrim = Color.Black,
     )
 }
 
@@ -64,6 +85,9 @@ private fun fromDynamic(scheme: ColorScheme, dark: Boolean, pureBlack: Boolean):
     divider = scheme.outlineVariant,
     navBar = if (pureBlack && dark) Color.Black else scheme.surfaceContainer,
     search = scheme.surfaceContainerHigh,
+    outline = scheme.outline,
+    accentText = scheme.primary,
+    selection = scheme.secondaryContainer,
     onAccent = scheme.onPrimary,
 )
 
