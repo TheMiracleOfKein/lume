@@ -9,6 +9,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -54,6 +58,7 @@ fun TrackerEntryDialog(
     var entry by remember { mutableStateOf<TrackerEntry?>(null) }
     var failed by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
+    var saveError by remember { mutableStateOf(false) }
     var chapters by remember { mutableStateOf("") }
     var start by remember { mutableStateOf("") }
     var finish by remember { mutableStateOf("") }
@@ -116,6 +121,14 @@ fun TrackerEntryDialog(
                         DateField(stringResource(R.string.tracker_edit_started), start) { start = it }
                         DateField(stringResource(R.string.tracker_edit_finished), finish) { finish = it }
                     }
+                    if (saveError) {
+                        Text(
+                            stringResource(R.string.tracker_save_failed),
+                            color = AppColors.danger,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                    }
                 }
             }
         },
@@ -130,9 +143,10 @@ fun TrackerEntryDialog(
                     ) ?: return@TextButton
                     scope.launch {
                         saving = true
+                        saveError = false
                         val ok = runCatching { tracker.updateEntry(remoteId, next) }.getOrDefault(false)
                         saving = false
-                        if (ok) onSaved(next) else failed = true
+                        if (ok) onSaved(next) else saveError = true
                     }
                 },
             ) { Text(stringResource(if (saving) R.string.ellipsis else R.string.action_save)) }
@@ -150,16 +164,22 @@ private fun Label(text: String) {
 @Composable
 private fun DateField(label: String, value: String, onChange: (String) -> Unit) {
     Label(label)
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = { v -> onChange(v.filter { it.isDigit() || it == '-' }.take(10)) },
-            singleLine = true,
-            placeholder = { Text("2026-01-31", color = AppColors.textTertiary) },
-            isError = value.isNotEmpty() && cleanDate(value) == null,
-            modifier = Modifier.weight(1f),
-        )
-        TextButton(onClick = { onChange(LocalDate.now().toString()) }) { Text(stringResource(R.string.tracker_edit_today)) }
-        if (value.isNotEmpty()) TextButton(onClick = { onChange("") }) { Text("×") }
-    }
+    OutlinedTextField(
+        value = value,
+        onValueChange = { v -> onChange(v.filter { it.isDigit() || it == '-' }.take(10)) },
+        singleLine = true,
+        placeholder = { Text("2026-01-31", color = AppColors.textTertiary) },
+        isError = value.isNotEmpty() && cleanDate(value) == null,
+        trailingIcon = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { onChange(LocalDate.now().toString()) }) { Text(stringResource(R.string.tracker_edit_today)) }
+                if (value.isNotEmpty()) {
+                    IconButton(onClick = { onChange("") }) {
+                        Icon(Icons.Default.Close, stringResource(R.string.cd_clear_date), tint = AppColors.textSecondary)
+                    }
+                }
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
 }

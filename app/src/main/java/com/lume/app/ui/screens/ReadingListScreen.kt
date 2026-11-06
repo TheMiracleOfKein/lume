@@ -4,6 +4,9 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import com.lume.app.ui.components.BackButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -136,16 +139,14 @@ fun ReadingListScreen(nav: NavHostController) {
             TopAppBar(
                 title = {
                     Column {
-                        Text(stringResource(R.string.reading_list_title), color = AppColors.textPrimary, fontSize = 20.sp)
+                        Text(stringResource(R.string.reading_list_title), color = AppColors.textPrimary, fontSize = 20.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         list?.name?.takeIf { it.isNotBlank() }?.let {
                             Text(it, color = AppColors.textSecondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { nav.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.action_close), tint = AppColors.textPrimary)
-                    }
+                    BackButton(onClick = { nav.popBackStack() })
                 },
                 windowInsets = LumeInsets.topBar,
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),
@@ -238,7 +239,13 @@ private fun ReadingListEntryRow(row: ReadingListRow, checked: Boolean, onToggle:
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (new) Modifier.clickable(onClick = onToggle) else Modifier)
+            .then(
+                if (new) {
+                    Modifier.toggleable(value = checked, role = Role.Checkbox, onValueChange = { onToggle() })
+                } else {
+                    Modifier
+                },
+            )
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -254,7 +261,7 @@ private fun ReadingListEntryRow(row: ReadingListRow, checked: Boolean, onToggle:
                 overflow = TextOverflow.Ellipsis,
             )
             val source = row.entry.sourceName ?: row.entry.sourceId
-            Text(source, color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+            Text(source, color = AppColors.textTertiary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
             when (row.state) {
                 ReadingListState.InLibrary -> StateNote(stringResource(R.string.reading_list_in_library), AppColors.accentText)
                 ReadingListState.NoSource -> StateNote(stringResource(R.string.reading_list_no_source), AppColors.danger)
@@ -264,7 +271,7 @@ private fun ReadingListEntryRow(row: ReadingListRow, checked: Boolean, onToggle:
         if (new) {
             Checkbox(
                 checked = checked,
-                onCheckedChange = { onToggle() },
+                onCheckedChange = null,
                 colors = CheckboxDefaults.colors(checkedColor = AppColors.accent, checkmarkColor = AppColors.onAccent),
             )
         }

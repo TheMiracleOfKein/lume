@@ -20,6 +20,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lume.app.ui.components.BookmarkNoteDialog
 import com.lume.app.ui.components.LocalNavExiting
 import com.lume.app.ui.components.PageBookmarkRow
+import com.lume.app.ui.components.SheetHeader
 import com.lume.app.ui.nav.openTitleFromReader
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.withTimeoutOrNull
@@ -155,6 +156,8 @@ fun ReaderScreen(
     val view = LocalView.current
     val bookmarkAdded = stringResource(R.string.reader_bookmark_added)
     val addNote = stringResource(R.string.reader_bookmark_add_note)
+    val bookmarkDeleted = stringResource(R.string.bookmark_deleted)
+    val undoLabel = stringResource(R.string.action_undo)
     val lastChapterMsg = stringResource(R.string.reader_last_chapter)
     val firstChapterMsg = stringResource(R.string.reader_first_chapter)
     // Running into the end (swipe, tap zone, volume key): say so, at most every few seconds.
@@ -401,7 +404,7 @@ fun ReaderScreen(
                         ) {
                             ReaderBottomBar(
                                 pageLabel = vm.currentChapterPageCount.takeIf { it > 0 && !settings.hidePageNumber }
-                                    ?.let { "${vm.currentPageIndex + 1} / $it" },
+                                    ?.let { stringResource(R.string.reader_page_position, vm.currentPageIndex + 1, it) },
                                 pageIndex = vm.currentPageIndex,
                                 pageCount = vm.currentChapterPageCount,
                                 reversed = settings.mode == ReaderMode.Rtl,
@@ -433,7 +436,6 @@ fun ReaderScreen(
             onDismissRequest = { settingsOpen = false },
             sheetState = sheetState,
             containerColor = AppColors.surface,
-            dragHandle = null,
         ) {
             ReaderSettingsSheet(
                 settings = settings,
@@ -454,12 +456,10 @@ fun ReaderScreen(
             sheetState = sheetState,
             containerColor = AppColors.surface,
         ) {
-            Text(
+            SheetHeader(
                 stringResource(R.string.bookmarks_title),
-                color = AppColors.textPrimary,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                Modifier.padding(horizontal = 16.dp),
+                onClose = { scope.launch { sheetState.hide() }.invokeOnCompletion { bookmarksOpen = false } },
             )
             if (pageBookmarks.isEmpty()) {
                 Text(
@@ -477,12 +477,25 @@ fun ReaderScreen(
                                 scope.launch { sheetState.hide() }.invokeOnCompletion { bookmarksOpen = false }
                                 vm.jumpTo(bookmark)
                             },
-                            onDelete = { vm.deletePageBookmark(bookmark.id) },
+                            onDelete = {
+                                vm.deletePageBookmark(bookmark.id)
+                                scope.launch {
+                                    snackbar.currentSnackbarData?.dismiss()
+                                    val result = snackbar.showSnackbar(
+                                        bookmarkDeleted,
+                                        actionLabel = undoLabel,
+                                        duration = SnackbarDuration.Short,
+                                    )
+                                    if (result == SnackbarResult.ActionPerformed) vm.restorePageBookmark(bookmark)
+                                }
+                            },
                             containerColor = AppColors.surface,
                         )
                     }
                 }
             }
+            // The reader's own host sits behind the sheet; this one shows the same state (Undo) above it.
+            SnackbarHost(snackbar)
         }
     }
 

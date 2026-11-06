@@ -16,6 +16,9 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,6 +50,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -91,6 +95,8 @@ import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextDecoration
+import com.lume.app.ui.components.EmptyBox
+import com.lume.app.ui.components.TooltipIconButton
 import com.lume.app.ui.components.LocalShellBottomPadding
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.nav.Routes
@@ -174,13 +180,11 @@ fun LibraryScreen(nav: NavHostController) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 when {
                     !loaded -> Unit
-                    items.isEmpty() -> Text(
-                        text = stringResource(
+                    items.isEmpty() -> EmptyBox(
+                        stringResource(
                             if (vm.search.isNotBlank() || settings.activeFilterCount > 0) R.string.library_no_results
                             else R.string.library_empty,
                         ),
-                        color = AppColors.textSecondary,
-                        fontSize = 15.sp,
                     )
                     else -> LibraryContent(
                         items = items,
@@ -320,7 +324,7 @@ private fun LibraryTopBar(
                 Text(
                     stringResource(R.string.library_selected, vm.selected.size),
                     color = AppColors.textPrimary,
-                    fontSize = 18.sp,
+                    fontSize = 20.sp,
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = vm::selectAll) {
@@ -386,7 +390,8 @@ private fun LibraryTopBar(
                     Icon(Icons.Outlined.Search, stringResource(R.string.action_search), tint = AppColors.textPrimary)
                 }
                 IconButton(onClick = onOptions) {
-                    Box {
+                    val filtersOn = stringResource(R.string.cd_filters_active)
+                    Box(if (filtering) Modifier.semantics { stateDescription = filtersOn } else Modifier) {
                         Icon(Icons.Outlined.FilterList, stringResource(R.string.cd_library_options), tint = AppColors.textPrimary)
                         if (filtering) {
                             Box(
@@ -414,6 +419,7 @@ private fun CategoryRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .selectableGroup()
             .horizontalScroll(rememberScrollState())
             .padding(start = 12.dp, end = 4.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -446,9 +452,10 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
         fontSize = 13.sp,
         modifier = Modifier
             .padding(end = 8.dp)
+            .minimumInteractiveComponentSize()
             .clip(RoundedCornerShape(16.dp))
             .background(background)
-            .clickable(onClick = onClick)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
     )
 }
@@ -490,6 +497,7 @@ private fun FilterChipRow(settings: LibrarySettings, onCycle: (LibraryFilter) ->
             Row(
                 modifier = Modifier
                     .padding(end = 8.dp)
+                    .minimumInteractiveComponentSize()
                     .clip(RoundedCornerShape(16.dp))
                     .background(background)
                     .clickable(onClick = { onCycle(filter) })
@@ -502,7 +510,7 @@ private fun FilterChipRow(settings: LibrarySettings, onCycle: (LibraryFilter) ->
                         if (state == TriState.Include) Icons.Outlined.Check else Icons.Outlined.Remove,
                         contentDescription = null,
                         tint = color,
-                        modifier = Modifier.size(16.dp).padding(end = 2.dp),
+                        modifier = Modifier.padding(end = 2.dp).size(16.dp),
                     )
                 }
                 Text(
@@ -566,5 +574,5 @@ private fun MoreItem(icon: ImageVector, label: String, onClick: () -> Unit) {
 
 @Composable
 private fun SelectionAction(icon: ImageVector, label: String, onClick: () -> Unit, tint: Color = AppColors.textPrimary) {
-    IconButton(onClick = onClick) { Icon(icon, contentDescription = label, tint = tint) }
+    TooltipIconButton(icon, label, onClick, tint)
 }

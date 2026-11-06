@@ -4,7 +4,11 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Slider
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.SliderColors
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
@@ -74,7 +79,7 @@ fun SettingsSection(title: String, modifier: Modifier = Modifier) {
         fontSize = 12.sp,
         fontWeight = FontWeight.SemiBold,
         letterSpacing = 0.8.sp,
-        modifier = modifier.padding(top = 20.dp, bottom = 8.dp),
+        modifier = modifier.padding(top = 20.dp, bottom = 8.dp).semantics { heading() },
     )
 }
 
@@ -91,7 +96,7 @@ fun SwitchRow(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable { onCheckedChange(!checked) }
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
             .padding(horizontal = 4.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -102,7 +107,7 @@ fun SwitchRow(
             }
         }
         Spacer(Modifier.width(12.dp))
-        Switch(checked = checked, onCheckedChange = onCheckedChange, colors = lumeSwitchColors())
+        Switch(checked = checked, onCheckedChange = null, colors = lumeSwitchColors())
     }
 }
 
@@ -148,10 +153,11 @@ fun ChoiceChip(
     )
     Box(
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .clip(RoundedCornerShape(10.dp))
             .background(background)
             .border(1.dp, border, RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -180,8 +186,9 @@ fun SegmentTab(
     val indicator by animateDpAsState(if (selected) 2.dp else 0.dp, Motion.short(), label = "tabIndicator")
     Column(
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
+            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
             .padding(top = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

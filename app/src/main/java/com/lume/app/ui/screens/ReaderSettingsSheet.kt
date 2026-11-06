@@ -5,12 +5,16 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -25,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,7 +40,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
 import com.lume.app.R
+import com.lume.app.ui.components.SheetHeader
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.data.prefs.ReaderSettings
 import com.lume.app.domain.ReaderMode
@@ -63,42 +70,31 @@ internal fun ReaderSettingsSheet(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 28.dp),
+            .padding(start = 16.dp, end = 16.dp, bottom = 28.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(R.string.settings_title),
-                color = AppColors.textPrimary,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-            )
-            IconButton(onClick = onClose) {
-                Icon(Icons.Outlined.Close, null, tint = AppColors.textPrimary)
-            }
-        }
+        SheetHeader(stringResource(R.string.settings_title), onClose = onClose)
         Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.reader_mode), color = AppColors.textSecondary, fontSize = 13.sp)
         Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ModeCard(
                 selected = settings.mode == ReaderMode.Rtl,
                 icon = Icons.Outlined.SwipeLeft,
-                label = ReaderMode.Rtl.label,
+                label = stringResource(ReaderMode.Rtl.labelRes),
                 onClick = { onCommit(settings.copy(mode = ReaderMode.Rtl)) },
                 modifier = Modifier.weight(1f),
             )
             ModeCard(
                 selected = settings.mode == ReaderMode.Webtoon,
                 icon = Icons.Outlined.SwipeVertical,
-                label = ReaderMode.Webtoon.label,
+                label = stringResource(ReaderMode.Webtoon.labelRes),
                 onClick = { onCommit(settings.copy(mode = ReaderMode.Webtoon)) },
                 modifier = Modifier.weight(1f),
             )
             ModeCard(
                 selected = settings.mode == ReaderMode.Ltr,
                 icon = Icons.Outlined.SwipeRight,
-                label = ReaderMode.Ltr.label,
+                label = stringResource(ReaderMode.Ltr.labelRes),
                 onClick = { onCommit(settings.copy(mode = ReaderMode.Ltr)) },
                 modifier = Modifier.weight(1f),
             )
@@ -127,19 +123,19 @@ internal fun ReaderSettingsSheet(
             )
         }
         Spacer(Modifier.height(18.dp))
-        Text(
-            stringResource(R.string.reader_gap, settings.gap.toInt()),
-            color = AppColors.textSecondary,
-            fontSize = 13.sp,
-        )
-        Slider(
-            value = settings.gap,
-            onValueChange = { onChange(settings.copy(gap = it)) },
-            onValueChangeFinished = { onCommit(settings) },
-            valueRange = 0f..32f,
-            colors = lumeSliderColors(),
-        )
         if (settings.mode == ReaderMode.Webtoon) {
+            Text(
+                stringResource(R.string.reader_gap, settings.gap.toInt()),
+                color = AppColors.textSecondary,
+                fontSize = 13.sp,
+            )
+            Slider(
+                value = settings.gap,
+                onValueChange = { onChange(settings.copy(gap = it)) },
+                onValueChangeFinished = { onCommit(settings) },
+                valueRange = 0f..32f,
+                colors = lumeSliderColors(),
+            )
             Text(
                 stringResource(R.string.reader_side_padding, settings.sidePaddingPercent),
                 color = AppColors.textSecondary,
@@ -279,22 +275,25 @@ internal fun ReaderSettingsSheet(
             checked = settings.volumeKeys,
             onCheckedChange = { onCommit(settings.copy(volumeKeys = it)) },
         )
-        SwitchRow(
-            label = stringResource(R.string.reader_tap_zones),
-            checked = settings.tapZones,
-            onCheckedChange = { onCommit(settings.copy(tapZones = it)) },
-        )
+        if (settings.mode != ReaderMode.Webtoon) {
+            SwitchRow(
+                label = stringResource(R.string.reader_tap_zones),
+                checked = settings.tapZones,
+                onCheckedChange = { onCommit(settings.copy(tapZones = it)) },
+            )
+        }
         Spacer(Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.reader_save_for_title),
-            color = AppColors.accentText,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onSaveForTitle(settings) }
-                .padding(vertical = 12.dp),
-        )
+        TextButton(
+            onClick = { onSaveForTitle(settings) },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = stringResource(R.string.reader_save_for_title),
+                color = AppColors.accentText,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
 }
 
@@ -318,11 +317,11 @@ private fun ModeCard(
     )
     Column(
         modifier = modifier
-            .height(80.dp)
+            .heightIn(min = 80.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(background)
             .border(1.dp, border, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -333,6 +332,7 @@ private fun ModeCard(
             color = if (selected) AppColors.accentText else AppColors.textSecondary,
             fontSize = 12.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            textAlign = TextAlign.Center,
         )
     }
 }

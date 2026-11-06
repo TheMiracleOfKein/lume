@@ -2,6 +2,9 @@ package com.lume.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -235,7 +238,7 @@ private fun BookmarkImportCard(status: LibImportStatus, onDismiss: () -> Unit, m
             LibImportStage.Fetching -> ImportStageLine(stringResource(R.string.source_bookmarks_stage_fetching), null)
             is LibImportStage.Adding -> ImportStageLine(stringResource(R.string.source_bookmarks_stage_adding, stage.titles), null)
             is LibImportStage.Progress -> ImportStageLine(
-                stringResource(R.string.source_bookmarks_stage_progress, stage.done, stage.total),
+                pluralStringResource(R.plurals.source_bookmarks_stage_progress, stage.total, stage.done, stage.total),
                 if (stage.total > 0) stage.done.toFloat() / stage.total else null,
             )
             LibImportStage.Finished -> {
@@ -255,7 +258,7 @@ private fun BookmarkImportCard(status: LibImportStatus, onDismiss: () -> Unit, m
                 )
                 if (r != null && r.progressMissed > 0) {
                     Text(
-                        stringResource(R.string.source_bookmarks_progress_missed, r.progressMissed),
+                        pluralStringResource(R.plurals.source_bookmarks_progress_missed, r.progressMissed, r.progressMissed),
                         color = AppColors.textTertiary,
                         fontSize = 12.sp,
                         modifier = Modifier.padding(top = 4.dp),
@@ -375,7 +378,7 @@ private fun PackCatalogue(vm: SourcesViewModel) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(row.entry.name, color = AppColors.textPrimary, fontSize = 15.sp)
+                        Text(row.entry.name, color = AppColors.textPrimary, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
                             listOfNotNull(
                                 SourceEngines.displayName(row.entry.engine),
@@ -385,6 +388,8 @@ private fun PackCatalogue(vm: SourcesViewModel) {
                             ).joinToString(" · "),
                             color = AppColors.textSecondary,
                             fontSize = 12.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                     when (row.state) {
@@ -483,13 +488,13 @@ private fun SourceRow(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .clickable(onClick = onSelect)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onSelect)
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(
             selected = selected,
-            onClick = onSelect,
+            onClick = null,
             colors = RadioButtonDefaults.colors(
                 selectedColor = AppColors.accent,
                 unselectedColor = AppColors.textSecondary,
@@ -497,7 +502,14 @@ private fun SourceRow(
         )
         Column(modifier = Modifier.weight(1f).padding(start = 4.dp).alpha(if (disabled) 0.5f else 1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(source.manifest.name, color = AppColors.textPrimary, fontSize = 15.sp)
+                Text(
+                    source.manifest.name,
+                    color = AppColors.textPrimary,
+                    fontSize = 15.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
                 Spacer(Modifier.padding(horizontal = 4.dp))
                 Text(langBadge, color = AppColors.accentText, fontSize = 11.sp)
                 if (pinned) {
@@ -529,7 +541,7 @@ private fun SourceRow(
                 color = AppColors.textSecondary,
                 fontSize = 12.sp,
             )
-            Text(source.manifest.baseUrl, color = AppColors.textTertiary, fontSize = 11.sp, maxLines = 1)
+            Text(source.manifest.baseUrl, color = AppColors.textTertiary, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (problem != null) {
                 val ago = DateUtils.getRelativeTimeSpanString(problem.at, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)
                 Text(
@@ -554,7 +566,7 @@ private fun SourceRow(
             IconButton(onClick = { if (loggedIn) onLogout() else onLogin() }) {
                 Icon(
                     if (loggedIn) Icons.AutoMirrored.Outlined.Logout else Icons.AutoMirrored.Outlined.Login,
-                    contentDescription = null,
+                    contentDescription = stringResource(if (loggedIn) R.string.action_logout else R.string.action_login),
                     tint = if (loggedIn) AppColors.accentText else AppColors.textSecondary,
                 )
             }

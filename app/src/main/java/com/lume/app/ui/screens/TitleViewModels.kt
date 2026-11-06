@@ -221,6 +221,11 @@ class TitleViewModel(app: AppContainer, sourceId: String, titleId: String) : Tit
         viewModelScope.launch { dao.deletePageBookmark(id) }
     }
 
+    /** Puts a just-deleted bookmark back (undo). */
+    fun restorePageBookmark(bookmark: PageBookmarkEntity) {
+        viewModelScope.launch { dao.insertPageBookmark(bookmark) }
+    }
+
     init {
         viewModelScope.launch {
             val meta = dao.getTitleMeta(sourceId, titleId)

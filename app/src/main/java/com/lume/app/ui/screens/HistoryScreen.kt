@@ -32,6 +32,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
+import com.lume.app.ui.components.EmptyBox
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.TitleListRow
 import com.lume.app.ui.nav.openReader
@@ -95,11 +96,7 @@ fun HistoryScreen(nav: NavHostController) {
             contentAlignment = Alignment.Center,
         ) {
             if (history.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.history_empty),
-                    color = AppColors.textSecondary,
-                    fontSize = 15.sp,
-                )
+                EmptyBox(stringResource(R.string.history_empty))
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(history, key = { "${it.sourceId}:${it.titleId}" }) { item ->

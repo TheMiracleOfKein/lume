@@ -2,6 +2,9 @@ package com.lume.app.ui.screens
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,6 +78,7 @@ import com.lume.app.ui.components.SegmentTab
 import com.lume.app.ui.components.TitleListRow
 import com.lume.app.ui.components.libraryMarkKey
 import com.lume.app.ui.components.libraryStatusColor
+import com.lume.app.ui.components.libraryStatusLabel
 import com.lume.app.ui.components.rememberLibraryMarks
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.screens.SearchViewModel.Mode
@@ -154,7 +158,7 @@ fun SearchScreen(nav: NavHostController, globalQuery: String? = null) {
                 .fillMaxSize()
                 .background(AppColors.background),
         ) {
-            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().selectableGroup().padding(horizontal = 8.dp, vertical = 4.dp)) {
                 SegmentTab(stringResource(R.string.search_mode_current), vm.mode == Mode.Current, Modifier.weight(1f)) {
                     if (vm.mode != Mode.Current) {
                         vm.mode = Mode.Current
@@ -188,7 +192,8 @@ fun SearchScreen(nav: NavHostController, globalQuery: String? = null) {
                     vm.prepareFilters()
                     filtersOpen = true
                 }) {
-                    Box {
+                    val filtersOn = stringResource(R.string.cd_filters_active)
+                    Box(if (vm.filtersActive) Modifier.semantics { stateDescription = filtersOn } else Modifier) {
                         Icon(
                             Icons.Outlined.Tune,
                             contentDescription = stringResource(R.string.filters_title),
@@ -198,7 +203,7 @@ fun SearchScreen(nav: NavHostController, globalQuery: String? = null) {
                             Box(
                                 Modifier
                                     .align(Alignment.TopEnd)
-                                    .size(7.dp)
+                                    .size(8.dp)
                                     .clip(CircleShape)
                                     .background(AppColors.accent),
                             )
@@ -265,7 +270,7 @@ private fun CurrentSourceResults(
                     onCloudflare = failed?.challenge?.let { uri -> { onChallenge(uri) } },
                 )
             }
-            LoadState.Empty -> if (vm.searched) EmptyBox(stringResource(R.string.search_empty)) else Box(Modifier.fillMaxSize())
+            LoadState.Empty -> if (vm.searched) EmptyBox(stringResource(R.string.search_empty)) else EmptyBox(stringResource(R.string.search_start_hint))
             LoadState.Content -> {
                 val items = (state as? SourceState.Done)?.items.orEmpty()
                 val listState = rememberLazyListState()
@@ -287,6 +292,7 @@ private fun CurrentSourceResults(
                             subtitle = item.latestChapter,
                             typeLabel = item.typeLabel,
                             marker = marks[libraryMarkKey(vm.currentSourceId, item.id)]?.let { libraryStatusColor(it) },
+                            markerLabel = marks[libraryMarkKey(vm.currentSourceId, item.id)]?.let { libraryStatusLabel(it) },
                             modifier = animatedItem(),
                             onClick = { nav.navigate(Routes.title(vm.currentSourceId, item.id)) },
                         )
@@ -365,7 +371,7 @@ private fun GlobalResults(
     onChallenge: (java.net.URI) -> Unit,
 ) {
     if (!vm.searched) {
-        Box(Modifier.fillMaxSize())
+        EmptyBox(stringResource(R.string.search_start_hint))
         return
     }
     val rows = vm.globalRows
@@ -445,6 +451,8 @@ private fun SourceResultRow(
                 color = AppColors.textPrimary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             when (val s = row.state) {
@@ -481,6 +489,7 @@ private fun SourceResultRow(
                             badge = item.latestChapter,
                             width = 104.dp,
                             marker = marks[libraryMarkKey(row.sourceId, item.id)]?.let { libraryStatusColor(it) },
+                            markerLabel = marks[libraryMarkKey(row.sourceId, item.id)]?.let { libraryStatusLabel(it) },
                             onClick = { onOpen(item.id) },
                         )
                     }

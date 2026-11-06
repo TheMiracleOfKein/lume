@@ -242,7 +242,7 @@ fun TitleSourcesDialog(vm: TitleViewModel, titleName: String, onDismiss: () -> U
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(text, color = AppColors.textSecondary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+    Text(text, color = AppColors.textSecondary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
 }
 
 /** One source on one line: its name over the title (and an optional note), actions on the right. */
@@ -272,7 +272,7 @@ private fun SourceRow(
             )
             Text(title, color = AppColors.textSecondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (note != null) {
-                Text(note, color = if (noteAccent) AppColors.accentText else AppColors.textTertiary, fontSize = 12.sp, maxLines = 1)
+                Text(note, color = if (noteAccent) AppColors.accentText else AppColors.textTertiary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
         actions()
@@ -287,7 +287,7 @@ private fun SmallIconButton(
     tint: Color = AppColors.textSecondary,
     onClick: () -> Unit,
 ) {
-    IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(40.dp)) {
+    IconButton(onClick = onClick, enabled = enabled) {
         Icon(
             icon,
             contentDescription = description,

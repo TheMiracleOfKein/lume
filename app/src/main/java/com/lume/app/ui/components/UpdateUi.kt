@@ -2,6 +2,8 @@ package com.lume.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,6 +27,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -57,6 +62,7 @@ import androidx.compose.ui.text.withStyle
  * download's progress, then Install. A version the user skipped isn't offered by the
  * automatic check again.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun UpdatePrompt() {
     val updater = LocalAppContainer.current.updates
@@ -85,7 +91,8 @@ fun UpdatePrompt() {
                     }
                 },
                 dismissButton = {
-                    Row {
+                    // Wraps instead of squeezing when the Russian labels are long or the font is large.
+                    FlowRow {
                         TextButton(onClick = { updater.skip(s.release); updater.dismiss() }) {
                             Text(stringResource(R.string.update_skip))
                         }
@@ -156,7 +163,7 @@ fun UpdateSection() {
             is UpdateState.ReadyToInstall -> stringResource(R.string.update_ready_title, s.release.version)
             is UpdateState.Failed -> stringResource(R.string.update_status_failed, s.message)
         }
-        Text(status, color = AppColors.textSecondary, fontSize = 13.sp)
+        Text(status, color = AppColors.textSecondary, fontSize = 13.sp, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
         (state as? UpdateState.Downloading)?.let {
             Spacer(Modifier.height(8.dp))
             DownloadBar(it.fraction)
@@ -167,7 +174,7 @@ fun UpdateSection() {
             Button(
                 onClick = { updater.check() },
                 enabled = !busy,
-                colors = ButtonDefaults.buttonColors(containerColor = AppColors.accent),
+                colors = ButtonDefaults.buttonColors(containerColor = AppColors.accent, contentColor = AppColors.onAccent),
             ) { Text(stringResource(R.string.update_check_now)) }
         }
         SwitchRow(
@@ -181,7 +188,7 @@ fun UpdateSection() {
 @Composable
 private fun ReleaseNotes(release: AppRelease) {
     Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
-        Text(stringResource(R.string.update_current_version, BuildConfig.VERSION_NAME), fontSize = 13.sp)
+        Text(stringResource(R.string.update_current_version, BuildConfig.VERSION_NAME), color = AppColors.textSecondary, fontSize = 13.sp)
         if (release.notes.isNotBlank()) {
             val blocks = remember(release.notes) { parseMarkdown(release.notes) }
             blocks.forEachIndexed { index, block ->
@@ -201,15 +208,16 @@ private fun MarkdownBlock(block: MdBlock) {
     when (block) {
         is MdBlock.Heading -> Text(
             text,
+            color = AppColors.textPrimary,
             fontSize = if (block.level <= 2) 15.sp else 14.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(top = 12.dp, bottom = 2.dp),
         )
         is MdBlock.Bullet -> Row(Modifier.padding(start = (block.depth * 14).dp, top = 3.dp)) {
-            Text(if (block.depth == 0) "•" else "◦", fontSize = 13.sp, modifier = Modifier.width(14.dp))
-            Text(text, fontSize = 13.sp)
+            Text(if (block.depth == 0) "•" else "◦", color = AppColors.textPrimary, fontSize = 13.sp, modifier = Modifier.width(14.dp))
+            Text(text, color = AppColors.textPrimary, fontSize = 13.sp)
         }
-        is MdBlock.Paragraph -> Text(text, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+        is MdBlock.Paragraph -> Text(text, color = AppColors.textPrimary, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
     }
 }
 
@@ -240,6 +248,7 @@ private fun DownloadBar(fraction: Float?) {
             LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth(), color = AppColors.accent)
             Text(
                 "${(fraction * 100).toInt()}%",
+                color = AppColors.textSecondary,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(top = 4.dp),
             )

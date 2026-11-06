@@ -174,7 +174,7 @@ private fun SettingsScaffold(title: String, onBack: () -> Unit, content: @Compos
         contentWindowInsets = LumeInsets.scaffold,
         topBar = {
             TopAppBar(
-                title = { Text(title, color = AppColors.textPrimary) },
+                title = { Text(title, color = AppColors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
                     BackButton(onClick = onBack)
                 },

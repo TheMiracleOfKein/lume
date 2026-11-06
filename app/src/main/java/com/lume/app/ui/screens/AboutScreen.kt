@@ -2,6 +2,7 @@ package com.lume.app.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -83,7 +84,7 @@ fun AboutScreen(nav: NavHostController) {
         ) {
             item(key = "head") {
                 Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    LumeLogo(selected = true, size = 56.dp)
+                    LumeLogo(selected = true, size = 56.dp, contentDescription = null)
                     Spacer(Modifier.height(10.dp))
                     Text(stringResource(R.string.app_name), color = AppColors.textPrimary, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
                     Text(
@@ -117,7 +118,7 @@ fun AboutScreen(nav: NavHostController) {
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
-                        .clickable { openInBrowser(context, lib.url) }
+                        .clickable(role = Role.Button) { openInBrowser(context, lib.url) }
                         .padding(vertical = 10.dp, horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -134,7 +135,7 @@ fun AboutScreen(nav: NavHostController) {
 @Composable
 private fun LinkRow(label: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick).padding(horizontal = 14.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, color = AppColors.textPrimary, fontSize = 15.sp, modifier = Modifier.weight(1f))

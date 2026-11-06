@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.width
@@ -31,8 +32,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import com.lume.app.ui.components.BackButton
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
-import androidx.compose.material.icons.outlined.Bookmark
-import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.Share
@@ -45,10 +46,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import com.lume.app.ui.components.LumeRefreshIndicator
@@ -100,7 +106,7 @@ import com.lume.app.ui.nav.openReader
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 import kotlinx.coroutines.launch
-import java.util.Locale
+import androidx.compose.ui.platform.LocalConfiguration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,6 +125,10 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
     val titleSources by vm.titleSources.collectAsState()
     var showTrackers by rememberSaveable { mutableStateOf(false) }
     var showSources by rememberSaveable { mutableStateOf(false) }
+    val snackbar = remember { SnackbarHostState() }
+    val bookmarkScope = rememberCoroutineScope()
+    val bookmarkDeleted = stringResource(R.string.bookmark_deleted)
+    val undoLabel = stringResource(R.string.action_undo)
     // One row per chapter, whatever number of teams or sources have it.
     val chapterCount = remember(chapters) { dedupeChapters(chapters).size }
 
@@ -140,6 +150,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         details?.title ?: stringResource(R.string.title_fallback),
                         color = AppColors.textPrimary,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 },
                 navigationIcon = {
@@ -185,8 +196,8 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         onClick = { vm.toggleLibrary() },
                     ) {
                         Icon(
-                            if (bookmarked) Icons.Outlined.Bookmark else Icons.Outlined.BookmarkBorder,
-                            contentDescription = stringResource(R.string.cd_bookmark),
+                            if (bookmarked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = stringResource(if (bookmarked) R.string.cd_remove_from_library else R.string.cd_add_to_library),
                             tint = if (bookmarked) AppColors.accentText else AppColors.textPrimary,
                         )
                     }
@@ -195,6 +206,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),
             )
         },
+        snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         val refreshState = rememberPullToRefreshState()
         AnimatedLoadState(
@@ -247,7 +259,14 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                     fontWeight = FontWeight.Bold,
                                 )
                                 d.altTitle?.let {
-                                    Text(it, color = AppColors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+                                    Text(
+                                        it,
+                                        color = AppColors.textSecondary,
+                                        fontSize = 13.sp,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(top = 4.dp),
+                                    )
                                 }
                                 d.status?.let {
                                     Text(
@@ -282,7 +301,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                 val facts = listOfNotNull(
                                     d.typeLabel,
                                     d.year?.toString(),
-                                    d.score?.let { stringResource(R.string.title_score, String.format(Locale.US, "%.1f", it)) },
+                                    d.score?.let { stringResource(R.string.title_score, String.format(LocalConfiguration.current.locales[0], "%.1f", it)) },
                                 )
                                 if (facts.isNotEmpty()) {
                                     Text(facts.joinToString(" · "), color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
@@ -356,6 +375,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                 ),
                                 color = AppColors.textPrimary,
                                 maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                         Spacer(Modifier.height(8.dp))
@@ -368,7 +388,12 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                             } else {
                                 links.joinToString { it.tracker }
                             }
-                            Text(stringResource(R.string.title_trackers, linked), color = AppColors.textPrimary)
+                            Text(
+                                stringResource(R.string.title_trackers, linked),
+                                color = AppColors.textPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                         if (d.genres.isNotEmpty()) {
                             Spacer(Modifier.height(12.dp))
@@ -381,6 +406,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                         fontSize = 12.sp,
                                         modifier = Modifier
                                             .padding(end = 8.dp)
+                                            .minimumInteractiveComponentSize()
                                             .clip(RoundedCornerShape(16.dp))
                                             .background(AppColors.card)
                                             .clickable { nav.navigate(Routes.browse(sourceId, genre)) }
@@ -411,7 +437,18 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                                     bookmark.pageOffset,
                                                 )
                                             },
-                                            onDelete = { vm.deletePageBookmark(bookmark.id) },
+                                            onDelete = {
+                                                vm.deletePageBookmark(bookmark.id)
+                                                bookmarkScope.launch {
+                                                    snackbar.currentSnackbarData?.dismiss()
+                                                    val result = snackbar.showSnackbar(
+                                                        bookmarkDeleted,
+                                                        actionLabel = undoLabel,
+                                                        duration = SnackbarDuration.Short,
+                                                    )
+                                                    if (result == SnackbarResult.ActionPerformed) vm.restorePageBookmark(bookmark)
+                                                }
+                                            },
                                         )
                                     }
                                 }
@@ -678,6 +715,8 @@ private fun TrackersDialog(
                             modifier = Modifier
                                 .padding(end = 12.dp)
                                 .clickable { selectedTrackerId = t.id }
+                                .heightIn(min = 48.dp)
+                                .wrapContentHeight(Alignment.CenterVertically)
                                 .padding(vertical = 6.dp),
                         )
                     }
@@ -804,13 +843,15 @@ private fun TrackersDialog(
                             loading = false
                         }
                     },
+                    enabled = !loading,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AppColors.accent,
                         contentColor = AppColors.onAccent,
                     ),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        if (loading) stringResource(R.string.ellipsis)
+                        if (loading) stringResource(R.string.tracker_searching)
                         else stringResource(R.string.action_search),
                     )
                 }
@@ -834,6 +875,8 @@ private fun TrackersDialog(
                                     message = resources.getString(R.string.tracker_linked_with, item.title)
                                 }
                             }
+                            .heightIn(min = 48.dp)
+                            .wrapContentHeight(Alignment.CenterVertically)
                             .padding(vertical = 8.dp),
                     )
                 }

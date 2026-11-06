@@ -305,6 +305,8 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         throw e
     } catch (e: CloudflareException) {
         SourceState.Failed(appString(R.string.error_cloudflare_needed), challenge = e.uri)
+    } catch (e: kotlinx.serialization.SerializationException) {
+        SourceState.Failed(appString(R.string.search_source_bad_response))
     } catch (e: Exception) {
         SourceState.Failed(e.message ?: e::class.simpleName.orEmpty())
     }

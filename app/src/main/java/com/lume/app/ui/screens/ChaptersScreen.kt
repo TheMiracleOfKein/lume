@@ -8,6 +8,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,9 +52,12 @@ import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.VerticalAlignBottom
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -77,6 +84,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -93,6 +101,7 @@ import com.lume.app.domain.LinkedChapterId
 import com.lume.app.domain.chapterBranches
 import com.lume.app.domain.chapterListView
 import com.lume.app.ui.components.AnimatedLoadState
+import com.lume.app.ui.components.TooltipIconButton
 import com.lume.app.ui.components.ErrorRetryBox
 import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
@@ -149,6 +158,8 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         if (vm.selecting) stringResource(R.string.chapters_selected, vm.selected.size)
                         else stringResource(R.string.chapters_title),
                         color = AppColors.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 },
                 navigationIcon = {
@@ -202,17 +213,12 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                             Icon(Icons.Outlined.SwapVert, contentDescription = stringResource(R.string.cd_sort), tint = AppColors.textPrimary)
                         }
                         IconButton(onClick = { sheetOpen = true }) {
-                            Box {
+                            BadgedBox(
+                                badge = {
+                                    if (options.filter != 0) Badge(containerColor = AppColors.accent)
+                                },
+                            ) {
                                 Icon(Icons.Outlined.FilterList, stringResource(R.string.cd_chapter_filters), tint = AppColors.textPrimary)
-                                if (options.filter != 0) {
-                                    Box(
-                                        Modifier
-                                            .align(Alignment.TopEnd)
-                                            .size(8.dp)
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(AppColors.accent),
-                                    )
-                                }
                             }
                         }
                     }
@@ -250,7 +256,13 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                     onCloudflare = vm.cloudflareUri?.let { { vm.solveChallenge() } },
                     modifier = Modifier.padding(padding),
                 )
-                else -> LazyColumn(
+                else -> if (chapters.isEmpty()) {
+                    ErrorRetryBox(
+                        message = stringResource(R.string.chapters_none_yet),
+                        onRetry = vm::refresh,
+                        modifier = Modifier.padding(padding),
+                    )
+                } else LazyColumn(
                     modifier = Modifier
                         .padding(padding)
                         .fillMaxSize()
@@ -343,6 +355,7 @@ private fun TeamChips(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .selectableGroup()
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -366,9 +379,10 @@ private fun TeamChip(label: String, selected: Boolean, onClick: () -> Unit) {
         fontWeight = FontWeight.Medium,
         maxLines = 1,
         modifier = Modifier
+            .minimumInteractiveComponentSize()
             .clip(RoundedCornerShape(16.dp))
             .background(background)
-            .clickable(onClick = onClick)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 7.dp),
     )
 }
@@ -402,7 +416,7 @@ private fun ChapterRow(
         modifier = modifier
             .fillMaxWidth()
             .background(background)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .combinedClickable(onClick = onClick, onLongClickLabel = stringResource(R.string.cd_long_press_select), onLongClick = onLongClick)
             .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -509,7 +523,7 @@ private fun ChapterSelectionBar(
 
 @Composable
 private fun BarAction(icon: ImageVector, label: String, onClick: () -> Unit, tint: Color = AppColors.textPrimary) {
-    IconButton(onClick = onClick) { Icon(icon, contentDescription = label, tint = tint) }
+    TooltipIconButton(icon, label, onClick, tint)
 }
 
 @Composable
@@ -526,7 +540,7 @@ private fun ChapterFilterSheet(options: ChapterListOptions, onToggle: (Int) -> U
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onToggle(bit) }
+                    .toggleable(value = on, role = Role.Checkbox, onValueChange = { onToggle(bit) })
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

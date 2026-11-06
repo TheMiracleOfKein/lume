@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -31,11 +32,26 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,6 +59,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -54,6 +75,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -114,7 +136,7 @@ fun QuickSearchBar(
             .height(44.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(AppColors.search)
-            .clickable(enabled = readOnly, onClick = onSubmit)
+            .clickable(enabled = readOnly, role = Role.Button, onClick = onSubmit)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -142,7 +164,7 @@ fun QuickSearchBar(
                     cursorBrush = SolidColor(AppColors.accent),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = resolvedHint },
                 )
             } else if (value.isNotEmpty()) {
                 Text(
@@ -169,12 +191,15 @@ fun TitleListRow(
     sourceId: String? = null,
     /** A bar along the left edge, e.g. the library status of the title. */
     marker: Color? = null,
+    /** Spoken form of [marker]. */
+    markerLabel: String? = null,
     onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (markerLabel != null) Modifier.semantics { stateDescription = markerLabel } else Modifier)
             .then(
                 if (marker != null) {
                     Modifier.drawBehind {
@@ -212,7 +237,7 @@ fun TitleListRow(
                     Text(
                         text = badge,
                         color = AppColors.onAccent,
-                        fontSize = 10.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier
                             .padding(start = 8.dp)
@@ -241,20 +266,32 @@ fun TitleListRow(
 fun LumeLogo(
     selected: Boolean,
     size: Dp = 28.dp,
+    /** Null when the surrounding element already carries the label. */
+    contentDescription: String? = stringResource(R.string.app_name),
+    /** Draws a thin ring so the dark tile stays visible on a dark bar. */
+    ringed: Boolean = false,
 ) {
     val highlight by animateColorAsState(
         if (selected) AppColors.accent.copy(alpha = 0.2f) else Color.Transparent,
         Motion.short(),
         label = "logo",
     )
+    val shape = RoundedCornerShape(size * 0.22f)
     Image(
         painter = painterResource(R.mipmap.ic_launcher_foreground),
-        contentDescription = stringResource(R.string.app_name),
+        contentDescription = contentDescription,
         contentScale = ContentScale.Crop,
         modifier = Modifier
             .size(size)
-            .clip(RoundedCornerShape(size * 0.22f))
-            .background(highlight),
+            .clip(shape)
+            .background(highlight)
+            .then(
+                if (ringed) {
+                    Modifier.border(1.dp, if (selected) AppColors.accent else AppColors.outline, shape)
+                } else {
+                    Modifier
+                },
+            ),
     )
 }
 
@@ -286,6 +323,7 @@ fun ErrorRetryBox(
             text = message,
             color = AppColors.textSecondary,
             fontSize = 14.sp,
+            textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(16.dp))
         Button(
@@ -314,7 +352,7 @@ fun SectionHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (onTap != null) Modifier.clickable(onClick = onTap) else Modifier)
+            .then(if (onTap != null) Modifier.clickable(role = Role.Button, onClick = onTap) else Modifier)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -323,7 +361,7 @@ fun SectionHeader(
             color = AppColors.textPrimary,
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).semantics { heading() },
         )
         trailing?.invoke()
     }
@@ -340,12 +378,15 @@ fun CoverCard(
     width: Dp = 128.dp,
     /** A bar along the top of the cover, e.g. the library status of the title. */
     marker: Color? = null,
+    /** Spoken form of [marker]. */
+    markerLabel: String? = null,
 ) {
     Column(
         modifier = modifier
             .width(width)
             .clip(RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick)
+            .then(if (markerLabel != null) Modifier.semantics { stateDescription = markerLabel } else Modifier),
     ) {
         Box {
             CoverImage(url = coverUrl, width = width, height = width * 1.4f, radius = 10.dp)
@@ -367,7 +408,7 @@ fun CoverCard(
                         .background(Color.Black.copy(alpha = 0.7f))
                         .padding(horizontal = 6.dp, vertical = 2.dp),
                 ) {
-                    Text(badge, color = Color.White, fontSize = 10.sp, maxLines = 1)
+                    Text(badge, color = Color.White, fontSize = 11.sp, maxLines = 1)
                 }
             }
         }
@@ -422,10 +463,101 @@ fun AnimatedLoadState(
     }
 }
 
+/** Confirm step for a destructive or hard-to-undo action. */
+@Composable
+fun ConfirmDialog(
+    title: String,
+    text: String,
+    confirmLabel: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(text) },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(); onDismiss() }) { Text(confirmLabel, color = AppColors.danger) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
+}
+
+/** A password field with a show/hide toggle; IME action and its handler are passed through. */
+@Composable
+fun PasswordField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    imeAction: ImeAction = ImeAction.Done,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+) {
+    var visible by remember { mutableStateOf(false) }
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        singleLine = true,
+        label = { Text(label) },
+        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = imeAction),
+        keyboardActions = keyboardActions,
+        trailingIcon = {
+            IconButton(onClick = { visible = !visible }) {
+                Icon(
+                    if (visible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                    contentDescription = stringResource(if (visible) R.string.cd_hide_password else R.string.cd_show_password),
+                    tint = AppColors.textSecondary,
+                )
+            }
+        },
+        modifier = modifier,
+    )
+}
+
 /** Small empty-state message, centered. */
 @Composable
 fun EmptyBox(message: String, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-        Text(message, color = AppColors.textSecondary, fontSize = 15.sp)
+        Text(message, color = AppColors.textSecondary, fontSize = 15.sp, textAlign = TextAlign.Center)
+    }
+}
+
+/** An icon-only action whose label also shows as a tooltip on long press or hover. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TooltipIconButton(icon: ImageVector, label: String, onClick: () -> Unit, tint: Color = AppColors.textPrimary) {
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+        tooltip = { PlainTooltip { Text(label) } },
+        state = rememberTooltipState(),
+    ) {
+        IconButton(onClick = onClick) { Icon(icon, contentDescription = label, tint = tint) }
+    }
+}
+
+/**
+ * Title row of a bottom sheet: one title size everywhere, with an optional close button.
+ * Sheets keep the default drag handle above it.
+ */
+@Composable
+fun SheetHeader(title: String, modifier: Modifier = Modifier, onClose: (() -> Unit)? = null) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            color = AppColors.textPrimary,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .weight(1f)
+                .padding(vertical = 8.dp),
+        )
+        if (onClose != null) {
+            TooltipIconButton(Icons.Outlined.Close, stringResource(R.string.action_close), onClose)
+        }
     }
 }

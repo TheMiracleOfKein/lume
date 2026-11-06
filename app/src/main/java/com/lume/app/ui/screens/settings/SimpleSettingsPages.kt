@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -14,6 +17,7 @@ import androidx.navigation.NavHostController
 import com.lume.app.R
 import com.lume.app.data.network.DohProvider
 import com.lume.app.ui.components.ChoiceChip
+import com.lume.app.ui.components.ConfirmDialog
 import com.lume.app.ui.components.SwitchRow
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.screens.SettingsViewModel
@@ -87,6 +91,8 @@ fun PrivacySettings(vm: SettingsViewModel) {
 @Composable
 fun NetworkSettings(vm: SettingsViewModel) {
     val doh by vm.prefs.dnsOverHttps.collectAsState()
+    var confirmCache by rememberSaveable { mutableStateOf(false) }
+    var confirmCookies by rememberSaveable { mutableStateOf(false) }
     SettingsGroup {
         SettingItem("doh") {
             SettingsLabel(stringResource(R.string.settings_doh))
@@ -107,12 +113,30 @@ fun NetworkSettings(vm: SettingsViewModel) {
     SettingsGroup {
         SettingItem("clear_cache") {
             SettingsLink(stringResource(R.string.settings_clear_cache), stringResource(R.string.settings_clear_cache_hint)) {
-                vm.clearCache()
+                confirmCache = true
+            }
+            if (confirmCache) {
+                ConfirmDialog(
+                    title = stringResource(R.string.settings_clear_cache),
+                    text = stringResource(R.string.settings_clear_cache_hint),
+                    confirmLabel = stringResource(R.string.settings_clear_cache),
+                    onConfirm = vm::clearCache,
+                    onDismiss = { confirmCache = false },
+                )
             }
         }
         SettingItem("clear_cookies") {
             SettingsLink(stringResource(R.string.settings_clear_cookies), stringResource(R.string.settings_clear_cookies_hint)) {
-                vm.clearCookies()
+                confirmCookies = true
+            }
+            if (confirmCookies) {
+                ConfirmDialog(
+                    title = stringResource(R.string.settings_clear_cookies),
+                    text = stringResource(R.string.settings_clear_cookies_hint),
+                    confirmLabel = stringResource(R.string.settings_clear_cookies),
+                    onConfirm = vm::clearCookies,
+                    onDismiss = { confirmCookies = false },
+                )
             }
         }
     }

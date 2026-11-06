@@ -13,7 +13,12 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.selection.triStateToggleable
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,6 +42,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TriStateCheckbox
@@ -192,10 +198,11 @@ private fun FilterItem(filter: SourceFilter, change: (String, (SourceFilter) -> 
             }
             val next = { change(filter.id) { (it as SourceFilter.TriState).copy(state = (filter.state + 1) % 3) } }
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable(onClick = next),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                    .triStateToggleable(state = state, role = Role.Checkbox, onClick = next),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TriStateCheckbox(state = state, onClick = next, colors = filterCheckboxColors())
+                TriStateCheckbox(state = state, onClick = null, colors = filterCheckboxColors())
                 Text(filter.name, color = AppColors.textPrimary, fontSize = 14.sp)
             }
         }
@@ -222,11 +229,21 @@ private fun ChipGroup(group: SourceFilter.Group, change: (String, (SourceFilter)
     val long = group.filters.size > FOLD_AT
     var open by rememberSaveable(group.id) { mutableStateOf(!long) }
     var find by rememberSaveable(group.id) { mutableStateOf("") }
+    val excludedLabel = stringResource(R.string.filters_excluded)
     val chosen = group.filters.mapNotNull { f ->
         when {
             f is SourceFilter.Check && f.state -> f.name
             f is SourceFilter.TriState && f.state == 1 -> f.name
             f is SourceFilter.TriState && f.state == 2 -> "−" + f.name
+            else -> null
+        }
+    }
+    // The "−" prefix is only for the eye; screen readers get the word instead.
+    val chosenSpoken = group.filters.mapNotNull { f ->
+        when {
+            f is SourceFilter.Check && f.state -> f.name
+            f is SourceFilter.TriState && f.state == 1 -> f.name
+            f is SourceFilter.TriState && f.state == 2 -> "${f.name} ($excludedLabel)"
             else -> null
         }
     }
@@ -248,6 +265,7 @@ private fun ChipGroup(group: SourceFilter.Group, change: (String, (SourceFilter)
                     fontSize = 12.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.semantics { contentDescription = chosenSpoken.joinToString() },
                 )
             }
         }
@@ -333,14 +351,21 @@ private fun TriStateChip(filter: SourceFilter.TriState, onClick: () -> Unit) {
     }
     Box(
         Modifier
+            .minimumInteractiveComponentSize()
             .clip(shape)
             .background(background)
             .border(1.dp, border, shape)
             .clickable(onClick = onClick)
-            .semantics { if (spoken.isNotEmpty()) stateDescription = spoken }
+            .semantics {
+                contentDescription = filter.name
+                if (spoken.isNotEmpty()) stateDescription = spoken
+            }
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
+        // The "+"/"−" prefix is visual; the name and the state are spoken by the box.
         Text(
+            modifier = Modifier.clearAndSetSemantics {},
+            text =
             when {
                 include -> "+ " + filter.name
                 exclude -> "− " + filter.name
@@ -384,10 +409,11 @@ private fun FilterLabel(text: String) {
 @Composable
 fun CheckRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { onChange(!checked) },
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+            .toggleable(value = checked, role = Role.Checkbox, onValueChange = onChange),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(checked = checked, onCheckedChange = onChange, colors = filterCheckboxColors())
+        Checkbox(checked = checked, onCheckedChange = null, colors = filterCheckboxColors())
         Text(label, color = AppColors.textPrimary, fontSize = 14.sp)
     }
 }

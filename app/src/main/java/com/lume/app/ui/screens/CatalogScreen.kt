@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.PaddingValues
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.listBottomPadding
@@ -22,6 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,6 +38,7 @@ import com.lume.app.ui.components.ChoiceChip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
@@ -46,6 +49,7 @@ import androidx.navigation.NavHostController
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.ui.components.AnimatedLoadState
+import com.lume.app.ui.components.EmptyBox
 import com.lume.app.ui.components.ErrorRetryBox
 import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
@@ -108,10 +112,17 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 BackButton(onClick = { nav.popBackStack() })
-                Text(browseName, color = AppColors.textPrimary, fontSize = 20.sp, modifier = Modifier.weight(1f))
+                Text(
+                    browseName,
+                    color = AppColors.textPrimary,
+                    fontSize = 20.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth().selectableGroup().padding(horizontal = 4.dp, vertical = 8.dp)) {
             SegmentTab(stringResource(R.string.catalog_tab_popular), selected = tab == 0, modifier = Modifier.weight(1f)) { tab = 0 }
             SegmentTab(stringResource(R.string.catalog_tab_updates), selected = tab == 1, modifier = Modifier.weight(1f)) { tab = 1 }
             // A browsed source has no library tab: the library is the same for every source.
@@ -168,7 +179,7 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
                 else -> {
                     if (bookmarks.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(stringResource(R.string.library_empty), color = AppColors.textSecondary)
+                            Text(stringResource(R.string.catalog_library_empty), color = AppColors.textSecondary)
                         }
                     } else {
                         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = listBottomPadding())) {
@@ -200,7 +211,7 @@ private fun CatalogFeedList(
     val shouldLoadMore by remember(feed, listState) {
         derivedStateOf {
             val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            feed.hasNext && !feed.loadingMore && !feed.loading && last >= feed.items.size - 3
+            feed.hasNext && !feed.loadingMore && !feed.loading && !feed.moreError && last >= feed.items.size - 3
         }
     }
     LaunchedEffect(shouldLoadMore) {
@@ -217,7 +228,9 @@ private fun CatalogFeedList(
                 onRetry = { vm.ensureLoaded(feed, force = true) },
                 onCloudflare = feed.cloudflareUri?.let { { vm.solveChallenge(feed) } },
             )
-            else -> LazyColumn(
+            else -> if (catalogFeedIsEmpty(feed.loadedOnce, feed.loading, feed.error, feed.items.size)) {
+                EmptyBox(stringResource(R.string.catalog_feed_empty))
+            } else LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = listBottomPadding()),
@@ -231,6 +244,25 @@ private fun CatalogFeedList(
                         typeLabel = item.typeLabel,
                         onClick = { onOpen(item.id) },
                     )
+                }
+                if (feed.moreError) {
+                    item(key = "more-error") {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                stringResource(R.string.catalog_more_failed),
+                                color = AppColors.textSecondary,
+                                fontSize = 14.sp,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = { vm.loadMore(feed) }) {
+                                Text(stringResource(R.string.action_retry), color = AppColors.accentText)
+                            }
+                        }
+                    }
                 }
                 if (feed.loadingMore) {
                     item(key = "loading-more") {

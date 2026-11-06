@@ -31,6 +31,7 @@
     <string name="error_prefix">Ошибка: %s</string>
     <string name="ellipsis">…</string>
 
+    <string name="nav_home">Главная</string>
     <string name="nav_library">Закладки</string>
     <string name="nav_catalog">Каталог</string>
     <string name="nav_history">История</string>
@@ -63,7 +64,8 @@
     <string name="catalog_tab_popular">Популярное</string>
     <string name="catalog_tab_updates">Обновления</string>
     <string name="catalog_tab_library">Закладки</string>
-    <string name="library_empty">Нет закладок</string>
+    <string name="catalog_library_empty">Закладок из этого источника пока нет</string>
+    <string name="library_empty">Библиотека пуста</string>
     <string name="library_offline_only">Офлайн · только скачанные из библиотеки</string>
     <string name="category_all">Все</string>
     <string name="badge_new">новое</string>
@@ -90,7 +92,12 @@
     <string name="updates_watched_hint">Обновления проверяют тайтлы с колокольчиком (до 20): сейчас %d</string>
     <string name="updates_watched_none">Обновления проверяют 20 последних прочитанных тайтлов. Включите колокольчик на странице тайтла, чтобы выбрать их самому.</string>
     <string name="library_read_of_total">%1$d/%2$d</string>
-    <string name="cd_library_read_of_total">Прочитано %1$d из %2$d глав</string>
+    <plurals name="cd_library_read_of_total">
+        <item quantity="one">Прочитано %1$d из %2$d главы</item>
+        <item quantity="few">Прочитано %1$d из %2$d глав</item>
+        <item quantity="many">Прочитано %1$d из %2$d глав</item>
+        <item quantity="other">Прочитано %1$d из %2$d главы</item>
+    </plurals>
     <string name="title_status">Статус: %s</string>
     <string name="title_chapters_list">Список глав (%d)</string>
     <string name="title_trackers">Трекеры (%s)</string>
@@ -100,6 +107,7 @@
     <string name="tracker_unlinked">Отвязано</string>
     <string name="tracker_not_linked">Не привязано. Найдите тайтл ниже или введите ID.</string>
     <string name="tracker_syncing">Синхронизация…</string>
+    <string name="tracker_searching">Поиск…</string>
     <string name="tracker_linked_with">Связано с %s</string>
     <string name="tracker_preview_login">ID %1$s · войдите в аккаунт для прогресса</string>
     <string name="tracker_preview_loading">ID %1$s · загрузка…</string>
@@ -122,12 +130,15 @@
 
     <string name="reader_mode">Режим читалки</string>
     <string name="reader_theme">Тема читалки</string>
-    <string name="reader_gap">Отступ между изображениями %dpx</string>
+    <string name="reader_gap">Отступ между изображениями %ddp</string>
     <string name="reader_double_tap_zoom">Увеличение двойным нажатием</string>
     <string name="reader_hide_page_number">Скрыть номер страниц</string>
     <string name="reader_seamless">Бесшовное чтение глав</string>
     <string name="reader_chapter_separator">Глава · %s</string>
     <string name="reader_save_for_title">Сохранить для тайтла</string>
+    <string name="reader_mode_rtl">Справа налево</string>
+    <string name="reader_mode_webtoon">Вебтун</string>
+    <string name="reader_mode_ltr">Слева направо</string>
     <string name="reader_theme_light">Светлая</string>
     <string name="reader_theme_dark">Тёмная</string>
     <string name="reader_theme_system">Системная</string>
@@ -260,6 +271,7 @@
     <string name="reader_volume_keys">Листать кнопками громкости</string>
     <string name="reader_tap_zones">Листать касанием края экрана</string>
     <string name="search_source_timeout">Нет ответа за 15 с</string>
+    <string name="search_source_bad_response">Источник вернул неожиданный ответ</string>
     <string name="search_source_empty">Ничего не найдено</string>
     <plurals name="search_source_count">
         <item quantity="one">%d результат</item>
@@ -276,7 +288,12 @@
     <string name="settings_section_library">Библиотека</string>
     <string name="settings_section_downloads">Загрузки</string>
     <string name="settings_library_interval">Проверять каждые</string>
-    <string name="settings_interval_hours">%d ч</string>
+    <plurals name="settings_interval_hours">
+        <item quantity="one">%d ч</item>
+        <item quantity="few">%d ч</item>
+        <item quantity="many">%d ч</item>
+        <item quantity="other">%d ч</item>
+    </plurals>
     <string name="settings_wifi_only">Только по Wi-Fi</string>
     <string name="settings_downloads_wifi_only">Скачивать только по Wi-Fi</string>
     <string name="settings_search_nsfw">Источники 18+ в глобальном поиске</string>
@@ -288,6 +305,11 @@
     <string name="reader_bookmark_add_note">Добавить заметку</string>
     <string name="cd_bookmark_spot">Закладка на это место (удерживайте — список)</string>
     <string name="cd_add_to_library">Добавить в библиотеку</string>
+    <string name="cd_clear_date">Очистить дату</string>
+    <string name="cd_filters_active">Фильтры включены</string>
+    <string name="cd_in_library">В библиотеке</string>
+    <string name="cd_long_press_select">Выбрать</string>
+    <string name="cd_long_press_bookmarks">Список закладок</string>
     <string name="cd_remove_from_library">Убрать из библиотеки</string>
     <string name="bookmarks_title">Закладки</string>
     <string name="bookmarks_empty">Закладок пока нет. В читалке нажмите кнопку закладки, чтобы отметить место.</string>
@@ -295,6 +317,7 @@
     <string name="bookmark_note_hint">Что здесь происходит?</string>
     <string name="bookmark_page">стр. %1$d</string>
     <string name="chapter_progress_pages">стр. %1$d / %2$d</string>
+    <string name="reader_page_position">%1$d / %2$d</string>
     <string name="action_delete">Удалить</string>
     <string name="page_load_failed">Не удалось загрузить страницу</string>
     <string name="reader_last_chapter">Это последняя глава</string>
@@ -399,6 +422,7 @@
     <string name="chapters_delete_downloads">Удалить скачанные главы</string>
     <string name="cd_chapter_filters">Фильтры и сортировка</string>
     <string name="chapters_none_match">Нет глав, подходящих под фильтры</string>
+    <string name="chapters_none_yet">Глав пока нет</string>
     <string name="chapters_team_auto">Любая команда</string>
     <string name="chapters_team_all">Все переводы</string>
     <string name="action_mark_previous_read">Отметить предыдущие прочитанными</string>
@@ -487,14 +511,24 @@
     <string name="source_action_settings">Настройки</string>
     <string name="source_action_import_bookmarks">Импорт закладок</string>
     <string name="source_bookmarks_done">Закладки %1$s. Добавлено: %2$d · уже в библиотеке: %3$d · папок-категорий: %4$d · прогресс у тайтлов: %5$d</string>
-    <string name="source_bookmarks_progress_missed">Прогресс не перенесён для тайтлов: %1$d — главы не загрузились или прочитанной главы нет в списке.</string>
+    <plurals name="source_bookmarks_progress_missed">
+        <item quantity="one">Прогресс не перенесён для %1$d тайтла: его главы не загрузились или прочитанной главы нет в списке.</item>
+        <item quantity="few">Прогресс не перенесён для %1$d тайтлов: их главы не загрузились или прочитанной главы нет в списке.</item>
+        <item quantity="many">Прогресс не перенесён для %1$d тайтлов: их главы не загрузились или прочитанной главы нет в списке.</item>
+        <item quantity="other">Прогресс не перенесён для %1$d тайтла: их главы не загрузились или прочитанной главы нет в списке.</item>
+    </plurals>
     <string name="source_bookmarks_empty">На %1$s закладок не нашлось</string>
     <string name="source_bookmarks_failed">Не удалось импортировать закладки: %1$s</string>
     <string name="source_bookmarks_busy">Импорт закладок уже идёт</string>
     <string name="source_bookmarks_card_title">Импорт закладок · %1$s</string>
     <string name="source_bookmarks_stage_fetching">Шаг 1 из 3: загружаем закладки с сайта…</string>
     <string name="source_bookmarks_stage_adding">Шаг 2 из 3: добавляем тайтлы в библиотеку (%1$d)…</string>
-    <string name="source_bookmarks_stage_progress">Шаг 3 из 3: прогресс чтения, %1$d из %2$d тайтлов</string>
+    <plurals name="source_bookmarks_stage_progress">
+        <item quantity="one">Шаг 3 из 3: прогресс чтения, %1$d из %2$d тайтла</item>
+        <item quantity="few">Шаг 3 из 3: прогресс чтения, %1$d из %2$d тайтлов</item>
+        <item quantity="many">Шаг 3 из 3: прогресс чтения, %1$d из %2$d тайтлов</item>
+        <item quantity="other">Шаг 3 из 3: прогресс чтения, %1$d из %2$d тайтла</item>
+    </plurals>
     <string name="source_bookmarks_stage_hint">С этого экрана можно уйти: импорт продолжится.</string>
     <string name="source_action_pin">Закрепить сверху</string>
     <string name="source_action_unpin">Открепить</string>
@@ -580,7 +614,12 @@
     <string name="backup_restore_file_hint">Копия Lume или Mihon / Tachiyomi (.tachibk)</string>
     <string name="backup_saved_to">Копия сохранена: %1$s</string>
     <string name="backup_restore_failed">Не удалось восстановить: %1$s</string>
-    <string name="backup_mihon_progress">Загрузка списков глав: %1$d из %2$d тайтлов</string>
+    <plurals name="backup_mihon_progress">
+        <item quantity="one">Загрузка списков глав: %1$d из %2$d тайтла</item>
+        <item quantity="few">Загрузка списков глав: %1$d из %2$d тайтлов</item>
+        <item quantity="many">Загрузка списков глав: %1$d из %2$d тайтлов</item>
+        <item quantity="other">Загрузка списков глав: %1$d из %2$d тайтла</item>
+    </plurals>
     <string name="backup_mihon_done">Импорт из Mihon. Добавлено: %1$d · уже в библиотеке: %2$d · глав отмечено прочитанными: %3$d</string>
     <string name="backup_mihon_unmatched">Пропущено, их источника нет в Lume: %1$d (%2$s)</string>
     <string name="backup_mihon_read_failed">Тайтлов без отметок о прочтении, не загрузились списки глав: %1$d</string>
@@ -615,6 +654,7 @@
     <string name="tracker_edit">Изменить</string>
     <string name="tracker_edit_title">Запись в %1$s</string>
     <string name="tracker_edit_failed">Не удалось загрузить или сохранить запись. Проверьте вход.</string>
+    <string name="tracker_save_failed">Не удалось сохранить запись. Правки сохранены в форме, попробуйте ещё раз.</string>
     <string name="tracker_edit_status">Статус</string>
     <string name="tracker_edit_score">Оценка</string>
     <string name="tracker_edit_chapters">Прочитано глав</string>
@@ -960,4 +1000,16 @@
     <string name="cd_delete_title_downloads">Удалить загрузки этого тайтла</string>
     <string name="dialog_delete_title_downloads_text">Удалить скачанные главы «%s»?</string>
     <string name="dialog_delete_chapter_download_text">Удалить скачанную главу «%s»?</string>
+    <string name="settings_restore_downloads_confirm">Восстановить</string>
+    <string name="cd_show_password">Показать пароль</string>
+    <string name="cd_hide_password">Скрыть пароль</string>
+    <string name="tracker_logout_title">Выйти из %1$s?</string>
+    <string name="tracker_logout_text">Чтобы снова синхронизировать прогресс с этим трекером, потребуется войти заново.</string>
+    <string name="bookmark_deleted">Закладка удалена</string>
+    <string name="action_undo">Отменить</string>
+    <string name="catalog_feed_empty">Здесь пока нет тайтлов</string>
+    <string name="catalog_more_failed">Не удалось загрузить ещё</string>
+    <string name="home_refresh_failed">Не удалось обновить ленту</string>
+    <string name="home_latest_empty">Сейчас нет новых релизов</string>
+    <string name="search_start_hint">Введите название и начните поиск</string>
 </resources>

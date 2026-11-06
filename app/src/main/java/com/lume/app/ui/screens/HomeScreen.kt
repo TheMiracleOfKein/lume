@@ -8,6 +8,7 @@ import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.LocalShellBottomPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -165,7 +166,6 @@ fun HomeScreen(nav: NavHostController) {
                                 LazyRow(
                                     contentPadding = PaddingValues(horizontal = 16.dp),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                    modifier = Modifier.height(220.dp),
                                 ) {
                                     items(spotlight, key = { it.id }) { item ->
                                         CoverCard(
@@ -195,7 +195,7 @@ fun HomeScreen(nav: NavHostController) {
                                         modifier = Modifier.weight(1f),
                                     )
                                     TextButton(onClick = { confirmClear = true }) {
-                                        Text(stringResource(R.string.action_clear), color = AppColors.accentText, fontSize = 12.sp)
+                                        Text(stringResource(R.string.action_clear), color = AppColors.accentText)
                                     }
                                 }
                             }
@@ -230,6 +230,35 @@ fun HomeScreen(nav: NavHostController) {
                                 fontSize = 13.sp,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                             )
+                        }
+
+                        if (error != null && feed != null) {
+                            item(key = "refresh-error") {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        stringResource(R.string.home_refresh_failed),
+                                        color = AppColors.danger,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    TextButton(onClick = vm::refresh) {
+                                        Text(stringResource(R.string.action_retry), color = AppColors.accentText)
+                                    }
+                                }
+                            }
+                        }
+                        if (feed != null && feed.latest.isEmpty() && error == null) {
+                            item(key = "latest-empty") {
+                                Text(
+                                    stringResource(R.string.home_latest_empty),
+                                    color = AppColors.textSecondary,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+                                )
+                            }
                         }
 
                         items(feed?.latest.orEmpty(), key = { it.id }) { item ->
@@ -282,7 +311,7 @@ private fun ContinueCard(item: ProgressEntity, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .width(110.dp)
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
     ) {
         CoverImage(url = item.coverUrl, width = 110.dp, height = 150.dp, radius = 8.dp)
         LinearProgressIndicator(

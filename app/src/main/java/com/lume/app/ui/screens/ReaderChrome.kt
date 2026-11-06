@@ -5,9 +5,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Slider
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.outlined.BookmarkAdd
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,7 +52,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import com.lume.app.ui.components.BackButton
 import androidx.compose.material.icons.outlined.FormatListNumbered
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.SkipPrevious
 import androidx.compose.material.icons.outlined.Tune
@@ -184,7 +186,7 @@ internal fun ReaderTopBar(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .clickable(onClick = onOpenTitle),
+                    .clickable(role = Role.Button, onClick = onOpenTitle),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
@@ -214,7 +216,7 @@ internal fun ReaderTopBar(
             }
             Box {
                 IconButton(onClick = { pageMenu = true }) {
-                    Icon(Icons.Outlined.Share, stringResource(R.string.reader_page_menu), tint = Color.White)
+                    Icon(Icons.Outlined.MoreVert, stringResource(R.string.reader_page_menu), tint = Color.White)
                 }
                 DropdownMenu(expanded = pageMenu, onDismissRequest = { pageMenu = false }) {
                     DropdownMenuItem(
@@ -228,7 +230,7 @@ internal fun ReaderTopBar(
                 }
             }
             IconButton(onClick = onSettings) {
-                Icon(Icons.Outlined.Settings, stringResource(R.string.cd_settings), tint = Color.White)
+                Icon(Icons.Outlined.Tune, stringResource(R.string.cd_settings), tint = Color.White)
             }
         }
     }
@@ -291,6 +293,7 @@ internal fun ReaderBottomBar(
                 Icon(
                     Icons.Outlined.SkipPrevious,
                     stringResource(R.string.cd_prev_chapter),
+                    modifier = Modifier.mirrorInRtl(),
                     tint = Color.White.copy(alpha = if (hasPrev) 1f else 0.35f),
                 )
             }
@@ -302,7 +305,7 @@ internal fun ReaderBottomBar(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .combinedClickable(onClick = onBookmark, onLongClick = onBookmarkList),
+                    .combinedClickable(onClick = onBookmark, onLongClickLabel = stringResource(R.string.cd_long_press_bookmarks), onLongClick = onBookmarkList),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(Icons.Outlined.BookmarkAdd, stringResource(R.string.cd_bookmark_spot), tint = Color.White)
@@ -324,6 +327,7 @@ internal fun ReaderBottomBar(
                 Icon(
                     Icons.Outlined.SkipNext,
                     stringResource(R.string.cd_next_chapter),
+                    modifier = Modifier.mirrorInRtl(),
                     tint = Color.White.copy(alpha = if (hasNext) 1f else 0.35f),
                 )
             }
@@ -347,7 +351,8 @@ private fun PageSlider(pageLabel: String?, pageIndex: Int, pageCount: Int, rever
             color = Color.White.copy(alpha = 0.75f),
             fontSize = 13.sp,
             textAlign = TextAlign.Center,
-            modifier = Modifier.width(36.dp),
+            softWrap = false,
+            modifier = Modifier.widthIn(min = 36.dp),
         )
         CompositionLocalProvider(LocalLayoutDirection provides if (reversed) LayoutDirection.Rtl else LayoutDirection.Ltr) {
             Slider(
@@ -368,7 +373,8 @@ private fun PageSlider(pageLabel: String?, pageIndex: Int, pageCount: Int, rever
             color = Color.White.copy(alpha = 0.75f),
             fontSize = 13.sp,
             textAlign = TextAlign.Center,
-            modifier = Modifier.width(36.dp),
+            softWrap = false,
+            modifier = Modifier.widthIn(min = 36.dp),
         )
     }
 }
@@ -496,3 +502,8 @@ internal fun rememberChromeHider(enabled: Boolean, onHide: () -> Unit): NestedSc
         }
     }
 }
+
+/** Flips a directional glyph (skip previous/next) in right-to-left layouts, which have no auto-mirrored variant. */
+@Composable
+private fun Modifier.mirrorInRtl(): Modifier =
+    if (LocalLayoutDirection.current == LayoutDirection.Rtl) graphicsLayer { scaleX = -1f } else this

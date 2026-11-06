@@ -24,7 +24,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
@@ -43,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -122,7 +126,7 @@ fun CategoriesScreen(nav: NavHostController) {
                         .padding(start = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(cat.name, color = AppColors.textPrimary, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                    Text(cat.name, color = AppColors.textPrimary, fontSize = 15.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                     IconButton(onClick = { vm.move(cat.id, -1) }, enabled = index > 0) {
                         Icon(Icons.Outlined.KeyboardArrowUp, stringResource(R.string.cd_move_up), tint = AppColors.textSecondary)
                     }
@@ -220,10 +224,12 @@ private fun NameDialog(
                 onValueChange = { name = it },
                 singleLine = true,
                 label = { Text(stringResource(R.string.label_name)) },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { if (name.isNotBlank()) onConfirm(name) }),
             )
         },
         confirmButton = {
-            TextButton(onClick = { if (name.isNotBlank()) onConfirm(name) }) { Text(confirm) }
+            TextButton(enabled = name.isNotBlank(), onClick = { onConfirm(name) }) { Text(confirm) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -102,7 +103,7 @@ fun UpdatesScreen(nav: NavHostController) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
+                .heightIn(min = 56.dp)
                 .padding(start = 16.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -236,12 +237,12 @@ private fun UpdateRowItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics { if (row.read) stateDescription = readDescription }
-                .combinedClickable(onClick = onOpen, onLongClick = { menu = true })
-                .padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                .combinedClickable(onClick = onOpen, onLongClickLabel = stringResource(R.string.source_action_more), onLongClick = { menu = true })
+                .padding(start = 16.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.alpha(if (row.read) 0.6f else 1f)) {
-                CoverImage(url = row.coverUrl, width = 40.dp, height = 54.dp, radius = 6.dp)
+                CoverImage(url = row.coverUrl, width = 48.dp, height = 64.dp, radius = 6.dp)
             }
             Spacer(Modifier.width(12.dp))
             Column(
@@ -249,7 +250,7 @@ private fun UpdateRowItem(
                     .weight(1f)
                     .alpha(if (row.read) 0.6f else 1f),
             ) {
-                Text(row.titleName, color = AppColors.textPrimary, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(row.titleName, color = AppColors.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     if (firstOn == null) row.chapterName else stringResource(R.string.updates_first_on, row.chapterName, firstOn),
                     color = AppColors.textSecondary,

@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -16,6 +19,7 @@ import com.lume.app.R
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.domain.AutoDownloadMode
 import com.lume.app.ui.components.ChoiceChip
+import com.lume.app.ui.components.ConfirmDialog
 import com.lume.app.ui.components.SwitchRow
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.screens.SettingsViewModel
@@ -30,6 +34,7 @@ fun DownloadSettings(nav: NavHostController, vm: SettingsViewModel) {
     val downloadsCbz by prefs.downloadsAsCbz.collectAsState()
     val parallelPages by prefs.downloadParallelPages.collectAsState()
     val downloadsRoot by prefs.downloadsRoot.collectAsState()
+    var confirmRestore by rememberSaveable { mutableStateOf(false) }
 
     SettingsGroup {
         SettingItem("downloads_wifi") {
@@ -127,7 +132,16 @@ fun DownloadSettings(nav: NavHostController, vm: SettingsViewModel) {
         }
         SettingItem("restore_downloads") {
             SettingsLink(stringResource(R.string.settings_restore_downloads), stringResource(R.string.settings_restore_downloads_hint)) {
-                vm.recoverDownloads { Toast.makeText(context, it, Toast.LENGTH_LONG).show() }
+                confirmRestore = true
+            }
+            if (confirmRestore) {
+                ConfirmDialog(
+                    title = stringResource(R.string.settings_restore_downloads),
+                    text = stringResource(R.string.settings_restore_downloads_hint),
+                    confirmLabel = stringResource(R.string.settings_restore_downloads_confirm),
+                    onConfirm = { vm.recoverDownloads { Toast.makeText(context, it, Toast.LENGTH_LONG).show() } },
+                    onDismiss = { confirmRestore = false },
+                )
             }
         }
     }

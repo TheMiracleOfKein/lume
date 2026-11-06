@@ -35,7 +35,9 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import androidx.compose.ui.res.pluralStringResource
 import com.lume.app.R
 import com.lume.app.domain.LibraryDisplay
 import com.lume.app.domain.LibraryItem
@@ -139,7 +142,8 @@ private fun LazyGridItemScope.LibraryGridCell(
                 fadeOutSpec = Motion.itemFade(),
             )
             .clip(shape)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+            .combinedClickable(onClick = onClick, onLongClickLabel = stringResource(R.string.cd_long_press_select), onLongClick = onLongClick)
+            .semantics { this.selected = selected },
     ) {
         Box(
             modifier = Modifier
@@ -237,7 +241,7 @@ private fun CountBadges(item: LibraryItem, settings: LibrarySettings, modifier: 
     Row(modifier.clip(RoundedCornerShape(4.dp)), verticalAlignment = Alignment.CenterVertically) {
         total?.let {
             val read = (it - item.unread).coerceIn(0, it)
-            val description = stringResource(R.string.cd_library_read_of_total, read, it)
+            val description = pluralStringResource(R.plurals.cd_library_read_of_total, it, read, it)
             val caughtUp = item.unread <= 0
             Text(
                 stringResource(R.string.library_read_of_total, read, it),
@@ -303,7 +307,8 @@ private fun LibraryListRow(
         modifier = modifier
             .fillMaxWidth()
             .background(background)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .combinedClickable(onClick = onClick, onLongClickLabel = stringResource(R.string.cd_long_press_select), onLongClick = onLongClick)
+            .semantics { this.selected = selected }
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -333,7 +338,7 @@ private fun LibraryListRow(
                 if (item.hasNew) stringResource(R.string.badge_new) else null,
             ).joinToString(" · ")
             if (meta.isNotEmpty()) {
-                Text(meta, color = AppColors.textSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+                Text(meta, color = AppColors.textSecondary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
             }
         }
         CountBadges(item, settings, Modifier.padding(start = 8.dp))
@@ -349,6 +354,7 @@ private fun ContinueButton(onClick: () -> Unit, small: Boolean, modifier: Modifi
     val label = stringResource(R.string.library_continue)
     Box(
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .size(if (small) 28.dp else 36.dp)
             .clip(CircleShape)
             .background(AppColors.accent)
