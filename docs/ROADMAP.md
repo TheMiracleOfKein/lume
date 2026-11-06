@@ -180,7 +180,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ The rest of the UI audit shipped in v0.7.15.
 - ⏸️ Chapter list jumps when the selection bar appears (O17): needs the bar moved out of the Scaffold.
 
-**v0.7.15: UI fixes, part two** ([details](#v0715-ui-fixes-part-two))
+**v0.7.15: UI fixes, part two** ✅ released 2026-11-06 ([details](#v0715-ui-fixes-part-two--released-2026-11-06))
 - ✅ Text that ends with "…" instead of being cut off, and rows that grow with large fonts.
 - ✅ 48 dp touch areas for chips and small buttons.
 - ✅ TalkBack: labels, one tap target per row, selected states, headings, live status, tooltips; a visible selected pill in the nav bar.
@@ -689,7 +689,7 @@ Release notes: [docs/releases/v0.7.14.md](releases/v0.7.14.md); device check in 
 - ✅ **Safety:** delete confirmation in Downloads; `remember` instead of `rememberSaveable` for passwords.
 - ⏸️ O17 chapter list jump (see the summary).
 
-### v0.7.15: UI fixes, part two
+### v0.7.15: UI fixes, part two ✅ released 2026-11-06
 
 Release notes: [docs/releases/v0.7.15.md](releases/v0.7.15.md); device check in [v0.7.15-check.md](releases/v0.7.15-check.md).
 
