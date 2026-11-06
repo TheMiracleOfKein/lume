@@ -171,7 +171,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Release notes rendered as Markdown in the update dialog (left over from v0.7.5).
 - ⏸️ Genre filter inside the library: needs the genres stored per title (a database change).
 
-**v0.7.14: UI fixes, part one** ([details](#v0714-ui-fixes-part-one))
+**v0.7.14: UI fixes, part one** ✅ released 2026-11-06 ([details](#v0714-ui-fixes-part-one--released-2026-11-06))
 - ✅ System bar icons follow the app theme; login screens use the app theme; the reader keeps white bar icons.
 - ✅ Visible outlines, a readable light-theme accent and a readable selection colour; every Material role mapped to Lume colours.
 - ✅ Reader bars readable over light pages and clear of cutouts; reader overlays coloured from the reader background.
@@ -668,7 +668,7 @@ Release notes: [docs/releases/v0.7.13.md](releases/v0.7.13.md); device check in 
 - ✅ **Update dialog:** `util/Markdown`.
 - ⏸️ Library genre filter (database change).
 
-### v0.7.14: UI fixes, part one
+### v0.7.14: UI fixes, part one ✅ released 2026-11-06
 
 Release notes: [docs/releases/v0.7.14.md](releases/v0.7.14.md); device check in [v0.7.14-check.md](releases/v0.7.14-check.md).
 
