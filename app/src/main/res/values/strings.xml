@@ -418,6 +418,7 @@
     <string name="chapters_delete_downloads">Delete downloaded chapters</string>
     <string name="cd_chapter_filters">Filter and sort</string>
     <string name="chapters_none_match">No chapters match the filters</string>
+    <string name="chapters_none_yet">No chapters yet</string>
     <string name="chapters_team_auto">Any team</string>
     <string name="chapters_team_all">Show all copies</string>
     <string name="action_mark_previous_read">Mark previous as read</string>
@@ -635,6 +636,7 @@
     <string name="tracker_edit">Edit</string>
     <string name="tracker_edit_title">%1$s entry</string>
     <string name="tracker_edit_failed">Couldn’t load or save the entry. Check that you are signed in.</string>
+    <string name="tracker_save_failed">Couldn’t save the entry. Your edits are kept, try again.</string>
     <string name="tracker_edit_status">Status</string>
     <string name="tracker_edit_score">Score</string>
     <string name="tracker_edit_chapters">Chapters read</string>
@@ -966,4 +968,16 @@
     <string name="cd_delete_title_downloads">Delete downloads of this title</string>
     <string name="dialog_delete_title_downloads_text">Delete downloaded chapters of «%s»?</string>
     <string name="dialog_delete_chapter_download_text">Delete the downloaded «%s»?</string>
+    <string name="settings_restore_downloads_confirm">Restore</string>
+    <string name="cd_show_password">Show password</string>
+    <string name="cd_hide_password">Hide password</string>
+    <string name="tracker_logout_title">Log out of %1$s?</string>
+    <string name="tracker_logout_text">You will need to sign in again to sync progress with this tracker.</string>
+    <string name="bookmark_deleted">Bookmark deleted</string>
+    <string name="action_undo">Undo</string>
+    <string name="catalog_feed_empty">No titles here yet</string>
+    <string name="catalog_more_failed">Couldn’t load more titles</string>
+    <string name="home_refresh_failed">Couldn’t refresh the feed</string>
+    <string name="home_latest_empty">No new releases right now</string>
+    <string name="search_start_hint">Type a title and search</string>
 </resources>

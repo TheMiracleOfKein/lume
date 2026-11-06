@@ -22,7 +22,11 @@ fun shareLink(context: Context, title: String?, url: String) {
         .setType("text/plain")
         .putExtra(Intent.EXTRA_SUBJECT, title.orEmpty())
         .putExtra(Intent.EXTRA_TEXT, if (title.isNullOrBlank()) url else "$title\n$url")
-    context.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    try {
+        context.startActivity(Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    } catch (_: ActivityNotFoundException) {
+        // Nothing can handle a share; there is nothing useful to show.
+    }
 }
 
 /** Hands [file] (under `cache/shared/`, see `res/xml/shared_files.xml`) to the share sheet. */
@@ -35,5 +39,9 @@ fun shareFile(context: Context, file: java.io.File, mime: String, subject: Strin
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     if (!text.isNullOrBlank()) send.putExtra(Intent.EXTRA_TEXT, text)
     val chooser = Intent.createChooser(send, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    context.startActivity(chooser)
+    try {
+        context.startActivity(chooser)
+    } catch (_: ActivityNotFoundException) {
+        // Nothing can handle a share; there is nothing useful to show.
+    }
 }

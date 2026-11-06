@@ -270,7 +270,7 @@ private fun CurrentSourceResults(
                     onCloudflare = failed?.challenge?.let { uri -> { onChallenge(uri) } },
                 )
             }
-            LoadState.Empty -> if (vm.searched) EmptyBox(stringResource(R.string.search_empty)) else Box(Modifier.fillMaxSize())
+            LoadState.Empty -> if (vm.searched) EmptyBox(stringResource(R.string.search_empty)) else EmptyBox(stringResource(R.string.search_start_hint))
             LoadState.Content -> {
                 val items = (state as? SourceState.Done)?.items.orEmpty()
                 val listState = rememberLazyListState()
@@ -371,7 +371,7 @@ private fun GlobalResults(
     onChallenge: (java.net.URI) -> Unit,
 ) {
     if (!vm.searched) {
-        Box(Modifier.fillMaxSize())
+        EmptyBox(stringResource(R.string.search_start_hint))
         return
     }
     val rows = vm.globalRows

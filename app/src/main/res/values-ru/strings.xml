@@ -421,6 +421,7 @@
     <string name="chapters_delete_downloads">Удалить скачанные главы</string>
     <string name="cd_chapter_filters">Фильтры и сортировка</string>
     <string name="chapters_none_match">Нет глав, подходящих под фильтры</string>
+    <string name="chapters_none_yet">Глав пока нет</string>
     <string name="chapters_team_auto">Любая команда</string>
     <string name="chapters_team_all">Все переводы</string>
     <string name="action_mark_previous_read">Отметить предыдущие прочитанными</string>
@@ -652,6 +653,7 @@
     <string name="tracker_edit">Изменить</string>
     <string name="tracker_edit_title">Запись в %1$s</string>
     <string name="tracker_edit_failed">Не удалось загрузить или сохранить запись. Проверьте вход.</string>
+    <string name="tracker_save_failed">Не удалось сохранить запись. Правки сохранены в форме, попробуйте ещё раз.</string>
     <string name="tracker_edit_status">Статус</string>
     <string name="tracker_edit_score">Оценка</string>
     <string name="tracker_edit_chapters">Прочитано глав</string>
@@ -997,4 +999,16 @@
     <string name="cd_delete_title_downloads">Удалить загрузки этого тайтла</string>
     <string name="dialog_delete_title_downloads_text">Удалить скачанные главы «%s»?</string>
     <string name="dialog_delete_chapter_download_text">Удалить скачанную главу «%s»?</string>
+    <string name="settings_restore_downloads_confirm">Восстановить</string>
+    <string name="cd_show_password">Показать пароль</string>
+    <string name="cd_hide_password">Скрыть пароль</string>
+    <string name="tracker_logout_title">Выйти из %1$s?</string>
+    <string name="tracker_logout_text">Чтобы снова синхронизировать прогресс с этим трекером, потребуется войти заново.</string>
+    <string name="bookmark_deleted">Закладка удалена</string>
+    <string name="action_undo">Отменить</string>
+    <string name="catalog_feed_empty">Здесь пока нет тайтлов</string>
+    <string name="catalog_more_failed">Не удалось загрузить ещё</string>
+    <string name="home_refresh_failed">Не удалось обновить ленту</string>
+    <string name="home_latest_empty">Сейчас нет новых релизов</string>
+    <string name="search_start_hint">Введите название и начните поиск</string>
 </resources>

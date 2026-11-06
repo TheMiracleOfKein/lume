@@ -256,7 +256,13 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                     onCloudflare = vm.cloudflareUri?.let { { vm.solveChallenge() } },
                     modifier = Modifier.padding(padding),
                 )
-                else -> LazyColumn(
+                else -> if (chapters.isEmpty()) {
+                    ErrorRetryBox(
+                        message = stringResource(R.string.chapters_none_yet),
+                        onRetry = vm::refresh,
+                        modifier = Modifier.padding(padding),
+                    )
+                } else LazyColumn(
                     modifier = Modifier
                         .padding(padding)
                         .fillMaxSize()

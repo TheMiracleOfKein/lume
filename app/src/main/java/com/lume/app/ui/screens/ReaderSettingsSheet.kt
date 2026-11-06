@@ -123,19 +123,19 @@ internal fun ReaderSettingsSheet(
             )
         }
         Spacer(Modifier.height(18.dp))
-        Text(
-            stringResource(R.string.reader_gap, settings.gap.toInt()),
-            color = AppColors.textSecondary,
-            fontSize = 13.sp,
-        )
-        Slider(
-            value = settings.gap,
-            onValueChange = { onChange(settings.copy(gap = it)) },
-            onValueChangeFinished = { onCommit(settings) },
-            valueRange = 0f..32f,
-            colors = lumeSliderColors(),
-        )
         if (settings.mode == ReaderMode.Webtoon) {
+            Text(
+                stringResource(R.string.reader_gap, settings.gap.toInt()),
+                color = AppColors.textSecondary,
+                fontSize = 13.sp,
+            )
+            Slider(
+                value = settings.gap,
+                onValueChange = { onChange(settings.copy(gap = it)) },
+                onValueChangeFinished = { onCommit(settings) },
+                valueRange = 0f..32f,
+                colors = lumeSliderColors(),
+            )
             Text(
                 stringResource(R.string.reader_side_padding, settings.sidePaddingPercent),
                 color = AppColors.textSecondary,
@@ -275,11 +275,13 @@ internal fun ReaderSettingsSheet(
             checked = settings.volumeKeys,
             onCheckedChange = { onCommit(settings.copy(volumeKeys = it)) },
         )
-        SwitchRow(
-            label = stringResource(R.string.reader_tap_zones),
-            checked = settings.tapZones,
-            onCheckedChange = { onCommit(settings.copy(tapZones = it)) },
-        )
+        if (settings.mode != ReaderMode.Webtoon) {
+            SwitchRow(
+                label = stringResource(R.string.reader_tap_zones),
+                checked = settings.tapZones,
+                onCheckedChange = { onCommit(settings.copy(tapZones = it)) },
+            )
+        }
         Spacer(Modifier.height(8.dp))
         TextButton(
             onClick = { onSaveForTitle(settings) },

@@ -46,6 +46,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -121,6 +125,10 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
     val titleSources by vm.titleSources.collectAsState()
     var showTrackers by rememberSaveable { mutableStateOf(false) }
     var showSources by rememberSaveable { mutableStateOf(false) }
+    val snackbar = remember { SnackbarHostState() }
+    val bookmarkScope = rememberCoroutineScope()
+    val bookmarkDeleted = stringResource(R.string.bookmark_deleted)
+    val undoLabel = stringResource(R.string.action_undo)
     // One row per chapter, whatever number of teams or sources have it.
     val chapterCount = remember(chapters) { dedupeChapters(chapters).size }
 
@@ -198,6 +206,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),
             )
         },
+        snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         val refreshState = rememberPullToRefreshState()
         AnimatedLoadState(
@@ -428,7 +437,18 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                                     bookmark.pageOffset,
                                                 )
                                             },
-                                            onDelete = { vm.deletePageBookmark(bookmark.id) },
+                                            onDelete = {
+                                                vm.deletePageBookmark(bookmark.id)
+                                                bookmarkScope.launch {
+                                                    snackbar.currentSnackbarData?.dismiss()
+                                                    val result = snackbar.showSnackbar(
+                                                        bookmarkDeleted,
+                                                        actionLabel = undoLabel,
+                                                        duration = SnackbarDuration.Short,
+                                                    )
+                                                    if (result == SnackbarResult.ActionPerformed) vm.restorePageBookmark(bookmark)
+                                                }
+                                            },
                                         )
                                     }
                                 }

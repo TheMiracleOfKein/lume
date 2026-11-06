@@ -156,6 +156,8 @@ fun ReaderScreen(
     val view = LocalView.current
     val bookmarkAdded = stringResource(R.string.reader_bookmark_added)
     val addNote = stringResource(R.string.reader_bookmark_add_note)
+    val bookmarkDeleted = stringResource(R.string.bookmark_deleted)
+    val undoLabel = stringResource(R.string.action_undo)
     val lastChapterMsg = stringResource(R.string.reader_last_chapter)
     val firstChapterMsg = stringResource(R.string.reader_first_chapter)
     // Running into the end (swipe, tap zone, volume key): say so, at most every few seconds.
@@ -471,7 +473,18 @@ fun ReaderScreen(
                                 scope.launch { sheetState.hide() }.invokeOnCompletion { bookmarksOpen = false }
                                 vm.jumpTo(bookmark)
                             },
-                            onDelete = { vm.deletePageBookmark(bookmark.id) },
+                            onDelete = {
+                                vm.deletePageBookmark(bookmark.id)
+                                scope.launch {
+                                    snackbar.currentSnackbarData?.dismiss()
+                                    val result = snackbar.showSnackbar(
+                                        bookmarkDeleted,
+                                        actionLabel = undoLabel,
+                                        duration = SnackbarDuration.Short,
+                                    )
+                                    if (result == SnackbarResult.ActionPerformed) vm.restorePageBookmark(bookmark)
+                                }
+                            },
                             containerColor = AppColors.surface,
                         )
                     }

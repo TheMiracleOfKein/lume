@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -28,16 +29,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.tracker.Tracker
 import com.lume.app.data.tracker.TrackerLogin
+import com.lume.app.ui.components.ConfirmDialog
+import com.lume.app.ui.components.PasswordField
 import com.lume.app.ui.components.SwitchRow
 import com.lume.app.ui.screens.SettingsViewModel
 import com.lume.app.ui.theme.AppColors
@@ -55,6 +60,16 @@ fun TrackerSettings(vm: SettingsViewModel) {
     val trackerValues by prefs.trackerValues.collectAsState()
     val trackerAutoLink by prefs.trackerAutoLink.collectAsState()
     var passwordLoginId by rememberSaveable { mutableStateOf<String?>(null) }
+    var logoutTrackerId by rememberSaveable { mutableStateOf<String?>(null) }
+    container.trackers.all.firstOrNull { it.id == logoutTrackerId }?.let { tracker ->
+        ConfirmDialog(
+            title = stringResource(R.string.tracker_logout_title, tracker.displayName),
+            text = stringResource(R.string.tracker_logout_text),
+            confirmLabel = stringResource(R.string.action_logout),
+            onConfirm = { vm.logout(tracker.id) },
+            onDismiss = { logoutTrackerId = null },
+        )
+    }
     val passwordLogin = container.trackers.all.firstOrNull { it.id == passwordLoginId }
     passwordLogin?.let { tracker ->
         PasswordLoginDialog(
@@ -91,7 +106,7 @@ fun TrackerSettings(vm: SettingsViewModel) {
                         }
                     }
                 },
-                onLogout = { vm.logout(tracker.id) },
+                onLogout = { logoutTrackerId = tracker.id },
             )
             Spacer(Modifier.height(10.dp))
         }
@@ -156,6 +171,8 @@ private fun TrackerLoginCard(
 private fun PasswordLoginDialog(name: String, onDismiss: () -> Unit, onLogin: (String, String) -> Unit) {
     var user by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val focus = LocalFocusManager.current
+    val valid = user.isNotBlank() && password.isNotEmpty()
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.tracker_login_title, name)) },
@@ -166,21 +183,22 @@ private fun PasswordLoginDialog(name: String, onDismiss: () -> Unit, onLogin: (S
                     onValueChange = { user = it },
                     singleLine = true,
                     label = { Text(stringResource(R.string.tracker_login_user)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }),
                 )
-                OutlinedTextField(
+                PasswordField(
                     value = password,
                     onValueChange = { password = it },
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.tracker_login_password)) },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    label = stringResource(R.string.tracker_login_password),
+                    keyboardActions = KeyboardActions(
+                        onDone = { if (valid) onLogin(user, password) else focus.clearFocus() },
+                    ),
                 )
                 Text(stringResource(R.string.tracker_login_note), color = AppColors.textTertiary, fontSize = 12.sp)
             }
         },
         confirmButton = {
-            TextButton(enabled = user.isNotBlank() && password.isNotEmpty(), onClick = { onLogin(user, password) }) {
+            TextButton(enabled = valid, onClick = { onLogin(user, password) }) {
                 Text(stringResource(R.string.action_login))
             }
         },

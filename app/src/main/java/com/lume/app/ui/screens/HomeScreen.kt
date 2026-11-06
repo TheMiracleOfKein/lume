@@ -232,6 +232,35 @@ fun HomeScreen(nav: NavHostController) {
                             )
                         }
 
+                        if (error != null && feed != null) {
+                            item(key = "refresh-error") {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        stringResource(R.string.home_refresh_failed),
+                                        color = AppColors.danger,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    TextButton(onClick = vm::refresh) {
+                                        Text(stringResource(R.string.action_retry), color = AppColors.accentText)
+                                    }
+                                }
+                            }
+                        }
+                        if (feed != null && feed.latest.isEmpty() && error == null) {
+                            item(key = "latest-empty") {
+                                Text(
+                                    stringResource(R.string.home_latest_empty),
+                                    color = AppColors.textSecondary,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+                                )
+                            }
+                        }
+
                         items(feed?.latest.orEmpty(), key = { it.id }) { item ->
                             TitleListRow(
                                 modifier = animatedItem(),

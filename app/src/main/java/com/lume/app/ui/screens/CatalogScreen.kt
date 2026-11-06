@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,6 +49,7 @@ import androidx.navigation.NavHostController
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.ui.components.AnimatedLoadState
+import com.lume.app.ui.components.EmptyBox
 import com.lume.app.ui.components.ErrorRetryBox
 import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
@@ -209,7 +211,7 @@ private fun CatalogFeedList(
     val shouldLoadMore by remember(feed, listState) {
         derivedStateOf {
             val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            feed.hasNext && !feed.loadingMore && !feed.loading && last >= feed.items.size - 3
+            feed.hasNext && !feed.loadingMore && !feed.loading && !feed.moreError && last >= feed.items.size - 3
         }
     }
     LaunchedEffect(shouldLoadMore) {
@@ -226,7 +228,9 @@ private fun CatalogFeedList(
                 onRetry = { vm.ensureLoaded(feed, force = true) },
                 onCloudflare = feed.cloudflareUri?.let { { vm.solveChallenge(feed) } },
             )
-            else -> LazyColumn(
+            else -> if (catalogFeedIsEmpty(feed.loadedOnce, feed.loading, feed.error, feed.items.size)) {
+                EmptyBox(stringResource(R.string.catalog_feed_empty))
+            } else LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = listBottomPadding()),
@@ -240,6 +244,25 @@ private fun CatalogFeedList(
                         typeLabel = item.typeLabel,
                         onClick = { onOpen(item.id) },
                     )
+                }
+                if (feed.moreError) {
+                    item(key = "more-error") {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                stringResource(R.string.catalog_more_failed),
+                                color = AppColors.textSecondary,
+                                fontSize = 14.sp,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = { vm.loadMore(feed) }) {
+                                Text(stringResource(R.string.action_retry), color = AppColors.accentText)
+                            }
+                        }
+                    }
                 }
                 if (feed.loadingMore) {
                     item(key = "loading-more") {

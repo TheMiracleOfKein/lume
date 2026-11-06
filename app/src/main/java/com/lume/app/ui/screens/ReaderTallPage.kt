@@ -5,7 +5,17 @@ import android.graphics.BitmapFactory
 import android.graphics.BitmapRegionDecoder
 import android.graphics.Rect
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import com.lume.app.ui.theme.AppColors
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -68,6 +78,7 @@ internal fun TiledPage(source: TallSource, colorFilter: ColorFilter?, modifier: 
 
 @Composable
 private fun TileImage(source: TallSource, tile: TileBounds, colorFilter: ColorFilter?, modifier: Modifier) {
+    var failed by remember(source, tile) { mutableStateOf(false) }
     val bitmap by produceState<ImageBitmap?>(null, source, tile) {
         value = withContext(Dispatchers.IO) {
             runCatching {
@@ -75,6 +86,7 @@ private fun TileImage(source: TallSource, tile: TileBounds, colorFilter: ColorFi
                 source.decoder.decodeRegion(Rect(0, tile.top, source.width, tile.bottom), options)?.asImageBitmap()
             }.getOrNull()
         }
+        if (value == null) failed = true
     }
     val ready = bitmap
     if (ready != null) {
@@ -85,7 +97,16 @@ private fun TileImage(source: TallSource, tile: TileBounds, colorFilter: ColorFi
             contentScale = ContentScale.FillBounds,
             colorFilter = colorFilter,
         )
-    } else {
+    } else if (failed) {
         Spacer(modifier)
+    } else {
+        // Still decoding: a small spinner near the top of the slice.
+        Box(modifier, contentAlignment = Alignment.TopCenter) {
+            CircularProgressIndicator(
+                modifier = Modifier.padding(top = 24.dp).size(24.dp),
+                strokeWidth = 2.dp,
+                color = AppColors.accent,
+            )
+        }
     }
 }

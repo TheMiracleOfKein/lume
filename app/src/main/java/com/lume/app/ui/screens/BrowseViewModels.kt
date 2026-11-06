@@ -97,6 +97,10 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
     }
 }
 
+/** A feed that loaded fine but has no titles: show an empty message, not a blank list. */
+internal fun catalogFeedIsEmpty(loadedOnce: Boolean, loading: Boolean, error: String?, itemCount: Int): Boolean =
+    loadedOnce && !loading && error == null && itemCount == 0
+
 /** One catalog list (popular or latest), with its own paging and its own in-flight request. */
 class CatalogFeed(
     private val http: AppHttp,
@@ -114,7 +118,10 @@ class CatalogFeed(
         internal set
     var cloudflareUri by mutableStateOf<URI?>(null)
         internal set
-    var loadedOnce = false
+    /** The last paging request (not the first) failed; the list stays and offers a retry. */
+    var moreError by mutableStateOf(false)
+        internal set
+    var loadedOnce by mutableStateOf(false)
         internal set
     internal var page = 1
     internal var job: Job? = null
@@ -126,6 +133,7 @@ class CatalogFeed(
             cloudflareUri = null
         } else {
             loadingMore = true
+            moreError = false
         }
         try {
             val result = source.fetch(if (reset) 1 else page + 1)
@@ -133,10 +141,15 @@ class CatalogFeed(
             page = result.page
             hasNext = result.hasNext
             loadedOnce = true
+            moreError = false
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            error = describeFailure(http, e) { cloudflareUri = it }
+            if (reset || items.isEmpty()) {
+                error = describeFailure(http, e) { cloudflareUri = it }
+            } else {
+                moreError = true
+            }
         } finally {
             loading = false
             loadingMore = false

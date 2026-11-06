@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearProgressIndicator
@@ -32,17 +33,20 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lume.app.R
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.data.prefs.SyncSettings
 import com.lume.app.ui.components.ChoiceChip
+import com.lume.app.ui.components.PasswordField
 import com.lume.app.ui.screens.SettingsViewModel
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
@@ -205,6 +209,7 @@ private fun WebDavDialog(
     var url by rememberSaveable { mutableStateOf(settings.webDavUrl) }
     var user by rememberSaveable { mutableStateOf(settings.webDavUser) }
     var password by remember { mutableStateOf(settings.webDavPassword) }
+    val focus = LocalFocusManager.current
     val valid = url.trim().let { it.startsWith("https://") || it.startsWith("http://") }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -220,21 +225,24 @@ private fun WebDavDialog(
                     singleLine = true,
                     label = { Text(stringResource(R.string.sync_webdav_url)) },
                     placeholder = { Text("https://cloud.example.com/remote.php/dav/files/me/Lume/") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }),
                 )
                 OutlinedTextField(
                     value = user,
                     onValueChange = { user = it },
                     singleLine = true,
                     label = { Text(stringResource(R.string.sync_webdav_user)) },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }),
                 )
-                OutlinedTextField(
+                PasswordField(
                     value = password,
                     onValueChange = { password = it },
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.sync_webdav_password)) },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    label = stringResource(R.string.sync_webdav_password),
+                    keyboardActions = KeyboardActions(
+                        onDone = { if (valid) onSave(url.trim(), user.trim(), password) else focus.clearFocus() },
+                    ),
                 )
                 Text(stringResource(R.string.sync_webdav_note), color = AppColors.textTertiary, fontSize = 12.sp)
             }
@@ -258,13 +266,11 @@ private fun PassphraseDialog(current: String, onDismiss: () -> Unit, onSave: (St
         title = { Text(stringResource(R.string.sync_passphrase)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
+                PasswordField(
                     value = value,
                     onValueChange = { value = it },
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.sync_passphrase)) },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    label = stringResource(R.string.sync_passphrase),
+                    keyboardActions = KeyboardActions(onDone = { onSave(value) }),
                 )
                 Text(stringResource(R.string.sync_passphrase_note), color = AppColors.textTertiary, fontSize = 12.sp)
             }

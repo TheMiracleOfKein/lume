@@ -497,6 +497,11 @@ class ReaderViewModel(
         viewModelScope.launch { dao.deletePageBookmark(id) }
     }
 
+    /** Puts a just-deleted bookmark back (undo). */
+    fun restorePageBookmark(bookmark: PageBookmarkEntity) {
+        viewModelScope.launch { dao.insertPageBookmark(bookmark) }
+    }
+
     // ---- Settings ---------------------------------------------------------------------------
 
     /**
