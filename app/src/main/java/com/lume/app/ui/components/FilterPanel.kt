@@ -37,6 +37,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TriStateCheckbox
@@ -333,6 +334,7 @@ private fun TriStateChip(filter: SourceFilter.TriState, onClick: () -> Unit) {
     }
     Box(
         Modifier
+            .minimumInteractiveComponentSize()
             .clip(shape)
             .background(background)
             .border(1.dp, border, shape)

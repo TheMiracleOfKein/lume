@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Slider
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.SliderColors
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
@@ -148,6 +149,7 @@ fun ChoiceChip(
     )
     Box(
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .clip(RoundedCornerShape(10.dp))
             .background(background)
             .border(1.dp, border, RoundedCornerShape(10.dp))
@@ -180,6 +182,7 @@ fun SegmentTab(
     val indicator by animateDpAsState(if (selected) 2.dp else 0.dp, Motion.short(), label = "tabIndicator")
     Column(
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
             .padding(top = 10.dp),

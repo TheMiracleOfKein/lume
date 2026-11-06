@@ -35,6 +35,7 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.Text
@@ -349,6 +350,7 @@ private fun ContinueButton(onClick: () -> Unit, small: Boolean, modifier: Modifi
     val label = stringResource(R.string.library_continue)
     Box(
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .size(if (small) 28.dp else 36.dp)
             .clip(CircleShape)
             .background(AppColors.accent)

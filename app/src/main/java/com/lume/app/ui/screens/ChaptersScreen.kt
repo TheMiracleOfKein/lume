@@ -48,6 +48,7 @@ import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.VerticalAlignBottom
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -369,6 +370,7 @@ private fun TeamChip(label: String, selected: Boolean, onClick: () -> Unit) {
         fontWeight = FontWeight.Medium,
         maxLines = 1,
         modifier = Modifier
+            .minimumInteractiveComponentSize()
             .clip(RoundedCornerShape(16.dp))
             .background(background)
             .clickable(onClick = onClick)

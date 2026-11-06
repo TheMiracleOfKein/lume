@@ -26,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -286,16 +287,17 @@ internal fun ReaderSettingsSheet(
             onCheckedChange = { onCommit(settings.copy(tapZones = it)) },
         )
         Spacer(Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.reader_save_for_title),
-            color = AppColors.accentText,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onSaveForTitle(settings) }
-                .padding(vertical = 12.dp),
-        )
+        TextButton(
+            onClick = { onSaveForTitle(settings) },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = stringResource(R.string.reader_save_for_title),
+                color = AppColors.accentText,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
 }
 

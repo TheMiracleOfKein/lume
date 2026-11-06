@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.width
@@ -49,6 +50,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import com.lume.app.ui.components.LumeRefreshIndicator
@@ -395,6 +397,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                         fontSize = 12.sp,
                                         modifier = Modifier
                                             .padding(end = 8.dp)
+                                            .minimumInteractiveComponentSize()
                                             .clip(RoundedCornerShape(16.dp))
                                             .background(AppColors.card)
                                             .clickable { nav.navigate(Routes.browse(sourceId, genre)) }
@@ -692,6 +695,8 @@ private fun TrackersDialog(
                             modifier = Modifier
                                 .padding(end = 12.dp)
                                 .clickable { selectedTrackerId = t.id }
+                                .heightIn(min = 48.dp)
+                                .wrapContentHeight(Alignment.CenterVertically)
                                 .padding(vertical = 6.dp),
                         )
                     }
@@ -848,6 +853,8 @@ private fun TrackersDialog(
                                     message = resources.getString(R.string.tracker_linked_with, item.title)
                                 }
                             }
+                            .heightIn(min = 48.dp)
+                            .wrapContentHeight(Alignment.CenterVertically)
                             .padding(vertical = 8.dp),
                     )
                 }
