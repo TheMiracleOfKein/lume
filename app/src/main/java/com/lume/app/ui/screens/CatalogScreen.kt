@@ -36,6 +36,7 @@ import com.lume.app.ui.components.ChoiceChip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
@@ -108,7 +109,14 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 BackButton(onClick = { nav.popBackStack() })
-                Text(browseName, color = AppColors.textPrimary, fontSize = 20.sp, modifier = Modifier.weight(1f))
+                Text(
+                    browseName,
+                    color = AppColors.textPrimary,
+                    fontSize = 20.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp)) {

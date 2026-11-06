@@ -445,6 +445,8 @@ private fun SourceResultRow(
                 color = AppColors.textPrimary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             when (val s = row.state) {

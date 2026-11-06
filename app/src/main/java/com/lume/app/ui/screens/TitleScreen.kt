@@ -140,6 +140,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                         details?.title ?: stringResource(R.string.title_fallback),
                         color = AppColors.textPrimary,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 },
                 navigationIcon = {
@@ -247,7 +248,14 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                     fontWeight = FontWeight.Bold,
                                 )
                                 d.altTitle?.let {
-                                    Text(it, color = AppColors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+                                    Text(
+                                        it,
+                                        color = AppColors.textSecondary,
+                                        fontSize = 13.sp,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(top = 4.dp),
+                                    )
                                 }
                                 d.status?.let {
                                     Text(
@@ -356,6 +364,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                 ),
                                 color = AppColors.textPrimary,
                                 maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                         Spacer(Modifier.height(8.dp))
@@ -368,7 +377,12 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                             } else {
                                 links.joinToString { it.tracker }
                             }
-                            Text(stringResource(R.string.title_trackers, linked), color = AppColors.textPrimary)
+                            Text(
+                                stringResource(R.string.title_trackers, linked),
+                                color = AppColors.textPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                         if (d.genres.isNotEmpty()) {
                             Spacer(Modifier.height(12.dp))

@@ -2,6 +2,8 @@ package com.lume.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -57,6 +59,7 @@ import androidx.compose.ui.text.withStyle
  * download's progress, then Install. A version the user skipped isn't offered by the
  * automatic check again.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun UpdatePrompt() {
     val updater = LocalAppContainer.current.updates
@@ -85,7 +88,8 @@ fun UpdatePrompt() {
                     }
                 },
                 dismissButton = {
-                    Row {
+                    // Wraps instead of squeezing when the Russian labels are long or the font is large.
+                    FlowRow {
                         TextButton(onClick = { updater.skip(s.release); updater.dismiss() }) {
                             Text(stringResource(R.string.update_skip))
                         }

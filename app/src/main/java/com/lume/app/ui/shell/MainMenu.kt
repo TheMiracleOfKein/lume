@@ -19,7 +19,11 @@ import androidx.compose.ui.layout.onSizeChanged
 import kotlinx.coroutines.flow.drop
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -173,6 +177,7 @@ fun MainMenu(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MenuPanel(
     darkTheme: Boolean,
@@ -196,9 +201,10 @@ private fun MenuPanel(
             .verticalScroll(rememberScrollState())
             .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 24.dp),
     ) {
-        Row(
+        FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.Center,
         ) {
             TopChip(
                 icon = if (darkTheme) Icons.Outlined.DarkMode else Icons.Outlined.LightMode,
@@ -212,7 +218,6 @@ private fun MenuPanel(
                 label = stringResource(if (incognito) R.string.menu_incognito_on else R.string.menu_incognito),
                 onClick = { scope.launch { prefs.setIncognito(!incognito) } },
             )
-            Spacer(Modifier.weight(1f))
             TopChip(
                 icon = Icons.Outlined.Search,
                 label = stringResource(R.string.menu_search),
@@ -284,6 +289,7 @@ private fun TopChip(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
+            .heightIn(min = 48.dp)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

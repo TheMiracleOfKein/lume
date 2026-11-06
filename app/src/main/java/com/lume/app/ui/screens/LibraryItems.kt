@@ -333,7 +333,7 @@ private fun LibraryListRow(
                 if (item.hasNew) stringResource(R.string.badge_new) else null,
             ).joinToString(" · ")
             if (meta.isNotEmpty()) {
-                Text(meta, color = AppColors.textSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+                Text(meta, color = AppColors.textSecondary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
             }
         }
         CountBadges(item, settings, Modifier.padding(start = 8.dp))

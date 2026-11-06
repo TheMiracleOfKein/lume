@@ -9,6 +9,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -150,16 +154,22 @@ private fun Label(text: String) {
 @Composable
 private fun DateField(label: String, value: String, onChange: (String) -> Unit) {
     Label(label)
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = { v -> onChange(v.filter { it.isDigit() || it == '-' }.take(10)) },
-            singleLine = true,
-            placeholder = { Text("2026-01-31", color = AppColors.textTertiary) },
-            isError = value.isNotEmpty() && cleanDate(value) == null,
-            modifier = Modifier.weight(1f),
-        )
-        TextButton(onClick = { onChange(LocalDate.now().toString()) }) { Text(stringResource(R.string.tracker_edit_today)) }
-        if (value.isNotEmpty()) TextButton(onClick = { onChange("") }) { Text("×") }
-    }
+    OutlinedTextField(
+        value = value,
+        onValueChange = { v -> onChange(v.filter { it.isDigit() || it == '-' }.take(10)) },
+        singleLine = true,
+        placeholder = { Text("2026-01-31", color = AppColors.textTertiary) },
+        isError = value.isNotEmpty() && cleanDate(value) == null,
+        trailingIcon = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { onChange(LocalDate.now().toString()) }) { Text(stringResource(R.string.tracker_edit_today)) }
+                if (value.isNotEmpty()) {
+                    IconButton(onClick = { onChange("") }) {
+                        Icon(Icons.Default.Close, stringResource(R.string.action_clear), tint = AppColors.textSecondary)
+                    }
+                }
+            }
+        },
+        modifier = Modifier.fillMaxWidth(),
+    )
 }

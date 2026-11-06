@@ -54,6 +54,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -286,6 +287,7 @@ fun ErrorRetryBox(
             text = message,
             color = AppColors.textSecondary,
             fontSize = 14.sp,
+            textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(16.dp))
         Button(
@@ -426,6 +428,6 @@ fun AnimatedLoadState(
 @Composable
 fun EmptyBox(message: String, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-        Text(message, color = AppColors.textSecondary, fontSize = 15.sp)
+        Text(message, color = AppColors.textSecondary, fontSize = 15.sp, textAlign = TextAlign.Center)
     }
 }

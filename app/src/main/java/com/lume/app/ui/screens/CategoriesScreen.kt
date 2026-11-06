@@ -43,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -122,7 +123,7 @@ fun CategoriesScreen(nav: NavHostController) {
                         .padding(start = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(cat.name, color = AppColors.textPrimary, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                    Text(cat.name, color = AppColors.textPrimary, fontSize = 15.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                     IconButton(onClick = { vm.move(cat.id, -1) }, enabled = index > 0) {
                         Icon(Icons.Outlined.KeyboardArrowUp, stringResource(R.string.cd_move_up), tint = AppColors.textSecondary)
                     }

@@ -5,6 +5,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Share
@@ -347,7 +348,8 @@ private fun PageSlider(pageLabel: String?, pageIndex: Int, pageCount: Int, rever
             color = Color.White.copy(alpha = 0.75f),
             fontSize = 13.sp,
             textAlign = TextAlign.Center,
-            modifier = Modifier.width(36.dp),
+            softWrap = false,
+            modifier = Modifier.widthIn(min = 36.dp),
         )
         CompositionLocalProvider(LocalLayoutDirection provides if (reversed) LayoutDirection.Rtl else LayoutDirection.Ltr) {
             Slider(
@@ -368,7 +370,8 @@ private fun PageSlider(pageLabel: String?, pageIndex: Int, pageCount: Int, rever
             color = Color.White.copy(alpha = 0.75f),
             fontSize = 13.sp,
             textAlign = TextAlign.Center,
-            modifier = Modifier.width(36.dp),
+            softWrap = false,
+            modifier = Modifier.widthIn(min = 36.dp),
         )
     }
 }

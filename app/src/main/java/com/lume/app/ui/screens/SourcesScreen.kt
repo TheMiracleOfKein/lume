@@ -375,7 +375,7 @@ private fun PackCatalogue(vm: SourcesViewModel) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(row.entry.name, color = AppColors.textPrimary, fontSize = 15.sp)
+                        Text(row.entry.name, color = AppColors.textPrimary, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
                             listOfNotNull(
                                 SourceEngines.displayName(row.entry.engine),
@@ -385,6 +385,8 @@ private fun PackCatalogue(vm: SourcesViewModel) {
                             ).joinToString(" · "),
                             color = AppColors.textSecondary,
                             fontSize = 12.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                     when (row.state) {
@@ -497,7 +499,14 @@ private fun SourceRow(
         )
         Column(modifier = Modifier.weight(1f).padding(start = 4.dp).alpha(if (disabled) 0.5f else 1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(source.manifest.name, color = AppColors.textPrimary, fontSize = 15.sp)
+                Text(
+                    source.manifest.name,
+                    color = AppColors.textPrimary,
+                    fontSize = 15.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
                 Spacer(Modifier.padding(horizontal = 4.dp))
                 Text(langBadge, color = AppColors.accentText, fontSize = 11.sp)
                 if (pinned) {
@@ -529,7 +538,7 @@ private fun SourceRow(
                 color = AppColors.textSecondary,
                 fontSize = 12.sp,
             )
-            Text(source.manifest.baseUrl, color = AppColors.textTertiary, fontSize = 11.sp, maxLines = 1)
+            Text(source.manifest.baseUrl, color = AppColors.textTertiary, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (problem != null) {
                 val ago = DateUtils.getRelativeTimeSpanString(problem.at, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)
                 Text(

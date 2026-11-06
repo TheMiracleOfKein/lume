@@ -49,10 +49,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.lume.app.ui.components.EmptyBox
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
@@ -134,9 +136,7 @@ fun DownloadsScreen(nav: NavHostController) {
                 .background(AppColors.background),
         ) {
             if (groups.isEmpty() && activeQueue.isEmpty() && failedQueue.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(stringResource(R.string.downloads_empty), color = AppColors.textSecondary, fontSize = 15.sp)
-                }
+                EmptyBox(stringResource(R.string.downloads_empty))
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     if (usageTotal > 0) {
@@ -174,8 +174,8 @@ fun DownloadsScreen(nav: NavHostController) {
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(item.titleName, color = AppColors.textPrimary, fontSize = 14.sp)
-                                    Text(item.chapterName, color = AppColors.textSecondary, fontSize = 12.sp)
+                                    Text(item.titleName, color = AppColors.textPrimary, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    Text(item.chapterName, color = AppColors.textSecondary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     if (item.status == DownloadQueueEntity.STATUS_RUNNING) {
                                         val progress by animateFloatAsState(item.progress, Motion.medium(), label = "dl")
                                         LinearProgressIndicator(
@@ -230,8 +230,8 @@ fun DownloadsScreen(nav: NavHostController) {
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(item.titleName, color = AppColors.textPrimary, fontSize = 14.sp)
-                                    Text(item.chapterName, color = AppColors.textSecondary, fontSize = 12.sp)
+                                    Text(item.titleName, color = AppColors.textPrimary, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    Text(item.chapterName, color = AppColors.textSecondary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text(
                                         stringResource(R.string.downloads_failed_hint),
                                         color = AppColors.textTertiary,
@@ -276,7 +276,7 @@ fun DownloadsScreen(nav: NavHostController) {
                                             nav.navigate(Routes.title(group.sourceId, group.titleId))
                                         },
                                 ) {
-                                    Text(group.titleName, color = AppColors.textPrimary, fontSize = 15.sp)
+                                    Text(group.titleName, color = AppColors.textPrimary, fontSize = 15.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                     val bytes = usageByTitle[key] ?: 0L
                                     Text(
                                         stringResource(R.string.chapters_count_short, group.chapters.size) +
@@ -321,7 +321,7 @@ fun DownloadsScreen(nav: NavHostController) {
                                             verticalAlignment = Alignment.CenterVertically,
                                         ) {
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text(item.chapterName, color = AppColors.textPrimary, fontSize = 13.sp)
+                                                Text(item.chapterName, color = AppColors.textPrimary, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                                 Text(
                                                     stringResource(R.string.pages_count_short, item.pageCount),
                                                     color = AppColors.textTertiary,

@@ -91,6 +91,7 @@ import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextDecoration
+import com.lume.app.ui.components.EmptyBox
 import com.lume.app.ui.components.LocalShellBottomPadding
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.nav.Routes
@@ -174,13 +175,11 @@ fun LibraryScreen(nav: NavHostController) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 when {
                     !loaded -> Unit
-                    items.isEmpty() -> Text(
-                        text = stringResource(
+                    items.isEmpty() -> EmptyBox(
+                        stringResource(
                             if (vm.search.isNotBlank() || settings.activeFilterCount > 0) R.string.library_no_results
                             else R.string.library_empty,
                         ),
-                        color = AppColors.textSecondary,
-                        fontSize = 15.sp,
                     )
                     else -> LibraryContent(
                         items = items,

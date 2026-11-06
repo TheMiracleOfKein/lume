@@ -136,7 +136,7 @@ fun ReadingListScreen(nav: NavHostController) {
             TopAppBar(
                 title = {
                     Column {
-                        Text(stringResource(R.string.reading_list_title), color = AppColors.textPrimary, fontSize = 20.sp)
+                        Text(stringResource(R.string.reading_list_title), color = AppColors.textPrimary, fontSize = 20.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         list?.name?.takeIf { it.isNotBlank() }?.let {
                             Text(it, color = AppColors.textSecondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
@@ -254,7 +254,7 @@ private fun ReadingListEntryRow(row: ReadingListRow, checked: Boolean, onToggle:
                 overflow = TextOverflow.Ellipsis,
             )
             val source = row.entry.sourceName ?: row.entry.sourceId
-            Text(source, color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+            Text(source, color = AppColors.textTertiary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
             when (row.state) {
                 ReadingListState.InLibrary -> StateNote(stringResource(R.string.reading_list_in_library), AppColors.accentText)
                 ReadingListState.NoSource -> StateNote(stringResource(R.string.reading_list_no_source), AppColors.danger)

@@ -162,6 +162,7 @@ fun BookmarkNoteDialog(
                 value = text,
                 onValueChange = { text = it },
                 placeholder = { Text(stringResource(R.string.bookmark_note_hint)) },
+                maxLines = 5,
                 modifier = Modifier.fillMaxWidth(),
             )
         },

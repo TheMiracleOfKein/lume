@@ -165,7 +165,6 @@ fun HomeScreen(nav: NavHostController) {
                                 LazyRow(
                                     contentPadding = PaddingValues(horizontal = 16.dp),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                    modifier = Modifier.height(220.dp),
                                 ) {
                                     items(spotlight, key = { it.id }) { item ->
                                         CoverCard(

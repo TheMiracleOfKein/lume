@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -318,7 +319,7 @@ private fun ModeCard(
     )
     Column(
         modifier = modifier
-            .height(80.dp)
+            .heightIn(min = 80.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(background)
             .border(1.dp, border, RoundedCornerShape(12.dp))
