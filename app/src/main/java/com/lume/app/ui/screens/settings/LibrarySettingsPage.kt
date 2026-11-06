@@ -22,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
+import androidx.compose.ui.res.pluralStringResource
 import com.lume.app.R
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.ui.components.ChoiceChip
@@ -75,7 +76,7 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         AppPreferences.LIBRARY_INTERVALS.forEach { hours ->
                             ChoiceChip(
-                                label = stringResource(R.string.settings_interval_hours, hours),
+                                label = pluralStringResource(R.plurals.settings_interval_hours, hours, hours),
                                 selected = hours == libraryInterval,
                                 modifier = Modifier.weight(1f),
                                 onClick = { vm.setLibraryInterval(hours) },

@@ -17,6 +17,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.selection.triStateToggleable
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -227,11 +229,21 @@ private fun ChipGroup(group: SourceFilter.Group, change: (String, (SourceFilter)
     val long = group.filters.size > FOLD_AT
     var open by rememberSaveable(group.id) { mutableStateOf(!long) }
     var find by rememberSaveable(group.id) { mutableStateOf("") }
+    val excludedLabel = stringResource(R.string.filters_excluded)
     val chosen = group.filters.mapNotNull { f ->
         when {
             f is SourceFilter.Check && f.state -> f.name
             f is SourceFilter.TriState && f.state == 1 -> f.name
             f is SourceFilter.TriState && f.state == 2 -> "−" + f.name
+            else -> null
+        }
+    }
+    // The "−" prefix is only for the eye; screen readers get the word instead.
+    val chosenSpoken = group.filters.mapNotNull { f ->
+        when {
+            f is SourceFilter.Check && f.state -> f.name
+            f is SourceFilter.TriState && f.state == 1 -> f.name
+            f is SourceFilter.TriState && f.state == 2 -> "${f.name} ($excludedLabel)"
             else -> null
         }
     }
@@ -253,6 +265,7 @@ private fun ChipGroup(group: SourceFilter.Group, change: (String, (SourceFilter)
                     fontSize = 12.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.semantics { contentDescription = chosenSpoken.joinToString() },
                 )
             }
         }
@@ -343,10 +356,16 @@ private fun TriStateChip(filter: SourceFilter.TriState, onClick: () -> Unit) {
             .background(background)
             .border(1.dp, border, shape)
             .clickable(onClick = onClick)
-            .semantics { if (spoken.isNotEmpty()) stateDescription = spoken }
+            .semantics {
+                contentDescription = filter.name
+                if (spoken.isNotEmpty()) stateDescription = spoken
+            }
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
+        // The "+"/"−" prefix is visual; the name and the state are spoken by the box.
         Text(
+            modifier = Modifier.clearAndSetSemantics {},
+            text =
             when {
                 include -> "+ " + filter.name
                 exclude -> "− " + filter.name

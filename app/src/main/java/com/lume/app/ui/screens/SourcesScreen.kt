@@ -238,7 +238,7 @@ private fun BookmarkImportCard(status: LibImportStatus, onDismiss: () -> Unit, m
             LibImportStage.Fetching -> ImportStageLine(stringResource(R.string.source_bookmarks_stage_fetching), null)
             is LibImportStage.Adding -> ImportStageLine(stringResource(R.string.source_bookmarks_stage_adding, stage.titles), null)
             is LibImportStage.Progress -> ImportStageLine(
-                stringResource(R.string.source_bookmarks_stage_progress, stage.done, stage.total),
+                pluralStringResource(R.plurals.source_bookmarks_stage_progress, stage.total, stage.done, stage.total),
                 if (stage.total > 0) stage.done.toFloat() / stage.total else null,
             )
             LibImportStage.Finished -> {
@@ -258,7 +258,7 @@ private fun BookmarkImportCard(status: LibImportStatus, onDismiss: () -> Unit, m
                 )
                 if (r != null && r.progressMissed > 0) {
                     Text(
-                        stringResource(R.string.source_bookmarks_progress_missed, r.progressMissed),
+                        pluralStringResource(R.plurals.source_bookmarks_progress_missed, r.progressMissed, r.progressMissed),
                         color = AppColors.textTertiary,
                         fontSize = 12.sp,
                         modifier = Modifier.padding(top = 4.dp),

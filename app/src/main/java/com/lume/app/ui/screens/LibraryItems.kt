@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import androidx.compose.ui.res.pluralStringResource
 import com.lume.app.R
 import com.lume.app.domain.LibraryDisplay
 import com.lume.app.domain.LibraryItem
@@ -240,7 +241,7 @@ private fun CountBadges(item: LibraryItem, settings: LibrarySettings, modifier: 
     Row(modifier.clip(RoundedCornerShape(4.dp)), verticalAlignment = Alignment.CenterVertically) {
         total?.let {
             val read = (it - item.unread).coerceIn(0, it)
-            val description = stringResource(R.string.cd_library_read_of_total, read, it)
+            val description = pluralStringResource(R.plurals.cd_library_read_of_total, it, read, it)
             val caughtUp = item.unread <= 0
             Text(
                 stringResource(R.string.library_read_of_total, read, it),

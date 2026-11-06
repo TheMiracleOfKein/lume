@@ -177,7 +177,7 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
                 else -> {
                     if (bookmarks.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(stringResource(R.string.library_empty), color = AppColors.textSecondary)
+                            Text(stringResource(R.string.catalog_library_empty), color = AppColors.textSecondary)
                         }
                     } else {
                         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = listBottomPadding())) {

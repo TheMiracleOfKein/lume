@@ -40,6 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
 import com.lume.app.R
 import com.lume.app.ui.components.SheetHeader
 import com.lume.app.data.prefs.AppPreferences
@@ -79,21 +80,21 @@ internal fun ReaderSettingsSheet(
             ModeCard(
                 selected = settings.mode == ReaderMode.Rtl,
                 icon = Icons.Outlined.SwipeLeft,
-                label = ReaderMode.Rtl.label,
+                label = stringResource(ReaderMode.Rtl.labelRes),
                 onClick = { onCommit(settings.copy(mode = ReaderMode.Rtl)) },
                 modifier = Modifier.weight(1f),
             )
             ModeCard(
                 selected = settings.mode == ReaderMode.Webtoon,
                 icon = Icons.Outlined.SwipeVertical,
-                label = ReaderMode.Webtoon.label,
+                label = stringResource(ReaderMode.Webtoon.labelRes),
                 onClick = { onCommit(settings.copy(mode = ReaderMode.Webtoon)) },
                 modifier = Modifier.weight(1f),
             )
             ModeCard(
                 selected = settings.mode == ReaderMode.Ltr,
                 icon = Icons.Outlined.SwipeRight,
-                label = ReaderMode.Ltr.label,
+                label = stringResource(ReaderMode.Ltr.labelRes),
                 onClick = { onCommit(settings.copy(mode = ReaderMode.Ltr)) },
                 modifier = Modifier.weight(1f),
             )
@@ -329,6 +330,7 @@ private fun ModeCard(
             color = if (selected) AppColors.accentText else AppColors.textSecondary,
             fontSize = 12.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            textAlign = TextAlign.Center,
         )
     }
 }

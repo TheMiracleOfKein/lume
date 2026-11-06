@@ -64,6 +64,7 @@
     <string name="catalog_tab_popular">Популярное</string>
     <string name="catalog_tab_updates">Обновления</string>
     <string name="catalog_tab_library">Закладки</string>
+    <string name="catalog_library_empty">Закладок из этого источника пока нет</string>
     <string name="library_empty">Нет закладок</string>
     <string name="library_offline_only">Офлайн · только скачанные из библиотеки</string>
     <string name="category_all">Все</string>
@@ -91,7 +92,12 @@
     <string name="updates_watched_hint">Обновления проверяют тайтлы с колокольчиком (до 20): сейчас %d</string>
     <string name="updates_watched_none">Обновления проверяют 20 последних прочитанных тайтлов. Включите колокольчик на странице тайтла, чтобы выбрать их самому.</string>
     <string name="library_read_of_total">%1$d/%2$d</string>
-    <string name="cd_library_read_of_total">Прочитано %1$d из %2$d глав</string>
+    <plurals name="cd_library_read_of_total">
+        <item quantity="one">Прочитано %1$d из %2$d главы</item>
+        <item quantity="few">Прочитано %1$d из %2$d глав</item>
+        <item quantity="many">Прочитано %1$d из %2$d глав</item>
+        <item quantity="other">Прочитано %1$d из %2$d главы</item>
+    </plurals>
     <string name="title_status">Статус: %s</string>
     <string name="title_chapters_list">Список глав (%d)</string>
     <string name="title_trackers">Трекеры (%s)</string>
@@ -124,12 +130,15 @@
 
     <string name="reader_mode">Режим читалки</string>
     <string name="reader_theme">Тема читалки</string>
-    <string name="reader_gap">Отступ между изображениями %dpx</string>
+    <string name="reader_gap">Отступ между изображениями %ddp</string>
     <string name="reader_double_tap_zoom">Увеличение двойным нажатием</string>
     <string name="reader_hide_page_number">Скрыть номер страниц</string>
     <string name="reader_seamless">Бесшовное чтение глав</string>
     <string name="reader_chapter_separator">Глава · %s</string>
     <string name="reader_save_for_title">Сохранить для тайтла</string>
+    <string name="reader_mode_rtl">Справа налево</string>
+    <string name="reader_mode_webtoon">Вебтун</string>
+    <string name="reader_mode_ltr">Слева направо</string>
     <string name="reader_theme_light">Светлая</string>
     <string name="reader_theme_dark">Тёмная</string>
     <string name="reader_theme_system">Системная</string>
@@ -278,7 +287,12 @@
     <string name="settings_section_library">Библиотека</string>
     <string name="settings_section_downloads">Загрузки</string>
     <string name="settings_library_interval">Проверять каждые</string>
-    <string name="settings_interval_hours">%d ч</string>
+    <plurals name="settings_interval_hours">
+        <item quantity="one">%d ч</item>
+        <item quantity="few">%d ч</item>
+        <item quantity="many">%d ч</item>
+        <item quantity="other">%d ч</item>
+    </plurals>
     <string name="settings_wifi_only">Только по Wi-Fi</string>
     <string name="settings_downloads_wifi_only">Скачивать только по Wi-Fi</string>
     <string name="settings_search_nsfw">Источники 18+ в глобальном поиске</string>
@@ -302,6 +316,7 @@
     <string name="bookmark_note_hint">Что здесь происходит?</string>
     <string name="bookmark_page">стр. %1$d</string>
     <string name="chapter_progress_pages">стр. %1$d / %2$d</string>
+    <string name="reader_page_position">%1$d / %2$d</string>
     <string name="action_delete">Удалить</string>
     <string name="page_load_failed">Не удалось загрузить страницу</string>
     <string name="reader_last_chapter">Это последняя глава</string>
@@ -494,14 +509,24 @@
     <string name="source_action_settings">Настройки</string>
     <string name="source_action_import_bookmarks">Импорт закладок</string>
     <string name="source_bookmarks_done">Закладки %1$s. Добавлено: %2$d · уже в библиотеке: %3$d · папок-категорий: %4$d · прогресс у тайтлов: %5$d</string>
-    <string name="source_bookmarks_progress_missed">Прогресс не перенесён для тайтлов: %1$d — главы не загрузились или прочитанной главы нет в списке.</string>
+    <plurals name="source_bookmarks_progress_missed">
+        <item quantity="one">Прогресс не перенесён для %1$d тайтла: его главы не загрузились или прочитанной главы нет в списке.</item>
+        <item quantity="few">Прогресс не перенесён для %1$d тайтлов: их главы не загрузились или прочитанной главы нет в списке.</item>
+        <item quantity="many">Прогресс не перенесён для %1$d тайтлов: их главы не загрузились или прочитанной главы нет в списке.</item>
+        <item quantity="other">Прогресс не перенесён для %1$d тайтла: их главы не загрузились или прочитанной главы нет в списке.</item>
+    </plurals>
     <string name="source_bookmarks_empty">На %1$s закладок не нашлось</string>
     <string name="source_bookmarks_failed">Не удалось импортировать закладки: %1$s</string>
     <string name="source_bookmarks_busy">Импорт закладок уже идёт</string>
     <string name="source_bookmarks_card_title">Импорт закладок · %1$s</string>
     <string name="source_bookmarks_stage_fetching">Шаг 1 из 3: загружаем закладки с сайта…</string>
     <string name="source_bookmarks_stage_adding">Шаг 2 из 3: добавляем тайтлы в библиотеку (%1$d)…</string>
-    <string name="source_bookmarks_stage_progress">Шаг 3 из 3: прогресс чтения, %1$d из %2$d тайтлов</string>
+    <plurals name="source_bookmarks_stage_progress">
+        <item quantity="one">Шаг 3 из 3: прогресс чтения, %1$d из %2$d тайтла</item>
+        <item quantity="few">Шаг 3 из 3: прогресс чтения, %1$d из %2$d тайтлов</item>
+        <item quantity="many">Шаг 3 из 3: прогресс чтения, %1$d из %2$d тайтлов</item>
+        <item quantity="other">Шаг 3 из 3: прогресс чтения, %1$d из %2$d тайтла</item>
+    </plurals>
     <string name="source_bookmarks_stage_hint">С этого экрана можно уйти: импорт продолжится.</string>
     <string name="source_action_pin">Закрепить сверху</string>
     <string name="source_action_unpin">Открепить</string>
@@ -587,7 +612,12 @@
     <string name="backup_restore_file_hint">Копия Lume или Mihon / Tachiyomi (.tachibk)</string>
     <string name="backup_saved_to">Копия сохранена: %1$s</string>
     <string name="backup_restore_failed">Не удалось восстановить: %1$s</string>
-    <string name="backup_mihon_progress">Загрузка списков глав: %1$d из %2$d тайтлов</string>
+    <plurals name="backup_mihon_progress">
+        <item quantity="one">Загрузка списков глав: %1$d из %2$d тайтла</item>
+        <item quantity="few">Загрузка списков глав: %1$d из %2$d тайтлов</item>
+        <item quantity="many">Загрузка списков глав: %1$d из %2$d тайтлов</item>
+        <item quantity="other">Загрузка списков глав: %1$d из %2$d тайтла</item>
+    </plurals>
     <string name="backup_mihon_done">Импорт из Mihon. Добавлено: %1$d · уже в библиотеке: %2$d · глав отмечено прочитанными: %3$d</string>
     <string name="backup_mihon_unmatched">Пропущено, их источника нет в Lume: %1$d (%2$s)</string>
     <string name="backup_mihon_read_failed">Тайтлов без отметок о прочтении, не загрузились списки глав: %1$d</string>

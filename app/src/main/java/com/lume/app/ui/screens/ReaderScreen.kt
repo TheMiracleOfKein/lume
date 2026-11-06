@@ -402,7 +402,7 @@ fun ReaderScreen(
                         ) {
                             ReaderBottomBar(
                                 pageLabel = vm.currentChapterPageCount.takeIf { it > 0 && !settings.hidePageNumber }
-                                    ?.let { "${vm.currentPageIndex + 1} / $it" },
+                                    ?.let { stringResource(R.string.reader_page_position, vm.currentPageIndex + 1, it) },
                                 pageIndex = vm.currentPageIndex,
                                 pageCount = vm.currentChapterPageCount,
                                 reversed = settings.mode == ReaderMode.Rtl,

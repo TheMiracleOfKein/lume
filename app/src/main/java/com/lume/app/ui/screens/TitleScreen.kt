@@ -102,7 +102,7 @@ import com.lume.app.ui.nav.openReader
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 import kotlinx.coroutines.launch
-import java.util.Locale
+import androidx.compose.ui.platform.LocalConfiguration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -292,7 +292,7 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                                 val facts = listOfNotNull(
                                     d.typeLabel,
                                     d.year?.toString(),
-                                    d.score?.let { stringResource(R.string.title_score, String.format(Locale.US, "%.1f", it)) },
+                                    d.score?.let { stringResource(R.string.title_score, String.format(LocalConfiguration.current.locales[0], "%.1f", it)) },
                                 )
                                 if (facts.isNotEmpty()) {
                                     Text(facts.joinToString(" · "), color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
