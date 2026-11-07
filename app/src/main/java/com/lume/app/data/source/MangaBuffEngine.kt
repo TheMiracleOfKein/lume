@@ -48,40 +48,77 @@ class MangaBuffEngine(
     private suspend fun catalogPage(path: String, page: Int): PagedResult<TitleSummary> {
         val suffix = if (page <= 1) path else "$path?page=$page"
         val response = http.get(URI("$siteBase$suffix"), source = manifest, headers = headers)
-        val doc = Jsoup.parse(response.body, siteBase)
+        return parseCatalog(response.body, page)
+    }
+
+    /**
+     * Title cards of a catalogue page. Only links inside a card count: the menu and the "top"
+     * tabs also link under `/manga/` (yearly and other collections such as "за 2026 год"),
+     * and reading them as titles gave cover-less entries that opened to a 404.
+     */
+    internal fun parseCatalog(html: String, page: Int): PagedResult<TitleSummary> {
+        val doc = Jsoup.parse(html, siteBase)
+        doc.select("header, nav, footer, .header, .footer, .breadcrumbs, .pagination").remove()
         val items = LinkedHashMap<String, TitleSummary>()
-        doc.select("a[href*=/manga/]").forEach { a ->
-            val href = a.attr("abs:href").substringAfter(siteBase).substringBefore('?')
-            val slug = href.trim('/').removePrefix("manga/").substringBefore('/')
-            if (slug.isBlank() || '/' in slug || slug in setOf("top", "new")) return@forEach
-            if (items.containsKey(slug)) return@forEach
-            val card = a.closest(".cards__item, .manga-card, .card, .poster") ?: a.parent()
-            val title = a.attr("title").ifBlank {
-                card?.selectFirst(".cards__name, .manga-card__name, .card__name, .name")?.text()
-            }.orEmpty().ifBlank { a.text() }.ifBlank { slug }
-            val img = card?.selectFirst("img")
-            val cover = img?.attr("abs:src")?.ifBlank { img.attr("abs:data-src") }
+        val cards = doc.select(CARD_SELECTOR).ifEmpty {
+            // Unknown markup: a link counts only when it holds a poster image.
+            doc.select("a[href*=/manga/]:has(img)")
+        }
+        for (card in cards) {
+            val a = if (card.`is`("a[href]")) card else card.selectFirst("a[href*=/manga/]") ?: continue
+            val slug = slugOf(a.attr("abs:href")) ?: continue
+            if (items.containsKey(slug)) continue
+            val title = card.selectFirst(".cards__name, .manga-card__name, .card__name, .name")?.text()
+                .orEmpty()
+                .ifBlank { a.attr("title") }
+                .ifBlank { card.selectFirst("img[alt]")?.attr("alt").orEmpty() }
+                .ifBlank { a.text() }
+                .ifBlank { slug }
             items[slug] = TitleSummary(
                 id = slug,
                 title = title.trim(),
-                coverUrl = cover?.takeIf { it.isNotBlank() },
+                coverUrl = coverOf(card),
+                typeLabel = card.selectFirst(".cards__info, .manga-card__type")?.text()?.takeIf { it.isNotBlank() },
             )
-        }
-        // Fallback: posters from search-like markup with data-id
-        if (items.isEmpty()) {
-            doc.select("[data-id]").forEach { el ->
-                val name = el.selectFirst("a[href*=/manga/]") ?: return@forEach
-                val href = name.attr("abs:href")
-                val slug = href.substringAfter("/manga/").substringBefore('/').substringBefore('?')
-                if (slug.isBlank()) return@forEach
-                items.putIfAbsent(
-                    slug,
-                    TitleSummary(id = slug, title = name.text().ifBlank { slug }),
-                )
-            }
         }
         return PagedResult(items = items.values.toList(), page = page, hasNext = items.size >= 20)
     }
+
+    /** `https://mangabuff.ru/manga/<slug>` → slug; null for other pages and collections. */
+    private fun slugOf(href: String): String? {
+        if (!href.startsWith(siteBase)) return null
+        val parts = href.removePrefix(siteBase).substringBefore('?').substringBefore('#').trim('/').split('/')
+        if (parts.size != 2 || parts[0] != "manga") return null
+        val slug = parts[1]
+        return slug.takeIf { it.isNotBlank() && it !in RESERVED_PATHS }
+    }
+
+    /**
+     * The poster URL: lazy images keep the real one in `data-src` (or `srcset`) and a
+     * placeholder in `src`; some cards draw it as a CSS background instead.
+     */
+    private fun coverOf(card: org.jsoup.nodes.Element): String? {
+        val img = card.selectFirst("img")
+        val fromImg = img?.let { el ->
+            sequenceOf("data-src", "data-original", "data-lazy-src", "srcset", "data-srcset", "src")
+                .map { attr -> el.attr(attr).trim().substringBefore(' ') }
+                .firstOrNull { isImageUrl(it) }
+        }
+        val fromStyle = (listOf(card) + card.select("[style*=url], [data-bg], [data-background]")).firstNotNullOfOrNull { el ->
+            el.attr("data-bg").ifBlank { el.attr("data-background") }.takeIf { isImageUrl(it) }
+                ?: CSS_URL.find(el.attr("style"))?.groupValues?.get(1)?.trim()?.takeIf { isImageUrl(it) }
+        }
+        val raw = fromImg ?: fromStyle ?: return null
+        return when {
+            raw.startsWith("http") -> raw
+            raw.startsWith("//") -> "https:$raw"
+            raw.startsWith("/") -> "$siteBase$raw"
+            else -> "$siteBase/$raw"
+        }
+    }
+
+    private fun isImageUrl(value: String): Boolean =
+        value.isNotBlank() && !value.startsWith("data:") && !PLACEHOLDER.containsMatchIn(value)
 
     override suspend fun search(
         query: String,
@@ -120,7 +157,19 @@ class MangaBuffEngine(
     override fun titleIdFromUrl(url: String): String? {
         val parts = com.lume.app.domain.SourceLinks.segments(url, manifest.baseUrl) ?: return null
         val i = parts.indexOf("manga")
-        return parts.getOrNull(i + 1)?.takeIf { i >= 0 && it !in setOf("top", "new") }
+        return parts.getOrNull(i + 1)?.takeIf { i >= 0 && it !in RESERVED_PATHS }
+    }
+
+    private companion object {
+        const val CARD_SELECTOR = ".cards__item, .manga-card, .cards .card"
+
+        /** Pages under `/manga/` that are lists, not titles. */
+        val RESERVED_PATHS = setOf("top", "new", "popular", "ongoing", "completed", "random")
+
+        val CSS_URL = Regex("""url\(\s*['"]?([^'")]+)['"]?\s*\)""")
+
+        /** Lazy-load stand-ins that are not the poster. */
+        val PLACEHOLDER = Regex("""(?i)(placeholder|plug|blank|no[-_]?image|lazy|loading|spacer)[^/]*\.(png|gif|svg|jpe?g|webp)""")
     }
 
     override suspend fun getTitle(id: String): TitleDetails {
