@@ -76,7 +76,7 @@ fun HomeScreen(nav: NavHostController) {
     val error = vm.error
     var confirmClear by rememberSaveable { mutableStateOf(false) }
     var searchText by rememberSaveable { mutableStateOf("") }
-    val history by container.dao.observeHistory().collectAsState(initial = emptyList())
+    val history by vm.history.collectAsState()
     val online by container.network.online.collectAsState()
     val downloads by container.dao.observeDownloads().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
@@ -160,7 +160,7 @@ fun HomeScreen(nav: NavHostController) {
                         },
                     ) {
                     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalShellBottomPadding.current)) {
-                        item {
+                        item(key = "spotlight") {
                             val spotlight = feed?.spotlight.orEmpty()
                             if (spotlight.isNotEmpty()) {
                                 LazyRow(
@@ -180,7 +180,7 @@ fun HomeScreen(nav: NavHostController) {
                         }
 
                         if (history.isNotEmpty()) {
-                            item {
+                            item(key = "continue-header") {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -199,12 +199,12 @@ fun HomeScreen(nav: NavHostController) {
                                     }
                                 }
                             }
-                            item {
+                            item(key = "continue-row") {
                                 LazyRow(
                                     contentPadding = PaddingValues(horizontal = 16.dp),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
-                                    items(history.take(20), key = { "${it.sourceId}:${it.titleId}" }) { item ->
+                                    items(history, key = { "${it.sourceId}:${it.titleId}" }) { item ->
                                         ContinueCard(item) {
                                             nav.openReader(
                                                 item.sourceId,
@@ -219,7 +219,7 @@ fun HomeScreen(nav: NavHostController) {
                             }
                         }
 
-                        item {
+                        item(key = "now-reading-header") {
                             SectionHeader(
                                 title = stringResource(R.string.home_now_reading),
                                 onTap = { nav.navigate(Routes.Catalog) },
@@ -273,7 +273,7 @@ fun HomeScreen(nav: NavHostController) {
                             )
                         }
 
-                        item { Spacer(Modifier.height(24.dp)) }
+                        item(key = "bottom-spacer") { Spacer(Modifier.height(24.dp)) }
                     }
                     }
                 }
