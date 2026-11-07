@@ -216,6 +216,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.8.1: zoom pan fix** ✅ released 2026-11-07 ([notes](releases/v0.8.1.md)): a zoomed webtoon page no longer twitches when moved.
 
+**v0.9.0: CBR, CB7 and PDF** ([notes](releases/v0.9.0.md), [device check](releases/v0.9.0-check.md)): local chapters as CBR, CB7 and PDF, and offline parser tests.
+
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
 - ✅ **Tall pages in pieces** (M). Paged modes decode pages in tiles through Telephoto; webtoon strips keep the slices from v0.7.11.
@@ -738,3 +740,14 @@ Release notes: [docs/releases/v0.8.1.md](releases/v0.8.1.md).
 
 - ✅ **Webtoon zoom no longer twitches when moved:** `PageDetail` keeps the last sharp detail until the next one is ready and draws it at exact positions; a small pan inside the decoded detail keeps it.
 - ⏸️ Emulator check and smoke test skipped at the owner's request.
+
+### v0.9.0: CBR, CB7 and PDF
+
+Release notes: [docs/releases/v0.9.0.md](releases/v0.9.0.md); device check in [v0.9.0-check.md](releases/v0.9.0-check.md).
+
+- ✅ **Archives:** `data/local/archive` (`ArchiveReader` for ZIP, RAR through junrar, 7z through Commons Compress), picked by magic bytes; one archive check for the importer, the local engine and downloads.
+- ✅ **PDF:** `lume-pdf://` page URLs drawn by `PdfPageFetcher` through a shared `PdfRendererPool`, bitmaps capped at 8M pixels; `pageData(url)` in the reader, analyzer and bookmarks.
+- ✅ **Unpacked archives** are keyed on path, size and change time, so two `04.cbz` in different series no longer share pages.
+- ✅ **Clear errors** for RAR5 ("repack as CBZ") and damaged archives.
+- ✅ **Offline parser tests** for every engine (merged before this release).
+- ⏸️ A real RAR5 file wasn't tried on the device (no RAR tool at hand); a file with the RAR5 signature shows the RAR5 message.
