@@ -26,7 +26,8 @@ import org.junit.Assert.fail
  * popular → page 2 → latest → search → details → chapters → pages → first image.
  *
  * Opt-in (hits the network):  ./gradlew :app:testDebugUnitTest -Plume.live
- * Subset:                     -Plume.live.sources=asura,mangadex
+ * Subset:                     -Plume.live.sources=asura,mangadex  (also runs docs/packs/site samples, e.g. weebcentral,demonic)
+ * Save the responses:        -Plume.live.record  (writes src/test/resources/fixtures/<source id>/)
  *
  * Sources that are unreachable from the test machine (region blocks, anti-bot challenges that
  * need a WebView) are reported as SKIP rather than failures.
@@ -45,10 +46,14 @@ class LiveSourcesTest {
             json.decodeFromString(PackIndex.serializer(), File(packDir, "index.json").readText()).packs
                 .map { File(packDir, it.url) }
         }.getOrDefault(emptyList())
-        val manifests = (bundled + packs)
+        // The one-site samples (docs/packs/site) are not in the catalogue; they run when named in -Plume.live.sources.
+        val samples = if (only == null) emptyList() else File(packDir, "site").listFiles { f -> f.extension == "json" }.orEmpty().toList()
+        val manifests = (bundled + packs + samples)
             .map { json.decodeFromString(SourceManifest.serializer(), it.readText()) }
             .filter { only == null || it.id in only }
             .sortedBy { it.id }
+        val record = System.getProperty("lume.live.record") == "true"
+        val fixtureRoot = File("src/test/resources/fixtures")
         val http = AppHttp(CookieJar.NO_COOKIES)
         val referers = ImageReferers()
         val reports = manifests.map { manifest ->
@@ -56,7 +61,9 @@ class LiveSourcesTest {
             manifest.configString("rateLimit")?.toDoubleOrNull()?.let { rate ->
                 java.net.URI(manifest.configString("apiBase") ?: manifest.baseUrl).host?.let { http.setRateLimit(it, rate) }
             }
-            check(SourceEngines.create(manifest, http), http, referers)
+            val recorder = if (record) Recorder(File(fixtureRoot, manifest.id)) else null
+            http.responseTap = recorder?.let { r -> { _, body -> r.save(body) } }
+            check(SourceEngines.create(manifest, http), http, referers, recorder)
         }
         println("\n=== Live source report ===")
         reports.forEach { println(it) }
@@ -72,12 +79,14 @@ class LiveSourcesTest {
         override fun toString() = "%-12s %-4s %s".format(id, status, notes.joinToString("; "))
     }
 
-    private fun check(source: CatalogSource, http: AppHttp, referers: ImageReferers): Report = runBlocking {
+    private fun check(source: CatalogSource, http: AppHttp, referers: ImageReferers, recorder: Recorder?): Report = runBlocking {
         val id = source.manifest.id
         val notes = mutableListOf<String>()
         var warn = false
         try {
+            recorder?.phase("popular")
             val popular = source.getPopular(1)
+            recorder?.stop()
             if (popular.items.isEmpty()) return@runBlocking Report(id, Status.FAIL, listOf("popular page 1 empty"))
             notes += "popular=${popular.items.size}"
             if (popular.hasNext) {
@@ -122,26 +131,42 @@ class LiveSourcesTest {
             }
             if (source.browseSections().isNotEmpty()) notes += "sections=${source.browseSections().size}"
             val sample = popular.items.first()
+            recorder?.phase("search")
             val hits = source.search(sample.title.take(40), 1).items
+            recorder?.stop()
             if (hits.none { it.id == sample.id }) {
                 warn = true
                 notes += "search miss for '${sample.title.take(30)}' (${hits.size} hits)"
             }
+            recorder?.phase("details")
             val details = source.getTitle(sample.id)
+            recorder?.stop()
             notes += "title='${details.title.take(24)}' desc=${details.description?.length ?: 0} genres=${details.genres.size}"
             if (details.title.isBlank()) return@runBlocking Report(id, Status.FAIL, notes + "blank title")
             // Prefer a title with chapters: walk the popular list until one has some.
+            var chapterTitle = sample.id
+            recorder?.phase("chapters")
             var chapters = source.getChapters(sample.id)
             if (chapters.isEmpty()) {
                 for (other in popular.items.drop(1).take(4)) {
+                    recorder?.phase("chapters")
                     chapters = source.getChapters(other.id)
+                    chapterTitle = other.id
                     if (chapters.isNotEmpty()) break
                 }
             }
+            recorder?.stop()
             if (chapters.isEmpty()) return@runBlocking Report(id, Status.FAIL, notes + "no chapters")
+            if (recorder != null && chapterTitle != sample.id) {
+                // Keep details and chapters of the same title together in the fixtures.
+                recorder.phase("details")
+                source.getTitle(chapterTitle)
+                recorder.stop()
+            }
             notes += "chapters=${chapters.size}"
             val chapter = chapters.last() // usually the oldest → most likely free
-            val pages = source.getPages(chapter)
+            recorder?.phase("pages")
+            val pages = runCatching { source.getPages(chapter) }.also { recorder?.stop() }.getOrThrow()
             if (pages.isEmpty()) return@runBlocking Report(id, Status.FAIL, notes + "no pages")
             notes += "pages=${pages.size}"
             referers.learn(pages.first().imageUrl, source.manifest)
@@ -174,6 +199,39 @@ class LiveSourcesTest {
             Report(id, Status.FAIL, notes + "${e::class.simpleName}: ${e.message}")
         }
     }
+
+    /**
+     * With `-Plume.live.record` the raw response bodies of each phase (popular, search, details,
+     * chapters, pages) are saved as `src/test/resources/fixtures/<source id>/<case>.{json,html}`
+     * for the offline parser tests. A second body in the same phase becomes `<case>-2`.
+     */
+    private class Recorder(private val dir: File) {
+        private var case: String? = null
+        private var count = 0
+
+        @Synchronized
+        fun phase(name: String) {
+            case = name
+            count = 0
+            dir.listFiles { f -> f.nameWithoutExtension.let { it == name || it.startsWith("$name-") } }
+                ?.forEach { it.delete() }
+        }
+
+        @Synchronized
+        fun stop() {
+            case = null
+        }
+
+        @Synchronized
+        fun save(body: String) {
+            val name = case ?: return
+            count++
+            val ext = if (body.trimStart().let { it.startsWith("{") || it.startsWith("[") }) "json" else "html"
+            dir.mkdirs()
+            File(dir, (if (count == 1) name else "$name-$count") + ".$ext").writeText(body)
+        }
+    }
+
 
     private fun hostOf(url: String) = java.net.URI(url).host.orEmpty()
 }

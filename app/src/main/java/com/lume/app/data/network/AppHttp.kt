@@ -63,6 +63,10 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
 
     val okHttp: OkHttpClient get() = client
 
+    /** Receives every text response body; the live recorder (`-Plume.live.record`) uses it to save fixtures. */
+    @Volatile
+    var responseTap: ((uri: URI, body: String) -> Unit)? = null
+
     private val _challengeRequests = MutableSharedFlow<URI>(extraBufferCapacity = 1)
     val challengeRequests: SharedFlow<URI> = _challengeRequests.asSharedFlow()
 
@@ -141,6 +145,7 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
         client.newCall(request).await().use { response ->
             val text = response.body.string()
             validate(response, text, uri, checkCloudflare)
+            responseTap?.invoke(uri, text)
             HttpResult(response.code, text, response.request.url.toString())
         }
     }
