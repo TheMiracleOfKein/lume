@@ -34,11 +34,14 @@ apksigner verify --print-certs lume-vX.Y.Z.apk
 ## Features
 
 **Reader**
-- Webtoon (vertical) and paged modes, with seamless chapters, tap zones and volume-key paging.
+- Webtoon (vertical) and paged modes, with seamless chapters in both directions, tap zones and volume-key paging.
+- Sharp zoom: the part you zoom into is decoded again at full detail, even on very tall webtoon strips.
+- Guided panel view: a tap moves from panel to panel, found on the phone without any model.
+- Cropped borders, double pages split in two, and two pages side by side in landscape.
 - Fullscreen reading: the controls and system bars hide while you read.
 - Exact resume inside a page, after rotation, after Android closes the app and across chapters.
-- Page bookmarks with notes, shown on the title screen.
-- Night dimming, side margins for webtoons, keep the screen on.
+- Page bookmarks with notes, shown on the title screen with the panel you marked.
+- Night dimming, colour filters, side margins for webtoons, keep the screen on.
 
 **Library and updates**
 - Grid, compact and list views; sorting, filters, search and categories.
