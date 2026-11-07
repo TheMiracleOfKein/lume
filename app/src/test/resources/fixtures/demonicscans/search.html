@@ -1,0 +1,1215 @@
+<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta name="referrer" content="origin">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0">
+<meta name="description" content="Best Manga reader you can find, fastest updates, best translation and the smoothest system">
+<meta name="mobile-web-app-capable" content="yes">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Mangademon">
+<meta property="og:title" content="Read Manga At Mangademon">
+<meta property="og:description" content="Best Manga reader you can find, fastest updates, best translation and the smoothest system">
+<meta property="og:image" content="/img/logo.png">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:site" content="Mangademon">
+<meta name="twitter:creator" content="Mangademon">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Read Manga At Mangademon">
+<meta name="twitter:description" content="Best Manga reader you can find, fastest updates, best translation and the smoothest system">
+<meta name="twitter:image">
+<title>Read Manga At Mangademon</title>
+<link rel="apple-touch-icon" href="img/logo.png">
+<link rel="icon" type="image/png" href="/img/logo.png">
+<link rel="preload stylesheet" as="style" href="css/mainstyle.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-S2788Y508W"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-S2788Y508W');
+</script>
+  <!--<script async data-cfasync="false" src="https://cdn.pubfuture-ad.com/v2/unit/pt.js" type="text/javascript"></script>-->
+
+</head>
+<body>
+
+   <script>
+function errorimg(e)
+{
+e.src = "img/noimg.jpg";
+}
+</script>
+
+  <script>
+  function showResult(str) {
+ document.getElementById("resultbox").style.display="inherit";
+
+   
+  if (str.length==0) {
+    document.getElementById("resultbox").innerHTML="";
+    document.getElementById("resultbox").style.display="none";
+
+    return;
+  }
+
+  if (window.XMLHttpRequest) {
+    // code for IE7+, Firefox, Chrome, Opera, Safari
+    xmlhttp=new XMLHttpRequest();
+  } else {  // code for IE6, IE5
+    xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+  }
+  xmlhttp.onreadystatechange=function() {
+    if (this.readyState==4 && this.status==200) {
+      document.getElementById("resultbox").innerHTML=this.responseText;
+
+    }
+  }
+  xmlhttp.open("GET","/search.php?manga="+str,true);
+  xmlhttp.send();
+}
+  function showForcedResult(str) {
+ document.getElementById("result-box-bg").style.display="inherit";
+
+   
+  if (str.length==0) {
+    document.getElementById("result-box-bg").innerHTML="";
+    
+
+    return;
+  }
+
+  if (window.XMLHttpRequest) {
+    // code for IE7+, Firefox, Chrome, Opera, Safari
+    xmlhttp=new XMLHttpRequest();
+  } else {  // code for IE6, IE5
+    xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+  }
+  xmlhttp.onreadystatechange=function() {
+    if (this.readyState==4 && this.status==200) {
+      document.getElementById("result-box-bg").innerHTML=this.responseText;
+
+    }
+  }
+  xmlhttp.open("GET","/search.php?manga="+str,true);
+  xmlhttp.send();
+}
+  function closeElement(str) {
+   document.getElementById(str).style.display="none";
+ 
+
+  }
+  function openElement(str) {
+   document.getElementById(str).style.display="inherit";
+
+
+  }
+   function pushMenuLeft() {
+   document.getElementById("menu").style.left="-280px";
+  }
+   function pushMenuRight() {
+   document.getElementById("menu").style.left="0px";
+  }
+ </script>
+
+<nav class="navigation flex flex-col">
+   <div class="flex justify-center">
+      <div class="innav flex border-box justify-space-between">
+         <div class="flex">
+            <button  class="mr-2 rounded relative md-btn flex center-align overflow-hidden mr-2" aria-label="Open sidebar" style="filter: invert(0); min-height: 2.5rem; min-width: 2.5rem;" onclick="pushMenuRight()">
+               <span class="flex relative center-align justify-center font-medium select-none full-width pointer-events-none" style="justify-content: center;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" class="icon" style="color: currentcolor;">
+                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h12M3 6h18M3 18h6">
+                        
+                     </path>
+                  </svg>
+               </span>
+            </button>   
+            <a href="/index.php">
+               <img src="/img/demon-logo-sm.png" style="width: 40px; height: 40px;">
+               <img src="/img/demon-title-sm.png" id="demon-title-lg" style="width: 160px; height: 36px;">
+            </a>
+         </div>
+
+
+
+
+         <div class="flex">
+
+            <div  class="right-nav-cont flex center-align justify-center mr-2 relative">
+               <input  id="header-search-input" onkeyup="showResult(this.value)"  autocomplete="off" placeholder="Search">
+               <div id="resultbox" class="flex flex-col">
+
+
+
+               </div>
+               <button  class="rounded relative md-btn flex center-align overflow-hidden" aria-label="Open sidebar" style=" min-height: 2.5rem; min-width: 2.5rem;" onclick="openElement('forced-Search')">
+                  <span class="flex relative center-align justify-center font-medium select-none full-width pointer-events-none" style="justify-content: center;">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" class="icon text-icon-contrast text-undefined">
+                        <path stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16m10 2-4.35-4.35">
+                        </path>
+                     </svg>
+                  </span>
+               </button>
+            </div>
+            
+            <div class="cursor-pointer rounded flex center-align justify-center" style="position: relative;">
+                              <a href="/signin.php" style="text-decoration: none;">
+               <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" fill="none" viewBox="0 0 24 24" style="position:relative;top:3px;border-radius:20px;" class="icon large text-icon-contrast text-undefined" id="avatar">
+                  <path stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2m8-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8">
+                  </path>
+               </svg>
+            </a>
+            </div>
+         </div>
+      </div>
+   </div>
+</nav>
+<div class="forced flex flex-col not-displayed" id="forced-Search" style="z-index:5;">
+   <div class="search-pop flex flex-row main-bg justify-center">
+      <div class="flex right-nav-cont mr-2 search-bar-cont">
+         <input   id="search-bar" onkeyup="showForcedResult(this.value)"  autocomplete="off" placeholder="Search">   
+         <button  class="rounded relative md-btn flex center-align overflow-hidden" aria-label="Open sidebar" style=" min-height: 2.5rem; min-width: 2.5rem;top:-3px;">
+            <span class="flex relative center-align justify-center font-medium select-none full-width pointer-events-none" style="justify-content: center;">
+               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" class="icon text-icon-contrast text-undefined">
+                  <path stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16m10 2-4.35-4.35">
+                  </path>
+               </svg>
+            </span>
+         </button>
+      </div>
+      <div  class="rounded relative md-btn flex center-align overflow-hidden" style="top:-3px;" onclick="closeElement('forced-Search')">
+         <svg  xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" class="icon text-icon-contrast text-undefined">
+            <path stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 6 6 18M6 6l12 12"></path>
+         </svg>
+      </div>
+   </div>
+   <div id="result-box-bg" class="flex flex-col main-bg">
+
+<p style="padding-left:10px;">Enter Your Search Query...</p>
+
+   </div>
+</div>
+<div class="flex flex-col" id="menu" style="z-index:8;">
+   <div class="flex flox-row justify-space-between">
+      <img src="/img/demon-logo-sm.png" style="width: 40px; height: 40px;">
+      <img src="/img/demon-title-sm.png" style="width: 160px; height: 36px;">
+      <div  class="rounded relative md-btn flex center-align overflow-hidden cursor-pointer" onclick="pushMenuLeft('menu')">
+         <svg  xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" class="icon text-icon-contrast text-undefined">
+            <path stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 6 6 18M6 6l12 12"></path>
+         </svg>
+      </div>
+   </div>
+   <a href="/index.php" class="flex  " style="margin-top:20px;">
+      <li class="flex">
+         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><path d="M9 22V12h6v10"></path>
+         </svg>
+          <span class="ml">HOME</span> 
+      </li>
+   </a>
+   <a href="/lastupdates.php" class="flex  " style="margin-top:5px;">
+      <li class="flex">
+         <svg width="24" height="24" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 5.5L5 3.5M21 5.5L19 3.5M9 12.5L11 14.5L15 10.5M20 12.5C20 16.9183 16.4183 20.5 12 20.5C7.58172 20.5 4 16.9183 4 12.5C4 8.08172 7.58172 4.5 12 4.5C16.4183 4.5 20 8.08172 20 12.5Z"  stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+         </svg>
+          <span class="ml">LATEST UPDATES</span> 
+      </li>
+   </a>
+
+   <a href="/game_dash.php" class="flex  " style="margin-top:5px;">
+      <li class="flex">
+        <svg width="24" height="24" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <g  stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="ic_fluent_games_24_filled" fill="#ffffff" fill-rule="nonzero">
+            <path d="M14.9978834,5 C18.8638767,5 21.9978834,8.13400675 21.9978834,12 C21.9978834,15.7854517 18.9931001,18.8690987 15.2385332,18.995941 L14.9978834,19 L9.00211656,19 C5.13612331,19 2.00211656,15.8659932 2.00211656,12 C2.00211656,8.21454828 5.00689994,5.13090132 8.76146681,5.00405902 L9.00211656,5 L14.9978834,5 Z M14.75,12.5 C14.0596441,12.5 13.5,13.0596441 13.5,13.75 C13.5,14.4403559 14.0596441,15 14.75,15 C15.4403559,15 16,14.4403559 16,13.75 C16,13.0596441 15.4403559,12.5 14.75,12.5 Z M8,9 C7.62030423,9 7.30650904,9.28215388 7.25684662,9.64822944 L7.25,9.75 L7.25,11.248 L5.75,11.2487458 C5.33578644,11.2487458 5,11.5845322 5,11.9987458 C5,12.3784415 5.28215388,12.6922367 5.64822944,12.7418991 L5.75,12.7487458 L7.25,12.748 L7.25,14.25 C7.25,14.6642136 7.58578644,15 8,15 C8.37969577,15 8.69349096,14.7178461 8.74315338,14.3517706 L8.75,14.25 L8.75,12.748 L10.25,12.7487458 C10.6642136,12.7487458 11,12.4129593 11,11.9987458 C11,11.61905 10.7178461,11.3052548 10.3517706,11.2555924 L10.25,11.2487458 L8.75,11.248 L8.75,9.75 C8.75,9.33578644 8.41421356,9 8,9 Z M16.75,9 C16.0596441,9 15.5,9.55964406 15.5,10.25 C15.5,10.9403559 16.0596441,11.5 16.75,11.5 C17.4403559,11.5 18,10.9403559 18,10.25 C18,9.55964406 17.4403559,9 16.75,9 Z" >
+</path>
+        </g>
+    </g>
+</svg>
+          <span class="ml">Game</span> 
+      </li>
+   </a>
+   <a href="/newmangalist.php" class="flex  " style="margin-top:5px;">
+      <li class="flex">
+         <svg width="24" height="24" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 16V20M6 4V8M7 18H3M8 6H4M13 4L14.7528 8.44437C14.9407 8.92083 15.0347 9.15906 15.1786 9.35994C15.3061 9.538 15.462 9.69391 15.6401 9.82143C15.8409 9.9653 16.0792 10.0593 16.5556 10.2472L21 12L16.5556 13.7528C16.0792 13.9407 15.8409 14.0347 15.6401 14.1786C15.462 14.3061 15.3061 14.462 15.1786 14.6401C15.0347 14.8409 14.9407 15.0792 14.7528 15.5556L13 20L11.2472 15.5556C11.0593 15.0792 10.9653 14.8409 10.8214 14.6401C10.6939 14.462 10.538 14.3061 10.3599 14.1786C10.1591 14.0347 9.92083 13.9407 9.44437 13.7528L5 12L9.44437 10.2472C9.92083 10.0593 10.1591 9.9653 10.3599 9.82143C10.538 9.69391 10.6939 9.538 10.8214 9.35994C10.9653 9.15906 11.0593 8.92083 11.2472 8.44437L13 4Z" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+         </svg>
+          <span class="ml">NEW TITLES</span> 
+      </li>
+   </a>
+   <a href="/translationlist.php" class="flex  " style="margin-top:5px;">
+      <li class="flex">
+         <svg fill="#ffffff" width="24" height="24" viewBox="0 0 1920 1920" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M277.974 49.076c65.267-65.379 171.733-65.49 237.448 0l232.186 232.187 1055.697 1055.809L1919.958 1920l-582.928-116.653-950.128-950.015 79.15-79.15 801.792 801.68 307.977-307.976-907.362-907.474L281.22 747.65 49.034 515.464c-65.379-65.603-65.379-172.069 0-237.448Zm1376.996 1297.96-307.977 307.976 45.117 45.116 384.999 77.023-77.023-385-45.116-45.116ZM675.355 596.258l692.304 692.304-79.149 79.15-692.304-692.305 79.149-79.15ZM396.642 111.88c-14.33 0-28.547 5.374-39.519 16.345l-228.94 228.94c-21.718 21.718-21.718 57.318 0 79.149l153.038 153.037 308.089-308.09-153.037-153.036c-10.972-10.971-25.301-16.345-39.63-16.345Z" fill-rule="evenodd"></path> </g></svg>
+          <span class="ml">OUR TRANSLATIONS</span> 
+      </li>
+   </a>
+   <a href="/advanced.php" class="flex  selected-menu" style="margin-top:5px;">
+      <li class="flex">
+         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24">
+            <path stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16m10 2-4.35-4.35">
+            </path>
+         </svg>
+         <span class="ml">ADVANCED SEARCH</span> 
+      </li>
+   </a>
+   <a href="/bookmarks.php" class="flex  " style="margin-top:5px;">
+      <li class="flex">
+         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" class="icon" style="color: currentcolor;">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+         </svg>
+         <span class="ml">BOOKMARKS</span> 
+      </li>
+   </a>
+   <a href="/mycomments.php" class="flex  " style="margin-top:5px;">
+      <li class="flex">
+         <svg height="24" width="24" version="1.1" id="_x32_" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+    viewBox="0 0 512 512"  xml:space="preserve">
+<style type="text/css">
+   .st0{fill:#ffffff;}
+</style>
+<g>
+   <path class="st0" d="M92.574,294.24V124.336H43.277C19.449,124.336,0,144.213,0,168.467v206.44
+      c0,24.254,19.449,44.133,43.277,44.133h62v45.469c0,3.041,1.824,5.777,4.559,6.932c2.736,1.154,5.957,0.486,8.023-1.641
+      l49.844-50.76h106.494c23.828,0,43.279-19.879,43.279-44.133v-0.061H172.262C128.314,374.846,92.574,338.676,92.574,294.24z"/>
+   <path class="st0" d="M462.717,40H172.26c-27.105,0-49.283,22.59-49.283,50.197v204.037c0,27.61,22.178,50.199,49.283,50.199
+      h164.668l75.348,76.033c2.399,2.442,6.004,3.172,9.135,1.852c3.133-1.322,5.176-4.434,5.176-7.887v-69.998h36.131
+      c27.106,0,49.283-22.59,49.283-50.199V90.197C512,62.59,489.822,40,462.717,40z M369.156,280.115H195.92v-24.316h173.236V280.115z
+       M439.058,204.129H195.92v-24.314h243.138V204.129z M439.058,128.143H195.92v-24.315h243.138V128.143z"/>
+</g>
+</svg>
+         <span class="ml">COMMENTS</span> 
+      </li>
+   </a>
+<!--  <a href="history.php" class="flex  " style="margin-top:5px;">
+      <li class="flex">
+         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 8V12L14.5 14.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5.60423 5.60423L5.0739 5.0739V5.0739L5.60423 5.60423ZM4.33785 6.87061L3.58786 6.87438C3.58992 7.28564 3.92281 7.61853 4.33408 7.6206L4.33785 6.87061ZM6.87963 7.63339C7.29384 7.63547 7.63131 7.30138 7.63339 6.88717C7.63547 6.47296 7.30138 6.13549 6.88717 6.13341L6.87963 7.63339ZM5.07505 4.32129C5.07296 3.90708 4.7355 3.57298 4.32129 3.57506C3.90708 3.57715 3.57298 3.91462 3.57507 4.32882L5.07505 4.32129ZM3.75 12C3.75 11.5858 3.41421 11.25 3 11.25C2.58579 11.25 2.25 11.5858 2.25 12H3.75ZM16.8755 20.4452C17.2341 20.2378 17.3566 19.779 17.1492 19.4204C16.9418 19.0619 16.483 18.9393 16.1245 19.1468L16.8755 20.4452ZM19.1468 16.1245C18.9393 16.483 19.0619 16.9418 19.4204 17.1492C19.779 17.3566 20.2378 17.2341 20.4452 16.8755L19.1468 16.1245ZM5.14033 5.07126C4.84598 5.36269 4.84361 5.83756 5.13505 6.13191C5.42648 6.42626 5.90134 6.42862 6.19569 6.13719L5.14033 5.07126ZM18.8623 5.13786C15.0421 1.31766 8.86882 1.27898 5.0739 5.0739L6.13456 6.13456C9.33366 2.93545 14.5572 2.95404 17.8017 6.19852L18.8623 5.13786ZM5.0739 5.0739L3.80752 6.34028L4.86818 7.40094L6.13456 6.13456L5.0739 5.0739ZM4.33408 7.6206L6.87963 7.63339L6.88717 6.13341L4.34162 6.12062L4.33408 7.6206ZM5.08784 6.86684L5.07505 4.32129L3.57507 4.32882L3.58786 6.87438L5.08784 6.86684ZM12 3.75C16.5563 3.75 20.25 7.44365 20.25 12H21.75C21.75 6.61522 17.3848 2.25 12 2.25V3.75ZM12 20.25C7.44365 20.25 3.75 16.5563 3.75 12H2.25C2.25 17.3848 6.61522 21.75 12 21.75V20.25ZM16.1245 19.1468C14.9118 19.8483 13.5039 20.25 12 20.25V21.75C13.7747 21.75 15.4407 21.2752 16.8755 20.4452L16.1245 19.1468ZM20.25 12C20.25 13.5039 19.8483 14.9118 19.1468 16.1245L20.4452 16.8755C21.2752 15.4407 21.75 13.7747 21.75 12H20.25ZM6.19569 6.13719C7.68707 4.66059 9.73646 3.75 12 3.75V2.25C9.32542 2.25 6.90113 3.32791 5.14033 5.07126L6.19569 6.13719Z" fill="white"/>
+         </svg>
+         <span class="ml">READING HISTORY</span> 
+      </li>
+   </a> -->
+         <a href="/signin.php" class="flex" style="margin-top:5px;background-color:#0D0E0F;">
+      <li class="flex">
+         <svg viewBox="0 0 24 24" fill="none" height="24px" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M2.00098 11.999L16.001 11.999M16.001 11.999L12.501 8.99902M16.001 11.999L12.501 14.999" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path> <path d="M9.00195 7C9.01406 4.82497 9.11051 3.64706 9.87889 2.87868C10.7576 2 12.1718 2 15.0002 2L16.0002 2C18.8286 2 20.2429 2 21.1215 2.87868C22.0002 3.75736 22.0002 5.17157 22.0002 8L22.0002 16C22.0002 18.8284 22.0002 20.2426 21.1215 21.1213C20.3531 21.8897 19.1752 21.9862 17 21.9983M9.00195 17C9.01406 19.175 9.11051 20.3529 9.87889 21.1213C10.5202 21.7626 11.4467 21.9359 13 21.9827" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"></path> </g></svg>
+         <span class="ml">Sign in</span> 
+      </li>
+   </a>
+   <a href="/signup.php" class="flex" style="margin-top:5px;">
+      <li class="flex">
+         <svg viewBox="0 0 24 24" fill="none" height="24px" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" clip-rule="evenodd" d="M22 8.29344C22 11.7692 19.1708 14.5869 15.6807 14.5869C15.0439 14.5869 13.5939 14.4405 12.8885 13.8551L12.0067 14.7333C11.4883 15.2496 11.6283 15.4016 11.8589 15.652C11.9551 15.7565 12.0672 15.8781 12.1537 16.0505C12.1537 16.0505 12.8885 17.075 12.1537 18.0995C11.7128 18.6849 10.4783 19.5045 9.06754 18.0995L8.77362 18.3922C8.77362 18.3922 9.65538 19.4167 8.92058 20.4412C8.4797 21.0267 7.30403 21.6121 6.27531 20.5876L5.2466 21.6121C4.54119 22.3146 3.67905 21.9048 3.33616 21.6121L2.45441 20.7339C1.63143 19.9143 2.1115 19.0264 2.45441 18.6849L10.0963 11.0743C10.0963 11.0743 9.3615 9.90338 9.3615 8.29344C9.3615 4.81767 12.1907 2 15.6807 2C19.1708 2 22 4.81767 22 8.29344ZM15.681 10.4889C16.8984 10.4889 17.8853 9.50601 17.8853 8.29353C17.8853 7.08105 16.8984 6.09814 15.681 6.09814C14.4635 6.09814 13.4766 7.08105 13.4766 8.29353C13.4766 9.50601 14.4635 10.4889 15.681 10.4889Z" fill="#ffffff"></path> </g></svg>
+         <span class="ml">Register</span> 
+      </li>
+   </a>
+      <a href="https://discord.gg/pK3bUxdEhR" class="flex" style="margin-top:5px;">
+      <li class="flex">
+         <svg width="24px" height="24px" viewBox="0 -28.5 256 256" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid" fill="#ffffff"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g> <path d="M216.856339,16.5966031 C200.285002,8.84328665 182.566144,3.2084988 164.041564,0 C161.766523,4.11318106 159.108624,9.64549908 157.276099,14.0464379 C137.583995,11.0849896 118.072967,11.0849896 98.7430163,14.0464379 C96.9108417,9.64549908 94.1925838,4.11318106 91.8971895,0 C73.3526068,3.2084988 55.6133949,8.86399117 39.0420583,16.6376612 C5.61752293,67.146514 -3.4433191,116.400813 1.08711069,164.955721 C23.2560196,181.510915 44.7403634,191.567697 65.8621325,198.148576 C71.0772151,190.971126 75.7283628,183.341335 79.7352139,175.300261 C72.104019,172.400575 64.7949724,168.822202 57.8887866,164.667963 C59.7209612,163.310589 61.5131304,161.891452 63.2445898,160.431257 C105.36741,180.133187 151.134928,180.133187 192.754523,160.431257 C194.506336,161.891452 196.298154,163.310589 198.110326,164.667963 C191.183787,168.842556 183.854737,172.420929 176.223542,175.320965 C180.230393,183.341335 184.861538,190.991831 190.096624,198.16893 C211.238746,191.588051 232.743023,181.531619 254.911949,164.955721 C260.227747,108.668201 245.831087,59.8662432 216.856339,16.5966031 Z M85.4738752,135.09489 C72.8290281,135.09489 62.4592217,123.290155 62.4592217,108.914901 C62.4592217,94.5396472 72.607595,82.7145587 85.4738752,82.7145587 C98.3405064,82.7145587 108.709962,94.5189427 108.488529,108.914901 C108.508531,123.290155 98.3405064,135.09489 85.4738752,135.09489 Z M170.525237,135.09489 C157.88039,135.09489 147.510584,123.290155 147.510584,108.914901 C147.510584,94.5396472 157.658606,82.7145587 170.525237,82.7145587 C183.391518,82.7145587 193.761324,94.5189427 193.539891,108.914901 C193.539891,123.290155 183.391518,135.09489 170.525237,135.09489 Z" fill="#ffffff" fill-rule="nonzero"> </path> </g> </g>
+         </svg>
+         <span class="ml">DISCORD</span> 
+      </li>
+   </a>
+<a href="/terms-and-conditions.php" class="flex" style="margin-top:5px;">
+      <li class="flex">
+      <svg fill="#ffffff" height="24px" width="24px" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 350.047 350.047" xml:space="preserve" stroke="#ffffff"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g> <g> <path d="M136.265,85.51c4.143,0,7.5-3.357,7.5-7.5c0-4.142-3.357-7.5-7.5-7.5c-33.295,0-60.383,27.088-60.383,60.383 c0,33.295,27.088,60.383,60.383,60.383c4.143,0,7.5-3.358,7.5-7.5c0-4.143-3.357-7.5-7.5-7.5 c-25.023,0-45.383-20.358-45.383-45.383C90.882,105.868,111.241,85.51,136.265,85.51z"></path> <path d="M326.779,276.677c-0.168-0.208-43.641-43.704-43.641-43.704V7.5c0-4.143-3.357-7.5-7.5-7.5H25.63 c-4.142,0-7.5,3.357-7.5,7.5v335.047c0,4.143,3.358,7.5,7.5,7.5h250.008c4.143,0,7.5-3.357,7.5-7.5v-22.161 c3.732,3.411,8.525,5.118,13.465,5.118c5.85,0,11.887-2.363,16.545-7.022l11.76-11.761 C333.513,298.119,334.263,284.828,326.779,276.677z M33.13,335.047V15h235.008v202.973l-24.348-24.347 c-0.002-0.001-0.002-0.001-0.002-0.001c-3.99-3.99-9.662-6.052-15.543-5.668c-5.602,0.37-10.965,2.854-15.105,6.994l-0.578,0.576 l-10.602-10.602c12.377-14.588,19.865-33.448,19.865-54.033c0-46.125-37.525-83.65-83.649-83.65 c-46.127,0-83.652,37.525-83.652,83.65c0,46.126,37.525,83.652,83.652,83.652c20.148,0,38.656-7.164,53.113-19.075l10.666,10.666 l-0.576,0.576c-4.141,4.14-6.625,9.504-6.996,15.105c-0.391,5.888,1.676,11.553,5.668,15.545c0,0,0,0,0,0.001l68.086,68.087 v29.598H33.13z M138.177,199.545c-37.855,0-68.652-30.797-68.652-68.652c0-37.854,30.797-68.65,68.652-68.65 c37.852,0,68.649,30.797,68.649,68.65C206.825,168.748,176.029,199.545,138.177,199.545z M314.302,296.115l-11.76,11.761 c-2.918,2.917-7.24,3.525-9.438,1.326l-82.445-82.447v-0.001l0,0c-1.281-1.279-1.369-3.021-1.309-3.946 c0.129-1.943,1.09-3.943,2.635-5.489l11.762-11.761c1.545-1.545,3.545-2.505,5.486-2.634c0.922-0.054,2.67,0.028,3.947,1.309l0,0 c0.002,0,0.002,0.001,0.002,0.001l82.447,82.445l0.002,0.003C317.825,288.883,317.218,293.2,314.302,296.115z"></path> </g> </g> </g></svg>
+      <span class="ml">Terms</span> 
+      </li>
+   </a>
+
+<a href="/premium.php" class="flex" style="margin-top:5px;">
+      <li class="flex">
+         <svg width="24px" height="24px" viewBox="0 0 24 24" id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><defs><style>.cls-1{fill:none;stroke:#ffffff;stroke-miterlimit:10;stroke-width:1.91px;}</style></defs><circle class="cls-1" cx="12" cy="12" r="10.5"></circle><path class="cls-1" d="M15.19,6.12,6.12,15.19A6.7,6.7,0,0,1,12,5.32,6.59,6.59,0,0,1,15.19,6.12Z"></path><path class="cls-1" d="M18.68,12A6.68,6.68,0,0,1,12,18.68a6.59,6.59,0,0,1-3.19-.8l9.07-9.07A6.59,6.59,0,0,1,18.68,12Z"></path></g></svg>
+         <span class="ml">Remove Ads</span> 
+      </li>
+   </a>
+
+
+</div>
+
+<h4 style="background-color:#2da01e;color:white;padding:2px;text-align:center;">If your no-ads sub doesn't get activated in 24 hours, contact us here demonicscans@proton.me or contact slayer in our discord server</h4>
+
+<div class="main-width center-m border-box" id="browse-container">
+<div id="browse-form">
+<form action="advanced.php" method="POST" class="border-box">
+   <div id="genres-container" style="margin-bottom:30px;">
+       
+            
+                <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="1" />&nbsp;Action</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="2" />&nbsp;Adventure</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="3" />&nbsp;Comedy</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="34" />&nbsp;Cooking</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="25" />&nbsp;Doujinshi</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="4" />&nbsp;Drama</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="19" />&nbsp;Ecchi</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="5" />&nbsp;Fantasy</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="30" />&nbsp;Gender Bender</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="10" />&nbsp;Harem</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="28" />&nbsp;Historical</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="8" />&nbsp;Horror</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="33" />&nbsp;Isekai</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="31" />&nbsp;Josei</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="6" />&nbsp;Martial Arts</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="22" />&nbsp;Mature</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="32" />&nbsp;Mecha</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="36" />&nbsp;Murim</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="15" />&nbsp;Mystery</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="26" />&nbsp;One Shot</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="35" />&nbsp;Our Translation</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="11" />&nbsp;Psychological</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="12" />&nbsp;Romance</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="13" />&nbsp;School Life</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="16" />&nbsp;Sci-fi</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="17" />&nbsp;Seinen</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="14" />&nbsp;Shoujo</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="23" />&nbsp;Shoujo Ai</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="7" />&nbsp;Shounen</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="29" />&nbsp;Shounen Ai</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="21" />&nbsp;Slice of Life</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="27" />&nbsp;Smut</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="20" />&nbsp;Sports</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="9" />&nbsp;Supernatural</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="18" />&nbsp;Tragedy</li>          <li class="border-box"><input class="genrespick" type="checkbox" name="genres[]" value="24" />&nbsp;Webtoons</li>         
+           
+   </div>
+
+            
+          
+            <div id="filters-container">
+          <select class="form-control" name="status">
+  <option value="all">All</option>
+  <option value="ongoing">Ongoing</option>
+  <option value="completed">Completed</option>
+ 
+</select>
+     
+   
+        <select class="form-control" name="orderby">
+  <option value="VIEWS DESC">Top Views</option>
+  <option value="ID DESC">Recently added</option>
+  <option value="NAME ASC">A To Z</option>
+
+ 
+</select>
+   
+     
+              <input id="submitfilter" type="submit" name="submit" value="Search">
+        
+        
+    </div>
+        
+        
+      </form>
+
+</div>
+
+
+<style>.advanced-element{ overflow:hidden;} </style>
+
+<div class="advanced-container">
+<div class="pagination">
+<ul>
+   
+<li style="background-color:#ff6740;"><a>1</a></li>
+<a href="/advanced.php?list=2"><li>2</li></a>
+<a href="/advanced.php?list=3"><li>3</li></a>
+<li style="margin-left:2px;margin-right:2px;">.&nbsp;.&nbsp;.</li>
+<a href="/advanced.php?list=2"><li>Next</li></a>
+
+</ul>
+
+  </div>
+
+
+
+
+
+
+  <div id="advanced-content">
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Corporate-Slave-Reincarnates-as-the-Strongest-Demon-Dragon-and-Becomes-the-Hero%2527s-Master"  title="The Corporate Slave Reincarnates as the Strongest Demon Dragon and Becomes the Hero's Master">
+  <img src="https://readermc.org/images/thumbnails/The Corporate Slave Reincarnates as the Strongest Demon Dragon and Becomes the Hero's Master.jpg" title="The Corporate Slave Reincarnates as the Strongest Demon Dragon and Becomes the Hero's Master" alt="The Corporate Slave Reincarnates as the Strongest Demon Dragon and Becomes the Hero's Master">
+  <div class="shadowimg"></div>
+  <h1>The Corporate Sla...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 19216         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Mechanic%253A-Slayer"  title="Mechanic: Slayer">
+  <img src="https://readermc.org/images/thumbnails/Mechanic  Slayer.webp" title="Mechanic: Slayer" alt="Mechanic: Slayer">
+  <div class="shadowimg"></div>
+  <h1>Mechanic: Slayer<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 86000         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Efficiency-Freak%2527s-Isekai-Speedrun"  title="The Efficiency Freak's Isekai Speedrun">
+  <img src="https://readermc.org/images/thumbnails/The Efficiency Freak 's Isekai Speedrun.webp" title="The Efficiency Freak's Isekai Speedrun" alt="The Efficiency Freak's Isekai Speedrun">
+  <div class="shadowimg"></div>
+  <h1>The Efficiency Fr...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 7590         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/My-Slain-Dragon-Bride"  title="My Slain Dragon Bride">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-fba64e75eea58d1d4ce0caa37d567501.webp" title="My Slain Dragon Bride" alt="My Slain Dragon Bride">
+  <div class="shadowimg"></div>
+  <h1>My Slain Dragon B...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 113287         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Legend-of-the-Pinnacle-of-Online-Games"  title="Legend of the Pinnacle of Online Games">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-d5320e54c0af39eb3bd422c72e1bd466.webp" title="Legend of the Pinnacle of Online Games" alt="Legend of the Pinnacle of Online Games">
+  <div class="shadowimg"></div>
+  <h1>Legend of the Pin...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 15389         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Ghost-Story-Market"  title="Ghost Story Market">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-48bc612e6c419f1ef39ee7224d702d26.webp" title="Ghost Story Market" alt="Ghost Story Market">
+  <div class="shadowimg"></div>
+  <h1>Ghost Story Market<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 9617         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Legendary-Eye-Master%2521-I-Create-the-Heavens-and-Earth-with-My-Own-Eyes"  title="The Legendary Eye Master! I Create the Heavens and Earth with My Own Eyes">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-67a6d3d591c0c03e357b1588c1db4685.webp" title="The Legendary Eye Master! I Create the Heavens and Earth with My Own Eyes" alt="The Legendary Eye Master! I Create the Heavens and Earth with My Own Eyes">
+  <div class="shadowimg"></div>
+  <h1>The Legendary Eye...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 12464         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Necromancer-Who-Spares-No-Expense"  title="The Necromancer Who Spares No Expense">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-51b983e643ce303e0e4f4ccb44ec8b6f.webp" title="The Necromancer Who Spares No Expense" alt="The Necromancer Who Spares No Expense">
+  <div class="shadowimg"></div>
+  <h1>The Necromancer W...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 88033         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Nine-Star-Hegemon-Body-Arts"  title="Nine Star Hegemon Body Arts">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-1505982fab7d3c82f8e9f05b9185f0d1.webp" title="Nine Star Hegemon Body Arts" alt="Nine Star Hegemon Body Arts">
+  <div class="shadowimg"></div>
+  <h1>Nine Star Hegemon...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 5014         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/hin-no-Jitsuryoku-o-Kakushite-Iru-Sekai-Saikyou-no-Ossan%252C-Shinyuu-ga-Boukensha-Patii-kara-Tsuihousareta-node-Jibun-mo-Nukeru-Koto-ni-Shita"  title="hin no Jitsuryoku o Kakushite Iru Sekai Saikyou no Ossan, Shinyuu ga Boukensha Patii kara Tsuihousareta node Jibun mo Nukeru Koto ni Shita">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-8564e0c6691c9670bf77d3df08dbd530.webp" title="hin no Jitsuryoku o Kakushite Iru Sekai Saikyou no Ossan, Shinyuu ga Boukensha Patii kara Tsuihousareta node Jibun mo Nukeru Koto ni Shita" alt="hin no Jitsuryoku o Kakushite Iru Sekai Saikyou no Ossan, Shinyuu ga Boukensha Patii kara Tsuihousareta node Jibun mo Nukeru Koto ni Shita">
+  <div class="shadowimg"></div>
+  <h1>hin no Jitsuryoku...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 11666         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Moto-Saikyou-Ansatsusha-wa-Inaka-de-Hissori-Shinpu-ni-Naru-%257EDai%25252Dshusse-Shita-Oshiego%25252Dtachi-ni-Shitawareu-Ossan-ga-An%2527yakusuru-Hanashi%257E"  title="Moto Saikyou Ansatsusha wa Inaka de Hissori Shinpu ni Naru ~Dai-shusse Shita Oshiego-tachi ni Shitawareu Ossan ga An'yakusuru Hanashi~">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-43cdd6f33fc34c887e6d33ca237d483d.webp" title="Moto Saikyou Ansatsusha wa Inaka de Hissori Shinpu ni Naru ~Dai-shusse Shita Oshiego-tachi ni Shitawareu Ossan ga An'yakusuru Hanashi~" alt="Moto Saikyou Ansatsusha wa Inaka de Hissori Shinpu ni Naru ~Dai-shusse Shita Oshiego-tachi ni Shitawareu Ossan ga An'yakusuru Hanashi~">
+  <div class="shadowimg"></div>
+  <h1>Moto Saikyou Ansa...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 5972         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Newbie-Civil-Servant-Hunts-Villains-Before-Going-Home"  title="The Newbie Civil Servant Hunts Villains Before Going Home">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-a67be0e8e82f51cac5863432a6535332.webp" title="The Newbie Civil Servant Hunts Villains Before Going Home" alt="The Newbie Civil Servant Hunts Villains Before Going Home">
+  <div class="shadowimg"></div>
+  <h1>The Newbie Civil ...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 35968         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Yugo-Skill-de-Buki-Musou%2521-Goblin-Sword-kara-Densetsu-e"  title="Yugo Skill de Buki Musou! Goblin Sword kara Densetsu e">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-c5402506a0b2b5e5bcffb59aebd07ba0.webp" title="Yugo Skill de Buki Musou! Goblin Sword kara Densetsu e" alt="Yugo Skill de Buki Musou! Goblin Sword kara Densetsu e">
+  <div class="shadowimg"></div>
+  <h1>Yugo Skill de Buk...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 1906         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Monster%2527s-Streamer-Star"  title="Monster's Streamer Star">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-ad3da6a483e54c7a70a5b8b83c2a4919.webp" title="Monster's Streamer Star" alt="Monster's Streamer Star">
+  <div class="shadowimg"></div>
+  <h1>Monster's Streame...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 42755         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Flawed-Swordsman-Becomes-a-Conqueror"  title="The Flawed Swordsman Becomes a Conqueror">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-026bc244ae1594eb53aec03340d9071b.webp" title="The Flawed Swordsman Becomes a Conqueror" alt="The Flawed Swordsman Becomes a Conqueror">
+  <div class="shadowimg"></div>
+  <h1>The Flawed Swords...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 54378         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/I-Am-Being-Mistaken-for-an-S%25252DClass-Employee"  title="I Am Being Mistaken for an S-Class Employee">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-39704199ffed62f1f5765270474a0edd.webp" title="I Am Being Mistaken for an S-Class Employee" alt="I Am Being Mistaken for an S-Class Employee">
+  <div class="shadowimg"></div>
+  <h1>I Am Being Mistak...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 19123         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Chronicles-of-the-Taoist-Masters"  title="Chronicles of the Taoist Masters">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-64e9d84c1fa1323c544c237317733c6e.webp" title="Chronicles of the Taoist Masters" alt="Chronicles of the Taoist Masters">
+  <div class="shadowimg"></div>
+  <h1>Chronicles of the...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 17656         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Talker"  title="Talker">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-d19bcfe0a486a88d1eb943aeab4b0966.webp" title="Talker" alt="Talker">
+  <div class="shadowimg"></div>
+  <h1>Talker<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 22895         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Chronicles-of-the-Three-Realms-%25252D-King-of-the-World"  title="Chronicles of the Three Realms - King of the World">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-3cfc53df05e863fecf42a2b06e7753a8.webp" title="Chronicles of the Three Realms - King of the World" alt="Chronicles of the Three Realms - King of the World">
+  <div class="shadowimg"></div>
+  <h1>Chronicles of the...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 10106         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Although-I-Was-Banished-for-Being-Unable-to-Use-Healing-Magic%252C-for-Some-Reason-Everyone-Relies-on-Me"  title="Although I Was Banished for Being Unable to Use Healing Magic, for Some Reason Everyone Relies on Me">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-0f7a53ff01dbb742e8544a0fc1c7d3cd.webp" title="Although I Was Banished for Being Unable to Use Healing Magic, for Some Reason Everyone Relies on Me" alt="Although I Was Banished for Being Unable to Use Healing Magic, for Some Reason Everyone Relies on Me">
+  <div class="shadowimg"></div>
+  <h1>Although I Was Ba...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 3372         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Knight-of-the-107th-Demon-Beast-Front-%257EFutoshi-Odyssey%257E"  title="The Knight of the 107th Demon Beast Front ~Futoshi Odyssey~">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-8af421d677aa18d339545ce2740801ac.webp" title="The Knight of the 107th Demon Beast Front ~Futoshi Odyssey~" alt="The Knight of the 107th Demon Beast Front ~Futoshi Odyssey~">
+  <div class="shadowimg"></div>
+  <h1>The Knight of the...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 1228         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Hazure-Skill-%2522Konbini%2522-de-Saikyou-no-Yuusha-ni-Nariagaru%2521-%25252D-Isekai-de-Konbini-Seikatsu-wo-Mankitsu-Shitsutsu%252C-Ore-no-Tsuihou-shita-Classmate-wo-Mikaeu-Koto-ni-shimashita"  title="Hazure Skill "Konbini" de Saikyou no Yuusha ni Nariagaru! - Isekai de Konbini Seikatsu wo Mankitsu Shitsutsu, Ore no Tsuihou shita Classmate wo Mikaeu Koto ni shimashita">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-1750d133c947375ad4e20fac66155661.webp" title="Hazure Skill "Konbini" de Saikyou no Yuusha ni Nariagaru! - Isekai de Konbini Seikatsu wo Mankitsu Shitsutsu, Ore no Tsuihou shita Classmate wo Mikaeu Koto ni shimashita" alt="Hazure Skill "Konbini" de Saikyou no Yuusha ni Nariagaru! - Isekai de Konbini Seikatsu wo Mankitsu Shitsutsu, Ore no Tsuihou shita Classmate wo Mikaeu Koto ni shimashita">
+  <div class="shadowimg"></div>
+  <h1>Hazure Skill "Kon...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 987         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Rebel-of-the-Apocalypse-Academy"  title="The Rebel of the Apocalypse Academy">
+  <img src="https://readermc.org/images/thumbnails/The Rebel of the Apocalypse Academy.webp" title="The Rebel of the Apocalypse Academy" alt="The Rebel of the Apocalypse Academy">
+  <div class="shadowimg"></div>
+  <h1>The Rebel of the ...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 140045         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Lumberjack"  title="Lumberjack">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-29e0b08121f4bcdc523bf4845fab6f32.webp" title="Lumberjack" alt="Lumberjack">
+  <div class="shadowimg"></div>
+  <h1>Lumberjack<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 23683         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Magical-Girl%2527s-Tailor-He%2527s-Not-the-Strongest%252C-but-He-Makes-Her-the-Strongest-by-Tailloring-Her-Dress"  title="Magical Girl's Tailor He's Not the Strongest, but He Makes Her the Strongest by Tailloring Her Dress">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-8fbb75505cd7b6fb16e69369067ef246.webp" title="Magical Girl's Tailor He's Not the Strongest, but He Makes Her the Strongest by Tailloring Her Dress" alt="Magical Girl's Tailor He's Not the Strongest, but He Makes Her the Strongest by Tailloring Her Dress">
+  <div class="shadowimg"></div>
+  <h1>Magical Girl's Ta...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 14594         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Strongest-Sage-With-Zero-Magic-Power-%257E-I-Became-the-World%2527s-Strongest-Upon-Mastering-Magic-Theory-%257E"  title="The Strongest Sage With Zero Magic Power ~ I Became the World's Strongest Upon Mastering Magic Theory ~">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-a711786260c6f57ff0847215aaceecca.webp" title="The Strongest Sage With Zero Magic Power ~ I Became the World's Strongest Upon Mastering Magic Theory ~" alt="The Strongest Sage With Zero Magic Power ~ I Became the World's Strongest Upon Mastering Magic Theory ~">
+  <div class="shadowimg"></div>
+  <h1>The Strongest Sag...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 15642         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Hitman%2527s-Sales-Techniques"  title="The Hitman's Sales Techniques">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-20a965c5f852eb2710e4e1241743e4c1.webp" title="The Hitman's Sales Techniques" alt="The Hitman's Sales Techniques">
+  <div class="shadowimg"></div>
+  <h1>The Hitman's Sale...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 10496         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Rise-of-the-Unbeatable-Useless-General"  title="Rise of the Unbeatable Useless General">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-fcf5fe23890341476a7f1bc710caed28.webp" title="Rise of the Unbeatable Useless General" alt="Rise of the Unbeatable Useless General">
+  <div class="shadowimg"></div>
+  <h1>Rise of the Unbea...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 12039         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/error-d-echo"  title="error d echo">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-cff21509ec668e262f41d16cac841ee8.webp" title="error d echo" alt="error d echo">
+  <div class="shadowimg"></div>
+  <h1>error d echo<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 24865         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Global-Beast-Taming%253A-Awakening-an-SSS%25252Dlevel-Talent-at-the-Start"  title="Global Beast Taming: Awakening an SSS-level Talent at the Start">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-e1a7cad4cc8a73aee9347051afa657d5.webp" title="Global Beast Taming: Awakening an SSS-level Talent at the Start" alt="Global Beast Taming: Awakening an SSS-level Talent at the Start">
+  <div class="shadowimg"></div>
+  <h1>Global Beast Tami...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 80221         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Princess-in-the-Dragon%2527s-Belly"  title="The Princess in the Dragon's Belly">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-0f1bde0450b41107cec5372b8449826f.webp" title="The Princess in the Dragon's Belly" alt="The Princess in the Dragon's Belly">
+  <div class="shadowimg"></div>
+  <h1>The Princess in t...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 25983         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Summoner-Of-Calamity"  title="Summoner Of Calamity">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-afa78c7ac331caeb2f1df594b7e21199.webp" title="Summoner Of Calamity" alt="Summoner Of Calamity">
+  <div class="shadowimg"></div>
+  <h1>Summoner Of Calamity<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 38215         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/This-Life-Is-a-10th-Circle-Archmage"  title="This Life Is a 10th Circle Archmage">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-690c6cd307263108b214c95575c1fef9.webp" title="This Life Is a 10th Circle Archmage" alt="This Life Is a 10th Circle Archmage">
+  <div class="shadowimg"></div>
+  <h1>This Life Is a 10...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 99721         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Hero-Cannot-Rest"  title="The Hero Cannot Rest">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-ec9df8535ccaf9fe0356b5d24cab1328.webp" title="The Hero Cannot Rest" alt="The Hero Cannot Rest">
+  <div class="shadowimg"></div>
+  <h1>The Hero Cannot Rest<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 87564         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Leveling-Up-with-Monsters%253A-Shadow-Sovereign"  title="Leveling Up with Monsters: Shadow Sovereign">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-b198dae5a460f2f50a030d8af1121d91.webp" title="Leveling Up with Monsters: Shadow Sovereign" alt="Leveling Up with Monsters: Shadow Sovereign">
+  <div class="shadowimg"></div>
+  <h1>Leveling Up with ...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 192918         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/There-is-no-Sejong-in-my-Joseon-Dynasty"  title="There is no Sejong in my Joseon Dynasty">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-06f7979b7f70b8a8c74cf3948e96cd7b.webp" title="There is no Sejong in my Joseon Dynasty" alt="There is no Sejong in my Joseon Dynasty">
+  <div class="shadowimg"></div>
+  <h1>There is no Sejon...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 32463         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/I-Became-a-Martial-Arts-God%2527s-Youngest-Son"  title="I Became a Martial Arts God's Youngest Son">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-fdea711d4ec49530b0cd2dd339ff06a5.webp" title="I Became a Martial Arts God's Youngest Son" alt="I Became a Martial Arts God's Youngest Son">
+  <div class="shadowimg"></div>
+  <h1>I Became a Martia...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 119720         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Return-of-the-Dragon-Girlfriend"  title="Return of the Dragon Girlfriend">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-479d86a82f66679edc4d3092fabc458c.webp" title="Return of the Dragon Girlfriend" alt="Return of the Dragon Girlfriend">
+  <div class="shadowimg"></div>
+  <h1>Return of the Dra...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 58234         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/High-Martial-Arts%253A-My-Cells-Can-Evolve-Infinitely"  title="High Martial Arts: My Cells Can Evolve Infinitely">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-ac670b1f6e5934c2a83dbf2e9c7c2f38.webp" title="High Martial Arts: My Cells Can Evolve Infinitely" alt="High Martial Arts: My Cells Can Evolve Infinitely">
+  <div class="shadowimg"></div>
+  <h1>High Martial Arts...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 38655         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Salaryman-Eats-in-Another-World"  title="Salaryman Eats in Another World">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-21edd6ed444bbe6754a42b1f6e9913d9.webp" title="Salaryman Eats in Another World" alt="Salaryman Eats in Another World">
+  <div class="shadowimg"></div>
+  <h1>Salaryman Eats in...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 2480         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Starting-Over%253A-The-Strongest-Dungeon-Streamer%2521-I-Suddenly-Returned-to-the-World-10-Years-Ago%252C-So-I%2527ll-Redo-Everything%2521"  title="Starting Over: The Strongest Dungeon Streamer! I Suddenly Returned to the World 10 Years Ago, So I'll Redo Everything!">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-bcb261fc5ce2fdfcfc2d30bf4c33bb2d.webp" title="Starting Over: The Strongest Dungeon Streamer! I Suddenly Returned to the World 10 Years Ago, So I'll Redo Everything!" alt="Starting Over: The Strongest Dungeon Streamer! I Suddenly Returned to the World 10 Years Ago, So I'll Redo Everything!">
+  <div class="shadowimg"></div>
+  <h1>Starting Over: Th...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 2351         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/A-Girl-Clumsy-With-Her-Words"  title="A Girl Clumsy With Her Words">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-67553f3aea571a4700a30d054b6893c9.webp" title="A Girl Clumsy With Her Words" alt="A Girl Clumsy With Her Words">
+  <div class="shadowimg"></div>
+  <h1>A Girl Clumsy Wit...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 18034         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Solo-Swordmaster"  title="Solo Swordmaster">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-ba9b7524d51e3eda6b31014180321a43.webp" title="Solo Swordmaster" alt="Solo Swordmaster">
+  <div class="shadowimg"></div>
+  <h1>Solo Swordmaster<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 193792         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Road-to-Mastery"  title="Road to Mastery">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-a8b141485adb78a532d101af81b586bf.webp" title="Road to Mastery" alt="Road to Mastery">
+  <div class="shadowimg"></div>
+  <h1>Road to Mastery<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 7195         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Crazy-Villain-Regains-His-Sanity"  title="The Crazy Villain Regains His Sanity">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-8bd0aad9f449b65f3e77ab6e263a290d.webp" title="The Crazy Villain Regains His Sanity" alt="The Crazy Villain Regains His Sanity">
+  <div class="shadowimg"></div>
+  <h1>The Crazy Villain...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 395269         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Copy-Skills-with-Affinity%2521"  title="Copy Skills with Affinity!">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-3cc64beacdc258a33aba99405c1d8ed2.webp" title="Copy Skills with Affinity!" alt="Copy Skills with Affinity!">
+  <div class="shadowimg"></div>
+  <h1>Copy Skills with ...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 60564         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Crazy-Young-Master%2527s-Daily-Life-Is-a-Scheme"  title="The Crazy Young Master's Daily Life Is a Scheme">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-ca44de44aa7aa6109fb1ad9ef79254c3.webp" title="The Crazy Young Master's Daily Life Is a Scheme" alt="The Crazy Young Master's Daily Life Is a Scheme">
+  <div class="shadowimg"></div>
+  <h1>The Crazy Young M...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 4593         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Howling-%2528WANKE%2529"  title="Howling (WANKE)">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-57deef047640fe81ced419196b06ea01.webp" title="Howling (WANKE)" alt="Howling (WANKE)">
+  <div class="shadowimg"></div>
+  <h1>Howling (WANKE)<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 26725         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/How-A-Cyberpunk-Fixer-Lives"  title="How A Cyberpunk Fixer Lives">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-67c566969920f8e01f5023944ee324ac.webp" title="How A Cyberpunk Fixer Lives" alt="How A Cyberpunk Fixer Lives">
+  <div class="shadowimg"></div>
+  <h1>How A Cyberpunk F...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 4212         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Regressionist-and-the-Blind-Saintess"  title="The Regressionist and the Blind Saintess">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-6592bd68d6d49c0a3e5c2ff50822cb88.webp" title="The Regressionist and the Blind Saintess" alt="The Regressionist and the Blind Saintess">
+  <div class="shadowimg"></div>
+  <h1>The Regressionist...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 94801         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/A-Grimoire-Changed-My-Fate"  title="A Grimoire Changed My Fate">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-aaef9c532f277d4aefc25485f287f52d.webp" title="A Grimoire Changed My Fate" alt="A Grimoire Changed My Fate">
+  <div class="shadowimg"></div>
+  <h1>A Grimoire Change...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 37118         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Eiyuu-Kaiki-wa-Hyakuman%25252Dkaime"  title="Eiyuu Kaiki wa Hyakuman-kaime">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-6e0973d3164e6c09086d37f990fe3a24.webp" title="Eiyuu Kaiki wa Hyakuman-kaime" alt="Eiyuu Kaiki wa Hyakuman-kaime">
+  <div class="shadowimg"></div>
+  <h1>Eiyuu Kaiki wa Hy...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 21526         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/Till-Death-Do-Us-Part"  title="Till Death Do Us Part">
+  <img src="https://readermc.org/images/thumbnails/mgeko-recent-7c9d4a87b58f6ff52d6e22dd2d03d1f9.webp" title="Till Death Do Us Part" alt="Till Death Do Us Part">
+  <div class="shadowimg"></div>
+  <h1>Till Death Do Us ...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 8817         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Return-of-the-Scorned-Genius"  title="The Return of the Scorned Genius">
+  <img src="https://readermc.org/images/thumbnails/the-return-of-the-scorned-genius-thunderscans-e13c8d11dd5d.webp" title="The Return of the Scorned Genius" alt="The Return of the Scorned Genius">
+  <div class="shadowimg"></div>
+  <h1>The Return of the...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 339675         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/The-Swordsmanship-Familys-Butler-Was-the-Heroic-Emperor"  title="The Swordsmanship Familys Butler Was the Heroic Emperor">
+  <img src="https://readermc.org/images/thumbnails/the-swordsmanship-family-s-butler-was-the-heroic-emperor-thunderscans-fa80d87cc118.webp" title="The Swordsmanship Familys Butler Was the Heroic Emperor" alt="The Swordsmanship Familys Butler Was the Heroic Emperor">
+  <div class="shadowimg"></div>
+  <h1>The Swordsmanship...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 215822         </div></h1>
+  </a>
+ </div>
+
+
+
+
+<div class="advanced-element">       
+<a href="/manga/My-Exclusive-Evil-King-Skill-Is-Too-Overpowered"  title="My Exclusive Evil King Skill Is Too Overpowered">
+  <img src="https://readermc.org/images/thumbnails/My Exclusive Evil King Skill Is Too Overpowered.webp" title="My Exclusive Evil King Skill Is Too Overpowered" alt="My Exclusive Evil King Skill Is Too Overpowered">
+  <div class="shadowimg"></div>
+  <h1>My Exclusive Evil...<br><div style="font-size:12px;color:#ff6740;text-align:left;font-weight:300;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" style="position:relative;top:3px;" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8"></path><circle cx="12" cy="12" r="3"></circle>
+            </svg> 23652         </div></h1>
+  </a>
+ </div>
+
+
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="pagination">
+
+<ul>
+   
+<li style="background-color:#ff6740;"><a>1</a></li>
+<a href="/advanced.php?list=2"><li>2</li></a>
+<a href="/advanced.php?list=3"><li>3</li></a>
+<li style="margin-left:2px;margin-right:2px;">.&nbsp;.&nbsp;.</li>
+<a href="/advanced.php?list=2"><li>Next</li></a>
+
+</ul>
+
+  </div>
+
+
+
+
+
+
+
+
+
+
+
+</div>
+</div>
+  <!-- <script async data-cfasync="false" src="https://platform.pubadx.one/pubadx-ad.js" type="text/javascript"></script> -->
+<!-- <div id="bg-ssp-9181">
+<script data-cfasync="false">
+var adx_id_9181 = document.getElementById('bg-ssp-9181');
+adx_id_9181.id = 'bg-ssp-9181-' + Math.floor(Math.random() * Date.now());
+window.pubadxtag = window.pubadxtag || [];
+window.pubadxtag.push({zoneid: 9181, id: adx_id_9181.id, wu: window.location.href})
+</script>
+</div> -->
+<!-- <div id="bg-ssp-9222">
+<script data-cfasync="false">
+var adx_id_9222 = document.getElementById('bg-ssp-9222');
+adx_id_9222.id = 'bg-ssp-9222-' + Math.floor(Math.random() * Date.now());
+window.pubadxtag = window.pubadxtag || [];
+window.pubadxtag.push({zoneid: 9222, id: adx_id_9222.id, wu: window.location.href})
+</script>
+</div> -->
+<!-- <div id="pf-10330-1"><script>window.pubfuturetag = window.pubfuturetag || [];window.pubfuturetag.push({unit: "66b5f1b486246456a5178d5f", id: "pf-10330-1"})</script></div>
+<div id="pf-10331-1"><script>window.pubfuturetag = window.pubfuturetag || [];window.pubfuturetag.push({unit: "66b5f1c986246456a5178d95", id: "pf-10331-1"})</script></div> -->
+<div id="footer-container" class="flex flex-col">
+	<div class="flex justify-center">
+		<a href="/index.php">
+			<img src="/img/demon-logo-sm.png" style="width: 40px; height: 40px;">
+			<img src="/img/demon-title-sm.png" style="width: 160px; height: 36px;">
+		</a>
+	</div>&nbsp;
+	<div class="flex justify-center">
+		<a href="/privacy.php"  style="text-decoration: none;color:white;">
+			Privacy Policy&nbsp;&nbsp;
+		</a>
+		<a href="#"  style="text-decoration: none;color:white;">
+			&nbsp;&nbsp;DMCA Notices&nbsp;&nbsp;
+		</a>
+		<a href="#"  style="text-decoration: none;color:white;">
+			&nbsp;&nbsp;Content Policy
+		</a>
+	</div><br>
+	<div class="flex justify-center" style="color:white;font-size: 12px;">
+	
+			© 2024 Manga Demon
+		
+	</div>
+</div>
+
+
+
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a56f78220987ce73',t:'MTc5NDA4NzM0Mg=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a56f78220987ce73',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"ffeb99d1cd6749e1b3504bf6b115a534","r":1,"spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
