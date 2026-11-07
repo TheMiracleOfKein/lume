@@ -214,6 +214,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.8.0: reader 2.0** ✅ released 2026-11-07 ([notes](releases/v0.8.0.md), [device check](releases/v0.8.0-check.md))
 
+**v0.8.1: zoom pan fix** ([notes](releases/v0.8.1.md)): a zoomed webtoon page no longer twitches when moved.
+
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
 - ✅ **Tall pages in pieces** (M). Paged modes decode pages in tiles through Telephoto; webtoon strips keep the slices from v0.7.11.
@@ -729,3 +731,10 @@ Release notes: [docs/releases/v0.8.0.md](releases/v0.8.0.md); device check in [v
 - ✅ **Housekeeping:** `Database.kt` split, lint at zero, jsoup 1.24.1; sheet sliders keep tapped values.
 - 🟡 `ScrollBenchmark` numbers and a newly recorded baseline profile: need a device run.
 - ⏸️ Webtoon strips in paged mode stay a narrow column (as before).
+
+### v0.8.1: zoom pan fix
+
+Release notes: [docs/releases/v0.8.1.md](releases/v0.8.1.md).
+
+- ✅ **Webtoon zoom no longer twitches when moved:** `PageDetail` keeps the last sharp detail until the next one is ready and draws it at exact positions; a small pan inside the decoded detail keeps it.
+- ⏸️ Emulator check and smoke test skipped at the owner's request.

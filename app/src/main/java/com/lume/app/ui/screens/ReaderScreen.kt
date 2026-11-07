@@ -706,13 +706,26 @@ private fun WebtoonReader(
                     val viewportW = info.viewportSize.width.toFloat()
                     val viewportH = info.viewportSize.height.toFloat()
                     val itemW = viewportW - 2 * sideMarginPx
+                    val sameScale = scale == detailScale
                     val next = HashMap<String, PageRect>()
                     info.visibleItemsInfo.forEach { v ->
                         val item = vm.strip.getOrNull(v.index) as? ReaderStripItem.Page ?: return@forEach
-                        zoomedVisibleRegion(
+                        val key = item.key()
+                        // A small pan inside the detail already decoded keeps it: no new decode,
+                        // and nothing on screen changes.
+                        val onScreen = zoomedVisibleRegion(
                             sideMarginPx.toFloat(), v.offset.toFloat(), itemW, v.size.toFloat(),
-                            viewportW, viewportH, scale, offset.x, offset.y, DETAIL_MARGIN,
-                        )?.let { next[item.key()] = it }
+                            viewportW, viewportH, scale, offset.x, offset.y,
+                        ) ?: return@forEach
+                        val kept = details[key]
+                        next[key] = if (sameScale && kept != null && kept.contains(onScreen)) {
+                            kept
+                        } else {
+                            zoomedVisibleRegion(
+                                sideMarginPx.toFloat(), v.offset.toFloat(), itemW, v.size.toFloat(),
+                                viewportW, viewportH, scale, offset.x, offset.y, DETAIL_MARGIN,
+                            ) ?: onScreen
+                        }
                     }
                     detailScale = scale
                     details.keys.retainAll(next.keys)

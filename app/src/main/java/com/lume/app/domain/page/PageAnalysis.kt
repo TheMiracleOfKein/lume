@@ -45,6 +45,10 @@ data class PageRect(val left: Float, val top: Float, val right: Float, val botto
 
     fun contains(x: Float, y: Float): Boolean = x in left..right && y in top..bottom
 
+    /** True when [other] lies wholly inside this rectangle. */
+    fun contains(other: PageRect): Boolean =
+        other.left >= left && other.top >= top && other.right <= right && other.bottom <= bottom
+
     companion object {
         val Full = PageRect(0f, 0f, 1f, 1f)
     }
