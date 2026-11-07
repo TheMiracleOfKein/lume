@@ -22,8 +22,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PageBookmarkEntity::class,
         LibraryChapterEntity::class,
         TitleSourceEntity::class,
+        WatchedFolderEntity::class,
+        ImportedFileEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 abstract class LumeDatabase : RoomDatabase() {
@@ -178,9 +180,39 @@ abstract class LumeDatabase : RoomDatabase() {
             }
         }
 
+        /** Watched folders and the ledger of files copied from them. Additive. */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS watched_folders (
+                        treeUri TEXT NOT NULL,
+                        label TEXT NOT NULL,
+                        addedAt INTEGER NOT NULL,
+                        lastScanAt INTEGER NOT NULL,
+                        available INTEGER NOT NULL,
+                        PRIMARY KEY(treeUri)
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS imported_files (
+                        treeUri TEXT NOT NULL,
+                        documentId TEXT NOT NULL,
+                        size INTEGER NOT NULL,
+                        lastModified INTEGER NOT NULL,
+                        destPath TEXT NOT NULL,
+                        PRIMARY KEY(treeUri, documentId)
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
         val MIGRATIONS: Array<Migration> get() = arrayOf(
             MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
-            MIGRATION_11_12,
+            MIGRATION_11_12, MIGRATION_12_13,
         )
     }
 }
