@@ -768,6 +768,9 @@
     <string name="settings_summary_network">DNS over HTTPS, cache, cookies</string>
     <string name="settings_summary_about">Version, licenses, links</string>
     <string name="settings_section_controls">Controls</string>
+    <string name="settings_section_pages">Pages</string>
+    <string name="settings_reader_paged_only">Guided view, cropping, splitting and side-by-side pages work in the paged modes (left to right, right to left).</string>
+    <string name="settings_reader_preload">Pages loaded ahead</string>
     <string name="settings_group_updates">Updates</string>
     <string name="settings_group_storage">Storage</string>
     <string name="settings_group_accounts">Accounts</string>
@@ -816,6 +819,11 @@
     <string name="settings_kw_tap_zones">tap, touch, edge, page turn</string>
     <string name="settings_kw_volume_keys">buttons, page turn</string>
     <string name="settings_kw_double_tap_zoom">zoom, magnify, scale</string>
+    <string name="settings_kw_guided_panels">panels, frames, panel by panel, guided view, smart zoom</string>
+    <string name="settings_kw_crop_borders">crop, margins, white border, trim</string>
+    <string name="settings_kw_split_wide">double page, spread, split, wide page</string>
+    <string name="settings_kw_spreads">two pages, double page, book, landscape, tablet</string>
+    <string name="settings_kw_preload">preload, prefetch, load ahead, buffer, data</string>
     <string name="settings_kw_library_check">update, new chapters, notification, background</string>
     <string name="settings_kw_interval">hours, frequency, how often</string>
     <string name="settings_kw_wifi">mobile data, cellular, network</string>
@@ -952,6 +960,25 @@
     <string name="reader_auto_scroll_speed">Auto-scroll speed: %1$d</string>
     <string name="reader_webtoon_tap_zones">Tap zones in webtoon mode</string>
     <string name="reader_webtoon_tap_zones_hint">Tap the top third to scroll back and the bottom third to scroll on; the middle shows the controls.</string>
+    <string name="reader_guided_panels">Guided panel view</string>
+    <string name="reader_guided_panels_hint">A tap or page turn moves from panel to panel, zoomed in, in reading order. Each page starts whole.</string>
+    <string name="reader_panels_on">Guided panel view on</string>
+    <string name="reader_panels_off">Guided panel view off</string>
+    <string name="reader_crop_borders">Crop borders</string>
+    <string name="reader_crop_borders_hint">Cuts off plain white or black margins so the drawing fills the screen. Not used in guided panel view.</string>
+    <string name="reader_split_wide">Split double pages</string>
+    <string name="reader_split_wide_hint">In portrait, a page wider than tall is shown as two halves, in reading order.</string>
+    <string name="reader_spreads">Two pages side by side</string>
+    <string name="reader_spreads_off">Off</string>
+    <string name="reader_spreads_auto">Landscape</string>
+    <string name="reader_spreads_always">Always</string>
+    <string name="reader_spread_cover">First page alone</string>
+    <string name="reader_spread_cover_hint">The chapter\'s first page (often a cover) stands alone, so the pairs after it match the printed book.</string>
+    <plurals name="reader_preload">
+        <item quantity="one">Load %d page ahead</item>
+        <item quantity="other">Load %d pages ahead</item>
+    </plurals>
+    <string name="reader_preload_hint">More pages ahead means less waiting and more data and memory.</string>
     <string name="reader_orientation">Screen orientation</string>
     <string name="reader_orientation_auto">Auto</string>
     <string name="reader_orientation_portrait">Portrait</string>
