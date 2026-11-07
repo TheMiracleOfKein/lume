@@ -212,7 +212,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **Goal:** any page, any size, any phone: no memory crashes, sharp zoom, layouts that fit the screen.
 
-**v0.8.0: reader 2.0** ([notes](releases/v0.8.0.md))
+**v0.8.0: reader 2.0** ✅ released 2026-11-07 ([notes](releases/v0.8.0.md), [device check](releases/v0.8.0-check.md))
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -717,3 +717,15 @@ Release notes: [docs/releases/v0.7.15.md](releases/v0.7.15.md); device check in 
 - ✅ **Strings (L1-L7):** `ReaderMode.labelRes`, plurals, locale score format.
 - ✅ **Behaviour (B2-B5, B7-B11):** "No chapters yet", mode-specific reader settings, tracker save error, `ConfirmDialog`, catalog empty and load-more retry, Home refresh notice, search hint, `PasswordField`, bookmark Undo, tracker logout confirm, tall-page decode spinner.
 - ⏸️ I9 radius and spacing standardisation, A12 drawer background hiding, L3 brand names and glyphs.
+
+### v0.8.0: reader 2.0 ✅ released 2026-11-07
+
+Release notes: [docs/releases/v0.8.0.md](releases/v0.8.0.md); device check in [v0.8.0-check.md](releases/v0.8.0-check.md).
+
+- ✅ **Image pipeline:** Coil 3 (`image_cache_v3`), Telephoto for the paged modes, webtoon detail through `zoomedVisibleRegion` and `PageDetail`, `preloadPages` with sizes learned on the way.
+- ✅ **Layouts:** `StripLayout` (split pages, spreads, lone cover), crop through `PageFit.placeRegion`, previous chapter above in seamless webtoon, two-pane title screen at 840 dp.
+- ✅ **Guided panel view:** `PageAnalysis` (XY cut over gutters) and `PageAnalyzer`; panel steps in `ReaderPaged.kt`.
+- ✅ **Where you stopped:** `reading_progress.pageImageUrl` (database 11 → 12), `PageSpotImage` on Continue cards and bookmarks.
+- ✅ **Housekeeping:** `Database.kt` split, lint at zero, jsoup 1.24.1; sheet sliders keep tapped values.
+- 🟡 `ScrollBenchmark` numbers and a newly recorded baseline profile: need a device run.
+- ⏸️ Webtoon strips in paged mode stay a narrow column (as before).
