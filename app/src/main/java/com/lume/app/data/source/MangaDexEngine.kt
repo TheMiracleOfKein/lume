@@ -256,10 +256,14 @@ class MangaDexEngine(
             source = manifest,
             checkCloudflare = false,
         )
-        val root = json.parseToJsonElement(response.body).jsonObject
+        return parseDetails(response.body, mangaId, score(mangaId))
+    }
+
+    /** [score] is the users' average from the statistics endpoint, if that request worked. */
+    internal fun parseDetails(body: String, mangaId: String, score: Double?): TitleDetails {
+        val root = json.parseToJsonElement(body).jsonObject
         val data = root["data"]?.jsonObject
             ?: throw SourceFetchException("MangaDex: " + com.lume.app.data.locale.appString(com.lume.app.R.string.error_empty_response))
-        val score = score(mangaId)
         val attrs = data["attributes"]?.jsonObject ?: JsonObject(emptyMap())
         val relationships = data["relationships"]?.jsonArray ?: JsonArray(emptyList())
         return TitleDetails(
@@ -294,13 +298,16 @@ class MangaDexEngine(
     /** The users' average score (0–10); a failed request only leaves it out. */
     private suspend fun score(mangaId: String): Double? = try {
         val response = http.get(URI("$apiBase/statistics/manga/$mangaId"), source = manifest, checkCloudflare = false)
-        json.parseToJsonElement(response.body).jsonObject["statistics"].obj()?.get(mangaId).obj()
-            ?.get("rating").obj()?.str("average")?.toDoubleOrNull()
+        parseScore(response.body, mangaId)
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
     } catch (e: Exception) {
         null
     }
+
+    internal fun parseScore(body: String, mangaId: String): Double? =
+        json.parseToJsonElement(body).jsonObject["statistics"].obj()?.get(mangaId).obj()
+            ?.get("rating").obj()?.str("average")?.toDoubleOrNull()
 
     private fun originLabel(lang: String?): String? = when (lang) {
         "ja" -> appString(R.string.type_manga)
@@ -329,43 +336,54 @@ class MangaDexEngine(
                 source = manifest,
                 checkCloudflare = false,
             )
-            val root = json.parseToJsonElement(response.body).jsonObject
-            val data = root["data"]?.jsonArray ?: JsonArray(emptyList())
-            for (el in data) {
-                val item = el.jsonObject
-                val id = item["id"]?.jsonPrimitive?.contentOrNull ?: continue
-                val attrs = item["attributes"]?.jsonObject ?: continue
-                val number = attrs["chapter"]?.jsonPrimitive?.contentOrNull
-                val volume = attrs["volume"]?.jsonPrimitive?.contentOrNull
-                val title = attrs["title"]?.jsonPrimitive?.contentOrNull
-                val lang = attrs["translatedLanguage"]?.jsonPrimitive?.contentOrNull
-                val name = buildString {
-                    if (!volume.isNullOrBlank()) {
-                        append(com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_volume, volume))
-                        append(' ')
-                    }
-                    if (!number.isNullOrBlank()) {
-                        append(com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_number, number))
-                    } else {
-                        append(com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_generic))
-                    }
-                    if (!title.isNullOrBlank()) append(" — $title")
-                    if (!lang.isNullOrBlank()) append(" [$lang]")
-                }.trim()
-                chapters += Chapter(
-                    id = id,
-                    title = name,
-                    url = id,
-                    number = number,
-                    volume = volume,
-                    dateLabel = attrs["publishAt"]?.jsonPrimitive?.contentOrNull?.take(10),
-                )
-            }
-            val total = root["total"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: chapters.size
+            val feed = parseFeedPage(response.body)
+            chapters += feed.chapters
+            val total = feed.total ?: chapters.size
             offset += limit
-            if (data.isEmpty() || offset >= total || offset >= MAX_FEED) break
+            if (feed.size == 0 || offset >= total || offset >= MAX_FEED) break
         }
         return chapters
+    }
+
+    private class FeedPage(val chapters: List<Chapter>, val size: Int, val total: Int?)
+
+    internal fun parseChapters(body: String): List<Chapter> = parseFeedPage(body).chapters
+
+    private fun parseFeedPage(body: String): FeedPage {
+        val root = json.parseToJsonElement(body).jsonObject
+        val data = root["data"]?.jsonArray ?: JsonArray(emptyList())
+        val chapters = mutableListOf<Chapter>()
+        for (el in data) {
+            val item = el.jsonObject
+            val id = item["id"]?.jsonPrimitive?.contentOrNull ?: continue
+            val attrs = item["attributes"]?.jsonObject ?: continue
+            val number = attrs["chapter"]?.jsonPrimitive?.contentOrNull
+            val volume = attrs["volume"]?.jsonPrimitive?.contentOrNull
+            val title = attrs["title"]?.jsonPrimitive?.contentOrNull
+            val lang = attrs["translatedLanguage"]?.jsonPrimitive?.contentOrNull
+            val name = buildString {
+                if (!volume.isNullOrBlank()) {
+                    append(com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_volume, volume))
+                    append(' ')
+                }
+                if (!number.isNullOrBlank()) {
+                    append(com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_number, number))
+                } else {
+                    append(com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_generic))
+                }
+                if (!title.isNullOrBlank()) append(" — $title")
+                if (!lang.isNullOrBlank()) append(" [$lang]")
+            }.trim()
+            chapters += Chapter(
+                id = id,
+                title = name,
+                url = id,
+                number = number,
+                volume = volume,
+                dateLabel = attrs["publishAt"]?.jsonPrimitive?.contentOrNull?.take(10),
+            )
+        }
+        return FeedPage(chapters, data.size, root["total"]?.jsonPrimitive?.contentOrNull?.toIntOrNull())
     }
 
     override suspend fun getPages(chapter: Chapter): List<ComicPage> {
@@ -374,7 +392,11 @@ class MangaDexEngine(
             source = manifest,
             checkCloudflare = false,
         )
-        val root = json.parseToJsonElement(response.body).jsonObject
+        return parsePages(response.body)
+    }
+
+    internal fun parsePages(body: String): List<ComicPage> {
+        val root = json.parseToJsonElement(body).jsonObject
         val baseUrl = root["baseUrl"]?.jsonPrimitive?.contentOrNull
             ?: throw SourceFetchException("MangaDex: нет baseUrl")
         val chapterObj = root["chapter"]?.jsonObject
@@ -390,7 +412,7 @@ class MangaDexEngine(
         return pages
     }
 
-    private fun parseMangaList(raw: String, page: Int): PagedResult<TitleSummary> {
+    internal fun parseMangaList(raw: String, page: Int): PagedResult<TitleSummary> {
         val root = json.parseToJsonElement(raw).jsonObject
         val data = root["data"]?.jsonArray ?: JsonArray(emptyList())
         val items = data.mapNotNull { el ->

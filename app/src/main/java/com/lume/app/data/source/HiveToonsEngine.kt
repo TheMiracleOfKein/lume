@@ -127,7 +127,11 @@ class HiveToonsEngine(
             if (search.isNotBlank()) append("&searchTerm=${urlEncode(search)}")
             append(extra)
         }
-        val root = apiObject("$apiBase/api/query?$q")
+        return parseTitleList(apiBody("$apiBase/api/query?$q"), page)
+    }
+
+    internal fun parseTitleList(body: String, page: Int): PagedResult<TitleSummary> {
+        val root = parseObject(body)
         val items = root["posts"].arr().orEmpty().mapNotNull { el ->
             val item = el.obj() ?: return@mapNotNull null
             val slug = item.str("slug") ?: return@mapNotNull null
@@ -147,7 +151,11 @@ class HiveToonsEngine(
     }
 
     override suspend fun getTitle(id: String): TitleDetails {
-        val post = post(slugOf(id))
+        return parseDetails(postBody(slugOf(id)), id)
+    }
+
+    internal fun parseDetails(body: String, id: String): TitleDetails {
+        val post = parsePost(body, slugOf(id))
         return TitleDetails(
             id = id,
             title = post.str("postTitle") ?: slugOf(id),
@@ -169,39 +177,58 @@ class HiveToonsEngine(
         val out = ArrayList<Chapter>()
         var skip = 0
         while (skip < MAX_CHAPTERS) {
-            val root = apiObject("$apiBase/api/chapters?postId=$postId&skip=$skip&take=$CHAPTER_BATCH&order=desc&userid=")
-            val batch = root["post"].obj()?.get("chapters").arr().orEmpty()
-            for (el in batch) {
-                val item = el.obj() ?: continue
-                // Paid / timed-unlock chapters render no images for guests.
-                val accessible = item["isAccessible"].bool() ?: (item["isLocked"].bool() != true)
-                if (!accessible) continue
-                val chapterSlug = item.str("slug") ?: continue
-                val number = item.str("number")
-                val name = item.str("title")
-                out += Chapter(
-                    id = "/series/$slug/$chapterSlug",
-                    title = buildString {
-                        append("Chapter ").append(number ?: chapterSlug.substringAfter("chapter-"))
-                        if (!name.isNullOrBlank() && !name.equals("Chapter $number", ignoreCase = true)) {
-                            append(" — ").append(name)
-                        }
-                    },
-                    url = "/series/$slug/$chapterSlug",
-                    number = number,
-                    dateLabel = item.str("createdAt")?.take(10),
-                )
-            }
-            val total = root.str("totalChapterCount")?.toIntOrNull()
+            val batch = parseChapterBatch(
+                apiBody("$apiBase/api/chapters?postId=$postId&skip=$skip&take=$CHAPTER_BATCH&order=desc&userid="),
+                slug,
+            )
+            out += batch.chapters
             skip += CHAPTER_BATCH
-            if (batch.size < CHAPTER_BATCH || (total != null && skip >= total)) break
+            if (batch.size < CHAPTER_BATCH || (batch.total != null && skip >= batch.total)) break
         }
         return out
     }
 
+    /** [size] counts every item of the batch, including the locked ones that are left out. */
+    private class ChapterBatch(val chapters: List<Chapter>, val size: Int, val total: Int?)
+
+    /** One batch of `/api/chapters`; the accessible chapters only. */
+    internal fun parseChapters(body: String, slug: String): List<Chapter> = parseChapterBatch(body, slug).chapters
+
+    private fun parseChapterBatch(body: String, slug: String): ChapterBatch {
+        val root = parseObject(body)
+        val batch = root["post"].obj()?.get("chapters").arr().orEmpty()
+        val out = ArrayList<Chapter>()
+        for (el in batch) {
+            val item = el.obj() ?: continue
+            // Paid / timed-unlock chapters render no images for guests.
+            val accessible = item["isAccessible"].bool() ?: (item["isLocked"].bool() != true)
+            if (!accessible) continue
+            val chapterSlug = item.str("slug") ?: continue
+            val number = item.str("number")
+            val name = item.str("title")
+            out += Chapter(
+                id = "/series/$slug/$chapterSlug",
+                title = buildString {
+                    append("Chapter ").append(number ?: chapterSlug.substringAfter("chapter-"))
+                    if (!name.isNullOrBlank() && !name.equals("Chapter $number", ignoreCase = true)) {
+                        append(" — ").append(name)
+                    }
+                },
+                url = "/series/$slug/$chapterSlug",
+                number = number,
+                dateLabel = item.str("createdAt")?.take(10),
+            )
+        }
+        return ChapterBatch(out, batch.size, root.str("totalChapterCount")?.toIntOrNull())
+    }
+
     override suspend fun getPages(chapter: Chapter): List<ComicPage> {
         val response = http.get(resolveUrl(siteBase, chapter.url.ifBlank { chapter.id }), source = manifest)
-        val doc = Jsoup.parse(response.body, siteBase)
+        return parsePages(response.body)
+    }
+
+    internal fun parsePages(body: String): List<ComicPage> {
+        val doc = Jsoup.parse(body, siteBase)
         val marked = doc.select("img[data-reader-page-image]")
             .sortedBy { it.attr("data-reader-index").toIntOrNull() ?: Int.MAX_VALUE }
             .map { it.attr("abs:src").ifBlank { it.attr("abs:data-src") } }
@@ -216,17 +243,21 @@ class HiveToonsEngine(
         return pages
     }
 
-    private suspend fun post(slug: String): JsonObject {
-        val root = apiObject("$apiBase/api/post?postSlug=${urlEncode(slug)}")
+    private suspend fun post(slug: String): JsonObject = parsePost(postBody(slug), slug)
+
+    private suspend fun postBody(slug: String): String = apiBody("$apiBase/api/post?postSlug=${urlEncode(slug)}")
+
+    private fun parsePost(body: String, slug: String): JsonObject {
+        val root = parseObject(body)
         val post = root["post"].obj() ?: throw SourceFetchException("${manifest.name}: series not found")
         post.str("id")?.let { postIds[slug] = it }
         return post
     }
 
-    private suspend fun apiObject(url: String): JsonObject {
-        val response = http.get(URI(url), source = manifest, headers = apiHeaders(), checkCloudflare = false)
-        return json.parseToJsonElement(response.body).jsonObject
-    }
+    private suspend fun apiBody(url: String): String =
+        http.get(URI(url), source = manifest, headers = apiHeaders(), checkCloudflare = false).body
+
+    private fun parseObject(body: String): JsonObject = json.parseToJsonElement(body).jsonObject
 
     private fun slugOf(id: String): String = id.trim('/').removePrefix("series/").substringBefore('/')
 

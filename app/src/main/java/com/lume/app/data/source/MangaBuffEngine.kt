@@ -136,7 +136,12 @@ class MangaBuffEngine(
             ),
             checkCloudflare = false,
         )
-        val arr = runCatching { json.parseToJsonElement(response.body) as? JsonArray }.getOrNull()
+        return parseSearch(response.body)
+    }
+
+    /** The JSON array of `/search/suggestions`. */
+    internal fun parseSearch(body: String): PagedResult<TitleSummary> {
+        val arr = runCatching { json.parseToJsonElement(body) as? JsonArray }.getOrNull()
             ?: JsonArray(emptyList())
         val items = arr.mapNotNull { el ->
             val obj = el as? JsonObject ?: return@mapNotNull null
@@ -175,7 +180,11 @@ class MangaBuffEngine(
     override suspend fun getTitle(id: String): TitleDetails {
         val slug = id.trim('/')
         val response = http.get(URI("$siteBase/manga/$slug"), source = manifest, headers = headers)
-        val doc = Jsoup.parse(response.body, siteBase)
+        return parseDetails(response.body, slug)
+    }
+
+    internal fun parseDetails(body: String, slug: String): TitleDetails {
+        val doc = Jsoup.parse(body, siteBase)
         val title = doc.selectFirst("h1, .manga__title, .manga-title, title")?.text()
             ?.substringBefore('/')?.trim()
             ?: slug
@@ -199,10 +208,40 @@ class MangaBuffEngine(
     override suspend fun getChapters(titleId: String): List<Chapter> {
         val slug = titleId.trim('/')
         val page = http.get(URI("$siteBase/manga/$slug"), source = manifest, headers = headers)
-        val doc = Jsoup.parse(page.body, siteBase)
+        val (mangaId, csrf) = chapterAjaxParams(page.body)
+        // Load older chapters via AJAX (returns HTML fragment in JSON.content)
+        var ajaxBody: String? = null
+        if (csrf.isNotBlank()) {
+            runCatching {
+                ajaxBody = http.postForm(
+                    URI("$siteBase/chapters/load"),
+                    source = manifest,
+                    headers = mapOf(
+                        "Referer" to "$siteBase/manga/$slug",
+                        "Origin" to siteBase,
+                        "X-Requested-With" to "XMLHttpRequest",
+                        "Accept" to "application/json",
+                        "X-CSRF-TOKEN" to csrf,
+                    ),
+                    form = mapOf("manga_id" to mangaId),
+                    checkCloudflare = false,
+                ).body
+            }
+        }
+        return parseChapters(slug, page.body, ajaxBody)
+    }
+
+    /** The title id and CSRF token the older-chapters request needs, read from the title page. */
+    internal fun chapterAjaxParams(pageBody: String): Pair<String, String> {
+        val doc = Jsoup.parse(pageBody, siteBase)
         val mangaId = doc.selectFirst(".manga[data-id], [data-id]")?.attr("data-id")
             ?: throw SourceFetchException("MangaBuff: нет id тайтла")
         val csrf = doc.selectFirst("meta[name=csrf-token]")?.attr("content").orEmpty()
+        return mangaId to csrf
+    }
+
+    /** [pageBody] is the title page; [ajaxBody] the JSON of `/chapters/load` with the older chapters, if loaded. */
+    internal fun parseChapters(slug: String, pageBody: String, ajaxBody: String?): List<Chapter> {
         val chapters = LinkedHashMap<String, Chapter>()
         fun ingest(html: String) {
             val frag = Jsoup.parseBodyFragment(html, siteBase)
@@ -236,24 +275,10 @@ class MangaBuffEngine(
                 )
             }
         }
-        ingest(page.body)
-        // Load older chapters via AJAX (returns HTML fragment in JSON.content)
-        if (csrf.isNotBlank()) {
+        ingest(pageBody)
+        if (ajaxBody != null) {
             runCatching {
-                val ajax = http.postForm(
-                    URI("$siteBase/chapters/load"),
-                    source = manifest,
-                    headers = mapOf(
-                        "Referer" to "$siteBase/manga/$slug",
-                        "Origin" to siteBase,
-                        "X-Requested-With" to "XMLHttpRequest",
-                        "Accept" to "application/json",
-                        "X-CSRF-TOKEN" to csrf,
-                    ),
-                    form = mapOf("manga_id" to mangaId),
-                    checkCloudflare = false,
-                )
-                val root = json.parseToJsonElement(ajax.body) as? JsonObject
+                val root = json.parseToJsonElement(ajaxBody) as? JsonObject
                 val content = root?.get("content")?.jsonPrimitive?.contentOrNull
                 if (!content.isNullOrBlank()) ingest(content)
             }
@@ -270,7 +295,11 @@ class MangaBuffEngine(
             "$siteBase/manga/${chapter.id}"
         }
         val response = http.get(URI(path), source = manifest, headers = headers)
-        val doc = Jsoup.parse(response.body, path)
+        return parsePages(response.body, path)
+    }
+
+    internal fun parsePages(body: String, pageUrl: String): List<ComicPage> {
+        val doc = Jsoup.parse(body, pageUrl)
         val urls = LinkedHashSet<String>()
         doc.select("img[data-src], img[src]").forEach { img ->
             val u = img.attr("abs:data-src").ifBlank { img.attr("abs:src") }
@@ -283,7 +312,7 @@ class MangaBuffEngine(
         if (urls.isEmpty()) {
             // Regex fallback for lazy-loaded reader
             val regex = Regex("""https://c\d+\.mangabuff\.ru/chapters/[^"'\s]+""")
-            regex.findAll(response.body).forEach { urls += it.value }
+            regex.findAll(body).forEach { urls += it.value }
         }
         if (urls.isEmpty()) throw SourceFetchException("MangaBuff: нет страниц")
         return urls.mapIndexed { i, u -> ComicPage(index = i, imageUrl = u) }

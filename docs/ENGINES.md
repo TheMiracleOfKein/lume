@@ -106,3 +106,30 @@ search → details → chapters → pages → first image):
 
 Sources unreachable from the test machine (geo-blocks, challenges needing a WebView) are
 reported as `SKIP`, not failures. Plain `testDebugUnitTest` runs only offline unit tests.
+
+## Saved pages (offline parser tests)
+
+Every engine has a `<Engine>ParsingTest` that parses saved site responses, so a parser change
+is checked without the live sites and without a network. Each engine splits fetching from
+parsing: a fetch method calls an `internal fun parseXxx(body, …)` (`parseTitleList`,
+`parseDetails`, `parseChapters`, `parsePages`). When one result needs several requests
+(chapter pages, a title page plus an AJAX list), each body is passed separately.
+
+Fixtures live in `app/src/test/resources/fixtures/<source id>/<case>.{json,html}` and are read
+with `Fixtures.text("<source id>/<case>.json")`. The cases are `popular`, `search`, `details`,
+`chapters` and `pages`; a second response of the same case is `<case>-2` (for example
+`details-2.json`, the MangaDex statistics). Large lists are cut to a few dozen entries, and
+scripts and styles are dropped from big HTML pages that the parser does not read from.
+
+Record or refresh fixtures from the live sites:
+
+```bash
+./gradlew :app:testDebugUnitTest --tests '*LiveSourcesTest*' -Plume.live -Plume.live.record -Plume.live.sources=asura,mangalib
+```
+
+`-Plume.live.record` saves the response bodies of the first title the live check walks
+through. Naming `weebcentral` or `demonicscans` in `-Plume.live.sources` also runs the one-site
+samples from `docs/packs/site`. Sources that cannot be reached (geo-block, challenge) write
+nothing; their fixtures are written by hand from the shape the parser reads, and the test's
+comment says so (MangaDex and MangaBuff at the time of writing). After recording, shrink big
+files and run the offline tests: `./gradlew :app:testDebugUnitTest`.

@@ -259,7 +259,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **Sources**
 - InkStory and Com-X.life ([ENGINES.md](ENGINES.md)) (M each).
-- **Offline parser tests** with saved pages for every engine (M), so a parser change is checked without the live sites.
+- ✅ **Offline parser tests** with saved pages for every engine (M), so a parser change is checked without the live sites. Fixtures are in `app/src/test/resources/fixtures` and recorded with `-Plume.live.record` ([ENGINES.md](ENGINES.md#saved-pages-offline-parser-tests)). The MangaDex and MangaBuff fixtures are hand-written until they can be recorded.
 - 🟡 **Source status in the app** (S): the last error per source on the Sources screen, so a broken source is visible before you open a title. Done in v0.7.13 for the running session; left: keeping it across restarts and showing it in global search.
 
 ## v0.10: on-device AI
@@ -322,7 +322,7 @@ Learned models stay optional because of their size, their speed on older phones 
 | ✅ Coil 2 is in maintenance | Coil 3 since v0.8.0 |
 | ✅ Large files: `SettingsScreen.kt` and `LibraryScreen.kt` split in v0.6.2 and v0.6.3, `Database.kt` in v0.8.0 | Entities, `LibraryDao` and `LumeDatabase` in their own files |
 | Releases are built on one computer | v1.0: optional signed release workflow |
-| Engine parsers are only tested against the live sites | v0.9: offline tests with saved pages |
+| ✅ Engine parsers were only tested against the live sites | Offline parser tests with saved pages (v0.9) |
 
 ## Ideas, not planned yet
 
