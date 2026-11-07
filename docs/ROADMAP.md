@@ -249,7 +249,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **Local files**
 - ✅ **CBR, CB7 and PDF** (M). PDF through Android's own renderer; CBR through junrar, CB7 through Apache Commons Compress.
-- **Watched folders** (M). New chapters in an imported folder appear without importing again.
+- ✅ **Watched folders** (M), in v0.9.1. Pick folders in Settings → Library; Lume re-scans them every 6, 12 or 24 hours (or on "Scan now"), copies only new and changed files (a ledger of size and modified time per file), and says "N new chapters". A folder whose permission is lost shows "Reconnect".
 - **Any folder as download storage** (M). The reader reads pages through the Storage Access Framework instead of file paths.
 
 **Library**
@@ -451,7 +451,7 @@ Release notes: [docs/releases/v0.5.0.md](releases/v0.5.0.md).
 - ✅ Download new chapters automatically; delete chapters after reading; storage usage.
 
 **Local files**
-- 🟡 Import a folder from your device; ComicInfo.xml and covers; clean temporary files. Done as a copy into the local library; the picked folder is not watched for later changes.
+- 🟡 Import a folder from your device; ComicInfo.xml and covers; clean temporary files. Done as a copy into the local library; folders you add under "Watched folders" are re-scanned for later changes (v0.9.1).
 
 **Backups**
 - ✅ Save and open backups anywhere on the device; automatic backups with rotation; include settings (account sign-ins stay out).
