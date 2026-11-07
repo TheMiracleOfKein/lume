@@ -73,6 +73,9 @@ class AppContainer(val app: Application) {
 
     val imageLoader: ImageLoader get() = app.imageLoader
 
+    /** Borders and panels of pages, for cropping, guided view and "Continue" crops. */
+    val pageAnalyzer = com.lume.app.data.page.PageAnalyzer(app) { app.imageLoader }
+
     /** Launcher shortcuts and the home-screen widget for "Continue". */
     val continueReading = com.lume.app.data.continuity.ContinueReading(app, dao, prefs, { app.imageLoader }, appScope)
 

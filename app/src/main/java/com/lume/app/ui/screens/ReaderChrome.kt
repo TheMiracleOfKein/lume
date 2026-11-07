@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.outlined.AutoAwesomeMosaic
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.MoreVert
@@ -165,6 +166,9 @@ internal fun ReaderTopBar(
     onSettings: () -> Unit,
     onSharePage: () -> Unit,
     onSavePage: () -> Unit,
+    /** Guided panel view on or off; null hides the button (webtoon mode). */
+    guidedPanels: Boolean? = null,
+    onToggleGuidedPanels: () -> Unit = {},
 ) {
     var pageMenu by remember { mutableStateOf(false) }
     Box(
@@ -206,6 +210,15 @@ internal fun ReaderTopBar(
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
                 )
+            }
+            if (guidedPanels != null) {
+                IconButton(onClick = onToggleGuidedPanels) {
+                    Icon(
+                        Icons.Outlined.AutoAwesomeMosaic,
+                        stringResource(if (guidedPanels) R.string.reader_panels_on else R.string.reader_panels_off),
+                        tint = if (guidedPanels) AppColors.accent else Color.White,
+                    )
+                }
             }
             IconButton(onClick = onToggleLibrary) {
                 Icon(
