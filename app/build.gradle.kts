@@ -147,6 +147,9 @@ dependencies {
     implementation(libs.jsoup)
     implementation(libs.jspecify)
     implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+    // Paged reader: subsampled decoding and sharp zoom.
+    implementation(libs.telephoto.zoomable.image.coil3)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)

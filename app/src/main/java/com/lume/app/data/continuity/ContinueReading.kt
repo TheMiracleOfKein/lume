@@ -8,11 +8,12 @@ import android.graphics.Bitmap
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
-import androidx.core.graphics.drawable.toBitmap
-import coil.ImageLoader
-import coil.request.ImageRequest
-import coil.request.SuccessResult
-import coil.size.Scale
+import coil3.ImageLoader
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
+import coil3.size.Scale
+import coil3.toBitmap
 import com.lume.app.R
 import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.db.ProgressEntity
@@ -128,7 +129,7 @@ class ContinueReading(
             .allowHardware(false)
             .build()
         val result = imageLoader().execute(request) as? SuccessResult ?: return null
-        return result.drawable.toBitmap()
+        return result.image.toBitmap()
     }
 
     companion object {

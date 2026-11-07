@@ -3,8 +3,8 @@ package com.lume.app
 import android.app.Application
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.room.Room
-import coil.ImageLoader
-import coil.imageLoader
+import coil3.ImageLoader
+import coil3.imageLoader
 import com.lume.app.data.backup.BackupRepository
 import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.db.LumeDatabase

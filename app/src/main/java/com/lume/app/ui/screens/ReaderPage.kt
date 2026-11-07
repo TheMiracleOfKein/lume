@@ -42,8 +42,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.DisposableEffect
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import coil.size.Dimension
-import coil.size.Size
+import coil3.size.Dimension
+import coil3.size.Size
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
@@ -53,9 +53,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import coil.request.CachePolicy
-import coil.request.ImageRequest
+import coil3.compose.AsyncImage
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.lume.app.R
 import com.lume.app.domain.ComicPage
 import com.lume.app.ui.theme.AppColors
@@ -246,8 +247,8 @@ internal fun ReaderPageImage(
                     size(Size(Dimension.Pixels(container.width), Dimension.Pixels(MAX_DRAW_PX)))
                 }
             }
-            // A new parameter makes Coil treat a retry as a new request.
-            .setParameter("attempt", attempt, memoryCacheKey = null)
+            // A different key makes Coil treat a retry as a new request.
+            .apply { if (attempt > 0) memoryCacheKeyExtra("attempt", attempt.toString()) }
             .build()
     }
     val state = remember(page.imageUrl) { ReaderZoomState() }

@@ -8,9 +8,9 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import coil.imageLoader
-import coil.request.CachePolicy
-import coil.request.ImageRequest
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.lume.app.AppContainer
 import com.lume.app.R
 import com.lume.app.data.db.ChapterProgressEntity
