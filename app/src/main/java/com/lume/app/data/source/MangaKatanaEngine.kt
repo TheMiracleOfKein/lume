@@ -41,17 +41,26 @@ class MangaKatanaEngine(
         val q = "search=${urlEncode(query.trim())}&search_by=book_name"
         val path = if (page <= 1) "/?$q" else "/page/$page?$q"
         val response = http.get(URI("$siteBase$path"), source = manifest)
-        val doc = Jsoup.parse(response.body, response.finalUrl)
-        // An exact match redirects straight to the title page.
+        return parseSearch(response.body, response.finalUrl, page)
+    }
+
+    /** [finalUrl] is where the request ended up: an exact match redirects straight to the title page. */
+    internal fun parseSearch(body: String, finalUrl: String, page: Int): PagedResult<TitleSummary> {
+        val doc = Jsoup.parse(body, finalUrl)
         if (doc.selectFirst("#single_book") != null) {
-            val details = parseDetails(doc, idFromUrl(response.finalUrl))
+            val details = parseDetails(doc, idFromUrl(finalUrl))
             val item = TitleSummary(id = details.id, title = details.title, coverUrl = details.coverUrl)
             return PagedResult(listOf(item), page = 1, hasNext = false)
         }
         return parseList(doc, page)
     }
 
-    override suspend fun getTitle(id: String): TitleDetails = parseDetails(fetchDoc(id), id)
+    override suspend fun getTitle(id: String): TitleDetails = parseDetails(fetchBody(id), id)
+
+    internal fun parseDetails(body: String, id: String): TitleDetails = parseDetails(Jsoup.parse(body, siteBase), id)
+
+    internal fun parseTitleList(body: String, page: Int): PagedResult<TitleSummary> =
+        parseList(Jsoup.parse(body, siteBase), page)
 
     private fun parseDetails(doc: Document, id: String): TitleDetails {
         val info = doc.selectFirst("#single_book") ?: doc
@@ -73,7 +82,11 @@ class MangaKatanaEngine(
     }
 
     override suspend fun getChapters(titleId: String): List<Chapter> {
-        val doc = fetchDoc(titleId)
+        return parseChapters(fetchBody(titleId))
+    }
+
+    internal fun parseChapters(body: String): List<Chapter> {
+        val doc = Jsoup.parse(body, siteBase)
         val rows = doc.select("div.chapters tr").ifEmpty { doc.select(".chapters .chapter") }
         val seen = HashSet<String>()
         return rows.mapNotNull { row ->
@@ -94,6 +107,10 @@ class MangaKatanaEngine(
 
     override suspend fun getPages(chapter: Chapter): List<ComicPage> {
         val html = http.get(resolveUrl(siteBase, chapter.url.ifBlank { chapter.id }), source = manifest).body
+        return parsePages(html)
+    }
+
+    internal fun parsePages(html: String): List<ComicPage> {
         val arrayName = Regex("""data-src['"]\s*,\s*(\w+)\s*\[""").find(html)?.groupValues?.get(1)
         val candidates = buildList {
             arrayName?.let { add(it) }
@@ -115,7 +132,7 @@ class MangaKatanaEngine(
 
     private suspend fun listPage(path: String, page: Int): PagedResult<TitleSummary> {
         val response = http.get(URI("$siteBase$path"), source = manifest)
-        return parseList(Jsoup.parse(response.body, siteBase), page)
+        return parseTitleList(response.body, page)
     }
 
     private fun parseList(doc: Document, page: Int): PagedResult<TitleSummary> {
@@ -140,10 +157,8 @@ class MangaKatanaEngine(
         return PagedResult(items = items, page = page, hasNext = hasNext)
     }
 
-    private suspend fun fetchDoc(pathOrUrl: String): Document {
-        val response = http.get(resolveUrl(siteBase, pathOrUrl), source = manifest)
-        return Jsoup.parse(response.body, siteBase)
-    }
+    private suspend fun fetchBody(pathOrUrl: String): String =
+        http.get(resolveUrl(siteBase, pathOrUrl), source = manifest).body
 
     private fun imageOf(img: Element?): String? {
         if (img == null) return null
