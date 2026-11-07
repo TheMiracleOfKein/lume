@@ -60,20 +60,39 @@ import java.io.File
  */
 @Composable
 fun PageBookmarkThumb(url: String?, offset: Float, modifier: Modifier = Modifier) {
+    PageSpotImage(
+        url = url,
+        offset = offset,
+        modifier = modifier
+            .size(width = 56.dp, height = 72.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(AppColors.card),
+        sliceFallback = true,
+        fallback = { Icon(Icons.Outlined.Bookmark, null, tint = AppColors.textTertiary) },
+    )
+}
+
+/**
+ * The panel of page [url] holding the spot at [offset] (fraction of the page height), filling
+ * this box. Without a useful panel: a slice of the page around the spot when [sliceFallback],
+ * else [fallback] (also shown when there is no page).
+ */
+@Composable
+fun PageSpotImage(
+    url: String?,
+    offset: Float,
+    modifier: Modifier,
+    sliceFallback: Boolean,
+    fallback: @Composable () -> Unit,
+) {
     val analyzer = LocalAppContainer.current.pageAnalyzer
     val layout by produceState(url?.let { analyzer.cached(it) }, url) {
         if (value == null && !url.isNullOrBlank()) value = analyzer.analyze(url)
     }
     val pageLayout = layout
     val panel = pageLayout?.spotPanel(offset)
-    BoxWithConstraints(
-        modifier = modifier
-            .size(width = 56.dp, height = 72.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(AppColors.card),
-        contentAlignment = Alignment.Center,
-    ) {
-        val model = url?.let { if (it.startsWith("http")) it else File(it) }
+    BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
+        val model = url?.takeIf { it.isNotBlank() }?.let { if (it.startsWith("http")) it else File(it) }
         val density = LocalDensity.current
         val placement = if (panel != null && pageLayout != null) {
             with(density) { PageFit.placeRegion(maxWidth.toPx(), maxHeight.toPx(), pageLayout.aspect, panel, fill = true) }
@@ -81,20 +100,20 @@ fun PageBookmarkThumb(url: String?, offset: Float, modifier: Modifier = Modifier
             null
         }
         when {
-            model == null -> Icon(Icons.Outlined.Bookmark, null, tint = AppColors.textTertiary)
-            placement != null -> AsyncImage(
+            model != null && placement != null -> AsyncImage(
                 model = model,
                 contentDescription = null,
                 contentScale = ContentScale.FillBounds,
                 modifier = Modifier.placedAt(placement),
             )
-            else -> AsyncImage(
+            model != null && sliceFallback -> AsyncImage(
                 model = model,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 alignment = BiasAlignment(0f, (offset.coerceIn(0f, 1f) * 2f) - 1f),
                 modifier = Modifier.fillMaxSize(),
             )
+            else -> fallback()
         }
     }
 }

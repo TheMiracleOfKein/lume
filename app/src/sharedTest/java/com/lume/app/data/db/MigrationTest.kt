@@ -7,6 +7,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeFalse
 import org.junit.Before
 import org.junit.Rule
@@ -157,6 +158,26 @@ class MigrationTest {
         db.query("SELECT COUNT(*) FROM download_queue").use {
             it.moveToFirst()
             assertEquals(2, it.getInt(0))
+        }
+    }
+
+    @Test
+    fun migrate11To12KeepsProgressAndAddsPageImage() {
+        helper.createDatabase(dbName, 11).apply {
+            execSQL(
+                "INSERT INTO reading_progress (sourceId, titleId, titleName, chapterId, chapterName, chapterUrl, pageIndex, pageCount, updatedAt, pageOffset) " +
+                    "VALUES ('s', 't', 'Title', 'c1', 'Ch 1', 'u', 3, 20, 5, 0.25)",
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(dbName, 12, true, LumeDatabase.MIGRATION_11_12)
+
+        db.query("SELECT pageIndex, pageOffset, pageImageUrl FROM reading_progress").use {
+            it.moveToFirst()
+            assertEquals(3, it.getInt(0))
+            assertEquals(0.25f, it.getFloat(1))
+            assertTrue(it.isNull(2))
         }
     }
 

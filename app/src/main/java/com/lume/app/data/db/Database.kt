@@ -42,6 +42,11 @@ data class ProgressEntity(
     /** Fraction (0..1) of page [pageIndex]'s height scrolled past; see `ReaderAnchor`. */
     @ColumnInfo(defaultValue = "0")
     val pageOffset: Float = 0f,
+    /**
+     * The image of page [pageIndex] when it was last read here, so "Continue" can show the panel
+     * you stopped at. Not backed up or synced: page links change, and the card falls back to the cover.
+     */
+    val pageImageUrl: String? = null,
 )
 
 /**
@@ -695,7 +700,7 @@ data class TitleJsonRow(val sourceId: String, val titleId: String, val titleJson
         LibraryChapterEntity::class,
         TitleSourceEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 abstract class LumeDatabase : RoomDatabase() {
@@ -843,8 +848,16 @@ abstract class LumeDatabase : RoomDatabase() {
             }
         }
 
+        /** The page image of the "Continue" spot, for showing its panel. Additive. */
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE reading_progress ADD COLUMN pageImageUrl TEXT")
+            }
+        }
+
         val MIGRATIONS: Array<Migration> get() = arrayOf(
             MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
+            MIGRATION_11_12,
         )
     }
 }

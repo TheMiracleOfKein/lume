@@ -528,6 +528,7 @@ class ReaderViewModel(
                 pageIndex = a.pageIndex,
                 pageCount = count,
                 pageOffset = a.pageOffset,
+                pageImageUrl = lc.pages.getOrNull(a.pageIndex)?.imageUrl,
             ),
         )
     }
