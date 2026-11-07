@@ -10,12 +10,19 @@ object PageFit {
      * as large as fits a [viewportWidth] x [viewportHeight] viewport, centred. The rest of the
      * page lies outside the viewport and is clipped away.
      */
-    fun placeRegion(viewportWidth: Float, viewportHeight: Float, imageAspect: Float, region: PageRect): PagePlacement? {
+    fun placeRegion(
+        viewportWidth: Float,
+        viewportHeight: Float,
+        imageAspect: Float,
+        region: PageRect,
+        /** Cover the viewport with the region (cutting its sides) instead of fitting it inside. */
+        fill: Boolean = false,
+    ): PagePlacement? {
         if (viewportWidth <= 0f || viewportHeight <= 0f || imageAspect <= 0f) return null
         if (region.width <= 0f || region.height <= 0f) return null
         val regionAspect = imageAspect * region.width / region.height
         val viewportAspect = viewportWidth / viewportHeight
-        val (shownWidth, shownHeight) = if (regionAspect > viewportAspect) {
+        val (shownWidth, shownHeight) = if ((regionAspect > viewportAspect) != fill) {
             viewportWidth to viewportWidth / regionAspect
         } else {
             viewportHeight * regionAspect to viewportHeight

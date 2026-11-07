@@ -110,6 +110,16 @@ class ReaderStripLayoutTest {
     }
 
     @Test
+    fun `fill covers the viewport and cuts the region's sides`() {
+        // A square panel in a portrait thumbnail: it covers the full height, its sides are cut.
+        val p = PageFit.placeRegion(56f, 72f, 1f, PageRect(0.25f, 0.25f, 0.75f, 0.75f), fill = true)!!
+        assertEquals(144f, p.height, 0.5f)
+        assertEquals(144f, p.width, 0.5f)
+        assertEquals(-36f, p.top, 0.5f)
+        assertEquals(28f - 72f, p.left, 0.5f)
+    }
+
+    @Test
     fun `intersect regions`() {
         val half = PageRect(0.5f, 0f, 1f, 1f)
         val content = PageRect(0.05f, 0.1f, 0.95f, 0.9f)

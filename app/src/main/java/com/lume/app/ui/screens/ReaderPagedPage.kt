@@ -21,14 +21,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -37,8 +35,8 @@ import coil3.request.crossfade
 import com.lume.app.R
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.page.PageFit
-import com.lume.app.domain.page.PagePlacement
 import com.lume.app.domain.page.PageRect
+import com.lume.app.ui.components.placedAt
 import com.lume.app.ui.theme.AppColors
 import me.saket.telephoto.zoomable.DoubleClickToZoomListener
 import me.saket.telephoto.zoomable.EnabledZoomGestures
@@ -113,21 +111,6 @@ private fun PageLoadOverlay(load: PageLoad) {
             TextButton(onClick = { load.failed = false; load.attempt++ }) {
                 Text(stringResource(R.string.action_retry), color = AppColors.accentText)
             }
-        }
-    }
-}
-
-/** Lays the child out at [placement] (viewport pixels), or fills the viewport when null. */
-private fun Modifier.placedAt(placement: PagePlacement?): Modifier = if (placement == null) {
-    this.fillMaxSize()
-} else {
-    layout { measurable, _ ->
-        val placeable = measurable.measure(
-            Constraints.fixed(placement.width.roundToInt().coerceAtLeast(1), placement.height.roundToInt().coerceAtLeast(1)),
-        )
-        // Report the full child size so nothing is clamped; the parent clips to the viewport.
-        layout(placeable.width, placeable.height) {
-            placeable.place(placement.left.roundToInt(), placement.top.roundToInt())
         }
     }
 }

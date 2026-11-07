@@ -126,6 +126,28 @@ object PageAnalysis {
             ?: panels.minByOrNull { min(abs(it.top - spot), abs(it.bottom - spot)) }
     }
 
+    /**
+     * The panel to show for a saved spot at [y] (fraction of the page height) on a page of
+     * [aspect] (width / height): a band of a tall webtoon strip, else a comic panel. Null when
+     * no panel says more than the whole page would (no panels found, or a panel much taller than
+     * wide, where a slice around the spot shows more).
+     */
+    fun spotPanel(panels: List<PageRect>, bands: List<PageRect>, aspect: Float, y: Float): PageRect? {
+        if (aspect <= 0f) return null
+        val strip = aspect < TALL_STRIP_ASPECT
+        val panel = panelAt(if (strip) bands else panels, y) ?: return null
+        if (panel.area > 0.8f) return null
+        // Height over width in real proportions.
+        val tallness = (panel.height / aspect) / panel.width
+        return panel.takeIf { tallness <= MAX_SPOT_TALLNESS }
+    }
+
+    /** Pages narrower than this (width / height) are webtoon strips: panels are horizontal bands. */
+    private const val TALL_STRIP_ASPECT = 0.45f
+
+    /** A spot panel more than this many times taller than wide shows less than a slice would. */
+    private const val MAX_SPOT_TALLNESS = 2.5f
+
     private const val MAX_DEPTH = 8
 
     /** Recursive XY cut: split at full-width gutters into rows, rows at full-height gutters into columns. */

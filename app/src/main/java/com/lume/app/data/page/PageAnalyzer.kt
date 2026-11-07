@@ -20,6 +20,8 @@ import java.io.File
 
 /** What [PageAnalysis] found on one page. */
 data class PageLayout(
+    /** Width / height of the page. */
+    val aspect: Float,
     /** The content inside a plain border; null when there is no border worth cropping. */
     val contentBounds: PageRect?,
     val panelsLeftToRight: List<PageRect>,
@@ -32,6 +34,9 @@ data class PageLayout(
         PanelOrder.RightToLeft -> panelsRightToLeft
         PanelOrder.Vertical -> bands
     }
+
+    /** The panel holding a saved spot at [y], for bookmark thumbnails; see [PageAnalysis.spotPanel]. */
+    fun spotPanel(y: Float): PageRect? = PageAnalysis.spotPanel(panelsLeftToRight, bands, aspect, y)
 }
 
 /**
@@ -77,6 +82,7 @@ class PageAnalyzer(
         bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
         val grid = LumaGrid.fromArgb(pixels, w, h)
         return PageLayout(
+            aspect = w.toFloat() / h,
             contentBounds = PageAnalysis.contentBounds(grid),
             panelsLeftToRight = PageAnalysis.panels(grid, PanelOrder.LeftToRight),
             panelsRightToLeft = PageAnalysis.panels(grid, PanelOrder.RightToLeft),

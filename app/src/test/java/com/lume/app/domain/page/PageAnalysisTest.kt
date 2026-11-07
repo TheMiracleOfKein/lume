@@ -136,6 +136,26 @@ class PageAnalysisTest {
     }
 
     @Test
+    fun `spot panel on a manga page and a webtoon strip`() {
+        val panels = PageAnalysis.panels(twoRowPage, PanelOrder.LeftToRight)
+        val bands = PageAnalysis.panels(twoRowPage, PanelOrder.Vertical)
+        // A portrait page: the comic panel under the spot.
+        assertEquals(panels[0], PageAnalysis.spotPanel(panels, bands, aspect = 0.66f, y = 0.2f))
+        // A tall strip: the horizontal band under the spot.
+        val stripBands = listOf(PageRect(0f, 0f, 1f, 0.05f), PageRect(0f, 0.06f, 1f, 0.1f))
+        assertEquals(stripBands[1], PageAnalysis.spotPanel(emptyList(), stripBands, aspect = 0.06f, y = 0.08f))
+    }
+
+    @Test
+    fun `no spot panel when it says no more than the page`() {
+        // The only panel is nearly the whole page.
+        assertNull(PageAnalysis.spotPanel(listOf(PageRect(0.02f, 0.02f, 0.98f, 0.98f)), emptyList(), 0.7f, 0.5f))
+        // A band of a strip that is far taller than wide: a slice shows more.
+        assertNull(PageAnalysis.spotPanel(emptyList(), listOf(PageRect(0f, 0f, 1f, 0.6f)), aspect = 0.06f, y = 0.3f))
+        assertNull(PageAnalysis.spotPanel(emptyList(), emptyList(), 0.7f, 0.5f))
+    }
+
+    @Test
     fun `panel at a spot`() {
         val panels = PageAnalysis.panels(twoRowPage, PanelOrder.Vertical)
         assertEquals(panels[0], PageAnalysis.panelAt(panels, 0.2f))
