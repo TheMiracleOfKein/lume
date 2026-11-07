@@ -16,13 +16,17 @@ import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.HomeFeed
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.TitleSummary
+import com.lume.app.data.db.ProgressEntity
 import com.lume.app.domain.withGenre
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.net.URI
 
@@ -52,6 +56,14 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
         private set
     var cloudflareUri by mutableStateOf<URI?>(null)
         private set
+
+    /**
+     * Reading history for "Continue reading". Held here, started eagerly, so that coming back
+     * to Home shows the row in the first frame: collecting it in the screen with an empty
+     * initial value inserted the row a frame later and slid the list below it down.
+     */
+    val history: StateFlow<List<ProgressEntity>> = app.dao.observeHistoryLimit(HISTORY_LIMIT)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private var job: Job? = null
 
@@ -94,6 +106,11 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
     fun solveChallenge() {
         val uri = cloudflareUri ?: return
         viewModelScope.launch { app.http.requestChallenge(uri) }
+    }
+
+    private companion object {
+        /** Home shows at most this many "Continue reading" cards. */
+        const val HISTORY_LIMIT = 20
     }
 }
 
