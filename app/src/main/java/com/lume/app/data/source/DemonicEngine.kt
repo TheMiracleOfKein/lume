@@ -22,12 +22,12 @@ class DemonicEngine(
 ) : CatalogSource {
     override suspend fun getLatest(page: Int): PagedResult<TitleSummary> {
         val response = http.get(manifest.baseUri.resolve("/lastupdates.php"), source = manifest)
-        return parseMangaLinks(response.body, page)
+        return parseTitleList(response.body, page)
     }
 
     override suspend fun getPopular(page: Int): PagedResult<TitleSummary> {
         val response = http.get(manifest.baseUri.resolve("/newmangalist.php"), source = manifest)
-        return parseMangaLinks(response.body, page)
+        return parseTitleList(response.body, page)
     }
 
     override suspend fun search(query: String, page: Int, filters: FilterList): PagedResult<TitleSummary> {
@@ -36,12 +36,16 @@ class DemonicEngine(
             "${manifest.baseUrl.trimEnd('/')}/advanced.php?manga_name=${urlEncode(query)}",
         )
         val response = http.get(uri, source = manifest)
-        return parseMangaLinks(response.body, page)
+        return parseTitleList(response.body, page)
     }
 
     override suspend fun getTitle(id: String): TitleDetails {
         val response = http.get(abs(id), source = manifest)
-        val doc = Jsoup.parse(response.body, manifest.baseUrl)
+        return parseDetails(response.body, id)
+    }
+
+    internal fun parseDetails(body: String, id: String): TitleDetails {
+        val doc = Jsoup.parse(body, manifest.baseUrl)
         val title = doc.selectFirst("h1, .big-title, title")?.text()
             ?.substringBefore("|")?.trim().orEmpty()
         val cover = doc.selectFirst("img.manga-thumb, .manga-info img, meta[property=og:image]")
@@ -59,7 +63,11 @@ class DemonicEngine(
 
     override suspend fun getChapters(titleId: String): List<Chapter> {
         val response = http.get(abs(titleId), source = manifest)
-        val doc = Jsoup.parse(response.body, manifest.baseUrl)
+        return parseChapters(response.body)
+    }
+
+    internal fun parseChapters(body: String): List<Chapter> {
+        val doc = Jsoup.parse(body, manifest.baseUrl)
         return doc.select("a[href*=chaptered.php]").mapNotNull { a ->
             val href = a.attr("abs:href").ifBlank { a.attr("href") }
             if (!href.contains("chaptered.php")) return@mapNotNull null
@@ -81,7 +89,11 @@ class DemonicEngine(
 
     override suspend fun getPages(chapter: Chapter): List<ComicPage> {
         val response = http.get(abs(chapter.url.ifBlank { chapter.id }), source = manifest)
-        val doc = Jsoup.parse(response.body, manifest.baseUrl)
+        return parsePages(response.body)
+    }
+
+    internal fun parsePages(body: String): List<ComicPage> {
+        val doc = Jsoup.parse(body, manifest.baseUrl)
         val pages = doc.select("img").mapNotNull { img ->
             val url = img.attr("abs:src").ifBlank { img.attr("src") }
             if (!url.startsWith("http")) return@mapNotNull null
@@ -97,7 +109,7 @@ class DemonicEngine(
         return pages
     }
 
-    private fun parseMangaLinks(html: String, page: Int): PagedResult<TitleSummary> {
+    internal fun parseTitleList(html: String, page: Int): PagedResult<TitleSummary> {
         val doc = Jsoup.parse(html, manifest.baseUrl)
         val items = mutableListOf<TitleSummary>()
         val seen = mutableSetOf<String>()
