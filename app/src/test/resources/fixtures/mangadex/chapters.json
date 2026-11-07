@@ -1,0 +1,5 @@
+{"result":"ok","response":"collection","data":[
+{"id":"c0000003-0000-4000-8000-000000000003","type":"chapter","attributes":{"volume":"2","chapter":"12","title":"The Third Gate","translatedLanguage":"en","publishAt":"2024-05-03T10:00:00+00:00","pages":20}},
+{"id":"c0000002-0000-4000-8000-000000000002","type":"chapter","attributes":{"volume":null,"chapter":"11.5","title":null,"translatedLanguage":"ru","publishAt":"2024-04-20T08:30:00+00:00","pages":18}},
+{"id":"c0000001-0000-4000-8000-000000000001","type":"chapter","attributes":{"volume":"1","chapter":"1","title":"Beginning","translatedLanguage":"en","publishAt":"2023-01-02T00:00:00+00:00","pages":30}}
+],"limit":500,"offset":0,"total":3}
