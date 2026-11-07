@@ -254,6 +254,7 @@
     <string name="error_pages_failed_named">Не удалось получить страницы главы %s</string>
     <string name="error_local_title_missing">Локальный тайтл не найден: %s</string>
     <string name="error_rar5_unsupported">Архив RAR5 не поддерживается. Пересоберите его в CBZ.</string>
+    <string name="error_archive_damaged">Архив повреждён или имеет неподдерживаемый формат. Попробуйте пересобрать его в CBZ.</string>
     <string name="error_archive_unsupported">Этот файл не является поддерживаемым архивом (CBZ, CBR, CB7).</string>
     <string name="error_pdf_unreadable">Не удаётся открыть PDF. Возможно, он защищён паролем или повреждён.</string>
     <string name="local_files_description">Локальные файлы: %s</string>

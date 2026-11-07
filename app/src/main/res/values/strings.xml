@@ -265,6 +265,7 @@
     <string name="error_pages_failed_named">Could not load chapter pages (%s)</string>
     <string name="error_local_title_missing">Local title not found: %s</string>
     <string name="error_rar5_unsupported">This RAR5 archive isn\'t supported. Repack it as CBZ.</string>
+    <string name="error_archive_damaged">This archive is damaged or in an unsupported format. Try repacking it as CBZ.</string>
     <string name="error_archive_unsupported">This file isn\'t a supported archive (CBZ, CBR, CB7).</string>
     <string name="error_pdf_unreadable">This PDF can\'t be opened. It may be protected by a password or damaged.</string>
     <string name="local_files_description">Local files: %s</string>

@@ -16,6 +16,9 @@ import java.io.InputStream
 /** A RAR archive the reader can't unpack (a RAR5 variant or method junrar doesn't handle). */
 class UnsupportedRarVersionException : IOException(appString(R.string.error_rar5_unsupported))
 
+/** An archive that is damaged or can't be read. */
+class DamagedArchiveException(cause: Throwable? = null) : IOException(appString(R.string.error_archive_damaged), cause)
+
 class RarArchiveReader(file: File) : ArchiveReader {
     private val archive: Archive = try {
         Archive(file)

@@ -1,6 +1,7 @@
 package com.lume.app.data.local
 
 import com.lume.app.data.local.archive.ArchiveReaders
+import com.lume.app.data.local.archive.DamagedArchiveException
 import com.lume.app.data.local.archive.RarArchiveReader
 import com.lume.app.data.local.archive.SevenZArchiveReader
 import com.lume.app.data.local.archive.UnsupportedRarVersionException
@@ -132,5 +133,29 @@ class ArchiveReadersTest {
             assertNotNull(e)
         }
         assertTrue(UnsupportedRarVersionException() is IOException)
+    }
+
+    @Test
+    fun `RAR5 signature is reported as unsupported`() {
+        val rar5 = tmp.newFile("v5.cbr").also {
+            it.writeBytes(byteArrayOf(0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x01, 0x00) + ByteArray(32))
+        }
+        try {
+            ArchiveReaders.open(rar5)
+            fail("expected UnsupportedRarVersionException")
+        } catch (e: UnsupportedRarVersionException) {
+            // expected
+        }
+    }
+
+    @Test
+    fun `garbage in a cbz is reported as a damaged archive`() {
+        val bad = tmp.newFile("bad.cbz").also { it.writeBytes(ByteArray(64) { 7 }) }
+        try {
+            ArchiveReaders.open(bad)
+            fail("expected DamagedArchiveException")
+        } catch (e: DamagedArchiveException) {
+            // expected
+        }
     }
 }

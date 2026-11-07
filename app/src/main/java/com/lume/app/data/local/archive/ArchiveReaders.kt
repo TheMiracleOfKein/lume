@@ -23,6 +23,7 @@ object ArchiveReaders {
     private val EXTENSIONS = setOf("cbz", "zip", "cbr", "rar", "cb7", "7z")
 
     private val RAR_MAGIC = byteArrayOf(0x52, 0x61, 0x72, 0x21) // "Rar!"
+    private val RAR5_MAGIC = byteArrayOf(0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x01, 0x00)
     private val ZIP_MAGIC = byteArrayOf(0x50, 0x4B) // "PK"
     private val SEVEN_Z_MAGIC = byteArrayOf(0x37, 0x7A, 0xBC.toByte(), 0xAF.toByte(), 0x27, 0x1C) // "7z" BC AF 27 1C
 
@@ -51,14 +52,26 @@ object ArchiveReaders {
     fun open(file: File): ArchiveReader {
         val header = ByteArray(8)
         val read = file.inputStream().use { it.read(header).coerceAtLeast(0) }
+        if (isRar5(header.copyOf(read))) throw UnsupportedRarVersionException()
         val format = detect(header.copyOf(read), file.name)
             ?: throw IOException(appString(R.string.error_archive_unsupported))
-        return when (format) {
-            Format.Zip -> ZipArchiveReader(file)
-            Format.Rar -> RarArchiveReader(file)
-            Format.SevenZ -> SevenZArchiveReader(file)
+        return try {
+            when (format) {
+                Format.Zip -> ZipArchiveReader(file)
+                Format.Rar -> RarArchiveReader(file)
+                Format.SevenZ -> SevenZArchiveReader(file)
+            }
+        } catch (e: UnsupportedRarVersionException) {
+            throw e
+        } catch (e: IOException) {
+            throw DamagedArchiveException(e)
+        } catch (e: RuntimeException) {
+            throw DamagedArchiveException(e)
         }
     }
+
+    /** True when [header] starts with the RAR5 signature (Rar! 1A 07 01 00). */
+    fun isRar5(header: ByteArray): Boolean = header.startsWith(RAR5_MAGIC)
 
     /** False for names that could leave the folder they are unpacked into. */
     fun isSafeEntryName(name: String): Boolean {
@@ -95,7 +108,14 @@ object ArchiveReaders {
     fun extractImages(reader: ArchiveReader, outDir: File, destName: (Int, String) -> String): List<File> {
         outDir.mkdirs()
         var budget = MAX_TOTAL_BYTES
-        return imageEntries(reader).mapIndexed { i, entry ->
+        val entries = try {
+            imageEntries(reader)
+        } catch (e: IOException) {
+            throw DamagedArchiveException(e)
+        } catch (e: RuntimeException) {
+            throw DamagedArchiveException(e)
+        }
+        return entries.mapIndexed { i, entry ->
             val dest = File(outDir, destName(i, entry.substringAfterLast('/')))
             if (!dest.isFile || dest.length() == 0L) {
                 val partial = File(outDir, dest.name + ".part")
