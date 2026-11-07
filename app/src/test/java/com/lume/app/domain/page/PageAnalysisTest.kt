@@ -25,6 +25,15 @@ class PageAnalysisTest {
     private fun close(expected: Float, actual: Float) = assertEquals(expected, actual, 0.011f)
 
     @Test
+    fun `rectangle contains another only when wholly inside`() {
+        val outer = PageRect(0.1f, 0.2f, 0.6f, 0.8f)
+        assertTrue(outer.contains(PageRect(0.2f, 0.3f, 0.5f, 0.7f)))
+        assertTrue(outer.contains(outer))
+        assertTrue(!outer.contains(PageRect(0.05f, 0.3f, 0.5f, 0.7f)))
+        assertTrue(!outer.contains(PageRect(0.2f, 0.3f, 0.5f, 0.9f)))
+    }
+
+    @Test
     fun `content bounds inside a white border`() {
         val grid = page(200, 300, boxes = arrayOf(box(20, 30, 180, 270)))
         val rect = PageAnalysis.contentBounds(grid)!!

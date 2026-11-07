@@ -28,9 +28,11 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.layout
+import androidx.compose.foundation.Canvas
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.Constraints
 import coil3.imageLoader
 import com.lume.app.domain.page.PageRect
 import kotlin.math.roundToInt
@@ -85,54 +87,58 @@ private fun openRegionDecoder(context: Context, imageUrl: String): BitmapRegionD
 @Composable
 internal fun PageDetail(imageUrl: String, region: PageRect, shownWidthPx: Int, colorFilter: ColorFilter?) {
     val context = LocalContext.current
-    val bitmap by produceState<ImageBitmap?>(null, imageUrl, region, shownWidthPx) {
-        value = withContext(Dispatchers.IO) {
-            val decoder = openRegionDecoder(context, imageUrl) ?: return@withContext null
-            try {
-                val w = decoder.width
-                val h = decoder.height
-                val rect = Rect(
-                    (region.left * w).toInt().coerceIn(0, w - 1),
-                    (region.top * h).toInt().coerceIn(0, h - 1),
-                    (region.right * w).toInt().coerceIn(1, w),
-                    (region.bottom * h).toInt().coerceIn(1, h),
-                )
-                if (rect.width() <= 0 || rect.height() <= 0) return@withContext null
-                // Downsample only as far as the zoomed screen still gets every pixel it can show.
-                val shownRegionWidth = (shownWidthPx * region.width).toInt().coerceAtLeast(1)
-                var sample = tileSampleSize(rect.width(), shownRegionWidth)
-                // One drawable bitmap: keep both sides under the GPU limit.
-                while (rect.height() / sample > MAX_DRAW_PX || rect.width() / sample > MAX_DRAW_PX) sample *= 2
-                val options = BitmapFactory.Options().apply { inSampleSize = sample }
-                runCatching { decoder.decodeRegion(rect, options)?.asImageBitmap() }.getOrNull()
-            } finally {
-                decoder.recycle()
-            }
+    // The last decoded detail stays on screen until the next one is ready: dropping it while the
+    // new one decodes would flash the blurry page in between.
+    var shown by remember(imageUrl) { mutableStateOf<DecodedDetail?>(null) }
+    LaunchedEffect(imageUrl, region, shownWidthPx) {
+        val decoded = withContext(Dispatchers.IO) { decodeDetail(context, imageUrl, region, shownWidthPx) }
+        if (decoded != null) shown = decoded
+    }
+    val detail = shown ?: return
+    Canvas(Modifier.fillMaxSize()) {
+        // Drawn over exactly the source pixels it was decoded from, without rounding to whole
+        // screen pixels: zoomed in, a rounding error of half a pixel shows as a visible jump.
+        val r = detail.region
+        val image = detail.bitmap
+        withTransform({
+            translate(r.left * size.width, r.top * size.height)
+            scale(r.width * size.width / image.width, r.height * size.height / image.height, pivot = Offset.Zero)
+        }) {
+            drawImage(image, colorFilter = colorFilter)
         }
     }
-    val ready = bitmap ?: return
-    Image(
-        bitmap = ready,
-        contentDescription = null,
-        contentScale = ContentScale.FillBounds,
-        colorFilter = colorFilter,
-        modifier = Modifier
-            .fillMaxSize()
-            .layout { measurable, constraints ->
-                // Placed over exactly the part of the page it shows.
-                val pageW = constraints.maxWidth
-                val pageH = constraints.maxHeight
-                val placeable = measurable.measure(
-                    Constraints.fixed(
-                        (region.width * pageW).roundToInt().coerceAtLeast(1),
-                        (region.height * pageH).roundToInt().coerceAtLeast(1),
-                    ),
-                )
-                layout(pageW, pageH) {
-                    placeable.place((region.left * pageW).roundToInt(), (region.top * pageH).roundToInt())
-                }
-            },
-    )
+}
+
+/** A decoded detail bitmap and the part of the page (fractions) its pixels cover. */
+private class DecodedDetail(val bitmap: ImageBitmap, val region: PageRect)
+
+private fun decodeDetail(context: Context, imageUrl: String, region: PageRect, shownWidthPx: Int): DecodedDetail? {
+    val decoder = openRegionDecoder(context, imageUrl) ?: return null
+    return try {
+        val w = decoder.width
+        val h = decoder.height
+        val rect = Rect(
+            (region.left * w).toInt().coerceIn(0, w - 1),
+            (region.top * h).toInt().coerceIn(0, h - 1),
+            (region.right * w).roundToInt().coerceIn(1, w),
+            (region.bottom * h).roundToInt().coerceIn(1, h),
+        )
+        if (rect.width() <= 0 || rect.height() <= 0) return null
+        // Downsample only as far as the zoomed screen still gets every pixel it can show.
+        val shownRegionWidth = (shownWidthPx * region.width).toInt().coerceAtLeast(1)
+        var sample = tileSampleSize(rect.width(), shownRegionWidth)
+        // One drawable bitmap: keep both sides under the GPU limit.
+        while (rect.height() / sample > MAX_DRAW_PX || rect.width() / sample > MAX_DRAW_PX) sample *= 2
+        val options = BitmapFactory.Options().apply { inSampleSize = sample }
+        val bitmap = runCatching { decoder.decodeRegion(rect, options)?.asImageBitmap() }.getOrNull() ?: return null
+        // The rectangle actually decoded (whole source pixels), not the requested fractions.
+        DecodedDetail(
+            bitmap,
+            PageRect(rect.left.toFloat() / w, rect.top.toFloat() / h, rect.right.toFloat() / w, rect.bottom.toFloat() / h),
+        )
+    } finally {
+        decoder.recycle()
+    }
 }
 
 @Composable
