@@ -72,8 +72,24 @@ data class ReaderSettings(
     val autoScrollSpeed: Int = 3,
     /** Webtoon mode: tap the top / bottom third to scroll back / on; the middle toggles controls. */
     val webtoonTapZones: Boolean = false,
+    /** Pages loaded ahead of the one on screen, 0 … [MAX_PRELOAD]. */
+    val preloadPages: Int = 4,
+    /** Paged modes: plain white or black borders are cut off, so the drawing fills the screen. */
+    val cropBorders: Boolean = false,
+    /** Paged modes in portrait: a double page is shown as two halves, one after the other. */
+    val splitWide: Boolean = false,
+    /** Paged modes: [SPREADS_OFF], [SPREADS_AUTO] (landscape and wide screens) or [SPREADS_ALWAYS]. */
+    val spreads: Int = SPREADS_AUTO,
+    /** Spreads: the chapter's first page stands alone, so the pairs match a printed book. */
+    val spreadCoverAlone: Boolean = true,
+    /** Paged modes: a tap or page turn moves from panel to panel, zooming in on each. */
+    val guidedPanels: Boolean = false,
 ) {
     companion object {
+        const val SPREADS_OFF = 0
+        const val SPREADS_AUTO = 1
+        const val SPREADS_ALWAYS = 2
+        const val MAX_PRELOAD = 10
         const val ORIENTATION_AUTO = 0
         const val ORIENTATION_PORTRAIT = 1
         const val ORIENTATION_LANDSCAPE = 2
@@ -148,6 +164,12 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val readerBrightnessKey = doublePreferencesKey("reader_brightness")
     private val readerAutoScrollKey = intPreferencesKey("reader_auto_scroll_speed")
     private val readerWebtoonTapZonesKey = booleanPreferencesKey("reader_webtoon_tap_zones")
+    private val readerPreloadKey = intPreferencesKey("reader_preload_pages")
+    private val readerCropBordersKey = booleanPreferencesKey("reader_crop_borders")
+    private val readerSplitWideKey = booleanPreferencesKey("reader_split_wide")
+    private val readerSpreadsKey = intPreferencesKey("reader_spreads")
+    private val readerSpreadCoverKey = booleanPreferencesKey("reader_spread_cover_alone")
+    private val readerGuidedPanelsKey = booleanPreferencesKey("reader_guided_panels")
     private val libraryIntervalKey = intPreferencesKey("library_update_interval_hours")
     private val libraryWifiOnlyKey = booleanPreferencesKey("library_update_wifi_only")
     private val librarySkipCompletedKey = booleanPreferencesKey("library_update_skip_completed")
@@ -386,6 +408,12 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
                 .let { if (it < 0f) ReaderSettings.BRIGHTNESS_SYSTEM else it.coerceIn(0.01f, 1f) },
             autoScrollSpeed = (prefs[readerAutoScrollKey] ?: 3).coerceIn(1, ReaderSettings.MAX_AUTO_SCROLL),
             webtoonTapZones = prefs[readerWebtoonTapZonesKey] ?: false,
+            preloadPages = (prefs[readerPreloadKey] ?: 4).coerceIn(0, ReaderSettings.MAX_PRELOAD),
+            cropBorders = prefs[readerCropBordersKey] ?: false,
+            splitWide = prefs[readerSplitWideKey] ?: false,
+            spreads = (prefs[readerSpreadsKey] ?: ReaderSettings.SPREADS_AUTO).coerceIn(0, 2),
+            spreadCoverAlone = prefs[readerSpreadCoverKey] ?: true,
+            guidedPanels = prefs[readerGuidedPanelsKey] ?: false,
         )
     }
 
@@ -721,6 +749,12 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             it[readerBrightnessKey] = settings.brightness.toDouble()
             it[readerAutoScrollKey] = settings.autoScrollSpeed
             it[readerWebtoonTapZonesKey] = settings.webtoonTapZones
+            it[readerPreloadKey] = settings.preloadPages
+            it[readerCropBordersKey] = settings.cropBorders
+            it[readerSplitWideKey] = settings.splitWide
+            it[readerSpreadsKey] = settings.spreads
+            it[readerSpreadCoverKey] = settings.spreadCoverAlone
+            it[readerGuidedPanelsKey] = settings.guidedPanels
         }
     }
 

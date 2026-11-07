@@ -28,7 +28,12 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import coil.imageLoader
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Constraints
+import coil3.imageLoader
+import com.lume.app.domain.page.PageRect
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -48,13 +53,7 @@ internal class TallSource(
  * Null when it isn't on disk yet, can't be region-decoded, or doesn't actually need slicing.
  */
 internal fun openTallSource(context: Context, imageUrl: String, targetWidth: Int): TallSource? = runCatching {
-    val path = if (imageUrl.startsWith("http")) {
-        context.imageLoader.diskCache?.openSnapshot(imageUrl)?.use { it.data.toFile().absolutePath }
-    } else {
-        File(imageUrl).takeIf { it.isFile }?.absolutePath
-    } ?: return@runCatching null
-    @Suppress("DEPRECATION")
-    val decoder = BitmapRegionDecoder.newInstance(path, false) ?: return@runCatching null
+    val decoder = openRegionDecoder(context, imageUrl) ?: return@runCatching null
     val sample = tileSampleSize(decoder.width, targetWidth)
     if (!needsTiling(decoder.height, sample)) {
         decoder.recycle()
@@ -63,6 +62,78 @@ internal fun openTallSource(context: Context, imageUrl: String, targetWidth: Int
         TallSource(decoder, decoder.width, decoder.height, sample, tileBounds(decoder.height, sample))
     }
 }.getOrNull()
+
+/** The page's original file on disk: the downloaded copy, or Coil's disk cache. */
+private fun originalPath(context: Context, imageUrl: String): String? = if (imageUrl.startsWith("http")) {
+    context.imageLoader.diskCache?.openSnapshot(imageUrl)?.use { it.data.toFile().absolutePath }
+} else {
+    File(imageUrl).takeIf { it.isFile }?.absolutePath
+}
+
+/** A region decoder over the page's original, or null when it isn't on disk or can't be read. */
+private fun openRegionDecoder(context: Context, imageUrl: String): BitmapRegionDecoder? = runCatching {
+    val path = originalPath(context, imageUrl) ?: return@runCatching null
+    @Suppress("DEPRECATION")
+    BitmapRegionDecoder.newInstance(path, false)
+}.getOrNull()
+
+/**
+ * Sharp detail over a zoomed webtoon page: [region] (fractions of the page) decoded from the
+ * original at about [shownWidthPx] (the page's on-screen width at the current zoom), drawn over
+ * the normal bitmap. Only what is on screen is decoded, and it is dropped when the zoom ends.
+ */
+@Composable
+internal fun PageDetail(imageUrl: String, region: PageRect, shownWidthPx: Int, colorFilter: ColorFilter?) {
+    val context = LocalContext.current
+    val bitmap by produceState<ImageBitmap?>(null, imageUrl, region, shownWidthPx) {
+        value = withContext(Dispatchers.IO) {
+            val decoder = openRegionDecoder(context, imageUrl) ?: return@withContext null
+            try {
+                val w = decoder.width
+                val h = decoder.height
+                val rect = Rect(
+                    (region.left * w).toInt().coerceIn(0, w - 1),
+                    (region.top * h).toInt().coerceIn(0, h - 1),
+                    (region.right * w).toInt().coerceIn(1, w),
+                    (region.bottom * h).toInt().coerceIn(1, h),
+                )
+                if (rect.width() <= 0 || rect.height() <= 0) return@withContext null
+                // Downsample only as far as the zoomed screen still gets every pixel it can show.
+                val shownRegionWidth = (shownWidthPx * region.width).toInt().coerceAtLeast(1)
+                var sample = tileSampleSize(rect.width(), shownRegionWidth)
+                // One drawable bitmap: keep both sides under the GPU limit.
+                while (rect.height() / sample > MAX_DRAW_PX || rect.width() / sample > MAX_DRAW_PX) sample *= 2
+                val options = BitmapFactory.Options().apply { inSampleSize = sample }
+                runCatching { decoder.decodeRegion(rect, options)?.asImageBitmap() }.getOrNull()
+            } finally {
+                decoder.recycle()
+            }
+        }
+    }
+    val ready = bitmap ?: return
+    Image(
+        bitmap = ready,
+        contentDescription = null,
+        contentScale = ContentScale.FillBounds,
+        colorFilter = colorFilter,
+        modifier = Modifier
+            .fillMaxSize()
+            .layout { measurable, constraints ->
+                // Placed over exactly the part of the page it shows.
+                val pageW = constraints.maxWidth
+                val pageH = constraints.maxHeight
+                val placeable = measurable.measure(
+                    Constraints.fixed(
+                        (region.width * pageW).roundToInt().coerceAtLeast(1),
+                        (region.height * pageH).roundToInt().coerceAtLeast(1),
+                    ),
+                )
+                layout(pageW, pageH) {
+                    placeable.place((region.left * pageW).roundToInt(), (region.top * pageH).roundToInt())
+                }
+            },
+    )
+}
 
 @Composable
 internal fun TiledPage(source: TallSource, colorFilter: ColorFilter?, modifier: Modifier) {

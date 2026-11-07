@@ -8,9 +8,9 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import coil.imageLoader
-import coil.request.CachePolicy
-import coil.request.ImageRequest
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.lume.app.AppContainer
 import com.lume.app.R
 import com.lume.app.data.db.ChapterProgressEntity
@@ -222,7 +222,8 @@ class ReaderViewModel(
                 visited += start.chapterId
                 session++
                 loading = false
-                warmPageImages(first.pages)
+                warmed.clear()
+                warmAhead()
                 prefetchNextChapter()
             }.onFailure { e ->
                 if (e is kotlinx.coroutines.CancellationException) throw e
@@ -277,7 +278,46 @@ class ReaderViewModel(
 
     private fun replaceLoaded(list: List<LoadedChapter>) {
         loaded = list
-        strip = buildReaderStrip(list)
+        strip = buildReaderStrip(list, stripLayout())
+    }
+
+    // ---- Layout of the paged modes ---------------------------------------------------------
+
+    /** Landscape or a wide screen: spreads in "Auto", no splitting. Set by the screen. */
+    private var wideScreen by mutableStateOf(false)
+
+    fun onWideScreen(wide: Boolean) {
+        if (wide == wideScreen) return
+        wideScreen = wide
+        rebuildStrip()
+    }
+
+    val spreadsActive: Boolean
+        get() = settings.mode != ReaderMode.Webtoon && when (settings.spreads) {
+            ReaderSettings.SPREADS_ALWAYS -> true
+            ReaderSettings.SPREADS_AUTO -> wideScreen
+            else -> false
+        }
+
+    private val splitActive: Boolean
+        get() = settings.mode != ReaderMode.Webtoon && settings.splitWide && !spreadsActive && !wideScreen
+
+    private fun stripLayout() = StripLayout(
+        splitWide = splitActive,
+        spreads = spreadsActive,
+        coverAlone = settings.spreadCoverAlone,
+        rightToLeft = settings.mode == ReaderMode.Rtl,
+        aspect = ::aspectOf,
+    )
+
+    /**
+     * Lays the loaded chapters out again (split pages or spreads changed). The screen keeps its
+     * pager and moves it to [anchor], so the page on screen stays.
+     */
+    private fun rebuildStrip() {
+        if (loaded.isEmpty()) return
+        val next = buildReaderStrip(loaded, stripLayout())
+        if (next != strip) strip = next
     }
 
     /** Seamless reading: keep the chapter after the last loaded one ready, images warmed. */
@@ -293,21 +333,76 @@ class ReaderViewModel(
             // The strip may have been replaced (another chapter opened) while this loaded.
             if (loaded.lastOrNull()?.chapter?.id != last.chapter.id) return
             replaceLoaded(loaded + LoadedChapter(next, pages))
-            warmPageImages(pages)
+            warmAhead()
         }
     }
 
-    private fun warmPageImages(pages: List<ComicPage>) {
+    /**
+     * Seamless webtoon reading: scrolling near the top puts the chapter before the first loaded
+     * one above it. The list keeps its spot by item keys, so nothing on screen moves.
+     */
+    private suspend fun prefetchPreviousChapter() {
+        if (!settingsReady || !settings.seamlessReading || settings.mode != ReaderMode.Webtoon) return
+        prefetchMutex.withLock {
+            val first = loaded.firstOrNull() ?: return
+            val idx = chapters.indexOfFirst { chapterIdsMatch(it.id, first.chapter.id) }
+            val previous = chapters.getOrNull(idx - 1) ?: return
+            if (idx <= 0 || loaded.any { chapterIdsMatch(it.chapter.id, previous.id) }) return
+            val pages = runCatching { loadPagesFor(previous, notice = false) }.getOrNull()?.takeIf { it.isNotEmpty() } ?: return
+            dao.getChapterProgress(sourceId, titleId, previous.id)?.let { loadAspects(previous.id, it.pageAspectsJson) }
+            if (loaded.firstOrNull()?.chapter?.id != first.chapter.id) return
+            replaceLoaded(listOf(LoadedChapter(previous, pages)) + loaded)
+        }
+    }
+
+    /** Page URLs already sent to the image cache in this session. */
+    private val warmed = HashSet<String>()
+
+    /**
+     * Loads the [ReaderSettings.preloadPages] pages after the current one (across chapters) into
+     * the image cache, and learns their sizes on the way (for split pages and spreads).
+     */
+    private fun warmAhead() {
+        val count = settings.preloadPages
+        if (count <= 0) return
+        val strip = strip
+        val from = stripIndexOf(strip, anchor).coerceAtLeast(0)
         val loader = app.imageLoader
-        pages.forEach { page ->
-            loader.enqueue(
-                ImageRequest.Builder(app.app)
-                    .data(if (page.imageUrl.startsWith("http")) page.imageUrl else File(page.imageUrl))
-                    .memoryCachePolicy(CachePolicy.ENABLED)
-                    .diskCachePolicy(CachePolicy.ENABLED)
-                    .crossfade(false)
-                    .build(),
-            )
+        val width = app.app.resources.displayMetrics.widthPixels
+        var left = count
+        var i = from + 1
+        while (left > 0 && i < strip.size) {
+            val pages = when (val item = strip[i]) {
+                is ReaderStripItem.Page -> listOf(item)
+                is ReaderStripItem.Spread -> listOfNotNull(item.first, item.second)
+                is ReaderStripItem.Divider -> emptyList()
+            }
+            for (p in pages) {
+                left--
+                if (!warmed.add(p.page.imageUrl)) continue
+                val chapterId = p.chapter.id
+                val index = p.indexInChapter
+                loader.enqueue(
+                    ImageRequest.Builder(app.app)
+                        .data(if (p.page.imageUrl.startsWith("http")) p.page.imageUrl else File(p.page.imageUrl))
+                        // Screen-wide is enough for the cache; the reader decodes detail itself.
+                        .size(width, MAX_DRAW_PX)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
+                        .diskCachePolicy(CachePolicy.ENABLED)
+                        .crossfade(false)
+                        .listener(
+                            onSuccess = { _, result ->
+                                val image = result.image
+                                if (image.width > 0 && image.height > 0) {
+                                    reportAspect(chapterId, index, image.width.toFloat() / image.height)
+                                }
+                            },
+                            onError = { _, _ -> warmed.remove(p.page.imageUrl) },
+                        )
+                        .build(),
+                )
+            }
+            i++
         }
     }
 
@@ -316,9 +411,10 @@ class ReaderViewModel(
     /**
      * Called by the screen when the visible position changes (never while it is restoring),
      * tagged with the [session] its list was built for.
-     * [finished] are chapters whose ending is on screen; [lastVisibleIndex] drives prefetch.
+     * [finished] are chapters whose ending is on screen; [firstVisibleIndex] and
+     * [lastVisibleIndex] drive loading the chapters before and after.
      */
-    fun onPosition(forSession: Int, next: ReaderAnchor, finished: Set<String>, lastVisibleIndex: Int) {
+    fun onPosition(forSession: Int, next: ReaderAnchor, finished: Set<String>, firstVisibleIndex: Int, lastVisibleIndex: Int) {
         // A list from a previous session (being torn down) must not move the new position.
         if (forSession != session) return
         val chapterChanged = !chapterIdsMatch(next.chapterId, anchor.chapterId)
@@ -346,7 +442,16 @@ class ReaderViewModel(
         if (settings.seamlessReading && strip.size - 1 - lastVisibleIndex <= PREFETCH_WHEN_REMAINING) {
             viewModelScope.launch { prefetchNextChapter() }
         }
+        if (firstVisibleIndex <= PREFETCH_PREVIOUS_WHEN_WITHIN) {
+            viewModelScope.launch { prefetchPreviousChapter() }
+        }
+        if (chapterChanged || next.pageIndex != lastWarmedFrom) {
+            lastWarmedFrom = next.pageIndex
+            warmAhead()
+        }
     }
+
+    private var lastWarmedFrom = -1
 
     /** A chapter counts as read (and trackers move) only once you reach its end. */
     private fun markFinished(chapterId: String) {
@@ -372,7 +477,12 @@ class ReaderViewModel(
         if (aspect <= 0f || aspect.isNaN() || aspect.isInfinite()) return
         val key = aspectKey(chapterId, pageIndex)
         val old = aspects[key]
-        if (old == null || kotlin.math.abs(old - aspect) / old > 0.005f) aspects[key] = aspect
+        if (old == null || kotlin.math.abs(old - aspect) / old > 0.005f) {
+            aspects[key] = aspect
+            // A page turning out to be a double page changes split pages and spreads.
+            val wasWide = (old ?: 0f) > WIDE_PAGE_ASPECT
+            if ((splitActive || spreadsActive) && wasWide != aspect > WIDE_PAGE_ASPECT) rebuildStrip()
+        }
     }
 
     private fun loadAspects(chapterId: String, json: String) {
@@ -418,6 +528,7 @@ class ReaderViewModel(
                 pageIndex = a.pageIndex,
                 pageCount = count,
                 pageOffset = a.pageOffset,
+                pageImageUrl = lc.pages.getOrNull(a.pageIndex)?.imageUrl,
             ),
         )
     }
@@ -517,19 +628,28 @@ class ReaderViewModel(
             gap = titlePrefs?.gap ?: global.gap,
         )
         settingsReady = true
+        // The first chapter may have arrived before the settings: lay it out for them.
+        rebuildStrip()
         if (settings.seamlessReading && loaded.isNotEmpty()) prefetchNextChapter()
     }
 
     /** Live edit from the sheet (slider drag); [commit] also writes it as the new default. */
     fun updateSettings(next: ReaderSettings, commit: Boolean) {
         val turnedSeamlessOn = next.seamlessReading && !settings.seamlessReading
+        val old = settings
         settings = next
+        if (layoutChanged(old, next)) rebuildStrip()
         if (commit) viewModelScope.launch { app.prefs.setReaderSettings(next) }
         if (turnedSeamlessOn) viewModelScope.launch { prefetchNextChapter() }
     }
 
+    private fun layoutChanged(a: ReaderSettings, b: ReaderSettings) =
+        a.mode != b.mode || a.splitWide != b.splitWide || a.spreads != b.spreads || a.spreadCoverAlone != b.spreadCoverAlone
+
     fun saveSettingsForTitle(next: ReaderSettings) {
+        val old = settings
         settings = next
+        if (layoutChanged(old, next)) rebuildStrip()
         viewModelScope.launch {
             // Keep the chapter list settings stored in the same row.
             val base = dao.getTitlePrefs(sourceId, titleId) ?: TitlePrefsEntity(sourceId = sourceId, titleId = titleId)
@@ -562,6 +682,9 @@ class ReaderViewModel(
 
         /** Start loading the next chapter this many strip items before the end. */
         const val PREFETCH_WHEN_REMAINING = 12
+
+        /** Seamless webtoon: load the chapter before this close to the start of the strip. */
+        const val PREFETCH_PREVIOUS_WHEN_WITHIN = 3
 
         fun aspectKey(chapterId: String, pageIndex: Int) = "$chapterId $pageIndex"
     }

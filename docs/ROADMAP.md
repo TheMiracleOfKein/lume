@@ -26,7 +26,7 @@ These hold for every release:
 | --- | --- | --- | --- |
 | 0.6.x | Maintenance | Clearer settings with search, reading lists, similar titles, source filters and browse sections; device testing, source fixes | S–M |
 | **0.7** | Sync and everyday reading 🟡 | Sync between devices; page slider, orientation lock, auto-scroll, colour filters | L |
-| **0.8** | Reader 2.0 | Tall pages without memory problems, sharp zoom, crop and spreads, guided panel view, Coil 3 | L |
+| **0.8** | Reader 2.0 🟡 | Tall pages without memory problems, sharp zoom, crop and spreads, guided panel view, Coil 3 | L |
 | **0.9** | Library and sources | Self-hosted servers (OPDS, Komga, Kavita), CBR and PDF, watched folders, smarter updates, statistics | L |
 | **0.10** | On-device AI | Translate raws, sharper old scans (separate build flavor) | L |
 | **1.0** | Stable | Distribution, update check, crash log, accessibility, encrypted sign-ins, test coverage, user guide | M–L |
@@ -51,7 +51,7 @@ Patch releases from the v0.6 line, as needed.
 
 **v0.6.4: similar titles** ✅ released 2026-10-20 ([details](#v064-similar-titles--released-2026-10-20))
 - ✅ Recommendations on the title screen ("Similar titles") from AniList or MyAnimeList; a tap searches your sources for that title.
-- ⏸️ Split `Database.kt`: the release didn't touch it, so it moves on (next release that changes the database).
+- ✅ Split `Database.kt`: done in v0.8.0, the next release that changed the database.
 
 **v0.6.5: polish from emulator testing** ✅ released 2026-10-20 ([details](#v065-polish-from-emulator-testing--released-2026-10-20))
 - ✅ Hint text no longer collides with chip rows in Downloads, Backup and Network settings.
@@ -212,25 +212,27 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **Goal:** any page, any size, any phone: no memory crashes, sharp zoom, layouts that fit the screen.
 
+**v0.8.0: reader 2.0** ([notes](releases/v0.8.0.md))
+
 **Image pipeline**
-- **Coil 3** instead of Coil 2 (M). Coil 2 only gets fixes; Coil 3 brings better memory handling and the API the next items need.
-- **Tall pages in pieces** (M). Very tall webtoon images are decoded in tiles, so they load faster and don't run out of memory on older phones.
-- **Choose how many pages load ahead** (S).
-- **Sharp zoom** (M). The visible part is decoded again at the zoomed size.
+- ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
+- ✅ **Tall pages in pieces** (M). Paged modes decode pages in tiles through Telephoto; webtoon strips keep the slices from v0.7.11.
+- ✅ **Choose how many pages load ahead** (S): 0 to 10, 4 by default.
+- ✅ **Sharp zoom** (M). Paged modes through Telephoto; in webtoon mode the visible part of each page is decoded again once the zoom settles.
 
 **Layouts**
-- **Crop white borders; split wide pages; two-page spreads** in landscape and on tablets (M).
-- **Previous chapter above** the current one in seamless mode (M).
-- **Two-pane title screen on tablets**: details on the left, chapters on the right (M).
+- ✅ **Crop white borders; split wide pages; two-page spreads** in landscape and on tablets (M).
+- ✅ **Previous chapter above** the current one in seamless webtoon mode (M).
+- ✅ **Two-pane title screen on tablets** (840 dp and wider): details on the left, chapters on the right (M).
 
 **Guided panel view** (signature feature 2, first part, L)
-- Classic image processing finds the panels of a page; no model, no download.
-- A tap moves to the next panel with a smooth zoom, in the page's reading direction.
-- The same detection powers border cropping and spread splitting.
-- Unblocks **"See exactly where you stopped"**: "Continue" cards and page bookmarks show the panel you were reading.
+- ✅ Classic image processing (a recursive cut along the gutters) finds the panels of a page; no model, no download.
+- ✅ A tap or page turn moves to the next panel with a smooth zoom, in the page's reading direction; each page starts whole.
+- ✅ The same analysis powers border cropping.
+- ✅ **"See exactly where you stopped"**: "Continue" cards and page bookmarks show the panel (database 11 → 12 keeps the page image with the progress).
 
 **Performance**
-- A frame-time benchmark for library and reader scrolling next to `StartupBenchmark`; the profile is recorded again (S).
+- 🟡 `ScrollBenchmark` (frame times of the catalogue grid and the webtoon reader) next to `StartupBenchmark` (S). Both need a device and the network; the numbers and the newly recorded profile come with the release check.
 - ⏸️ **Rounded screen corners during the back gesture**: added in v0.7.7, removed again in v0.7.8 (it looked different from screen to screen); going back is instant.
 
 ## v0.9: library and sources
@@ -315,8 +317,8 @@ Learned models stay optional because of their size, their speed on older phones 
 | HentaiLib needs a signed-in account to read | Works as designed since v0.6.1; the reader says so |
 | Room 6→7 migration can't be tested (no v6 schema was exported) | Accepted; every later migration is tested |
 | The Room migration test is skipped on Windows JVM runs | CI (Linux) runs it; v1.0 adds emulator tests on CI |
-| Coil 2 is in maintenance | v0.8: Coil 3 |
-| Large files: `Database.kt` (about 770 lines); 🟡 `SettingsScreen.kt` and `LibraryScreen.kt` split in v0.6.2 and v0.6.3 | `Database.kt`: with the next database change |
+| ✅ Coil 2 is in maintenance | Coil 3 since v0.8.0 |
+| ✅ Large files: `SettingsScreen.kt` and `LibraryScreen.kt` split in v0.6.2 and v0.6.3, `Database.kt` in v0.8.0 | Entities, `LibraryDao` and `LumeDatabase` in their own files |
 | Releases are built on one computer | v1.0: optional signed release workflow |
 | Engine parsers are only tested against the live sites | v0.9: offline tests with saved pages |
 
@@ -349,14 +351,14 @@ A library entry can be backed by several sources at once.
 
 Everything runs on the phone, with no account.
 
-- **Guided panel view** (v0.8): classic panel detection, no model.
+- ✅ **Guided panel view** (v0.8.0): classic panel detection, no model.
 - **Translate raws** and **sharper old scans** (v0.10): in the separate `ai` build flavor.
 
 ### 3. Sync and continuity 🟡
 
 - ✅ **Home-screen widget** and **"Continue <title>" shortcuts** (v0.6).
 - ✅ **Sync between devices** (v0.7.0): a folder or WebDAV, optional passphrase. Google Drive waits.
-- ⏸️ **See exactly where you stopped** (v0.8): "Continue" cards and page bookmarks show the panel you were reading. Waits for panel detection; today page bookmarks show a crop of the page.
+- ✅ **See exactly where you stopped** (v0.8.0): "Continue" cards and page bookmarks show the panel you were reading.
 
 ## Released
 

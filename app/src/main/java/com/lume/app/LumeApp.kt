@@ -1,13 +1,18 @@
 package com.lume.app
 
 import android.app.Application
-import coil.ImageLoader
-import coil.ImageLoaderFactory
-import coil.disk.DiskCache
-import coil.memory.MemoryCache
+import android.content.Context
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.disk.DiskCache
+import coil3.memory.MemoryCache
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.request.crossfade
 import okhttp3.OkHttpClient
+import okio.Path.Companion.toOkioPath
 
-class LumeApp : Application(), ImageLoaderFactory {
+class LumeApp : Application(), SingletonImageLoader.Factory {
     lateinit var container: AppContainer
         private set
 
@@ -22,7 +27,7 @@ class LumeApp : Application(), ImageLoaderFactory {
         container.start()
     }
 
-    override fun newImageLoader(): ImageLoader {
+    override fun newImageLoader(context: PlatformContext): ImageLoader {
         val http = container.http
         val imageReferers = container.imageReferers
         val client: OkHttpClient = http.okHttp.newBuilder()
@@ -38,13 +43,16 @@ class LumeApp : Application(), ImageLoaderFactory {
                 chain.proceed(builder.build())
             }
             .build()
-        return ImageLoader.Builder(this)
-            .okHttpClient(client)
+        val app: Context = this
+        return ImageLoader.Builder(app)
+            .components { add(OkHttpNetworkFetcherFactory(callFactory = { client })) }
             .crossfade(true)
-            .memoryCache { MemoryCache.Builder(this).maxSizePercent(0.25).build() }
+            .memoryCache { MemoryCache.Builder().maxSizePercent(app, 0.25).build() }
             .diskCache {
+                // Coil 3 writes its entries differently: start a new folder and drop Coil 2's.
+                cacheDir.resolve(LEGACY_IMAGE_CACHE).takeIf { it.exists() }?.deleteRecursively()
                 DiskCache.Builder()
-                    .directory(cacheDir.resolve("image_cache"))
+                    .directory(cacheDir.resolve(IMAGE_CACHE).toOkioPath())
                     .maxSizeBytes(150L * 1024 * 1024)
                     .build()
             }
@@ -52,6 +60,9 @@ class LumeApp : Application(), ImageLoaderFactory {
     }
 
     companion object {
+        private const val IMAGE_CACHE = "image_cache_v3"
+        private const val LEGACY_IMAGE_CACHE = "image_cache"
+
         /** Only for [com.lume.app.data.locale.appString]; everything else uses [container]. */
         internal lateinit var instance: LumeApp
             private set

@@ -3,10 +3,10 @@ package com.lume.app.data.update
 import android.app.Application
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import com.lume.app.BuildConfig
 import com.lume.app.data.network.AppHttp
 import kotlinx.coroutines.CancellationException
@@ -77,7 +77,7 @@ class AppUpdater(
     val autoCheck: StateFlow<Boolean> = _autoCheck.asStateFlow()
 
     fun setAutoCheck(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_AUTO, enabled).apply()
+        prefs.edit { putBoolean(KEY_AUTO, enabled) }
         _autoCheck.value = enabled
     }
 
@@ -85,7 +85,7 @@ class AppUpdater(
     fun isSkipped(release: AppRelease): Boolean = prefs.getString(KEY_SKIPPED, null) == release.version
 
     fun skip(release: AppRelease) {
-        prefs.edit().putString(KEY_SKIPPED, release.version).apply()
+        prefs.edit { putString(KEY_SKIPPED, release.version) }
     }
 
     /** Called on start: checks when automatic checks are on and the last check is old enough. */
@@ -102,7 +102,7 @@ class AppUpdater(
         job = scope.launch {
             _state.value = try {
                 val release = withContext(Dispatchers.IO) { fetchLatest() }
-                prefs.edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply()
+                prefs.edit { putLong(KEY_LAST_CHECK, System.currentTimeMillis()) }
                 if (release != null && isNewer(release.version, BuildConfig.VERSION_NAME)) UpdateState.Available(release, manual)
                 else UpdateState.UpToDate
             } catch (e: CancellationException) {
@@ -140,9 +140,9 @@ class AppUpdater(
      * setting that allows it instead and returns false; the user comes back and taps again.
      */
     fun install(context: Context, apk: File): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {
+        if (!context.packageManager.canRequestPackageInstalls()) {
             context.startActivity(
-                Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
+                Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:${context.packageName}".toUri())
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             )
             return false

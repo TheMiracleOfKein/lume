@@ -11,7 +11,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -111,6 +116,28 @@ import androidx.compose.ui.platform.LocalConfiguration
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
+    // Large tablets and wide windows: details on the left, the chapter list beside them.
+    val windowWidth = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
+    if (windowWidth >= TWO_PANE_MIN_WIDTH) {
+        Row(Modifier.fillMaxSize().background(AppColors.background)) {
+            Box(Modifier.weight(0.45f).fillMaxHeight()) {
+                TitleDetailsPane(nav, sourceId, titleId, showChaptersButton = false)
+            }
+            VerticalDivider(color = AppColors.divider)
+            Box(Modifier.weight(0.55f).fillMaxHeight()) {
+                ChaptersScreen(nav, sourceId, titleId, embedded = true)
+            }
+        }
+    } else {
+        TitleDetailsPane(nav, sourceId, titleId, showChaptersButton = true)
+    }
+}
+
+private val TWO_PANE_MIN_WIDTH = 840.dp
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TitleDetailsPane(nav: NavHostController, sourceId: String, titleId: String, showChaptersButton: Boolean) {
     val context = LocalContext.current
     val container = LocalAppContainer.current
     val vm: TitleViewModel = viewModel { TitleViewModel(container, sourceId, titleId) }
@@ -351,16 +378,18 @@ fun TitleScreen(nav: NavHostController, sourceId: String, titleId: String) {
                             )
                         }
                         Spacer(Modifier.height(16.dp))
-                        OutlinedButton(
-                            onClick = { nav.navigate(Routes.chapters(sourceId, titleId)) },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(
-                                stringResource(R.string.title_chapters_list, chapterCount),
-                                color = AppColors.textPrimary,
-                            )
+                        if (showChaptersButton) {
+                            OutlinedButton(
+                                onClick = { nav.navigate(Routes.chapters(sourceId, titleId)) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    stringResource(R.string.title_chapters_list, chapterCount),
+                                    color = AppColors.textPrimary,
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
                         }
-                        Spacer(Modifier.height(8.dp))
                         OutlinedButton(
                             onClick = { showSources = true },
                             modifier = Modifier.fillMaxWidth(),

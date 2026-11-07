@@ -196,7 +196,9 @@ class SourceLoginActivity : ComponentActivity() {
         }
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
+    // ClickableViewAccessibility: the touch listener only notes that the user touched the page
+    // and never consumes the touch, so the WebView's own click handling stays as it is.
+    @SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
     @Composable
     private fun LoginWebView(
         url: String,

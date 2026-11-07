@@ -31,11 +31,13 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -66,6 +68,12 @@ internal fun ReaderSettingsSheet(
     onCommit: (ReaderSettings) -> Unit,
     onSaveForTitle: (ReaderSettings) -> Unit,
 ) {
+    // A tap on a slider fires "change" and "finished" in the same frame, before [settings]
+    // catches up; "finished" saves the latest edit kept here, not the value from before it.
+    val latest = remember { arrayOf(settings) }
+    latest[0] = settings
+    val change: (ReaderSettings) -> Unit = { latest[0] = it; onChange(it) }
+    val commitLatest: () -> Unit = { onCommit(latest[0]) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -131,8 +139,8 @@ internal fun ReaderSettingsSheet(
             )
             Slider(
                 value = settings.gap,
-                onValueChange = { onChange(settings.copy(gap = it)) },
-                onValueChangeFinished = { onCommit(settings) },
+                onValueChange = { change(settings.copy(gap = it)) },
+                onValueChangeFinished = commitLatest,
                 valueRange = 0f..32f,
                 colors = lumeSliderColors(),
             )
@@ -143,8 +151,8 @@ internal fun ReaderSettingsSheet(
             )
             Slider(
                 value = settings.sidePaddingPercent.toFloat(),
-                onValueChange = { onChange(settings.copy(sidePaddingPercent = it.roundToInt())) },
-            onValueChangeFinished = { onCommit(settings) },
+                onValueChange = { change(settings.copy(sidePaddingPercent = it.roundToInt())) },
+            onValueChangeFinished = commitLatest,
                 valueRange = 0f..AppPreferences.MAX_SIDE_PADDING.toFloat(),
                 steps = AppPreferences.MAX_SIDE_PADDING / 5 - 1,
                 colors = lumeSliderColors(),
@@ -157,8 +165,8 @@ internal fun ReaderSettingsSheet(
         )
         Slider(
             value = settings.dim,
-            onValueChange = { onChange(settings.copy(dim = it)) },
-            onValueChangeFinished = { onCommit(settings) },
+            onValueChange = { change(settings.copy(dim = it)) },
+            onValueChangeFinished = commitLatest,
             valueRange = 0f..AppPreferences.MAX_DIM,
             colors = lumeSliderColors(),
         )
@@ -175,8 +183,8 @@ internal fun ReaderSettingsSheet(
             )
             Slider(
                 value = settings.brightness,
-                onValueChange = { onChange(settings.copy(brightness = it)) },
-                onValueChangeFinished = { onCommit(settings) },
+                onValueChange = { change(settings.copy(brightness = it)) },
+                onValueChangeFinished = commitLatest,
                 valueRange = 0.01f..1f,
                 colors = lumeSliderColors(),
             )
@@ -231,8 +239,8 @@ internal fun ReaderSettingsSheet(
             )
             Slider(
                 value = settings.autoScrollSpeed.toFloat(),
-                onValueChange = { onChange(settings.copy(autoScrollSpeed = it.roundToInt())) },
-                onValueChangeFinished = { onCommit(settings) },
+                onValueChange = { change(settings.copy(autoScrollSpeed = it.roundToInt())) },
+                onValueChangeFinished = commitLatest,
                 valueRange = 1f..ReaderSettings.MAX_AUTO_SCROLL.toFloat(),
                 steps = ReaderSettings.MAX_AUTO_SCROLL - 2,
                 colors = lumeSliderColors(),
@@ -281,7 +289,23 @@ internal fun ReaderSettingsSheet(
                 checked = settings.tapZones,
                 onCheckedChange = { onCommit(settings.copy(tapZones = it)) },
             )
+            PagedLayoutSettings(settings, onCommit)
         }
+        Spacer(Modifier.height(10.dp))
+        Text(
+            pluralStringResource(R.plurals.reader_preload, settings.preloadPages, settings.preloadPages),
+            color = AppColors.textSecondary,
+            fontSize = 13.sp,
+        )
+        Slider(
+            value = settings.preloadPages.toFloat(),
+            onValueChange = { change(settings.copy(preloadPages = it.roundToInt())) },
+            onValueChangeFinished = commitLatest,
+            valueRange = 0f..ReaderSettings.MAX_PRELOAD.toFloat(),
+            steps = ReaderSettings.MAX_PRELOAD - 1,
+            colors = lumeSliderColors(),
+        )
+        Text(stringResource(R.string.reader_preload_hint), color = AppColors.textSecondary, fontSize = 12.sp)
         Spacer(Modifier.height(8.dp))
         TextButton(
             onClick = { onSaveForTitle(settings) },
@@ -294,6 +318,54 @@ internal fun ReaderSettingsSheet(
                 fontWeight = FontWeight.SemiBold,
             )
         }
+    }
+}
+
+/** Paged modes: guided panel view, cropping, split double pages and two-page spreads. */
+@Composable
+private fun PagedLayoutSettings(settings: ReaderSettings, onCommit: (ReaderSettings) -> Unit) {
+    SwitchRow(
+        label = stringResource(R.string.reader_guided_panels),
+        hint = stringResource(R.string.reader_guided_panels_hint),
+        checked = settings.guidedPanels,
+        onCheckedChange = { onCommit(settings.copy(guidedPanels = it)) },
+    )
+    SwitchRow(
+        label = stringResource(R.string.reader_crop_borders),
+        hint = stringResource(R.string.reader_crop_borders_hint),
+        checked = settings.cropBorders,
+        onCheckedChange = { onCommit(settings.copy(cropBorders = it)) },
+    )
+    SwitchRow(
+        label = stringResource(R.string.reader_split_wide),
+        hint = stringResource(R.string.reader_split_wide_hint),
+        checked = settings.splitWide,
+        onCheckedChange = { onCommit(settings.copy(splitWide = it)) },
+    )
+    Spacer(Modifier.height(10.dp))
+    Text(stringResource(R.string.reader_spreads), color = AppColors.textSecondary, fontSize = 13.sp)
+    Spacer(Modifier.height(10.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(
+            ReaderSettings.SPREADS_OFF to R.string.reader_spreads_off,
+            ReaderSettings.SPREADS_AUTO to R.string.reader_spreads_auto,
+            ReaderSettings.SPREADS_ALWAYS to R.string.reader_spreads_always,
+        ).forEach { (value, label) ->
+            ChoiceChip(
+                label = stringResource(label),
+                selected = settings.spreads == value,
+                onClick = { onCommit(settings.copy(spreads = value)) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+    if (settings.spreads != ReaderSettings.SPREADS_OFF) {
+        SwitchRow(
+            label = stringResource(R.string.reader_spread_cover),
+            hint = stringResource(R.string.reader_spread_cover_hint),
+            checked = settings.spreadCoverAlone,
+            onCheckedChange = { onCommit(settings.copy(spreadCoverAlone = it)) },
+        )
     }
 }
 

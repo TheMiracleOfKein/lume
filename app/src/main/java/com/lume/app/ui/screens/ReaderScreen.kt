@@ -6,7 +6,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.pager.PagerState
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -23,6 +22,11 @@ import com.lume.app.ui.components.PageBookmarkRow
 import com.lume.app.ui.components.SheetHeader
 import com.lume.app.ui.nav.openTitleFromReader
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateMapOf
+import com.lume.app.domain.page.PageRect
 import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -44,7 +48,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.withContext
 import java.io.File
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -63,7 +66,6 @@ import androidx.compose.ui.graphics.luminance
 import com.lume.app.ui.theme.LumeTheme
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -84,13 +86,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -212,6 +211,12 @@ fun ReaderScreen(
             previousNav?.let { insetsController?.isAppearanceLightNavigationBars = it }
         }
     }
+
+    // Landscape or a large tablet: room for two-page spreads ("Auto"), and no splitting.
+    val windowSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
+    val wideScreen = windowSize.width > windowSize.height || with(density) { windowSize.width.toDp() } >= WIDE_SCREEN_DP.dp
+    LaunchedEffect(wideScreen) { vm.onWideScreen(wideScreen) }
 
     val readerBg = when (settings.theme) {
         ReaderTheme.Light -> Color(0xFFF2F2F2)
@@ -387,6 +392,8 @@ fun ReaderScreen(
                             onSettings = { settingsOpen = true },
                             onSharePage = ::sharePage,
                             onSavePage = ::savePage,
+                            guidedPanels = settings.guidedPanels.takeIf { settings.mode != ReaderMode.Webtoon },
+                            onToggleGuidedPanels = { vm.updateSettings(settings.copy(guidedPanels = !settings.guidedPanels), commit = true) },
                         )
                     }
                     Column(
@@ -524,6 +531,12 @@ private const val RESTORE_WAIT_MS = 4_000L
 /** Shortest gap between two "last / first chapter" notices. */
 private const val EDGE_NOTICE_GAP_MS = 3_000L
 
+/** A zoom counts as settled (and sharp detail is decoded) after this long without change. */
+private const val DETAIL_SETTLE_MS = 250L
+
+/** A portrait screen at least this wide (large tablets) counts as wide for spreads. */
+private const val WIDE_SCREEN_DP = 840
+
 /** Auto-scroll speed: dp per second for each step of the speed setting. */
 private const val AUTO_SCROLL_DP_PER_STEP = 18
 
@@ -591,11 +604,16 @@ private fun WebtoonReader(
             val strip = vm.strip
             val visible = info.visibleItemsInfo.map { VisibleItem(it.index, it.offset, it.size) }
             val anchor = anchorFrom(visible, strip) ?: return@snapshotFlow null
-            Triple(anchor, finishedChapters(visible, info.viewportEndOffset, strip), visible.lastOrNull()?.index ?: 0)
+            WebtoonPosition(
+                anchor,
+                finishedChapters(visible, info.viewportEndOffset, strip),
+                visible.firstOrNull()?.index ?: 0,
+                visible.lastOrNull()?.index ?: 0,
+            )
         }
             .filterNotNull()
             .distinctUntilChanged()
-            .collect { (anchor, finished, lastVisible) -> vm.onPosition(session, anchor, finished, lastVisible) }
+            .collect { p -> vm.onPosition(session, p.anchor, p.finished, p.firstVisible, p.lastVisible) }
     }
     val autoScrolling by rememberUpdatedState(autoScroll)
     val currentOnEdge by rememberUpdatedState(onEdge)
@@ -670,9 +688,37 @@ private fun WebtoonReader(
             .fillMaxSize()
             .nestedScroll(chromeHider)
             .nestedScroll(edgeNotifier),
-    ) { zoomModifier, isZoomed ->
+    ) { zoomModifier, isZoomed, zoom ->
         // Recomposes only when crossing 1x, not on every pinch frame.
         val scrollEnabled by remember { derivedStateOf { !isZoomed() } }
+        // Zoomed in and settled: the part of each visible page on screen, decoded again sharply.
+        val details = remember { mutableStateMapOf<String, PageRect>() }
+        var detailScale by remember { mutableFloatStateOf(1f) }
+        LaunchedEffect(listState, zoom) {
+            snapshotFlow { Triple(zoom.scale, zoom.offset, listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset) }
+                .collectLatest { (scale, offset, _) ->
+                    if (scale < DETAIL_MIN_SCALE) {
+                        details.clear()
+                        return@collectLatest
+                    }
+                    delay(DETAIL_SETTLE_MS)
+                    val info = listState.layoutInfo
+                    val viewportW = info.viewportSize.width.toFloat()
+                    val viewportH = info.viewportSize.height.toFloat()
+                    val itemW = viewportW - 2 * sideMarginPx
+                    val next = HashMap<String, PageRect>()
+                    info.visibleItemsInfo.forEach { v ->
+                        val item = vm.strip.getOrNull(v.index) as? ReaderStripItem.Page ?: return@forEach
+                        zoomedVisibleRegion(
+                            sideMarginPx.toFloat(), v.offset.toFloat(), itemW, v.size.toFloat(),
+                            viewportW, viewportH, scale, offset.x, offset.y, DETAIL_MARGIN,
+                        )?.let { next[item.key()] = it }
+                    }
+                    detailScale = scale
+                    details.keys.retainAll(next.keys)
+                    details.putAll(next)
+                }
+        }
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -690,116 +736,26 @@ private fun WebtoonReader(
                         aspect = vm.aspectOf(item.chapter.id, item.indexInChapter),
                         onAspect = { vm.reportAspect(item.chapter.id, item.indexInChapter, it) },
                         colorFilter = colorFilter,
+                        detail = details[item.key()],
+                        detailScale = detailScale,
                     )
+                    // Webtoon mode never builds spreads.
+                    is ReaderStripItem.Spread -> Unit
                 }
             }
         }
     }
 }
 
-@Composable
-private fun PagedReader(
-    vm: ReaderViewModel,
-    pageTurns: MutableSharedFlow<Int>,
-    pageSeeks: MutableSharedFlow<Int>,
-    colorFilter: ColorFilter?,
-    onToggleChrome: () -> Unit,
-    onUserScroll: () -> Unit,
-    onEdge: (forward: Boolean) -> Unit,
-) {
-    val settings = vm.settings
-    val session = remember { vm.session }
-    val pagerState = remember {
-        PagerState(currentPage = stripIndexOf(vm.strip, vm.anchor).coerceAtLeast(0)) { vm.strip.size.coerceAtLeast(1) }
-    }
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.currentPage to vm.strip }
-            .distinctUntilChanged()
-            .collect { (page, strip) ->
-                val anchor = anchorAt(strip, page) ?: return@collect
-                val finished = when (val item = strip.getOrNull(page)) {
-                    is ReaderStripItem.Page ->
-                        if (item.indexInChapter == item.chapterPageCount - 1) setOf(item.chapter.id) else emptySet()
-                    is ReaderStripItem.Divider -> setOf(item.previous.id)
-                    null -> emptySet()
-                }
-                vm.onPosition(session, anchor, finished, page)
-            }
-    }
-    val chromeHider = rememberChromeHider(settings.immersive, onUserScroll)
-    LaunchedEffect(pagerState) {
-        pageTurns.collect { delta ->
-            onUserScroll()
-            val wanted = pagerState.currentPage + delta
-            val target = wanted.coerceIn(0, pagerState.pageCount - 1)
-            if (target != wanted) onEdge(delta > 0)
-            if (vm.settings.eInk) pagerState.scrollToPage(target) else pagerState.animateScrollToPage(target)
-        }
-    }
-    LaunchedEffect(pagerState) {
-        pageSeeks.collect { page ->
-            val index = stripIndexOf(vm.strip, vm.currentChapterId, page)
-            if (index >= 0) pagerState.scrollToPage(index)
-        }
-    }
-    val rtl = settings.mode == ReaderMode.Rtl
-    val edgeNotifier = rememberEdgeNotifier(
-        horizontal = true,
-        forwardIsNegative = !rtl,
-        canForward = { pagerState.canScrollForward },
-        canBackward = { pagerState.canScrollBackward },
-        onEdge = onEdge,
-    )
-    val onPagerTap: (Float, Int) -> Unit = { x, width ->
-        val third = width / 3f
-        val zone = when {
-            !settings.tapZones -> 0
-            x < third -> -1
-            x > width - third -> 1
-            else -> 0
-        }
-        // In RTL the left side is "forward".
-        if (zone == 0) onToggleChrome() else pageTurns.tryEmit(if (rtl) -zone else zone)
-    }
-    HorizontalPager(
-        state = pagerState,
-        reverseLayout = rtl,
-        modifier = Modifier
-            .fillMaxSize()
-            .nestedScroll(chromeHider)
-            .nestedScroll(edgeNotifier)
-            .pointerInput(settings.tapZones, rtl) {
-                detectTapGestures(onTap = { offset -> onPagerTap(offset.x, size.width) })
-            },
-        key = { index -> vm.strip.getOrNull(index)?.key() ?: index },
-    ) { index ->
-        when (val item = vm.strip.getOrNull(index)) {
-            is ReaderStripItem.Page -> Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                ReaderPageImage(
-                    page = item.page,
-                    aspect = vm.aspectOf(item.chapter.id, item.indexInChapter),
-                    onAspect = { vm.reportAspect(item.chapter.id, item.indexInChapter, it) },
-                    contentScale = ContentScale.Fit,
-                    zoomEnabled = settings.doubleTapZoom,
-                    fillViewport = true,
-                    // The zoom gesture consumes taps, so forward single taps.
-                    onTap = onPagerTap,
-                    colorFilter = colorFilter,
-                )
-            }
-            is ReaderStripItem.Divider -> ChapterDividerBand(
-                title = item.chapter.title,
-                fillViewport = true,
-            )
-            null -> Box(Modifier.fillMaxSize())
-        }
-    }
-}
+private data class WebtoonPosition(
+    val anchor: ReaderAnchor,
+    val finished: Set<String>,
+    val firstVisible: Int,
+    val lastVisible: Int,
+)
 
-private fun ReaderStripItem.key(): String = when (this) {
+internal fun ReaderStripItem.key(): String = when (this) {
     is ReaderStripItem.Divider -> "div-${chapter.id}"
-    is ReaderStripItem.Page -> "p-${chapter.id}-${page.index}-$indexInChapter"
+    is ReaderStripItem.Page -> "p-${chapter.id}-${page.index}-$indexInChapter" + if (secondPart) "-b" else ""
+    is ReaderStripItem.Spread -> "s-${chapter.id}-${first.indexInChapter}"
 }

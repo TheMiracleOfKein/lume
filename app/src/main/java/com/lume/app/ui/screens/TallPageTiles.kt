@@ -12,6 +12,50 @@ internal const val MAX_DRAW_PX = 4096
 /** Height of one slice in decoded pixels. */
 internal const val TILE_PX = 2048
 
+/** Below this zoom, the normal page bitmap is sharp enough and no detail is decoded. */
+internal const val DETAIL_MIN_SCALE = 1.3f
+
+/** Detail is decoded for a little more than what is on screen, so a small pan stays sharp. */
+internal const val DETAIL_MARGIN = 0.15f
+
+/**
+ * The part of a list item that is on screen while the whole list is zoomed by [scale] around
+ * the viewport centre and moved by ([offsetX], [offsetY]), as fractions of the item; null when
+ * the item is off screen. Item and viewport are in unzoomed list pixels.
+ */
+internal fun zoomedVisibleRegion(
+    itemLeft: Float,
+    itemTop: Float,
+    itemWidth: Float,
+    itemHeight: Float,
+    viewportWidth: Float,
+    viewportHeight: Float,
+    scale: Float,
+    offsetX: Float,
+    offsetY: Float,
+    margin: Float = 0f,
+): com.lume.app.domain.page.PageRect? {
+    if (itemWidth <= 0f || itemHeight <= 0f || scale <= 0f) return null
+    val cx = viewportWidth / 2f
+    val cy = viewportHeight / 2f
+    // Screen point s shows list point c + (s - c - offset) / scale.
+    val spanX = viewportWidth / scale * (1f + margin)
+    val spanY = viewportHeight / scale * (1f + margin)
+    val midX = cx - offsetX / scale
+    val midY = cy - offsetY / scale
+    val left = maxOf(midX - spanX / 2f, itemLeft)
+    val right = minOf(midX + spanX / 2f, itemLeft + itemWidth)
+    val top = maxOf(midY - spanY / 2f, itemTop)
+    val bottom = minOf(midY + spanY / 2f, itemTop + itemHeight)
+    if (right <= left || bottom <= top) return null
+    return com.lume.app.domain.page.PageRect(
+        (left - itemLeft) / itemWidth,
+        (top - itemTop) / itemHeight,
+        (right - itemLeft) / itemWidth,
+        (bottom - itemTop) / itemHeight,
+    )
+}
+
 /** A slice of the source image: rows [top] until [bottom]. */
 internal data class TileBounds(val top: Int, val bottom: Int) {
     val height: Int get() = bottom - top

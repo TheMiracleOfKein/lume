@@ -177,6 +177,24 @@ Needs a MangaLib account (HentaiLib and YaoiLib too, if you use them).
 - [ ] A failing source (region block, site check) shows its red status line on Sources, and it goes away after a successful request.
 - [ ] The update dialog shows formatted notes (headings, lists, bold).
 
+## v0.8.0: reader 2.0
+
+- [ ] Update from v0.7.16 with pages already cached: the old `image_cache` folder is gone, pages load again and are cached in `image_cache_v3`.
+- [ ] Webtoon: an Asura Scans chapter with 800 × ~14,500 strips: no black strips, no crash, and after zooming to 3× the text sharpens within a moment. Zoom back out: no stutter.
+- [ ] Webtoon, seamless on: scroll up past the first page of a chapter that has a previous one: the previous chapter appears above with a divider, and the page on screen doesn't jump.
+- [ ] Paged mode (both directions): pinch and double-tap zoom are sharp; swiping between pages works while zoomed out; tap zones turn pages; with double-tap zoom off, a tap turns the page at once.
+- [ ] Crop borders on a manga with white margins: the drawing fills the screen; pages without margins don't move.
+- [ ] Split double pages (portrait): a double page shows as two halves in reading order (right half first in right-to-left), and the page counter stays on that page.
+- [ ] Two pages side by side: Auto in landscape and Always in portrait; the first page stands alone when "First page alone" is on; a double page stands alone; right-to-left puts the first page on the right.
+- [ ] Guided panel view on a manga chapter, in both directions: a tap goes whole page → each panel → next page; back goes the other way; pages with one panel turn normally; the top-bar button switches it.
+- [ ] Pages loaded ahead: 0 loads only the page on screen; 10 makes the next pages appear without waiting.
+- [ ] Page bookmarks on the title screen show the panel (or the webtoon band) of the bookmarked spot.
+- [ ] Update from v0.7.16 with titles in "Continue reading": the app starts (migration 11 → 12) and the cards show covers; after reading one of them a little, its card shows the panel you stopped at.
+- [ ] A tablet or a window 840 dp wide: the title screen shows details on the left and chapters on the right; narrower windows show the old single column.
+- [ ] Settings → Reader → Pages lists the new options, and settings search finds "panels", "spread", "crop" (and "кадры", "разворот").
+- [ ] Release build (R8): reader, paged zoom and spreads work as in the debug build.
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.
+- [ ] Run `ScrollBenchmark` (same task, network needed) and note the frame times of the catalogue grid and the webtoon reader.

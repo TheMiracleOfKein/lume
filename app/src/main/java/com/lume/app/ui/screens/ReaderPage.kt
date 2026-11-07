@@ -31,7 +31,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -42,8 +41,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.DisposableEffect
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import coil.size.Dimension
-import coil.size.Size
+import coil3.size.Dimension
+import coil3.size.Size
+import com.lume.app.domain.page.PageRect
+import kotlin.math.roundToInt
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
@@ -53,9 +54,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import coil.request.CachePolicy
-import coil.request.ImageRequest
+import coil3.compose.AsyncImage
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.lume.app.R
 import com.lume.app.domain.ComicPage
 import com.lume.app.ui.theme.AppColors
@@ -63,12 +65,20 @@ import com.lume.app.ui.theme.Motion
 import kotlinx.coroutines.launch
 import java.io.File
 
-// One reader page: loading, errors, retry and pinch zoom.
+// One webtoon page: loading, errors, retry, very tall strips, and sharp detail while zoomed;
+// plus the zoom shared by the whole webtoon list.
 
-private class ReaderZoomState {
-    var scale by mutableFloatStateOf(1f)
-    var offset by mutableStateOf(Offset.Zero)
-    var viewport by mutableStateOf(IntSize.Zero)
+/** The webtoon list's zoom: [scale] around the viewport centre, then moved by [offset]. */
+internal interface ReaderZoom {
+    val scale: Float
+    val offset: Offset
+    val viewport: IntSize
+}
+
+private class ReaderZoomState : ReaderZoom {
+    override var scale by mutableFloatStateOf(1f)
+    override var offset by mutableStateOf(Offset.Zero)
+    override var viewport by mutableStateOf(IntSize.Zero)
 
     fun reset() {
         scale = 1f
@@ -138,7 +148,7 @@ internal fun ReaderZoomFrame(
     /** A single tap at height y of a frame [Int] pixels tall. */
     onSingleTap: (Float, Int) -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable (zoomModifier: Modifier, isZoomed: () -> Boolean) -> Unit,
+    content: @Composable (zoomModifier: Modifier, isZoomed: () -> Boolean, zoom: ReaderZoom) -> Unit,
 ) {
     val state = remember { ReaderZoomState() }
     val scope = rememberCoroutineScope()
@@ -168,7 +178,7 @@ internal fun ReaderZoomFrame(
     ) {
         // Scale and offset are read only inside graphicsLayer, so pinching redraws the layer
         // without recomposing the list underneath.
-        content(Modifier.zoomLayer(state), { state.isZoomed })
+        content(Modifier.zoomLayer(state), { state.isZoomed }, state)
     }
 }
 
@@ -216,13 +226,12 @@ internal fun ReaderPageImage(
     /** Width / height when known (from this session or saved progress); sizes the placeholder. */
     aspect: Float?,
     onAspect: (Float) -> Unit,
-    contentScale: ContentScale = ContentScale.FillWidth,
-    zoomEnabled: Boolean = false,
-    fillViewport: Boolean = false,
-    /** Single tap at (x, width); needed because the double-tap detector consumes taps. */
-    onTap: ((Float, Int) -> Unit)? = null,
     /** Colour filter or e-ink matrix from the reader settings. */
     colorFilter: androidx.compose.ui.graphics.ColorFilter? = null,
+    /** While the list is zoomed in: the part of this page on screen, decoded again sharply. */
+    detail: PageRect? = null,
+    /** The list's zoom when [detail] was worked out. */
+    detailScale: Float = 1f,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -233,7 +242,8 @@ internal fun ReaderPageImage(
     // Set when the decoded page is taller than one bitmap can be drawn; it is then redrawn as tiles.
     var tallCandidate by remember(page.imageUrl) { mutableStateOf(false) }
     var tall by remember(page.imageUrl) { mutableStateOf<TallSource?>(null) }
-    val model = remember(page.imageUrl, attempt, fillViewport, container.width) {
+    var pageWidthPx by remember { mutableIntStateOf(0) }
+    val model = remember(page.imageUrl, attempt, container.width) {
         ImageRequest.Builder(context)
             .data(if (page.imageUrl.startsWith("http")) page.imageUrl else File(page.imageUrl))
             .crossfade(false)
@@ -242,16 +252,14 @@ internal fun ReaderPageImage(
             .apply {
                 // A strip shown at full width has no height limit, so Coil would decode it at full
                 // size. Cap it; a page still taller than that is redrawn as tiles below.
-                if (!fillViewport && container.width > 0) {
+                if (container.width > 0) {
                     size(Size(Dimension.Pixels(container.width), Dimension.Pixels(MAX_DRAW_PX)))
                 }
             }
-            // A new parameter makes Coil treat a retry as a new request.
-            .setParameter("attempt", attempt, memoryCacheKey = null)
+            // A different key makes Coil treat a retry as a new request.
+            .apply { if (attempt > 0) memoryCacheKeyExtra("attempt", attempt.toString()) }
             .build()
     }
-    val state = remember(page.imageUrl) { ReaderZoomState() }
-    val scope = rememberCoroutineScope()
 
     LaunchedEffect(tallCandidate, attempt) {
         if (!tallCandidate) return@LaunchedEffect
@@ -273,35 +281,19 @@ internal fun ReaderPageImage(
         modifier = Modifier
             .then(
                 when {
-                    fillViewport -> Modifier.fillMaxSize()
                     // Real height before the bitmap arrives: nothing above the reading spot moves.
                     aspect != null -> Modifier.fillMaxWidth().aspectRatio(aspect)
                     // Never seen this page: reserve a typical height (also kept on error).
                     else -> Modifier.fillMaxWidth().heightIn(min = placeholderHeight)
                 },
             )
+            .onSizeChanged { pageWidthPx = it.width }
             .background(AppColors.textPrimary.copy(alpha = 0.07f)),
         contentAlignment = Alignment.Center,
     ) {
         val pageModifier = Modifier
             .fillMaxWidth()
-            .then(if (fillViewport || aspect != null) Modifier.fillMaxSize() else Modifier)
-            .onSizeChanged { state.viewport = it }
-            .zoomLayer(state)
-            .then(
-                if (zoomEnabled) {
-                    Modifier
-                        .pointerInput(page.imageUrl, onTap) {
-                            detectTapGestures(
-                                onTap = onTap?.let { tap -> { pos -> tap(pos.x, size.width) } },
-                                onDoubleTap = { pos -> scope.launch { state.toggleZoom(pos) } },
-                            )
-                        }
-                        .pointerInput(page.imageUrl) { detectPinchAndPan(state) }
-                } else {
-                    Modifier
-                },
-            )
+            .then(if (aspect != null) Modifier.fillMaxSize() else Modifier)
         val tiles = tall
         if (tiles != null) {
             TiledPage(tiles, colorFilter, pageModifier)
@@ -316,14 +308,17 @@ internal fun ReaderPageImage(
                     val size = success.painter.intrinsicSize
                     if (size.isSpecified && size.width > 0f && size.height > 0f) {
                         onAspect(size.width / size.height)
-                        if (!fillViewport && size.height > MAX_DRAW_PX) tallCandidate = true
+                        if (size.height > MAX_DRAW_PX) tallCandidate = true
                     }
                 },
                 onError = { failed = true; loading = false },
                 modifier = pageModifier,
-                contentScale = contentScale,
+                contentScale = ContentScale.FillWidth,
                 colorFilter = colorFilter,
             )
+        }
+        if (detail != null && !loading && !failed && pageWidthPx > 0) {
+            PageDetail(page.imageUrl, detail, (pageWidthPx * detailScale).roundToInt(), colorFilter)
         }
         if (loading && !failed) {
             CircularProgressIndicator(

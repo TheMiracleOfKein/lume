@@ -73,4 +73,45 @@ class TallPageTilesTest {
     fun emptyImageHasNoTiles() {
         assertTrue(tileBounds(0, 1).isEmpty())
     }
+
+    @Test
+    fun unzoomedListShowsTheWholeVisiblePart() {
+        // A 1000 x 3000 item at the top of a 1000 x 2000 viewport: its top two thirds show.
+        val r = zoomedVisibleRegion(0f, 0f, 1000f, 3000f, 1000f, 2000f, scale = 1f, offsetX = 0f, offsetY = 0f)!!
+        assertEquals(0f, r.left, 0.001f)
+        assertEquals(1f, r.right, 0.001f)
+        assertEquals(0f, r.top, 0.001f)
+        assertEquals(2f / 3f, r.bottom, 0.001f)
+    }
+
+    @Test
+    fun zoomedInAroundTheCentreShowsTheMiddle() {
+        // 2x around the centre of a page that fills the viewport: the middle half each way.
+        val r = zoomedVisibleRegion(0f, 0f, 1000f, 2000f, 1000f, 2000f, scale = 2f, offsetX = 0f, offsetY = 0f)!!
+        assertEquals(0.25f, r.left, 0.001f)
+        assertEquals(0.75f, r.right, 0.001f)
+        assertEquals(0.25f, r.top, 0.001f)
+        assertEquals(0.75f, r.bottom, 0.001f)
+    }
+
+    @Test
+    fun panningRightShowsTheLeftSide() {
+        // Content moved right by 500 screen px at 2x: the view centre is 250 list px left of centre.
+        val r = zoomedVisibleRegion(0f, 0f, 1000f, 2000f, 1000f, 2000f, scale = 2f, offsetX = 500f, offsetY = 0f)!!
+        assertEquals(0f, r.left, 0.001f)
+        assertEquals(0.5f, r.right, 0.001f)
+    }
+
+    @Test
+    fun itemsOffScreenHaveNoRegion() {
+        val below = zoomedVisibleRegion(0f, 2500f, 1000f, 1000f, 1000f, 2000f, scale = 2f, offsetX = 0f, offsetY = 0f)
+        assertEquals(null, below)
+    }
+
+    @Test
+    fun marginWidensTheRegion() {
+        val r = zoomedVisibleRegion(0f, 0f, 1000f, 2000f, 1000f, 2000f, scale = 2f, offsetX = 0f, offsetY = 0f, margin = 0.2f)!!
+        assertEquals(0.2f, r.left, 0.001f)
+        assertEquals(0.8f, r.right, 0.001f)
+    }
 }

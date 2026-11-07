@@ -83,7 +83,6 @@
 
     <string name="title_fallback">Тайтл</string>
     <string name="cd_back">Назад</string>
-    <string name="cd_bookmark">Закладка</string>
     <string name="cd_subscribe">Проверять новые главы</string>
     <string name="cd_unsubscribe">Не проверять новые главы</string>
     <string name="title_subscribed">Обновления библиотеки будут проверять этот тайтл</string>
@@ -785,6 +784,9 @@
     <string name="settings_summary_network">DNS over HTTPS, кэш, cookie</string>
     <string name="settings_summary_about">Версия, лицензии, ссылки</string>
     <string name="settings_section_controls">Управление</string>
+    <string name="settings_section_pages">Страницы</string>
+    <string name="settings_reader_paged_only">Чтение по кадрам, обрезка полей, деление и две страницы рядом работают в постраничных режимах (слева направо, справа налево).</string>
+    <string name="settings_reader_preload">Страницы, загружаемые заранее</string>
     <string name="settings_group_updates">Обновления</string>
     <string name="settings_group_storage">Хранилище</string>
     <string name="settings_group_accounts">Аккаунты</string>
@@ -833,6 +835,11 @@
     <string name="settings_kw_tap_zones">касание, нажатие, край, перелистывание</string>
     <string name="settings_kw_volume_keys">кнопки, громкость, перелистывание</string>
     <string name="settings_kw_double_tap_zoom">зум, масштаб, увеличение</string>
+    <string name="settings_kw_guided_panels">кадры, панели, по кадрам, умный зум</string>
+    <string name="settings_kw_crop_borders">обрезка, поля, белые поля, рамка</string>
+    <string name="settings_kw_split_wide">разворот, двойная страница, деление, широкая страница</string>
+    <string name="settings_kw_spreads">две страницы, разворот, книга, альбомная, планшет</string>
+    <string name="settings_kw_preload">предзагрузка, загрузка заранее, буфер, трафик</string>
     <string name="settings_kw_library_check">обновление, новые главы, уведомление, фон</string>
     <string name="settings_kw_interval">часы, частота, как часто</string>
     <string name="settings_kw_wifi">мобильные данные, трафик, сеть</string>
@@ -983,6 +990,27 @@
     <string name="reader_auto_scroll_speed">Скорость автопрокрутки: %1$d</string>
     <string name="reader_webtoon_tap_zones">Зоны касания в режиме вебтуна</string>
     <string name="reader_webtoon_tap_zones_hint">Касание верхней трети прокручивает назад, нижней — вперёд; середина показывает управление.</string>
+    <string name="reader_guided_panels">Чтение по кадрам</string>
+    <string name="reader_guided_panels_hint">Касание или перелистывание переходит от кадра к кадру с увеличением, в порядке чтения. Каждая страница сначала показывается целиком.</string>
+    <string name="reader_panels_on">Чтение по кадрам включено</string>
+    <string name="reader_panels_off">Чтение по кадрам выключено</string>
+    <string name="reader_crop_borders">Обрезать поля</string>
+    <string name="reader_crop_borders_hint">Убирает однотонные белые или чёрные поля, чтобы рисунок занимал весь экран. При чтении по кадрам не используется.</string>
+    <string name="reader_split_wide">Делить развороты</string>
+    <string name="reader_split_wide_hint">В портретной ориентации страница шире своей высоты показывается двумя половинами, в порядке чтения.</string>
+    <string name="reader_spreads">Две страницы рядом</string>
+    <string name="reader_spreads_off">Выкл.</string>
+    <string name="reader_spreads_auto">В альбомной</string>
+    <string name="reader_spreads_always">Всегда</string>
+    <string name="reader_spread_cover">Первая страница отдельно</string>
+    <string name="reader_spread_cover_hint">Первая страница главы (часто обложка) показывается одна, и пары после неё совпадают с печатной книгой.</string>
+    <plurals name="reader_preload">
+        <item quantity="one">Загружать %d страницу вперёд</item>
+        <item quantity="few">Загружать %d страницы вперёд</item>
+        <item quantity="many">Загружать %d страниц вперёд</item>
+        <item quantity="other">Загружать %d страницы вперёд</item>
+    </plurals>
+    <string name="reader_preload_hint">Больше страниц вперёд — меньше ожидания, но больше трафика и памяти.</string>
     <string name="reader_orientation">Ориентация экрана</string>
     <string name="reader_orientation_auto">Авто</string>
     <string name="reader_orientation_portrait">Книжная</string>

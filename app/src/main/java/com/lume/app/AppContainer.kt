@@ -3,8 +3,8 @@ package com.lume.app
 import android.app.Application
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.room.Room
-import coil.ImageLoader
-import coil.imageLoader
+import coil3.ImageLoader
+import coil3.imageLoader
 import com.lume.app.data.backup.BackupRepository
 import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.db.LumeDatabase
@@ -72,6 +72,9 @@ class AppContainer(val app: Application) {
     val sync = com.lume.app.data.sync.SyncRepository(app, database, dao, prefs, library, sources, http)
 
     val imageLoader: ImageLoader get() = app.imageLoader
+
+    /** Borders and panels of pages, for cropping, guided view and "Continue" crops. */
+    val pageAnalyzer = com.lume.app.data.page.PageAnalyzer(app) { app.imageLoader }
 
     /** Launcher shortcuts and the home-screen widget for "Continue". */
     val continueReading = com.lume.app.data.continuity.ContinueReading(app, dao, prefs, { app.imageLoader }, appScope)

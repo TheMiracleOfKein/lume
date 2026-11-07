@@ -5,7 +5,6 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
-import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -14,9 +13,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
-import coil.imageLoader
-import coil.request.ImageRequest
-import coil.request.SuccessResult
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
+import coil3.toBitmap
 import com.lume.app.data.prefs.ReaderSettings
 import com.lume.app.domain.ImageBytes
 import kotlinx.coroutines.Dispatchers
@@ -90,7 +91,7 @@ internal suspend fun readerPageBytes(context: Context, imageUrl: String): Pair<B
         cached(context, imageUrl) ?: run {
             // Not cached yet: load it once through Coil (with the source's headers), then read the cache.
             val result = context.imageLoader.execute(ImageRequest.Builder(context).data(imageUrl).allowHardware(false).build())
-            cached(context, imageUrl) ?: ((result as? SuccessResult)?.drawable as? BitmapDrawable)?.bitmap?.let { bitmap ->
+            cached(context, imageUrl) ?: (result as? SuccessResult)?.image?.toBitmap()?.let { bitmap ->
                 ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
             }
         }

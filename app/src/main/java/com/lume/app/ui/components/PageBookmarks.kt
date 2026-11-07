@@ -3,6 +3,7 @@ package com.lume.app.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,6 +31,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,11 +40,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import com.lume.app.LocalAppContainer
+import com.lume.app.domain.page.PageFit
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.lume.app.R
 import com.lume.app.data.db.PageBookmarkEntity
 import com.lume.app.ui.theme.AppColors
@@ -50,28 +55,65 @@ import kotlinx.coroutines.flow.first
 import java.io.File
 
 /**
- * A slice of the bookmarked page, cropped around the saved spot (vertical bias follows the
- * offset: 0 = page top, 1 = page bottom).
+ * The bookmarked spot: the panel (or webtoon band) it is in, found on the page; else a slice of
+ * the page around it (vertical bias follows the offset: 0 = page top, 1 = page bottom).
  */
 @Composable
 fun PageBookmarkThumb(url: String?, offset: Float, modifier: Modifier = Modifier) {
-    Box(
+    PageSpotImage(
+        url = url,
+        offset = offset,
         modifier = modifier
             .size(width = 56.dp, height = 72.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(AppColors.card),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (url.isNullOrBlank()) {
-            Icon(Icons.Outlined.Bookmark, null, tint = AppColors.textTertiary)
+        sliceFallback = true,
+        fallback = { Icon(Icons.Outlined.Bookmark, null, tint = AppColors.textTertiary) },
+    )
+}
+
+/**
+ * The panel of page [url] holding the spot at [offset] (fraction of the page height), filling
+ * this box. Without a useful panel: a slice of the page around the spot when [sliceFallback],
+ * else [fallback] (also shown when there is no page).
+ */
+@Composable
+fun PageSpotImage(
+    url: String?,
+    offset: Float,
+    modifier: Modifier,
+    sliceFallback: Boolean,
+    fallback: @Composable () -> Unit,
+) {
+    val analyzer = LocalAppContainer.current.pageAnalyzer
+    val layout by produceState(url?.let { analyzer.cached(it) }, url) {
+        if (value == null && !url.isNullOrBlank()) value = analyzer.analyze(url)
+    }
+    val pageLayout = layout
+    val panel = pageLayout?.spotPanel(offset)
+    BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
+        val model = url?.takeIf { it.isNotBlank() }?.let { if (it.startsWith("http")) it else File(it) }
+        val density = LocalDensity.current
+        val placement = if (panel != null && pageLayout != null) {
+            with(density) { PageFit.placeRegion(maxWidth.toPx(), maxHeight.toPx(), pageLayout.aspect, panel, fill = true) }
         } else {
-            AsyncImage(
-                model = if (url.startsWith("http")) url else File(url),
+            null
+        }
+        when {
+            model != null && placement != null -> AsyncImage(
+                model = model,
+                contentDescription = null,
+                contentScale = ContentScale.FillBounds,
+                modifier = Modifier.placedAt(placement),
+            )
+            model != null && sliceFallback -> AsyncImage(
+                model = model,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 alignment = BiasAlignment(0f, (offset.coerceIn(0f, 1f) * 2f) - 1f),
                 modifier = Modifier.fillMaxSize(),
             )
+            else -> fallback()
         }
     }
 }
