@@ -69,12 +69,28 @@ object PdfRendererPool {
 
     suspend fun pageCount(file: File): Int = withRenderer(file.absolutePath) { it.pageCount }
 
+    /** Most pixels in one rendered page (about 32 MB as ARGB). */
+    const val MAX_PIXELS = 2000L * 4000L
+
+    /** Bitmap size for a [pageWidth] x [pageHeight] page: up to twice its size, at most [maxWidth] wide and [MAX_PIXELS] in all. */
+    internal fun fitSize(pageWidth: Int, pageHeight: Int, maxWidth: Int): Pair<Int, Int> {
+        val pw = pageWidth.coerceAtLeast(1)
+        val ph = pageHeight.coerceAtLeast(1)
+        var width = minOf(pw * 2, maxWidth).coerceAtLeast(1)
+        var height = ph.toLong() * width / pw
+        if (width * height > MAX_PIXELS) {
+            val scale = Math.sqrt(MAX_PIXELS.toDouble() / (width.toDouble() * height))
+            width = (width * scale).toInt().coerceAtLeast(1)
+            height = (ph.toLong() * width / pw)
+        }
+        return width to height.toInt().coerceAtLeast(1)
+    }
+
     /** Page [index] on a white background, [MAX_WIDTH_PX] wide at most (twice the page's size in points otherwise). */
     suspend fun render(path: String, index: Int, maxWidth: Int = MAX_WIDTH_PX): Bitmap =
         withRenderer(path) { renderer ->
             renderer.openPage(index).use { page ->
-                val width = minOf(page.width * 2, maxWidth).coerceAtLeast(1)
-                val height = (page.height.toLong() * width / page.width.coerceAtLeast(1)).toInt().coerceIn(1, MAX_WIDTH_PX * 8)
+                val (width, height) = fitSize(page.width, page.height, maxWidth)
                 val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
                 Canvas(bitmap).drawColor(Color.WHITE)
                 page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
