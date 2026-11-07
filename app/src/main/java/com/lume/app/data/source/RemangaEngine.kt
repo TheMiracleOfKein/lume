@@ -160,7 +160,11 @@ class RemangaEngine(
         val dir = slug(id)
         val uri = URI("$apiV2/titles/${pathSegment(dir)}/")
         val response = http.get(uri, source = manifest, headers = headers, checkCloudflare = false)
-        val root = asObject(json.parseToJsonElement(response.body))
+        return parseDetails(response.body, dir)
+    }
+
+    internal fun parseDetails(body: String, dir: String): TitleDetails {
+        val root = asObject(json.parseToJsonElement(body))
         val data = asObject(root["content"] ?: root["data"] ?: root)
         val genres = (data["genres"] as? JsonArray).orEmpty().mapNotNull { stringOrNull((it as? JsonObject)?.get("name")) }
         val creators = data["creators"]
@@ -201,53 +205,75 @@ class RemangaEngine(
         val dir = slug(titleId)
         val detailUri = URI("$apiV2/titles/${pathSegment(dir)}/")
         val detail = http.get(detailUri, source = manifest, headers = headers, checkCloudflare = false)
-        val root = asObject(json.parseToJsonElement(detail.body))
-        val data = asObject(root["content"] ?: root)
-        val branches = data["branches"] as? JsonArray ?: JsonArray(emptyList())
-        val branchId = (branches.firstOrNull() as? JsonObject)?.let { stringOrNull(it["id"]) }
-            ?: throw SourceFetchException("ReManga: нет веток перевода")
+        val branchId = parseBranchId(detail.body)
         val out = ArrayList<Chapter>()
         var page = 1
         while (page <= 50) {
             val uri = URI("$apiV2/titles/chapters/?branch_id=$branchId&page=$page&count=100&ordering=-index")
             val response = http.get(uri, source = manifest, headers = headers, checkCloudflare = false)
-            val chRoot = asObject(json.parseToJsonElement(response.body))
-            val list = resultList(chRoot) ?: break
-            if (list.isEmpty()) break
-            for (el in list) {
-                val item = el as? JsonObject ?: continue
-                val id = stringOrNull(item["id"]) ?: continue
-                val tome = stringOrNull(item["tome"]) ?: ""
-                val number = stringOrNull(item["chapter"]) ?: ""
-                val name = stringOrNull(item["name"]).orEmpty()
-                val paid = item["is_paid"]?.jsonPrimitive?.contentOrNull == "true"
-                if (paid) continue
-                out += Chapter(
-                    id = id,
-                    title = buildString {
-                        if (tome.isNotBlank()) append("Том $tome ")
-                        append("Глава $number")
-                        if (name.isNotBlank()) append(" — $name")
-                    }.trim(),
-                    url = id,
-                    number = number,
-                    volume = tome.takeIf { it.isNotBlank() },
-                    branchId = branchId,
-                    dateLabel = stringOrNull(item["upload_date"])?.take(10),
-                )
-            }
+            val parsed = parseChapterPage(response.body, branchId)
+            if (parsed.size == 0) break
+            out += parsed.chapters
             // v2 caps a page below the requested count and says whether more follow in `next`.
-            if (!hasNextPage(chRoot, list.size, 100)) break
+            if (!parsed.hasNext) break
             page++
         }
         return out
+    }
+
+    /** The first translation branch of the title's details. */
+    internal fun parseBranchId(detailBody: String): String {
+        val root = asObject(json.parseToJsonElement(detailBody))
+        val data = asObject(root["content"] ?: root)
+        val branches = data["branches"] as? JsonArray ?: JsonArray(emptyList())
+        return (branches.firstOrNull() as? JsonObject)?.let { stringOrNull(it["id"]) }
+            ?: throw SourceFetchException("ReManga: нет веток перевода")
+    }
+
+    /** One page of the chapter list (free chapters only). */
+    internal fun parseChapters(body: String, branchId: String): List<Chapter> = parseChapterPage(body, branchId).chapters
+
+    /** [size] is the raw item count of the page (0 when there is no list at all). */
+    private class ChapterPage(val chapters: List<Chapter>, val size: Int, val hasNext: Boolean)
+
+    private fun parseChapterPage(body: String, branchId: String): ChapterPage {
+        val chRoot = asObject(json.parseToJsonElement(body))
+        val list = resultList(chRoot) ?: return ChapterPage(emptyList(), 0, false)
+        val out = ArrayList<Chapter>()
+        for (el in list) {
+            val item = el as? JsonObject ?: continue
+            val id = stringOrNull(item["id"]) ?: continue
+            val tome = stringOrNull(item["tome"]) ?: ""
+            val number = stringOrNull(item["chapter"]) ?: ""
+            val name = stringOrNull(item["name"]).orEmpty()
+            val paid = item["is_paid"]?.jsonPrimitive?.contentOrNull == "true"
+            if (paid) continue
+            out += Chapter(
+                id = id,
+                title = buildString {
+                    if (tome.isNotBlank()) append("Том $tome ")
+                    append("Глава $number")
+                    if (name.isNotBlank()) append(" — $name")
+                }.trim(),
+                url = id,
+                number = number,
+                volume = tome.takeIf { it.isNotBlank() },
+                branchId = branchId,
+                dateLabel = stringOrNull(item["upload_date"])?.take(10),
+            )
+        }
+        return ChapterPage(out, list.size, hasNextPage(chRoot, list.size, 100))
     }
 
     override suspend fun getPages(chapter: Chapter): List<ComicPage> {
         val id = chapter.id
         val uri = URI("$apiV2/titles/chapters/$id/")
         val response = http.get(uri, source = manifest, headers = headers, checkCloudflare = false)
-        val root = asObject(json.parseToJsonElement(response.body))
+        return parsePages(response.body)
+    }
+
+    internal fun parsePages(body: String): List<ComicPage> {
+        val root = asObject(json.parseToJsonElement(body))
         val data = asObject(root["content"] ?: root)
         val pagesEl = data["pages"] ?: throw SourceFetchException("ReManga: нет страниц")
         val urls = mutableListOf<String>()
