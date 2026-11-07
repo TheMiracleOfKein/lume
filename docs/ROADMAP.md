@@ -51,7 +51,7 @@ Patch releases from the v0.6 line, as needed.
 
 **v0.6.4: similar titles** ✅ released 2026-10-20 ([details](#v064-similar-titles--released-2026-10-20))
 - ✅ Recommendations on the title screen ("Similar titles") from AniList or MyAnimeList; a tap searches your sources for that title.
-- ⏸️ Split `Database.kt`: the release didn't touch it, so it moves on (next release that changes the database).
+- ✅ Split `Database.kt`: done in v0.8.0, the next release that changed the database.
 
 **v0.6.5: polish from emulator testing** ✅ released 2026-10-20 ([details](#v065-polish-from-emulator-testing--released-2026-10-20))
 - ✅ Hint text no longer collides with chip rows in Downloads, Backup and Network settings.
@@ -318,7 +318,7 @@ Learned models stay optional because of their size, their speed on older phones 
 | Room 6→7 migration can't be tested (no v6 schema was exported) | Accepted; every later migration is tested |
 | The Room migration test is skipped on Windows JVM runs | CI (Linux) runs it; v1.0 adds emulator tests on CI |
 | ✅ Coil 2 is in maintenance | Coil 3 since v0.8.0 |
-| Large files: `Database.kt` (about 770 lines); 🟡 `SettingsScreen.kt` and `LibraryScreen.kt` split in v0.6.2 and v0.6.3 | `Database.kt`: with the next database change |
+| ✅ Large files: `SettingsScreen.kt` and `LibraryScreen.kt` split in v0.6.2 and v0.6.3, `Database.kt` in v0.8.0 | Entities, `LibraryDao` and `LumeDatabase` in their own files |
 | Releases are built on one computer | v1.0: optional signed release workflow |
 | Engine parsers are only tested against the live sites | v0.9: offline tests with saved pages |
 
