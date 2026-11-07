@@ -102,6 +102,7 @@ class DownloadQueue(
     }
 
     private suspend fun insert(sourceId: String, titleId: String, chapter: Chapter, titleName: String, coverUrl: String?): Boolean {
+        if (!canDownload(sourceId)) return false
         val existing = dao.findDownloadQueueItem(sourceId, titleId, chapter.id)
         if (existing != null &&
             (existing.status == DownloadQueueEntity.STATUS_PENDING || existing.status == DownloadQueueEntity.STATUS_RUNNING)
@@ -320,5 +321,8 @@ class DownloadQueue(
 
     companion object {
         const val MAX_SOURCES_AT_ONCE = 3
+
+        /** Local chapters are already on the phone, so nothing is queued for the local source. */
+        fun canDownload(sourceId: String): Boolean = sourceId != com.lume.app.data.source.SourceEngines.LOCAL
     }
 }
