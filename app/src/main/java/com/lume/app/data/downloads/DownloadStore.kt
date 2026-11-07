@@ -189,7 +189,7 @@ class DownloadStore(
 
     /** Pages of a CBZ download, unpacked once into the cache (the reader needs plain files). */
     private fun pagesFromCbz(archive: File): List<ComicPage>? = runCatching {
-        val outDir = File(context.cacheDir, "cbz/n${archive.absolutePath.hashCode().toUInt()}_${archive.lastModified()}")
+        val outDir = File(context.cacheDir, "cbz/${ArchiveCache.dirKey(archive)}")
         val files = ArchiveReaders.open(archive).use { reader ->
             ArchiveReaders.extractImages(reader, outDir) { i, name -> "%04d.%s".format(i, name.substringAfterLast('.')) }
         }

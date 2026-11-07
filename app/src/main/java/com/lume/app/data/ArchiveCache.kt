@@ -8,6 +8,12 @@ import java.io.File
 object ArchiveCache {
     const val MAX_BYTES = 300L * 1024 * 1024
 
+    /** Folder name for the pages of one archive version: changes with its path, size and modification time. */
+    fun dirKey(path: String, lastModified: Long, size: Long): String =
+        "n_${path.hashCode().toUInt()}_${lastModified}_$size"
+
+    fun dirKey(archive: File): String = dirKey(archive.absolutePath, archive.lastModified(), archive.length())
+
     /** Marks [dir] as just used, so trimming removes other chapters first. */
     fun touch(dir: File) {
         runCatching { dir.setLastModified(System.currentTimeMillis()) }

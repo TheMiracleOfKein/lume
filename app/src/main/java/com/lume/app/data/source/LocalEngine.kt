@@ -272,7 +272,7 @@ class LocalEngine(
     }
 
     private fun pagesFromArchive(archive: File): List<ComicPage> {
-        val outDir = File(context.cacheDir, "local_zip/n_${archive.nameWithoutExtension}")
+        val outDir = File(context.cacheDir, "local_zip/${ArchiveCache.dirKey(archive)}")
         val files = ArchiveReaders.open(archive).use { reader ->
             ArchiveReaders.extractImages(reader, outDir) { i, name -> "%04d_%s".format(i, name.ifBlank { "page_$i" }) }
         }
