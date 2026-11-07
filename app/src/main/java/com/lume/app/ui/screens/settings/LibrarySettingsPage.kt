@@ -179,15 +179,8 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
         SettingItem("local_open") {
             SettingsLink(stringResource(R.string.local_open_library)) { nav.navigate(Routes.browse("local")) }
         }
-        SettingItem("local_clean") {
-            SettingsLink(stringResource(R.string.local_clean_temp), stringResource(R.string.local_clean_temp_hint)) {
-                vm.cleanTemporaryFiles()
-            }
-        }
-    }
-    SettingsSectionTitle(R.string.watched_title)
-    SettingsGroup {
         SettingItem("watched_add") {
+            SettingsLabel(stringResource(R.string.watched_title))
             if (watchedFolders.isEmpty()) SettingsNote(stringResource(R.string.watched_none))
             watchedFolders.forEach { folder ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -234,6 +227,11 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
                         onClick = { vm.setFolderScanHours(hours) },
                     )
                 }
+            }
+        }
+        SettingItem("local_clean") {
+            SettingsLink(stringResource(R.string.local_clean_temp), stringResource(R.string.local_clean_temp_hint)) {
+                vm.cleanTemporaryFiles()
             }
         }
     }
