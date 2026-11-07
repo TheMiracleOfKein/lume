@@ -43,6 +43,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import coil3.size.Dimension
 import coil3.size.Size
+import com.lume.app.domain.pageData
 import com.lume.app.domain.page.PageRect
 import kotlin.math.roundToInt
 import androidx.compose.ui.input.pointer.positionChange
@@ -63,7 +64,6 @@ import com.lume.app.domain.ComicPage
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 import kotlinx.coroutines.launch
-import java.io.File
 
 // One webtoon page: loading, errors, retry, very tall strips, and sharp detail while zoomed;
 // plus the zoom shared by the whole webtoon list.
@@ -245,7 +245,7 @@ internal fun ReaderPageImage(
     var pageWidthPx by remember { mutableIntStateOf(0) }
     val model = remember(page.imageUrl, attempt, container.width) {
         ImageRequest.Builder(context)
-            .data(if (page.imageUrl.startsWith("http")) page.imageUrl else File(page.imageUrl))
+            .data(pageData(page.imageUrl))
             .crossfade(false)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)

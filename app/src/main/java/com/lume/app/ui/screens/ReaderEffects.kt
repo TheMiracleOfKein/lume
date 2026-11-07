@@ -18,6 +18,7 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
+import com.lume.app.data.local.pdf.PdfPageUrl
 import com.lume.app.data.prefs.ReaderSettings
 import com.lume.app.domain.ImageBytes
 import kotlinx.coroutines.Dispatchers
@@ -85,7 +86,7 @@ internal fun ReaderWindowEffects(activity: Activity?, settings: ReaderSettings) 
 
 /** A page's original bytes and file extension, from the download, Coil's disk cache or the network. */
 internal suspend fun readerPageBytes(context: Context, imageUrl: String): Pair<ByteArray, String> = withContext(Dispatchers.IO) {
-    val raw: ByteArray? = if (!imageUrl.startsWith("http")) {
+    val raw: ByteArray? = if (!imageUrl.startsWith("http") && !PdfPageUrl.isPdfPage(imageUrl)) {
         File(imageUrl).takeIf { it.isFile }?.readBytes()
     } else {
         cached(context, imageUrl) ?: run {

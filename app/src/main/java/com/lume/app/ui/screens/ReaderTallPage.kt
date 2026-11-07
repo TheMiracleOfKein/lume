@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
+import com.lume.app.data.local.pdf.PdfPageUrl
 import com.lume.app.ui.theme.AppColors
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -66,7 +67,9 @@ internal fun openTallSource(context: Context, imageUrl: String, targetWidth: Int
 }.getOrNull()
 
 /** The page's original file on disk: the downloaded copy, or Coil's disk cache. */
-private fun originalPath(context: Context, imageUrl: String): String? = if (imageUrl.startsWith("http")) {
+private fun originalPath(context: Context, imageUrl: String): String? = if (PdfPageUrl.isPdfPage(imageUrl)) {
+    null // rendered on demand, no file to slice
+} else if (imageUrl.startsWith("http")) {
     context.imageLoader.diskCache?.openSnapshot(imageUrl)?.use { it.data.toFile().absolutePath }
 } else {
     File(imageUrl).takeIf { it.isFile }?.absolutePath

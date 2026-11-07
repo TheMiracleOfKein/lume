@@ -1,7 +1,11 @@
 package com.lume.app.data.source
 
 import android.content.Context
+import android.graphics.Bitmap
 import com.lume.app.data.ArchiveCache
+import com.lume.app.data.local.archive.ArchiveReaders
+import com.lume.app.data.local.pdf.PdfPageUrl
+import com.lume.app.data.local.pdf.PdfRendererPool
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
@@ -13,6 +17,7 @@ import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleSummary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runBlocking
 import com.lume.app.domain.ComicInfo
 import com.lume.app.domain.ImageBytes
 import com.lume.app.domain.NaturalOrder
@@ -23,7 +28,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import java.io.File
-import java.util.zip.ZipFile
+import java.io.ByteArrayOutputStream
 
 /**
  * Local catalogue under filesDir/local/{Series}/{Chapter}/ with jpg, png, webp pages,
@@ -60,16 +65,15 @@ class LocalEngine(
         return children.filter { child ->
             when {
                 child.isDirectory -> true
-                child.isFile && isArchive(child) -> true
+                child.isFile && ArchiveReaders.isChapterFile(child.name) -> true
                 else -> false
             }
         }
     }
 
-    private fun isArchive(file: File): Boolean {
-        val n = file.name.lowercase()
-        return n.endsWith(".cbz") || n.endsWith(".zip")
-    }
+    private fun isArchive(file: File): Boolean = ArchiveReaders.isArchive(file.name)
+
+    private fun isPdf(file: File): Boolean = ArchiveReaders.isPdf(file.name)
 
     private fun imageFiles(dir: File): List<File> =
         dir.listFiles()
@@ -87,24 +91,33 @@ class LocalEngine(
         for (ch in chapterEntries(series)) {
             if (ch.isDirectory) {
                 imageFiles(ch).firstOrNull()?.let { return it.absolutePath }
-            } else if (isArchive(ch)) {
+            } else if (isArchive(ch) || isPdf(ch)) {
                 firstImageOf(ch)?.let { return it.absolutePath }
             }
         }
         return null
     }
 
-    /** The first page of an archive, unpacked into the cache once. */
+    /** The first page of an archive or PDF, unpacked into the cache once. */
     private fun firstImageOf(archive: File): File? = runCatching {
         val out = File(context.cacheDir, "local_covers/${archive.absolutePath.hashCode().toUInt()}_${archive.lastModified()}")
-        out.listFiles()?.firstOrNull()?.let { return@runCatching it }
-        ZipFile(archive).use { zip ->
-            val entry = zip.entries().asSequence()
-                .filter { !it.isDirectory && isImage(it.name) }
-                .minWithOrNull(compareBy(NaturalOrder) { it.name }) ?: return@runCatching null
+        out.listFiles()?.firstOrNull { !it.name.endsWith(".part") }?.let { return@runCatching it }
+        if (isPdf(archive)) {
             out.mkdirs()
-            val dest = File(out, "cover." + entry.name.substringAfterLast('.'))
-            zip.getInputStream(entry).use { input -> dest.outputStream().use { input.copyTo(it) } }
+            val dest = File(out, "cover.jpg")
+            val bitmap = runBlocking { PdfRendererPool.render(archive.absolutePath, 0, COVER_PDF_WIDTH) }
+            try {
+                dest.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it) }
+            } finally {
+                bitmap.recycle()
+            }
+            return@runCatching dest
+        }
+        ArchiveReaders.open(archive).use { reader ->
+            val entry = ArchiveReaders.imageEntries(reader).firstOrNull() ?: return@runCatching null
+            out.mkdirs()
+            val dest = File(out, "cover." + entry.substringAfterLast('.'))
+            reader.open(entry).use { input -> dest.outputStream().use { ArchiveReaders.copyLimited(input, it) } }
             dest
         }
     }.getOrNull()
@@ -141,10 +154,15 @@ class LocalEngine(
         }
         val archive = chapterEntries(series).firstOrNull { it.isFile && isArchive(it) } ?: return null
         return runCatching {
-            ZipFile(archive).use { zip ->
-                val entry = zip.entries().asSequence().firstOrNull { it.name.equals("ComicInfo.xml", ignoreCase = true) }
-                    ?: return@use null
-                parseComicInfo(zip.getInputStream(entry).bufferedReader().use { it.readText() })
+            ArchiveReaders.open(archive).use { reader ->
+                val entry = reader.entries().firstOrNull {
+                    ArchiveReaders.isSafeEntryName(it) && it.substringAfterLast('/').equals("ComicInfo.xml", ignoreCase = true)
+                } ?: return@use null
+                parseComicInfo(
+                    reader.open(entry).use { input ->
+                        ByteArrayOutputStream().also { ArchiveReaders.copyLimited(input, it, MAX_COMIC_INFO_BYTES) }.toString(Charsets.UTF_8.name())
+                    },
+                )
             }
         }.getOrNull()
     }
@@ -233,7 +251,8 @@ class LocalEngine(
             file.isDirectory -> imageFiles(file).mapIndexed { i, img ->
                 ComicPage(index = i, imageUrl = img.absolutePath)
             }
-            file.isFile && isArchive(file) -> pagesFromZip(file)
+            file.isFile && isArchive(file) -> pagesFromArchive(file)
+            file.isFile && isPdf(file) -> pagesFromPdf(file)
             else -> {
                 // Fallback: resolve via title folder + chapter id
                 emptyList()
@@ -241,28 +260,29 @@ class LocalEngine(
         }
     }
 
-    private fun pagesFromZip(archive: File): List<ComicPage> {
-        ZipFile(archive).use { zip ->
-            val entries = zip.entries().asSequence()
-                .filter { !it.isDirectory && isImage(it.name.substringAfterLast('/')) }
-                .sortedWith(compareBy(NaturalOrder) { it.name })
-                .toList()
-            val outDir = File(context.cacheDir, "local_zip/n_${archive.nameWithoutExtension}")
-            if (!outDir.exists()) outDir.mkdirs()
-            val pages = mutableListOf<ComicPage>()
-            entries.forEachIndexed { i, entry ->
-                val name = entry.name.substringAfterLast('/').ifBlank { "page_$i" }
-                val dest = File(outDir, "%04d_%s".format(i, name))
-                if (!dest.exists() || dest.length() == 0L) {
-                    zip.getInputStream(entry).use { input ->
-                        dest.outputStream().use { output -> input.copyTo(output) }
-                    }
-                }
-                pages += ComicPage(index = i, imageUrl = dest.absolutePath)
-            }
-            ArchiveCache.touch(outDir)
-            ArchiveCache.trim(outDir.parentFile ?: outDir, keep = outDir)
-            return pages
+    private suspend fun pagesFromPdf(pdf: File): List<ComicPage> {
+        val count = try {
+            PdfRendererPool.pageCount(pdf)
+        } catch (e: SecurityException) {
+            error(com.lume.app.data.locale.appString(com.lume.app.R.string.error_pdf_unreadable))
+        } catch (e: java.io.IOException) {
+            error(com.lume.app.data.locale.appString(com.lume.app.R.string.error_pdf_unreadable))
         }
+        return (0 until count).map { ComicPage(index = it, imageUrl = PdfPageUrl.build(pdf.absolutePath, it)) }
+    }
+
+    private fun pagesFromArchive(archive: File): List<ComicPage> {
+        val outDir = File(context.cacheDir, "local_zip/n_${archive.nameWithoutExtension}")
+        val files = ArchiveReaders.open(archive).use { reader ->
+            ArchiveReaders.extractImages(reader, outDir) { i, name -> "%04d_%s".format(i, name.ifBlank { "page_$i" }) }
+        }
+        ArchiveCache.touch(outDir)
+        ArchiveCache.trim(outDir.parentFile ?: outDir, keep = outDir)
+        return files.mapIndexed { i, file -> ComicPage(index = i, imageUrl = file.absolutePath) }
+    }
+
+    private companion object {
+        const val COVER_PDF_WIDTH = 800
+        const val MAX_COMIC_INFO_BYTES = 1024L * 1024
     }
 }
