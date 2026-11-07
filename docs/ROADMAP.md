@@ -246,7 +246,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - Native **Komga** and **Kavita** engines where OPDS is too limited (read progress back to the server).
 
 **Local files**
-- **CBR, CB7 and PDF** (M). PDF through Android's own renderer.
+- ✅ **CBR, CB7 and PDF** (M). PDF through Android's own renderer; CBR through junrar, CB7 through Apache Commons Compress.
 - **Watched folders** (M). New chapters in an imported folder appear without importing again.
 - **Any folder as download storage** (M). The reader reads pages through the Storage Access Framework instead of file paths.
 
