@@ -189,7 +189,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Empty and error states, confirmations before clearing data, Undo for deleted bookmarks, a password eye, keyboard Next/Done.
 - ⏸️ Design-level spacing and radius standardisation (I9 leftovers) and hiding the content behind the menu drawer from TalkBack (A12): need a design pass.
 
-**v0.7.16: Home and source fixes** ([details](#v0716-home-and-source-fixes))
+**v0.7.16: Home and source fixes** ✅ released 2026-11-07 ([details](#v0716-home-and-source-fixes--released-2026-11-07))
 - ✅ Home list no longer slides down when coming back with "Continue reading" filled.
 - ✅ ReManga on the site's API v2 (everything answered 404); Popular sorted by votes.
 - ✅ MangaBuff catalogue reads only title cards, with covers; collections like "за 2026 год" are gone.
@@ -695,7 +695,7 @@ Release notes: [docs/releases/v0.7.14.md](releases/v0.7.14.md); device check in 
 - ✅ **Safety:** delete confirmation in Downloads; `remember` instead of `rememberSaveable` for passwords.
 - ⏸️ O17 chapter list jump (see the summary).
 
-### v0.7.16: Home and source fixes
+### v0.7.16: Home and source fixes ✅ released 2026-11-07
 
 Release notes: [docs/releases/v0.7.16.md](releases/v0.7.16.md); device check in [v0.7.16-check.md](releases/v0.7.16-check.md).
 
