@@ -147,6 +147,9 @@ dependencies {
     implementation(libs.androidx.biometric)
     implementation(libs.jsoup)
     implementation(libs.jspecify)
+    implementation(libs.junrar)
+    implementation(libs.commons.compress)
+    implementation(libs.xz)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     // Paged reader: subsampled decoding and sharp zoom.

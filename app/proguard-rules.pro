@@ -30,3 +30,16 @@
 # Readable crash reports.
 -keepattributes SourceFile, LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# Archive readers (CBR through junrar, CB7 through commons-compress): optional dependencies that
+# aren't bundled. slf4j has no logging backend on Android and stays silent.
+-dontwarn org.slf4j.**
+-dontwarn org.apache.commons.compress.archivers.**
+-dontwarn org.apache.commons.compress.compressors.**
+-dontwarn org.apache.commons.compress.harmony.**
+-dontwarn org.brotli.dec.**
+-dontwarn com.github.luben.zstd.**
+-dontwarn org.objectweb.asm.**
+-dontwarn java.lang.module.**
+-dontwarn javax.naming.**
+-dontwarn org.osgi.**
