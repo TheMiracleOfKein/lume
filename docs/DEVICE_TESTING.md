@@ -189,6 +189,7 @@ Needs a MangaLib account (HentaiLib and YaoiLib too, if you use them).
 - [ ] Guided panel view on a manga chapter, in both directions: a tap goes whole page → each panel → next page; back goes the other way; pages with one panel turn normally; the top-bar button switches it.
 - [ ] Pages loaded ahead: 0 loads only the page on screen; 10 makes the next pages appear without waiting.
 - [ ] Page bookmarks on the title screen show the panel (or the webtoon band) of the bookmarked spot.
+- [ ] Update from v0.7.16 with titles in "Continue reading": the app starts (migration 11 → 12) and the cards show covers; after reading one of them a little, its card shows the panel you stopped at.
 - [ ] A tablet or a window 840 dp wide: the title screen shows details on the left and chapters on the right; narrower windows show the old single column.
 - [ ] Settings → Reader → Pages lists the new options, and settings search finds "panels", "spread", "crop" (and "кадры", "разворот").
 - [ ] Release build (R8): reader, paged zoom and spreads work as in the debug build.

@@ -229,7 +229,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - ✅ Classic image processing (a recursive cut along the gutters) finds the panels of a page; no model, no download.
 - ✅ A tap or page turn moves to the next panel with a smooth zoom, in the page's reading direction; each page starts whole.
 - ✅ The same analysis powers border cropping.
-- 🟡 **"See exactly where you stopped"**: page bookmarks show the panel. "Continue" cards still show the cover: progress doesn't store the page's image, which needs a database change.
+- ✅ **"See exactly where you stopped"**: "Continue" cards and page bookmarks show the panel (database 11 → 12 keeps the page image with the progress).
 
 **Performance**
 - 🟡 `ScrollBenchmark` (frame times of the catalogue grid and the webtoon reader) next to `StartupBenchmark` (S). Both need a device and the network; the numbers and the newly recorded profile come with the release check.
@@ -358,7 +358,7 @@ Everything runs on the phone, with no account.
 
 - ✅ **Home-screen widget** and **"Continue <title>" shortcuts** (v0.6).
 - ✅ **Sync between devices** (v0.7.0): a folder or WebDAV, optional passphrase. Google Drive waits.
-- 🟡 **See exactly where you stopped** (v0.8.0): page bookmarks show the panel you bookmarked. "Continue" cards still show the cover (needs the page image stored with progress, a database change).
+- ✅ **See exactly where you stopped** (v0.8.0): "Continue" cards and page bookmarks show the panel you were reading.
 
 ## Released
 
