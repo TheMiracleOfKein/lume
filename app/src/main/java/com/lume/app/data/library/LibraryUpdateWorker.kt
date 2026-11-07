@@ -218,7 +218,7 @@ class LibraryUpdateWorker(
                 .build()
             WorkManager.getInstance(context).enqueueUniqueWork(NOW_WORK_NAME, ExistingWorkPolicy.KEEP, request)
         }
-        private const val CHANNEL_ID = "library_updates"
+        const val CHANNEL_ID = "library_updates"
         private const val NOTIF_ID = 42
 
         fun schedule(

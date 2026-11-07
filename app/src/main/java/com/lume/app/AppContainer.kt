@@ -57,7 +57,8 @@ class AppContainer(val app: Application) {
     val downloads = DownloadStore(app, dao, http, prefs)
     val offlineCache = OfflineTitleCache(dao)
     val localImporter = com.lume.app.data.local.LocalImporter(app)
-    val libraryChapters = LibraryChapters(database, dao)
+    val folderScanner = com.lume.app.data.local.FolderScanner(app, dao, localImporter)
+    val libraryChapters =LibraryChapters(database, dao)
     val titles = TitleRepository(sources, offlineCache, libraryChapters, dao)
     val downloadQueue = DownloadQueue(app, dao, downloads, sources, titles, prefs, network)
     val backup = BackupRepository(app, dao, sources, prefs, titles, libraryChapters, database = database)
@@ -105,6 +106,7 @@ class AppContainer(val app: Application) {
             // reports only chapters that are really new.
             runCatching { libraryChapters.seedFromCache(offlineCache) }
             com.lume.app.data.backup.BackupWorker.schedule(app, prefs.autoBackupDays.value)
+            com.lume.app.data.local.FolderScanWorker.schedule(app, prefs.folderScanHours.value)
             com.lume.app.data.sync.SyncWorker.schedule(app, prefs.syncSettings.value)
             com.lume.app.data.sync.SyncWorker.runSoon(app, prefs.syncSettings.value)
             LibraryUpdateWorker.schedule(
