@@ -253,6 +253,9 @@
     <string name="error_pages_failed">Не удалось получить страницы главы</string>
     <string name="error_pages_failed_named">Не удалось получить страницы главы %s</string>
     <string name="error_local_title_missing">Локальный тайтл не найден: %s</string>
+    <string name="error_rar5_unsupported">Архив RAR5 не поддерживается. Пересоберите его в CBZ.</string>
+    <string name="error_archive_unsupported">Этот файл не является поддерживаемым архивом (CBZ, CBR, CB7).</string>
+    <string name="error_pdf_unreadable">Не удаётся открыть PDF. Возможно, он защищён паролем или повреждён.</string>
     <string name="local_files_description">Локальные файлы: %s</string>
     <string name="error_backup_read">Не удалось прочитать файл</string>
     <string name="error_madara_ajax_empty">Пустой ответ Madara AJAX</string>
@@ -602,7 +605,7 @@
     <string name="local_importing">Импорт…</string>
     <string name="local_open_library">Открыть локальные тайтлы</string>
     <string name="local_clean_temp">Очистить временные файлы</string>
-    <string name="local_folder_hint">Импортированные тайтлы копируются в %1$s. В папке могут быть подпапки-серии, папки глав или файлы .cbz / .zip; также читаются cover.jpg, ComicInfo.xml и details.json.</string>
+    <string name="local_folder_hint">Импортированные тайтлы копируются в %1$s. В папке могут быть подпапки-серии, папки глав или файлы .cbz, .cbr, .cb7, .zip, .rar, .7z и .pdf; также читаются cover.jpg, ComicInfo.xml и details.json.</string>
     <string name="local_import_done">Импорт готов. Тайтлов: %1$d · глав: %2$d</string>
     <string name="local_import_empty">В этой папке не найдено глав</string>
     <string name="local_import_failed">Импорт не удался: %1$s</string>
@@ -846,7 +849,7 @@
     <string name="settings_kw_library_rules">проверка обновлений, пропускать, батарея, трафик, зарядка, завершённые, непрочитанные</string>
     <string name="settings_kw_find_sources">также на, привязка, объединить, другие источники</string>
     <string name="settings_kw_categories">папки, вкладки, категория по умолчанию</string>
-    <string name="settings_kw_local">импорт, папка, cbz, zip, файлы</string>
+    <string name="settings_kw_local">импорт, папка, cbz, cbr, cb7, pdf, zip, файлы</string>
     <string name="settings_kw_auto_download">новые главы, автоматически, подписка, подписки</string>
     <string name="settings_kw_delete_read">место, удалить, прочитанные</string>
     <string name="settings_kw_cbz">архив, zip, comicinfo</string>

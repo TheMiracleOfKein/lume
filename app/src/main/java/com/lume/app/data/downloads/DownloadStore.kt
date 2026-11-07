@@ -2,6 +2,7 @@ package com.lume.app.data.downloads
 
 import android.content.Context
 import com.lume.app.R
+import com.lume.app.data.local.archive.ArchiveReaders
 import com.lume.app.data.db.DownloadEntity
 import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.network.AppHttp
@@ -189,23 +190,12 @@ class DownloadStore(
     /** Pages of a CBZ download, unpacked once into the cache (the reader needs plain files). */
     private fun pagesFromCbz(archive: File): List<ComicPage>? = runCatching {
         val outDir = File(context.cacheDir, "cbz/n${archive.absolutePath.hashCode().toUInt()}_${archive.lastModified()}")
-        java.util.zip.ZipFile(archive).use { zip ->
-            val entries = zip.entries().asSequence()
-                .filter { !it.isDirectory && ImageBytes.isImageName(it.name) }
-                .sortedWith(compareBy(NaturalOrder) { it.name })
-                .toList()
-            if (!outDir.isDirectory) outDir.mkdirs()
-            val pages = entries.mapIndexed { i, entry ->
-                val dest = File(outDir, "%04d.%s".format(i, entry.name.substringAfterLast('.')))
-                if (!dest.isFile || dest.length() == 0L) {
-                    zip.getInputStream(entry).use { input -> dest.outputStream().use { input.copyTo(it) } }
-                }
-                ComicPage(index = i, imageUrl = dest.absolutePath)
-            }
-            ArchiveCache.touch(outDir)
-            ArchiveCache.trim(outDir.parentFile ?: outDir, keep = outDir)
-            pages
-        }.takeIf { it.isNotEmpty() }
+        val files = ArchiveReaders.open(archive).use { reader ->
+            ArchiveReaders.extractImages(reader, outDir) { i, name -> "%04d.%s".format(i, name.substringAfterLast('.')) }
+        }
+        ArchiveCache.touch(outDir)
+        ArchiveCache.trim(outDir.parentFile ?: outDir, keep = outDir)
+        files.mapIndexed { i, file -> ComicPage(index = i, imageUrl = file.absolutePath) }.takeIf { it.isNotEmpty() }
     }.getOrNull()
 
     private fun writeTitleMeta(sourceId: String, titleId: String, title: TitleDetails?) {
