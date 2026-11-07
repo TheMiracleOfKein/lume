@@ -214,7 +214,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.8.0: reader 2.0** ✅ released 2026-11-07 ([notes](releases/v0.8.0.md), [device check](releases/v0.8.0-check.md))
 
-**v0.8.1: zoom pan fix** ([notes](releases/v0.8.1.md)): a zoomed webtoon page no longer twitches when moved.
+**v0.8.1: zoom pan fix** ✅ released 2026-11-07 ([notes](releases/v0.8.1.md)): a zoomed webtoon page no longer twitches when moved.
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -732,7 +732,7 @@ Release notes: [docs/releases/v0.8.0.md](releases/v0.8.0.md); device check in [v
 - 🟡 `ScrollBenchmark` numbers and a newly recorded baseline profile: need a device run.
 - ⏸️ Webtoon strips in paged mode stay a narrow column (as before).
 
-### v0.8.1: zoom pan fix
+### v0.8.1: zoom pan fix ✅ released 2026-11-07
 
 Release notes: [docs/releases/v0.8.1.md](releases/v0.8.1.md).
 
