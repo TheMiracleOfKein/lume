@@ -89,6 +89,9 @@ object SettingsCatalog {
         SettingInfo("local_import", SettingsPage.Library, R.string.local_import_folder, keywordsRes = R.string.settings_kw_local),
         SettingInfo("local_open", SettingsPage.Library, R.string.local_open_library, keywordsRes = R.string.settings_kw_local),
         SettingInfo("local_clean", SettingsPage.Library, R.string.local_clean_temp, R.string.local_clean_temp_hint),
+        SettingInfo("watched_add", SettingsPage.Library, R.string.watched_add, R.string.watched_add_hint, R.string.settings_kw_watched),
+        SettingInfo("watched_scan_now", SettingsPage.Library, R.string.watched_scan_now, keywordsRes = R.string.settings_kw_watched),
+        SettingInfo("watched_interval", SettingsPage.Library, R.string.watched_interval, keywordsRes = R.string.settings_kw_watched),
 
         SettingInfo("downloads_wifi", SettingsPage.Downloads, R.string.settings_downloads_wifi_only, R.string.settings_downloads_wifi_only_hint, R.string.settings_kw_wifi),
         SettingInfo("auto_download", SettingsPage.Downloads, R.string.settings_downloads_auto_new, R.string.settings_downloads_auto_new_hint, R.string.settings_kw_auto_download),

@@ -1011,4 +1011,25 @@
     <string name="home_refresh_failed">Couldn’t refresh the feed</string>
     <string name="home_latest_empty">No new releases right now</string>
     <string name="search_start_hint">Type a title and search</string>
+    <string name="watched_title">Watched folders</string>
+    <string name="watched_none">No watched folders. New chapters dropped into a watched folder are copied into the library on a schedule.</string>
+    <string name="watched_add">Add a watched folder</string>
+    <string name="watched_add_hint">A library folder, or one series: Lume looks for new and changed files in it.</string>
+    <string name="watched_remove">Remove</string>
+    <string name="watched_reconnect">Reconnect</string>
+    <string name="watched_unavailable">Access to this folder was lost. Reconnect to scan it again.</string>
+    <string name="watched_never_scanned">Not scanned yet</string>
+    <string name="watched_last_scan">Last scan: %1$s</string>
+    <string name="watched_scan_now">Scan now</string>
+    <string name="watched_scan_started">Scanning watched folders…</string>
+    <string name="watched_interval">Scan every</string>
+    <plurals name="watched_interval_hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+    <plurals name="notif_folder_scan_new">
+        <item quantity="one">%d new chapter</item>
+        <item quantity="other">%d new chapters</item>
+    </plurals>
+    <string name="settings_kw_watched">watch, folder, scan, new chapters, import, local, auto</string>
 </resources>
