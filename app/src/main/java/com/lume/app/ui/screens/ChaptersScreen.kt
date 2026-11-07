@@ -114,7 +114,13 @@ import com.lume.app.ui.theme.fadingItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
+fun ChaptersScreen(
+    nav: NavHostController,
+    sourceId: String,
+    titleId: String,
+    /** Beside the title details on a wide screen: no Back arrow (the details pane has it). */
+    embedded: Boolean = false,
+) {
     val container = LocalAppContainer.current
     val vm: ChaptersViewModel = viewModel { ChaptersViewModel(container, sourceId, titleId) }
     val chapters = vm.chapters
@@ -163,12 +169,14 @@ fun ChaptersScreen(nav: NavHostController, sourceId: String, titleId: String) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { if (vm.selecting) vm.clearSelection() else nav.popBackStack() }) {
-                        Icon(
-                            if (vm.selecting) Icons.Outlined.Close else Icons.AutoMirrored.Outlined.ArrowBack,
-                            stringResource(if (vm.selecting) R.string.action_close else R.string.cd_back),
-                            tint = AppColors.textPrimary,
-                        )
+                    if (vm.selecting || !embedded) {
+                        IconButton(onClick = { if (vm.selecting) vm.clearSelection() else nav.popBackStack() }) {
+                            Icon(
+                                if (vm.selecting) Icons.Outlined.Close else Icons.AutoMirrored.Outlined.ArrowBack,
+                                stringResource(if (vm.selecting) R.string.action_close else R.string.cd_back),
+                                tint = AppColors.textPrimary,
+                            )
+                        }
                     }
                 },
                 actions = {
