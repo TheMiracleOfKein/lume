@@ -71,7 +71,7 @@ class LibSocialEngine(
             "${apiBase.toString().trimEnd('/')}/manga?page=$page&site_id[]=$siteId&sort_by=$sortBy",
         )
         val response = http.get(uri, source = manifest, headers = apiHeaders(), checkCloudflare = false)
-        return parseList(response.body, page)
+        return parseTitleList(response.body, page)
     }
 
     override suspend fun search(
@@ -81,7 +81,7 @@ class LibSocialEngine(
     ): PagedResult<TitleSummary> {
         val uri = URI("${apiBase.toString().trimEnd('/')}/manga?page=$page&site_id[]=$siteId" + filterQuery(query, filters))
         val response = http.get(uri, source = manifest, headers = apiHeaders(), checkCloudflare = false)
-        return parseList(response.body, page)
+        return parseTitleList(response.body, page)
     }
 
     /** The catalogue query for [query] and [filters]; the site applies both together. */
@@ -202,7 +202,12 @@ class LibSocialEngine(
                 throw e
             }
         }
-        val root = asObject(json.parseToJsonElement(response.body))
+        return parseDetails(response.body, id)
+    }
+
+    internal fun parseDetails(body: String, id: String): TitleDetails {
+        val slug = slug(id)
+        val root = asObject(json.parseToJsonElement(body))
         val data = asObject(root["data"] ?: root)
         val cover = coverUrl(data["cover"])
         val genres = ((data["genres"] as? JsonArray).orEmpty() + (data["tags"] as? JsonArray).orEmpty()).mapNotNull {
@@ -244,7 +249,12 @@ class LibSocialEngine(
         val slug = slug(titleId)
         val uri = URI("${apiBase.toString().trimEnd('/')}/manga/$slug/chapters")
         val response = http.get(uri, source = manifest, headers = apiHeaders(), checkCloudflare = false)
-        val root = json.parseToJsonElement(response.body)
+        return parseChapters(response.body, titleId)
+    }
+
+    internal fun parseChapters(body: String, titleId: String): List<Chapter> {
+        val slug = slug(titleId)
+        val root = json.parseToJsonElement(body)
         val list = when {
             root is JsonArray -> root
             root is JsonObject && root["data"] is JsonArray -> root["data"]!!.jsonArray
@@ -325,7 +335,16 @@ class LibSocialEngine(
             }
             throw e
         }
-        val root = asObject(json.parseToJsonElement(response.body))
+        val raw = parseRawPages(response.body)
+        val server = raw.urls.firstOrNull()?.let { pickImageServer(raw.data, it) }.orEmpty()
+        return buildPages(raw, server)
+    }
+
+    /** The chapter payload and its page paths, before an image server is chosen. */
+    internal class RawPages(val data: JsonObject, val urls: List<String>)
+
+    internal fun parseRawPages(body: String): RawPages {
+        val root = asObject(json.parseToJsonElement(body))
         val data = asObject(root["data"] ?: root)
         if (data["toast"] != null || data["pages"] == null) {
             val toast = (data["toast"] as? JsonObject)?.get("message")?.jsonPrimitive?.contentOrNull
@@ -345,8 +364,12 @@ class LibSocialEngine(
                 else -> null
             }?.takeIf { it.isNotBlank() }
         }
-        val server = rawPages.firstOrNull()?.let { pickImageServer(data, it) }.orEmpty()
-        val pages = rawPages.mapIndexed { index, url -> ComicPage(index = index, imageUrl = absolutizePageUrl(url, server)) }
+        return RawPages(data, rawPages)
+    }
+
+    /** Pages of [raw] served from [server]; page paths that are already absolute stay as they are. */
+    internal fun buildPages(raw: RawPages, server: String): List<ComicPage> {
+        val pages = raw.urls.mapIndexed { index, url -> ComicPage(index = index, imageUrl = absolutizePageUrl(url, server)) }
         if (pages.isEmpty()) {
             throw SourceFetchException(
                 com.lume.app.data.locale.appString(
@@ -427,7 +450,7 @@ class LibSocialEngine(
         }
     }
 
-    private fun parseList(raw: String, page: Int): PagedResult<TitleSummary> {
+    internal fun parseTitleList(raw: String, page: Int): PagedResult<TitleSummary> {
         val root = asObject(json.parseToJsonElement(raw))
         val data = root["data"]
         val apiHasNext = (root["meta"] as? JsonObject)?.get("has_next_page")?.let { stringOrNull(it)?.toBooleanStrictOrNull() }
