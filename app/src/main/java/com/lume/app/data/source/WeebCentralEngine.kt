@@ -135,7 +135,11 @@ class WeebCentralEngine(
             URI("${manifest.baseUrl.trimEnd('/')}/search/data?$q"),
             source = manifest,
         )
-        val doc = Jsoup.parse(response.body, manifest.baseUrl)
+        return parseTitleList(response.body, page)
+    }
+
+    internal fun parseTitleList(body: String, page: Int): PagedResult<TitleSummary> {
+        val doc = Jsoup.parse(body, manifest.baseUrl)
         val items = doc.select("article > section > a").mapNotNull { a ->
             val href = a.attr("abs:href")
             if (!href.contains("/series/")) return@mapNotNull null
@@ -153,7 +157,11 @@ class WeebCentralEngine(
 
     override suspend fun getTitle(id: String): TitleDetails {
         val response = http.get(abs(id), source = manifest)
-        val doc = Jsoup.parse(response.body, manifest.baseUrl)
+        return parseDetails(response.body, id)
+    }
+
+    internal fun parseDetails(body: String, id: String): TitleDetails {
+        val doc = Jsoup.parse(body, manifest.baseUrl)
         val sections = doc.select("section[x-data] > section")
         val meta = sections.getOrNull(0)
         val body = sections.getOrNull(1)
@@ -186,7 +194,11 @@ class WeebCentralEngine(
             manifest.baseUri.resolve("/series/$seriesId/full-chapter-list"),
             source = manifest,
         )
-        val doc = Jsoup.parse(response.body, manifest.baseUrl)
+        return parseChapters(response.body)
+    }
+
+    internal fun parseChapters(body: String): List<Chapter> {
+        val doc = Jsoup.parse(body, manifest.baseUrl)
         return doc.select("div[x-data] > a, a[href*=/chapters/]").mapNotNull { a ->
             val href = a.attr("abs:href").ifBlank {
                 val rel = a.attr("href")
@@ -211,7 +223,11 @@ class WeebCentralEngine(
             "$chapterPath/images?is_prev=False&reading_style=long_strip",
         )
         val response = http.get(uri, source = manifest)
-        val doc = Jsoup.parse(response.body, manifest.baseUrl)
+        return parsePages(response.body)
+    }
+
+    internal fun parsePages(body: String): List<ComicPage> {
+        val doc = Jsoup.parse(body, manifest.baseUrl)
         val imgs = doc.select("section[x-data*=scroll] > img, section[x-data] img, img[src*=manga]")
         val pages = imgs.mapNotNull { img ->
             val url = img.attr("abs:src").ifBlank { img.attr("src") }
