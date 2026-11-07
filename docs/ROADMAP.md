@@ -189,6 +189,12 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Empty and error states, confirmations before clearing data, Undo for deleted bookmarks, a password eye, keyboard Next/Done.
 - ⏸️ Design-level spacing and radius standardisation (I9 leftovers) and hiding the content behind the menu drawer from TalkBack (A12): need a design pass.
 
+**v0.7.16: Home and source fixes** ([details](#v0716-home-and-source-fixes))
+- ✅ Home list no longer slides down when coming back with "Continue reading" filled.
+- ✅ ReManga on the site's API v2 (everything answered 404); Popular sorted by votes.
+- ✅ MangaBuff catalogue reads only title cards, with covers; collections like "за 2026 год" are gone.
+- 🟡 MangaBuff checked with unit tests only: the site is geo-blocked from the build machine.
+
 **v0.7.x: send downloads to a nearby device** (L)
 
 Sync moves your library and progress, never the downloaded pages. This moves the pages: pick downloaded chapters on one phone, and another phone nearby receives them, without the internet and without a server.
@@ -688,6 +694,15 @@ Release notes: [docs/releases/v0.7.14.md](releases/v0.7.14.md); device check in 
 - ✅ **WebView screens:** theme, keyboard, Back in history, load progress, WebView destroyed on release; Cloudflare overlay consumes taps.
 - ✅ **Safety:** delete confirmation in Downloads; `remember` instead of `rememberSaveable` for passwords.
 - ⏸️ O17 chapter list jump (see the summary).
+
+### v0.7.16: Home and source fixes
+
+Release notes: [docs/releases/v0.7.16.md](releases/v0.7.16.md); device check in [v0.7.16-check.md](releases/v0.7.16-check.md).
+
+- ✅ **Home:** history from `HomeViewModel` (eager `StateFlow`) and stable keys for static items, so "Continue reading" is there in the first frame.
+- ✅ **ReManga:** `/api/v2/` for catalogue, search, title, chapters and pages; paging by `next`; Popular and the default sort by `-votes`. Live check passes (images are geo-blocked from the build machine).
+- ✅ **MangaBuff:** `parseCatalog` reads `.cards__item` cards; covers from `data-src`, `srcset` or CSS background.
+- 🟡 **MangaBuff live check:** geo-blocked (HTTP 403) from the build machine; covered by `RuSourceParsingTest` with sample markup.
 
 ### v0.7.15: UI fixes, part two ✅ released 2026-11-06
 
