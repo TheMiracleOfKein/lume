@@ -34,6 +34,13 @@ class RemangaEngine(
     private val apiBase: String
         get() = (manifest.configString("apiBase") ?: "https://api.remanga.org/api").trimEnd('/')
 
+    /**
+     * Catalogue, search, title, chapter list and pages moved to `/api/v2/` (the old paths
+     * answer 404). The filter form is still only on the old path.
+     */
+    private val apiV2: String
+        get() = "$apiBase/v2"
+
     private val siteBase: String
         get() = manifest.baseUrl.trimEnd('/')
 
@@ -47,12 +54,13 @@ class RemangaEngine(
     override suspend fun getLatest(page: Int): PagedResult<TitleSummary> =
         titles(page, ordering = "-chapter_date")
 
+    /** By votes: on v2 `-rating` is the plain average, so unrated titles with a 10.0 come first. */
     override suspend fun getPopular(page: Int): PagedResult<TitleSummary> =
-        titles(page, ordering = "-rating")
+        titles(page, ordering = "-votes")
 
     /** `/titles/` ignores `ordering`; the catalog endpoint is what the site uses for sorting. */
     private suspend fun titles(page: Int, ordering: String, extra: String = ""): PagedResult<TitleSummary> {
-        val uri = URI("$apiBase/search/catalog/?ordering=$ordering&count=$PAGE_SIZE&page=$page$extra")
+        val uri = URI("$apiV2/search/catalog/?ordering=$ordering&count=$PAGE_SIZE&page=$page$extra")
         val response = http.get(uri, source = manifest, headers = headers, checkCloudflare = false)
         return parseTitleList(response.body, page)
     }
@@ -63,9 +71,9 @@ class RemangaEngine(
         filters: com.lume.app.domain.FilterList,
     ): PagedResult<TitleSummary> {
         // The catalogue sorts and filters but has no text search; a text search ignores filters.
-        if (query.isBlank()) return titles(page, filters.selected("ordering") ?: "-rating", catalogQuery(filters))
+        if (query.isBlank()) return titles(page, filters.selected("ordering") ?: "-votes", catalogQuery(filters))
         val q = urlEncode(query.trim())
-        val uri = URI("$apiBase/search/?query=$q&count=$PAGE_SIZE&page=$page")
+        val uri = URI("$apiV2/search/?query=$q&count=$PAGE_SIZE&page=$page")
         val response = http.get(uri, source = manifest, headers = headers, checkCloudflare = false)
         return parseTitleList(response.body, page)
     }
@@ -134,13 +142,14 @@ class RemangaEngine(
             com.lume.app.domain.SourceFilter.Select(
                 id = "ordering",
                 name = com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort),
-                options = listOf("-rating", "-chapter_date", "-views", "-id", "-votes", "-count_chapters"),
+                // Votes first: it is the default, and plain rating lists unrated titles on top.
+                options = listOf("-votes", "-chapter_date", "-views", "-id", "-rating", "-count_chapters"),
                 labels = listOf(
-                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_rating),
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_votes),
                     com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_latest),
                     com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_popular),
                     com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_new),
-                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_votes),
+                    com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_rating),
                     com.lume.app.data.locale.appString(com.lume.app.R.string.filter_sort_chapters),
                 ),
             ),
@@ -149,7 +158,7 @@ class RemangaEngine(
 
     override suspend fun getTitle(id: String): TitleDetails {
         val dir = slug(id)
-        val uri = URI("$apiBase/titles/${pathSegment(dir)}/")
+        val uri = URI("$apiV2/titles/${pathSegment(dir)}/")
         val response = http.get(uri, source = manifest, headers = headers, checkCloudflare = false)
         val root = asObject(json.parseToJsonElement(response.body))
         val data = asObject(root["content"] ?: root["data"] ?: root)
@@ -190,7 +199,7 @@ class RemangaEngine(
 
     override suspend fun getChapters(titleId: String): List<Chapter> {
         val dir = slug(titleId)
-        val detailUri = URI("$apiBase/titles/${pathSegment(dir)}/")
+        val detailUri = URI("$apiV2/titles/${pathSegment(dir)}/")
         val detail = http.get(detailUri, source = manifest, headers = headers, checkCloudflare = false)
         val root = asObject(json.parseToJsonElement(detail.body))
         val data = asObject(root["content"] ?: root)
@@ -200,10 +209,10 @@ class RemangaEngine(
         val out = ArrayList<Chapter>()
         var page = 1
         while (page <= 50) {
-            val uri = URI("$apiBase/titles/chapters/?branch_id=$branchId&page=$page&count=100&ordering=-index")
+            val uri = URI("$apiV2/titles/chapters/?branch_id=$branchId&page=$page&count=100&ordering=-index")
             val response = http.get(uri, source = manifest, headers = headers, checkCloudflare = false)
             val chRoot = asObject(json.parseToJsonElement(response.body))
-            val list = chRoot["content"] as? JsonArray ?: break
+            val list = resultList(chRoot) ?: break
             if (list.isEmpty()) break
             for (el in list) {
                 val item = el as? JsonObject ?: continue
@@ -227,7 +236,8 @@ class RemangaEngine(
                     dateLabel = stringOrNull(item["upload_date"])?.take(10),
                 )
             }
-            if (list.size < 100) break
+            // v2 caps a page below the requested count and says whether more follow in `next`.
+            if (!hasNextPage(chRoot, list.size, 100)) break
             page++
         }
         return out
@@ -235,7 +245,7 @@ class RemangaEngine(
 
     override suspend fun getPages(chapter: Chapter): List<ComicPage> {
         val id = chapter.id
-        val uri = URI("$apiBase/titles/chapters/$id/")
+        val uri = URI("$apiV2/titles/chapters/$id/")
         val response = http.get(uri, source = manifest, headers = headers, checkCloudflare = false)
         val root = asObject(json.parseToJsonElement(response.body))
         val data = asObject(root["content"] ?: root)
@@ -262,10 +272,27 @@ class RemangaEngine(
         out += if (link.startsWith("http")) link else "$siteBase$link"
     }
 
-    private fun parseTitleList(raw: String, page: Int): PagedResult<TitleSummary> {
+    /** The item list: `results` on v2, `content` on the old API. */
+    private fun resultList(root: JsonObject): JsonArray? =
+        root["results"] as? JsonArray ?: root["content"] as? JsonArray
+
+    /**
+     * Whether another page follows: v2 sends `next` (a page number or a URL, null on the last
+     * page) or `meta.total_pages`; the old API sent `props.total_pages`. With none of them, a
+     * full page means there may be more.
+     */
+    private fun hasNextPage(root: JsonObject, size: Int, pageSize: Int, page: Int = 0): Boolean {
+        if (root.containsKey("next")) return stringOrNull(root["next"]) != null
+        val totalPages = listOf("meta", "props").firstNotNullOfOrNull { key ->
+            stringOrNull((root[key] as? JsonObject)?.get("total_pages"))?.toIntOrNull()
+        }
+        if (totalPages != null && page > 0) return page < totalPages
+        return size >= pageSize
+    }
+
+    internal fun parseTitleList(raw: String, page: Int): PagedResult<TitleSummary> {
         val root = asObject(json.parseToJsonElement(raw))
-        val list = root["content"] as? JsonArray ?: JsonArray(emptyList())
-        val totalPages = ((root["props"] as? JsonObject)?.get("total_pages")).let { stringOrNull(it)?.toIntOrNull() }
+        val list = resultList(root) ?: JsonArray(emptyList())
         val items = list.mapNotNull { el ->
             val item = el as? JsonObject ?: return@mapNotNull null
             val dir = stringOrNull(item["dir"]) ?: return@mapNotNull null
@@ -277,7 +304,7 @@ class RemangaEngine(
                 latestChapter = stringOrNull(item["count_chapters"]),
             )
         }
-        val hasNext = totalPages?.let { page < it } ?: (items.size >= PAGE_SIZE)
+        val hasNext = hasNextPage(root, items.size, PAGE_SIZE, page)
         return PagedResult(items = items, page = page, hasNext = hasNext && items.isNotEmpty())
     }
 
