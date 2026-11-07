@@ -57,7 +57,7 @@ fun MacrobenchmarkScope.browseApp() {
 }
 
 /** Waits for [selector] and clicks it; finds it again if the screen changed in between. */
-private fun MacrobenchmarkScope.tap(selector: BySelector, timeout: Long = 8_000): Boolean {
+internal fun MacrobenchmarkScope.tap(selector: BySelector, timeout: Long = 8_000): Boolean {
     repeat(3) {
         device.wait(Until.hasObject(selector), timeout)
         val clicked = runCatching { device.findObject(selector)?.also { it.click() } != null }.getOrDefault(false)
