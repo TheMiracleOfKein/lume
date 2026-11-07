@@ -53,6 +53,7 @@ private val LIBRARIES = listOf(
     OpenSourceLib("Kotlin, kotlinx.coroutines, kotlinx.serialization", APACHE, "https://github.com/JetBrains/kotlin"),
     OpenSourceLib("OkHttp (with DNS over HTTPS)", APACHE, "https://github.com/square/okhttp"),
     OpenSourceLib("Coil", APACHE, "https://github.com/coil-kt/coil"),
+    OpenSourceLib("Telephoto", APACHE, "https://github.com/saket/telephoto"),
     OpenSourceLib("jsoup", MIT, "https://github.com/jhy/jsoup"),
     OpenSourceLib("JSpecify", APACHE, "https://github.com/jspecify/jspecify"),
     OpenSourceLib("Material Symbols / Icons", APACHE, "https://github.com/google/material-design-icons"),
