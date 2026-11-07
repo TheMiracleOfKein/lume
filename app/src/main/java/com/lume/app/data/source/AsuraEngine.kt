@@ -120,7 +120,11 @@ class AsuraEngine(
 
     override suspend fun getTitle(id: String): TitleDetails {
         val slug = publicSlug(id)
-        val root = apiObject("$apiBase/series/$slug")
+        return parseDetails(apiBody("$apiBase/series/$slug"), slug)
+    }
+
+    internal fun parseDetails(body: String, slug: String): TitleDetails {
+        val root = parseObject(body)
         val series = root["series"].obj() ?: root["data"].obj() ?: root
         val genres = series["genres"].arr().orEmpty().mapNotNull { it.obj().str("name") ?: it.str() }
         return TitleDetails(
@@ -141,7 +145,11 @@ class AsuraEngine(
 
     override suspend fun getChapters(titleId: String): List<Chapter> {
         val slug = publicSlug(titleId)
-        val data = apiObject("$apiBase/series/$slug/chapters")["data"].arr().orEmpty()
+        return parseChapters(apiBody("$apiBase/series/$slug/chapters"), slug)
+    }
+
+    internal fun parseChapters(body: String, slug: String): List<Chapter> {
+        val data = parseObject(body)["data"].arr().orEmpty()
         return data.mapNotNull { el ->
             val item = el.obj() ?: return@mapNotNull null
             // Premium / early-access chapters return no pages until they become free.
@@ -169,7 +177,11 @@ class AsuraEngine(
         val number = chapter.number
             ?: chapter.id.substringAfterLast('/').ifBlank { null }
             ?: throw SourceFetchException("Asura: missing chapter number")
-        val root = apiObject("$apiBase/series/$slug/chapters/$number")
+        return parsePages(apiBody("$apiBase/series/$slug/chapters/$number"))
+    }
+
+    internal fun parsePages(body: String): List<ComicPage> {
+        val root = parseObject(body)
         val data = root["data"].obj() ?: root
         val chapterObj = data["chapter"].obj() ?: data
         val pages = chapterObj["pages"].arr().orEmpty().mapIndexedNotNull { index, el ->
@@ -194,7 +206,11 @@ class AsuraEngine(
     }
 
     private suspend fun fetchList(url: String, page: Int): PagedResult<TitleSummary> {
-        val root = apiObject(url)
+        return parseTitleList(apiBody(url), page)
+    }
+
+    internal fun parseTitleList(body: String, page: Int): PagedResult<TitleSummary> {
+        val root = parseObject(body)
         val items = root["data"].arr().orEmpty().mapNotNull { el ->
             val item = el.obj() ?: return@mapNotNull null
             val baseSlug = item.str("slug") ?: return@mapNotNull null
@@ -219,10 +235,12 @@ class AsuraEngine(
         return PagedResult(items = items, page = page, hasNext = hasNext && items.isNotEmpty())
     }
 
-    private suspend fun apiObject(url: String): JsonObject {
-        val response = http.get(URI(url), source = manifest, headers = apiHeaders(), checkCloudflare = false)
-        return json.parseToJsonElement(response.body).jsonObject
-    }
+    private suspend fun apiBody(url: String): String =
+        http.get(URI(url), source = manifest, headers = apiHeaders(), checkCloudflare = false).body
+
+    private suspend fun apiObject(url: String): JsonObject = parseObject(apiBody(url))
+
+    private fun parseObject(body: String): JsonObject = json.parseToJsonElement(body).jsonObject
 
     private fun pageQuery(page: Int) = "limit=$PAGE_SIZE&offset=${(page - 1).coerceAtLeast(0) * PAGE_SIZE}"
 
