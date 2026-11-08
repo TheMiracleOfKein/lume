@@ -37,7 +37,7 @@ Use the signed release APK, installed over the previous release, so the database
 - [ ] Copy a new chapter (CBZ) into the watched folder on the device, then tap "Scan now": a "1 new chapter" notification appears and the chapter lists in the title. Scanning again with no changes posts no notification.
 - [ ] Replace a chapter file with a different one of the same name: the next scan copies it again, with no "new chapter" notification.
 - [ ] Set the interval to 6 hours, then leave the app: the scan runs in the background (check with `adb shell dumpsys jobscheduler`).
-- [ ] Revoke access (remove the folder's permission in system settings, or delete and recreate the folder): the folder shows "Access lost" with "Reconnect"; picking it again clears the message and the next scan works.
+- [ ] Revoke access (remove the folder's permission in system settings, or delete and recreate the folder): the folder shows "Access to this folder was lost. Reconnect to scan it again." with "Reconnect"; picking it again clears the message and the next scan works.
 - [ ] Remove a watched folder: it disappears from the list; the chapters already copied stay in the library.
 
 ## Backups and trackers (v0.5)
