@@ -1,5 +1,11 @@
 package com.lume.app.ui.screens
 
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import com.lume.app.data.server.ServerAuth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
@@ -207,8 +213,20 @@ fun SourcesScreen(nav: NavHostController) {
         }
     }
 
+    // Android 17 times out connections to a home server until the user allows local network access.
+    val localNetworkPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        vm.saveServer()
+    }
     vm.serverDraft?.let { draft ->
-        ServerDialog(draft, onSave = vm::saveServer, onDismiss = vm::dismissServerDialog)
+        ServerDialog(
+            draft,
+            onSave = {
+                val needs = Build.VERSION.SDK_INT >= 37 && ServerAuth.isLocalNetwork(draft.url) &&
+                    ContextCompat.checkSelfPermission(context, LOCAL_NETWORK_PERMISSION) != PackageManager.PERMISSION_GRANTED
+                if (needs) localNetworkPermission.launch(LOCAL_NETWORK_PERMISSION) else vm.saveServer()
+            },
+            onDismiss = vm::dismissServerDialog,
+        )
     }
 
     settingsFor?.let { source ->
@@ -226,6 +244,7 @@ fun SourcesScreen(nav: NavHostController) {
 }
 
 private const val PINNED_GROUP = "pinned"
+private const val LOCAL_NETWORK_PERMISSION = "android.permission.ACCESS_LOCAL_NETWORK"
 
 /** The bookmark import: its stage and a progress bar while it runs, its summary once done. */
 @Composable
