@@ -1,0 +1,40 @@
+{
+  "metadata": { "title": "Home Library", "numberOfItems": 2 },
+  "links": [
+    { "rel": "self", "href": "/opds/v2/catalog", "type": "application/opds+json" },
+    { "rel": "next", "href": "/opds/v2/catalog?page=2", "type": "application/opds+json" },
+    { "rel": "search", "href": "/opds/v2/search{?query}", "type": "application/opds+json", "templated": true }
+  ],
+  "navigation": [
+    { "href": "/opds/v2/series", "title": "All series", "type": "application/opds+json", "rel": "current" }
+  ],
+  "publications": [
+    {
+      "metadata": {
+        "identifier": "urn:uuid:book-1",
+        "title": "Akira 01",
+        "author": [{ "name": "Katsuhiro Otomo" }],
+        "description": "<p>First volume.</p>",
+        "subject": ["Seinen"],
+        "modified": "2024-01-10T10:00:00Z"
+      },
+      "links": [
+        { "rel": "http://opds-spec.org/acquisition", "href": "/api/v1/books/1/file.cbz", "type": "application/vnd.comicbook+zip" },
+        { "rel": "http://vaemendis.net/opds-pse/stream", "href": "/api/v1/books/1/pages/{pageNumber}", "type": "image/jpeg", "templated": true, "properties": { "numberOfItems": 24 } }
+      ],
+      "images": [{ "href": "/api/v1/books/1/thumbnail", "type": "image/jpeg" }]
+    }
+  ],
+  "groups": [
+    {
+      "metadata": { "title": "Recently added" },
+      "publications": [
+        {
+          "metadata": { "identifier": "urn:uuid:book-2", "title": "Akira 02", "author": "Katsuhiro Otomo" },
+          "links": [{ "rel": "http://opds-spec.org/acquisition/open-access", "href": "https://cdn.example.com/akira02.pdf", "type": "application/pdf" }],
+          "images": []
+        }
+      ]
+    }
+  ]
+}

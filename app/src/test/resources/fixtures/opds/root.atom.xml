@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:opds="http://opds-spec.org/2010/catalog" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">
+  <id>urn:uuid:root</id>
+  <title>Home Library</title>
+  <updated>2024-05-01T10:00:00Z</updated>
+  <link rel="self" href="/opds/v1.2/catalog" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+  <link rel="start" href="/opds/v1.2/catalog" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+  <link rel="search" href="/opds/v1.2/opensearch.xml" type="application/opensearchdescription+xml"/>
+  <link rel="http://opds-spec.org/sort/new" href="/opds/v1.2/series?sort=new" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+  <entry>
+    <id>urn:uuid:all-series</id>
+    <title>All series</title>
+    <updated>2024-05-01T10:00:00Z</updated>
+    <content type="text">Every series in the library</content>
+    <link rel="subsection" href="/opds/v1.2/series" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+  </entry>
+  <entry>
+    <id>urn:uuid:libraries</id>
+    <title>Libraries</title>
+    <updated>2024-05-01T10:00:00Z</updated>
+    <link rel="subsection" href="/opds/v1.2/libraries" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+  </entry>
+</feed>
