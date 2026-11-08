@@ -220,7 +220,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.1: watched folders** ✅ released 2026-11-08 ([notes](releases/v0.9.1.md), [device check](releases/v0.9.1-check.md)): folders that Lume re-scans for new and changed chapters.
 
-**v0.9.2: self-hosted servers** ([notes](releases/v0.9.2.md), [device check](releases/v0.9.2-check.md)): OPDS catalogues, Komga and Kavita as sources you add yourself.
+**v0.9.2: self-hosted servers** ✅ released 2026-11-08 ([notes](releases/v0.9.2.md), [device check](releases/v0.9.2-check.md)): OPDS catalogues, Komga and Kavita as sources you add yourself.
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -766,7 +766,7 @@ Release notes: [docs/releases/v0.9.1.md](releases/v0.9.1.md); device check in [v
 - ⏸️ Not tried on the device: the 12→13 upgrade (covered by `MigrationTest` in CI), revoking access and "Reconnect", and a scan running in the background on its schedule.
 - ⏸️ Left for later: a watched folder doesn't ask for the notification permission by itself (only the update switch does), so on a new install the "new chapters" notice can stay silent.
 
-### v0.9.2: self-hosted servers
+### v0.9.2: self-hosted servers ✅ released 2026-11-08
 
 Release notes: [docs/releases/v0.9.2.md](releases/v0.9.2.md); device check in [v0.9.2-check.md](releases/v0.9.2-check.md).
 
