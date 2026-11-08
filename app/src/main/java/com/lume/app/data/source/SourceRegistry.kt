@@ -7,6 +7,9 @@ import com.lume.app.data.db.SourcePackEntity
 import com.lume.app.data.network.AppHttp
 import com.lume.app.data.network.ImageReferers
 import com.lume.app.data.prefs.AppPreferences
+import com.lume.app.data.server.ServerAuth
+import com.lume.app.data.server.ServerCredentialStore
+import com.lume.app.data.server.ServerCredentials
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
@@ -37,6 +40,7 @@ class SourceRegistry(
     private val dao: LibraryDao,
     private val libAuth: LibAuthStore? = null,
     private val referers: ImageReferers? = null,
+    private val credentials: ServerCredentialStore? = null,
     private val json: Json = Json { ignoreUnknownKeys = true; isLenient = true },
 ) {
     private val bundledIds = mutableSetOf<String>()
@@ -74,6 +78,7 @@ class SourceRegistry(
                 upsert(loaded, createEngine(manifest))
             }
             bundledIds += "local"
+            runCatching { credentials?.load() }
             for (pack in dao.allSourcePacks()) {
                 runCatching {
                     val manifest = json.decodeFromString(SourceManifest.serializer(), pack.json)
@@ -144,6 +149,49 @@ class SourceRegistry(
         return manifest
     }
 
+    /**
+     * Adds a self-hosted server as a source `server-<uuid>`. It is stored like a pack, with its
+     * sign-in in the credential store, never in the manifest.
+     */
+    suspend fun addServer(engine: String, name: String, url: String, sign: ServerCredentials): SourceManifest {
+        require(SourceEngines.isServer(engine)) { "Not a server engine: $engine" }
+        val baseUrl = ServerAuth.normalizeUrl(url) ?: error(context.getString(R.string.server_error_url))
+        val manifest = ServerAuth.manifest(ServerAuth.newId(), engine, name, baseUrl)
+        credentials?.put(manifest.id, sign)
+        saveServerManifest(manifest)
+        val next = _sources.value.toMutableList()
+        upsert(next, createEngine(manifest))
+        _sources.value = next
+        return manifest
+    }
+
+    /** Changes the name, address or sign-in of a server. A blank sign-in keeps the stored one. */
+    suspend fun updateServer(id: String, name: String, url: String, sign: ServerCredentials?) {
+        val old = baseManifests[id]?.takeIf { ServerAuth.isServerId(id) && SourceEngines.isServer(it.engine) }
+            ?: error("Unknown server: $id")
+        val baseUrl = ServerAuth.normalizeUrl(url) ?: error(context.getString(R.string.server_error_url))
+        if (baseUrl != old.baseUrl) http.servers.unregister(old.baseUrl)
+        val manifest = ServerAuth.manifest(id, old.engine, name, baseUrl).copy(engineConfig = old.engineConfig)
+        if (sign != null) credentials?.put(id, sign)
+        saveServerManifest(manifest)
+        val next = _sources.value.toMutableList()
+        upsert(next, createEngine(manifest))
+        _sources.value = next
+    }
+
+    /** The stored sign-in of a server (for the edit dialog), or null. */
+    fun serverCredentials(id: String): ServerCredentials? = credentials?.get(id)
+
+    /** The base manifest of a user-added server, or null for any other source. */
+    fun serverManifest(id: String): SourceManifest? =
+        baseManifests[id]?.takeIf { ServerAuth.isServerId(id) && SourceEngines.isServer(it.engine) }
+
+    private suspend fun saveServerManifest(manifest: SourceManifest) {
+        dao.upsertSourcePack(
+            SourcePackEntity(id = manifest.id, json = json.encodeToString(SourceManifest.serializer(), manifest)),
+        )
+    }
+
     suspend fun importUrl(url: String): SourceManifest {
         val response = http.get(URI(url), checkCloudflare = false)
         return importJson(response.body)
@@ -190,7 +238,10 @@ class SourceRegistry(
     suspend fun remove(id: String) {
         if (id in bundledIds) return
         dao.deleteSourcePack(id)
-        baseManifests.remove(id)
+        baseManifests.remove(id)?.takeIf { SourceEngines.isServer(it.engine) }?.let { server ->
+            http.servers.unregister(server.baseUrl)
+            credentials?.remove(id)
+        }
         _sources.value = _sources.value.filterNot { it.manifest.id == id }
         val active = prefs.activeSourceId.first()
         if (active == id && _sources.value.isNotEmpty()) {
@@ -218,13 +269,18 @@ class SourceRegistry(
             val host = runCatching { URI(manifest.configString("apiBase") ?: manifest.baseUrl).host }.getOrNull()
             if (host != null) http.setRateLimit(host, perSecond)
         }
-        val engine = buildEngine(manifest)
+        val sign = if (SourceEngines.isServer(manifest.engine)) credentials?.get(manifest.id) else null
+        if (SourceEngines.isServer(manifest.engine)) {
+            // The host may now be reached over http and gets the sign-in headers.
+            http.servers.register(manifest.baseUrl, ServerAuth.access(manifest.engine, sign))
+        }
+        val engine = buildEngine(manifest, sign)
         val tracked = if (referers != null) ImageHostTrackingSource(engine, referers) else engine
         return DispatchingSource(tracked, health)
     }
 
-    private fun buildEngine(manifest: SourceManifest): CatalogSource =
-        if (manifest.engine == SourceEngines.LOCAL) LocalEngine(context) else SourceEngines.create(manifest, http, libAuth)
+    private fun buildEngine(manifest: SourceManifest, sign: ServerCredentials?): CatalogSource =
+        if (manifest.engine == SourceEngines.LOCAL) LocalEngine(context) else SourceEngines.create(manifest, http, libAuth, sign, context.cacheDir)
 }
 
 /**

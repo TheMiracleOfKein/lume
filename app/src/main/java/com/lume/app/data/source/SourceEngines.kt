@@ -3,6 +3,7 @@ package com.lume.app.data.source
 import android.content.Context
 import com.lume.app.R
 import com.lume.app.data.network.AppHttp
+import com.lume.app.data.server.ServerCredentials
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.SourceManifest
 
@@ -23,6 +24,12 @@ object SourceEngines {
     const val WEEBCENTRAL = "weebcentral"
     const val DEMONIC = "demonic"
     const val LOCAL = "local"
+    const val OPDS = "opds"
+    const val KOMGA = "komga"
+    const val KAVITA = "kavita"
+
+    /** Self-hosted servers: created by the user in Sources, never bundled and never imported as a pack. */
+    val serverEngines: Set<String> = setOf(OPDS, KOMGA, KAVITA)
 
     /** Product core: stable platforms we intend to maintain. */
     val corePlatform: Set<String> = setOf(
@@ -46,7 +53,9 @@ object SourceEngines {
     /** Compiled one-site adapters; bundled only if present in assets. */
     val siteOnly: Set<String> = setOf(WEEBCENTRAL, DEMONIC)
 
-    fun isKnown(engine: String): Boolean = engine in corePlatform || engine in siteOnly
+    fun isKnown(engine: String): Boolean = engine in corePlatform || engine in siteOnly || engine in serverEngines
+
+    fun isServer(engine: String): Boolean = engine in serverEngines
 
     fun isPackImportable(engine: String): Boolean = engine in packImportable
 
@@ -62,6 +71,9 @@ object SourceEngines {
         WEEBCENTRAL -> "Weeb Central"
         DEMONIC -> "Demonic Scans"
         LOCAL -> "Local"
+        OPDS -> "OPDS"
+        KOMGA -> "Komga"
+        KAVITA -> "Kavita"
         else -> engine
     }
 
@@ -69,6 +81,7 @@ object SourceEngines {
     fun kindLabel(context: Context, engine: String): String = when (engine) {
         in packImportable -> context.getString(R.string.engine_kind_family)
         LOCAL -> context.getString(R.string.engine_kind_local)
+        in serverEngines -> context.getString(R.string.engine_kind_server)
         in siteOnly -> context.getString(R.string.engine_kind_site)
         else -> context.getString(R.string.engine_kind_platform)
     }
@@ -77,8 +90,17 @@ object SourceEngines {
         context.getString(R.string.import_reject_engine, engine)
 
     /** Build a network engine for [manifest]. [LOCAL] needs a Context and is created by the registry. */
-    fun create(manifest: SourceManifest, http: AppHttp, libAuth: LibAuthStore? = null): CatalogSource =
+    fun create(
+        manifest: SourceManifest,
+        http: AppHttp,
+        libAuth: LibAuthStore? = null,
+        serverCredentials: ServerCredentials? = null,
+        cacheDir: java.io.File? = null,
+    ): CatalogSource =
         when (manifest.engine) {
+            OPDS -> OpdsEngine(manifest, http, serverCredentials, cacheDir)
+            KOMGA -> KomgaEngine(manifest, http)
+            KAVITA -> KavitaEngine(manifest, http, serverCredentials)
             MADARA -> MadaraEngine(manifest, http)
             LIBSOCIAL -> LibSocialEngine(manifest, http, libAuth)
             MANGADEX -> MangaDexEngine(manifest, http)

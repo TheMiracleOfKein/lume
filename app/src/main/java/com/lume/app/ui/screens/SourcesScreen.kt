@@ -72,6 +72,11 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import android.text.format.DateUtils
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import com.lume.app.data.source.SourceProblem
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -170,6 +175,8 @@ fun SourcesScreen(nav: NavHostController) {
                         disabled = id in disabled,
                         pinned = id in pinned,
                         removable = vm.isRemovable(id),
+                        isServer = vm.isServer(id),
+                        onEditServer = { vm.startEditServer(id) },
                         loggedIn = token != null,
                         showLogin = isLib,
                         hasSettings = source.settings().isNotEmpty(),
@@ -198,6 +205,10 @@ fun SourcesScreen(nav: NavHostController) {
                 )
             }
         }
+    }
+
+    vm.serverDraft?.let { draft ->
+        ServerDialog(draft, onSave = vm::saveServer, onDismiss = vm::dismissServerDialog)
     }
 
     settingsFor?.let { source ->
@@ -339,7 +350,125 @@ private fun ImportSection(vm: SourcesViewModel) {
                 else stringResource(R.string.sources_import_by_url),
             )
         }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = vm::startAddServer, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.server_add), color = AppColors.textPrimary)
+        }
+        Text(
+            text = stringResource(R.string.server_add_hint),
+            color = AppColors.textTertiary,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(top = 4.dp),
+        )
     }
+}
+
+/** A single-line text field in the style of the screen; [secret] hides the characters. */
+@Composable
+private fun ServerTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    secret: Boolean = false,
+    placeholder: String? = null,
+    keyboardType: KeyboardType = KeyboardType.Text,
+) {
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true,
+        placeholder = placeholder?.let { { Text(it, color = AppColors.textTertiary) } },
+        visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = if (secret) KeyboardType.Password else keyboardType,
+            autoCorrectEnabled = false,
+            capitalization = KeyboardCapitalization.None,
+        ),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = AppColors.search,
+            unfocusedContainerColor = AppColors.search,
+            focusedTextColor = AppColors.textPrimary,
+            unfocusedTextColor = AppColors.textPrimary,
+            cursorColor = AppColors.accent,
+            focusedIndicatorColor = AppColors.accent,
+            unfocusedIndicatorColor = AppColors.divider,
+        ),
+    )
+}
+
+/** Adds or edits a self-hosted server: type, address and sign-in. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ServerDialog(draft: SourcesViewModel.ServerDraft, onSave: () -> Unit, onDismiss: () -> Unit) {
+    val editing = draft.editId != null
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(if (editing) R.string.server_edit_title else R.string.server_add)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                if (!editing) {
+                    Text(stringResource(R.string.server_type), color = AppColors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(bottom = 6.dp))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        SourceEngines.serverEngines.forEach { engine ->
+                            ChoiceChip(
+                                label = SourceEngines.displayName(engine),
+                                selected = draft.engine == engine,
+                                onClick = { draft.engine = engine },
+                            )
+                        }
+                    }
+                }
+                Text(stringResource(R.string.server_name), color = AppColors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
+                ServerTextField(draft.name, { draft.name = it }, placeholder = stringResource(R.string.server_name_hint))
+                Text(stringResource(R.string.server_url), color = AppColors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
+                ServerTextField(draft.url, { draft.url = it }, placeholder = "https://komga.example.com", keyboardType = KeyboardType.Uri)
+                if (draft.isPlainHttp) {
+                    Text(
+                        stringResource(R.string.server_http_warning),
+                        color = AppColors.danger,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
+                Text(stringResource(R.string.server_signin), color = AppColors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ChoiceChip(
+                        label = stringResource(R.string.server_signin_password),
+                        selected = !draft.useApiKey,
+                        onClick = { draft.useApiKey = false },
+                    )
+                    ChoiceChip(
+                        label = stringResource(R.string.server_signin_apikey),
+                        selected = draft.useApiKey,
+                        onClick = { draft.useApiKey = true },
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                if (draft.useApiKey) {
+                    ServerTextField(draft.apiKey, { draft.apiKey = it }, secret = true, placeholder = stringResource(R.string.server_apikey))
+                } else {
+                    ServerTextField(draft.username, { draft.username = it }, placeholder = stringResource(R.string.server_username))
+                    Spacer(Modifier.height(6.dp))
+                    ServerTextField(draft.password, { draft.password = it }, secret = true, placeholder = stringResource(R.string.server_password))
+                }
+                Text(
+                    stringResource(if (editing) R.string.server_signin_keep else R.string.server_signin_optional),
+                    color = AppColors.textTertiary,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+                draft.error?.let {
+                    Text(it, color = AppColors.danger, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onSave, enabled = !draft.saving) { Text(stringResource(R.string.action_save)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
 }
 
 @Composable
@@ -461,6 +590,8 @@ private fun SourceRow(
     disabled: Boolean,
     pinned: Boolean,
     removable: Boolean,
+    isServer: Boolean,
+    onEditServer: () -> Unit,
     loggedIn: Boolean,
     showLogin: Boolean,
     hasSettings: Boolean,
@@ -581,6 +712,9 @@ private fun SourceRow(
                     action()
                 }
                 DropdownMenuItem(text = { Text(stringResource(R.string.source_action_browse)) }, onClick = { pick(onBrowse) })
+                if (isServer) {
+                    DropdownMenuItem(text = { Text(stringResource(R.string.server_action_edit)) }, onClick = { pick(onEditServer) })
+                }
                 if (hasSettings) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.source_action_settings)) }, onClick = { pick(onSettings) })
                 }
@@ -628,6 +762,7 @@ private fun SourceSettingsDialog(
         is SourceSetting.Toggle -> setting.default.toString()
         is SourceSetting.Choice -> setting.default
         is SourceSetting.MultiChoice -> setting.default.joinToString(",")
+        is SourceSetting.Text -> setting.default
     }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -651,6 +786,14 @@ private fun SourceSettingsDialog(
                                     })
                                 }
                             }
+                        }
+                        is SourceSetting.Text -> {
+                            Text(setting.title, color = AppColors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp, bottom = 6.dp))
+                            ServerTextField(
+                                value = valueOf(setting),
+                                onValueChange = { values = values + (setting.key to it) },
+                                secret = setting.secret,
+                            )
                         }
                         is SourceSetting.MultiChoice -> {
                             Text(
