@@ -33,6 +33,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.lume.app.R
+import com.lume.app.domain.pageData
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.page.PageFit
 import com.lume.app.domain.page.PageRect
@@ -44,7 +45,6 @@ import me.saket.telephoto.zoomable.ZoomableState
 import me.saket.telephoto.zoomable.coil3.ZoomableAsyncImage
 import me.saket.telephoto.zoomable.rememberZoomableImageState
 import me.saket.telephoto.zoomable.zoomable
-import java.io.File
 import kotlin.math.roundToInt
 
 // Pages in the paged modes: subsampled decoding and sharp zoom (Telephoto), a region of the page
@@ -77,7 +77,7 @@ private fun rememberPageRequest(page: ComicPage, onAspect: (Float) -> Unit): Pai
     val aspectCallback by rememberUpdatedState(onAspect)
     val request = remember(page.imageUrl, load.attempt) {
         ImageRequest.Builder(context)
-            .data(if (page.imageUrl.startsWith("http")) page.imageUrl else File(page.imageUrl))
+            .data(pageData(page.imageUrl))
             .crossfade(false)
             // A different key makes Coil treat a retry as a new request.
             .apply { if (load.attempt > 0) memoryCacheKeyExtra("attempt", load.attempt.toString()) }

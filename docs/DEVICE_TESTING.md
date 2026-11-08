@@ -28,6 +28,11 @@ Use the signed release APK, installed over the previous release, so the database
 - [ ] Download to an SD card.
 - [ ] Download new chapters automatically; delete after reading.
 - [ ] Import a folder with `ComicInfo.xml` and a cover.
+- [ ] Import a series folder with a `.cbr` (RAR 4) chapter: the chapter lists, the pages open in order, the cover shows, and `ComicInfo.xml` inside fills in the title details.
+- [ ] Same with a `.cb7` chapter, including a solid 7z archive of 100+ pages (opens in a few seconds, no out-of-memory).
+- [ ] Import a `.pdf` chapter: pages render sharp in paged and webtoon modes, the cover is its first page, zoom stays sharp, and a 200-page PDF scrolls without stutter or a crash.
+- [ ] A password-protected PDF and a RAR5 `.cbr`: the reader shows a clear message ("can't be opened" / "Repack it as CBZ"), no crash. Note whether the RAR5 file opens (junrar 8 reads many RAR5 files).
+- [ ] Release build (R8): CBR, CB7 and PDF chapters open as in the debug build.
 
 ## Backups and trackers (v0.5)
 

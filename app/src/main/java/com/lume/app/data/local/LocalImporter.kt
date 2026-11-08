@@ -3,6 +3,7 @@ package com.lume.app.data.local
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
+import com.lume.app.data.local.archive.ArchiveReaders
 import com.lume.app.domain.ImageBytes
 import com.lume.app.domain.NaturalOrder
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +20,7 @@ data class LocalImportResult(val titles: Int, val chapters: Int, val skipped: In
  * (`filesDir/local/<Series>/<Chapter>/…`), where [com.lume.app.data.source.LocalEngine] reads it.
  *
  * The picked folder may be
- * - a library: one folder per series, each with chapter folders or `.cbz` / `.zip` files;
+ * - a library: one folder per series, each with chapter folders or `.cbz` / `.cbr` / `.cb7` / `.zip` / `.rar` / `.7z` / `.pdf` files;
  * - one series: chapter folders or archives directly inside;
  * - one chapter: images directly inside (the series is named after the folder).
  *
@@ -64,13 +65,13 @@ class LocalImporter(private val context: Context) {
     private enum class Layout { Library, Series, Chapter, Empty }
 
     private fun layoutOf(tree: Uri, children: List<Doc>): Layout {
-        if (children.any { !it.isDir && isArchive(it.name) }) return Layout.Series
+        if (children.any { !it.isDir && ArchiveReaders.isChapterFile(it.name) }) return Layout.Series
         if (children.any { !it.isDir && ImageBytes.isImageName(it.name) } && children.none { it.isDir }) return Layout.Chapter
         val dirs = children.filter { it.isDir }
         if (dirs.isEmpty()) return Layout.Empty
         // Series folders hold chapter folders or archives; chapter folders hold images.
         val sample = list(tree, dirs.first().id)
-        val looksLikeChapter = sample.any { !it.isDir && ImageBytes.isImageName(it.name) } && sample.none { it.isDir || isArchive(it.name) }
+        val looksLikeChapter = sample.any { !it.isDir && ImageBytes.isImageName(it.name) } && sample.none { it.isDir || ArchiveReaders.isChapterFile(it.name) }
         return if (looksLikeChapter) Layout.Series else Layout.Library
     }
 
@@ -82,7 +83,7 @@ class LocalImporter(private val context: Context) {
             coroutineContext.ensureActive()
             when {
                 child.isDir -> if (copyImages(tree, list(tree, child.id), File(dest, safeName(child.name))) > 0) chapters++
-                isArchive(child.name) -> {
+                ArchiveReaders.isChapterFile(child.name) -> {
                     copyFile(tree, child.id, File(dest, safeName(child.name)))
                     chapters++
                 }
@@ -142,8 +143,6 @@ class LocalImporter(private val context: Context) {
             if (c.moveToFirst()) c.getString(0) else null
         }
     }
-
-    private fun isArchive(name: String) = name.lowercase().let { it.endsWith(".cbz") || it.endsWith(".zip") }
 
     private fun isSeriesExtra(name: String): Boolean {
         val lower = name.lowercase()

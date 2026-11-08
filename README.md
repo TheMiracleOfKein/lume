@@ -67,7 +67,7 @@ apksigner verify --print-certs lume-vX.Y.Z.apk
 - Background downloads with a notification; pause, reorder, retry.
 - Save chapters as CBZ, on internal storage or an SD card.
 - Download new chapters automatically; delete chapters after reading.
-- Import comics from a folder on your phone (with `ComicInfo.xml` and covers).
+- Import comics from a folder on your phone: CBZ, CBR, CB7, PDF or image folders (with `ComicInfo.xml` and covers).
 
 **Trackers**
 - AniList, Shikimori, MyAnimeList, Kitsu and MangaUpdates.

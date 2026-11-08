@@ -10,13 +10,13 @@ import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.size.Scale
 import coil3.toBitmap
+import com.lume.app.domain.pageData
 import com.lume.app.domain.page.LumaGrid
 import com.lume.app.domain.page.PageAnalysis
 import com.lume.app.domain.page.PageRect
 import com.lume.app.domain.page.PanelOrder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /** What [PageAnalysis] found on one page. */
 data class PageLayout(
@@ -63,7 +63,7 @@ class PageAnalyzer(
 
     private suspend fun load(imageUrl: String): Bitmap? {
         val request = ImageRequest.Builder(context)
-            .data(if (imageUrl.startsWith("http")) imageUrl else File(imageUrl))
+            .data(pageData(imageUrl))
             // Fit inside GRID_PX wide; tall strips get up to 8x that in height so their bands survive.
             .size(GRID_PX, GRID_PX * 8)
             .scale(Scale.FIT)

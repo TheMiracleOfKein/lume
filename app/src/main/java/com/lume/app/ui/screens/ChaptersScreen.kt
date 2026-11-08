@@ -92,6 +92,7 @@ import androidx.navigation.NavHostController
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.db.DownloadQueueEntity
+import com.lume.app.data.downloads.DownloadQueue
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ChapterBranch
 import com.lume.app.domain.ChapterFilter
@@ -123,6 +124,7 @@ fun ChaptersScreen(
 ) {
     val container = LocalAppContainer.current
     val vm: ChaptersViewModel = viewModel { ChaptersViewModel(container, sourceId, titleId) }
+    val canDownload = DownloadQueue.canDownload(sourceId)
     val chapters = vm.chapters
     val readIds by vm.readIds.collectAsState()
     val downloadedIds by vm.downloadedIds.collectAsState()
@@ -185,7 +187,7 @@ fun ChaptersScreen(
                             Icon(Icons.Outlined.SelectAll, stringResource(R.string.cd_select_all), tint = AppColors.textPrimary)
                         }
                     } else {
-                        Box {
+                        if (canDownload) Box {
                             IconButton(onClick = { downloadMenu = true }) {
                                 Icon(Icons.Outlined.Download, stringResource(R.string.cd_download_menu), tint = AppColors.textPrimary)
                             }
@@ -246,6 +248,7 @@ fun ChaptersScreen(
                     onRead = { vm.markSelected(read = true) },
                     onUnread = { vm.markSelected(read = false) },
                     onPreviousRead = vm::markPreviousRead,
+                    canDownload = canDownload,
                     onDownload = vm::downloadSelected,
                     onDelete = vm::deleteSelectedDownloads,
                 )
@@ -314,6 +317,7 @@ fun ChaptersScreen(
                                 if (vm.selecting) vm.toggle(chapter) else nav.openReader(sourceId, titleId, chapter.id)
                             },
                             onLongClick = { if (vm.selecting) vm.selectRange(chapter, displayed) else vm.toggle(chapter) },
+                            canDownload = canDownload,
                             onDownload = { vm.enqueue(listOf(chapter)) },
                             onCancel = { vm.cancelDownload(chapter.id) },
                             modifier = fadingItem(),
@@ -411,6 +415,7 @@ private fun ChapterRow(
     selecting: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    canDownload: Boolean = true,
     onDownload: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
@@ -492,7 +497,7 @@ private fun ChapterRow(
                     tint = AppColors.accentText,
                     modifier = Modifier.size(24.dp),
                 )
-                !selecting -> IconButton(onClick = onDownload) {
+                !selecting && canDownload -> IconButton(onClick = onDownload) {
                     Icon(Icons.Outlined.Download, stringResource(R.string.action_download), tint = AppColors.textSecondary)
                 }
             }
@@ -506,6 +511,7 @@ private fun ChapterSelectionBar(
     onRead: () -> Unit,
     onUnread: () -> Unit,
     onPreviousRead: () -> Unit,
+    canDownload: Boolean = true,
     onDownload: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -524,7 +530,7 @@ private fun ChapterSelectionBar(
         BarAction(Icons.Outlined.DoneAll, stringResource(R.string.action_mark_read), onRead)
         BarAction(Icons.Outlined.RemoveDone, stringResource(R.string.action_mark_unread), onUnread)
         if (single) BarAction(Icons.Outlined.VerticalAlignBottom, stringResource(R.string.action_mark_previous_read), onPreviousRead)
-        BarAction(Icons.Outlined.Download, stringResource(R.string.action_download), onDownload)
+        if (canDownload) BarAction(Icons.Outlined.Download, stringResource(R.string.action_download), onDownload)
         BarAction(Icons.Outlined.Delete, stringResource(R.string.cd_delete_download), onDelete, AppColors.danger)
     }
 }

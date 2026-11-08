@@ -264,6 +264,10 @@
     <string name="error_pages_failed">Could not load chapter pages</string>
     <string name="error_pages_failed_named">Could not load chapter pages (%s)</string>
     <string name="error_local_title_missing">Local title not found: %s</string>
+    <string name="error_rar5_unsupported">This RAR5 archive isn\'t supported. Repack it as CBZ.</string>
+    <string name="error_archive_damaged">This archive is damaged or in an unsupported format. Try repacking it as CBZ.</string>
+    <string name="error_archive_unsupported">This file isn\'t a supported archive (CBZ, CBR, CB7).</string>
+    <string name="error_pdf_unreadable">This PDF can\'t be opened. It may be protected by a password or damaged.</string>
     <string name="local_files_description">Local files: %s</string>
     <string name="error_backup_read">Could not read backup file</string>
     <string name="error_madara_ajax_empty">Empty Madara AJAX response</string>
@@ -589,7 +593,7 @@
     <string name="local_importing">Importing…</string>
     <string name="local_open_library">Open local titles</string>
     <string name="local_clean_temp">Clean temporary files</string>
-    <string name="local_folder_hint">Imported titles are copied to %1$s. A folder may hold one series per subfolder, chapter folders, or .cbz / .zip files; cover.jpg, ComicInfo.xml and details.json are read too.</string>
+    <string name="local_folder_hint">Imported titles are copied to %1$s. A folder may hold one series per subfolder, chapter folders, or .cbz, .cbr, .cb7, .zip, .rar, .7z and .pdf files; cover.jpg, ComicInfo.xml and details.json are read too.</string>
     <string name="local_import_done">Imported. Titles: %1$d · chapters: %2$d</string>
     <string name="local_import_empty">No chapters found in that folder</string>
     <string name="local_import_failed">Import failed: %1$s</string>
@@ -829,7 +833,7 @@
     <string name="settings_kw_library_rules">update check, skip, battery, data, charger, completed, unread</string>
     <string name="settings_kw_find_sources">also on, link, merge, other sources</string>
     <string name="settings_kw_categories">folders, tabs, default category</string>
-    <string name="settings_kw_local">import, folder, cbz, zip, files</string>
+    <string name="settings_kw_local">import, folder, cbz, cbr, cb7, pdf, zip, files</string>
     <string name="settings_kw_auto_download">new chapters, automatic, subscribe, subscriptions</string>
     <string name="settings_kw_delete_read">free space, remove, finished</string>
     <string name="settings_kw_cbz">archive, zip, comicinfo</string>

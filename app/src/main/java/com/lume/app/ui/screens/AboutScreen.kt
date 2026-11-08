@@ -47,6 +47,8 @@ private data class OpenSourceLib(val name: String, val license: String, val url:
 
 private const val APACHE = "Apache License 2.0"
 private const val MIT = "MIT License"
+private const val ZERO_BSD = "BSD Zero Clause License"
+private const val UNRAR = "UnRAR license"
 
 private val LIBRARIES = listOf(
     OpenSourceLib("AndroidX (Compose, Navigation, Room, WorkManager, DataStore, Biometric …)", APACHE, "https://developer.android.com/jetpack/androidx"),
@@ -56,6 +58,9 @@ private val LIBRARIES = listOf(
     OpenSourceLib("Telephoto", APACHE, "https://github.com/saket/telephoto"),
     OpenSourceLib("jsoup", MIT, "https://github.com/jhy/jsoup"),
     OpenSourceLib("JSpecify", APACHE, "https://github.com/jspecify/jspecify"),
+    OpenSourceLib("Junrar (CBR files)", UNRAR, "https://github.com/junrar/junrar"),
+    OpenSourceLib("Apache Commons Compress (CB7 files)", APACHE, "https://commons.apache.org/proper/commons-compress/"),
+    OpenSourceLib("XZ for Java", ZERO_BSD, "https://tukaani.org/xz/java.html"),
     OpenSourceLib("Material Symbols / Icons", APACHE, "https://github.com/google/material-design-icons"),
 )
 

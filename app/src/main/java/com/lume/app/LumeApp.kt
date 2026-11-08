@@ -8,6 +8,8 @@ import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import com.lume.app.data.local.pdf.PdfPageFetcher
+import com.lume.app.data.local.pdf.PdfPageKeyer
 import coil3.request.crossfade
 import okhttp3.OkHttpClient
 import okio.Path.Companion.toOkioPath
@@ -45,7 +47,11 @@ class LumeApp : Application(), SingletonImageLoader.Factory {
             .build()
         val app: Context = this
         return ImageLoader.Builder(app)
-            .components { add(OkHttpNetworkFetcherFactory(callFactory = { client })) }
+            .components {
+                add(PdfPageKeyer())
+                add(PdfPageFetcher.Factory())
+                add(OkHttpNetworkFetcherFactory(callFactory = { client }))
+            }
             .crossfade(true)
             .memoryCache { MemoryCache.Builder().maxSizePercent(app, 0.25).build() }
             .diskCache {

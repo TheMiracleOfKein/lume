@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import com.lume.app.LocalAppContainer
+import com.lume.app.domain.pageData
 import com.lume.app.domain.page.PageFit
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,7 +53,6 @@ import com.lume.app.R
 import com.lume.app.data.db.PageBookmarkEntity
 import com.lume.app.ui.theme.AppColors
 import kotlinx.coroutines.flow.first
-import java.io.File
 
 /**
  * The bookmarked spot: the panel (or webtoon band) it is in, found on the page; else a slice of
@@ -92,7 +92,7 @@ fun PageSpotImage(
     val pageLayout = layout
     val panel = pageLayout?.spotPanel(offset)
     BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
-        val model = url?.takeIf { it.isNotBlank() }?.let { if (it.startsWith("http")) it else File(it) }
+        val model = url?.takeIf { it.isNotBlank() }?.let { pageData(it) }
         val density = LocalDensity.current
         val placement = if (panel != null && pageLayout != null) {
             with(density) { PageFit.placeRegion(maxWidth.toPx(), maxHeight.toPx(), pageLayout.aspect, panel, fill = true) }
