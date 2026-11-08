@@ -209,6 +209,12 @@
     <string name="server_error_kavita_signin">Для Kavita нужен вход: имя и пароль или ключ API.</string>
     <string name="server_error_no_signin">%1$s требует входа. Измените сервер и добавьте данные для входа.</string>
     <string name="server_error_opds_no_search">Этот каталог не поддерживает поиск.</string>
+    <string name="server_error_signin_rejected">%1$s отклонил вход. Проверьте имя и пароль (или ключ API) и измените сервер.</string>
+    <string name="server_error_timeout">%1$s не ответил вовремя. Проверьте адрес и что сервер запущен и доступен с этого устройства.</string>
+    <string name="server_error_unknown_host">Не удалось найти %1$s. Проверьте адрес.</string>
+    <string name="server_error_unreachable">Не удалось подключиться к %1$s. Проверьте адрес и порт и что сервер запущен.</string>
+    <string name="server_error_tls">Не удалось установить защищённое соединение с %1$s. Проверьте сертификат или используйте http:// для домашнего сервера.</string>
+    <string name="server_error_connection">Соединение с %1$s не удалось. Попробуйте ещё раз.</string>
     <string name="server_setting_library_id">Только эта библиотека (id, необязательно)</string>
     <string name="server_books_count">Книг: %1$d</string>
     <string name="filter_read_status">Чтение</string>

@@ -218,6 +218,12 @@
     <string name="server_error_kavita_signin">Kavita needs a sign-in: a user name and password, or an API key.</string>
     <string name="server_error_no_signin">%1$s needs a sign-in. Edit the server and add it.</string>
     <string name="server_error_opds_no_search">This catalogue does not offer search.</string>
+    <string name="server_error_signin_rejected">%1$s rejected the sign-in. Check the user name and password (or API key) and edit the server.</string>
+    <string name="server_error_timeout">%1$s did not answer in time. Check the address and that the server is running and reachable from this device.</string>
+    <string name="server_error_unknown_host">Could not find %1$s. Check the address.</string>
+    <string name="server_error_unreachable">Could not connect to %1$s. Check the address and port, and that the server is running.</string>
+    <string name="server_error_tls">Could not make a secure connection to %1$s. Check the certificate or use http:// for a home server.</string>
+    <string name="server_error_connection">The connection to %1$s failed. Try again.</string>
     <string name="server_setting_library_id">Only this library (id, optional)</string>
     <string name="server_books_count">%1$d books</string>
     <string name="filter_read_status">Reading</string>

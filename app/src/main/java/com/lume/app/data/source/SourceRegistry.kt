@@ -171,8 +171,12 @@ class SourceRegistry(
             ?: error("Unknown server: $id")
         val baseUrl = ServerAuth.normalizeUrl(url) ?: error(context.getString(R.string.server_error_url))
         if (baseUrl != old.baseUrl) http.servers.unregister(old.baseUrl)
+        // A session cookie from the old sign-in or address must not outlive the edit.
+        http.forgetCookies(old.baseUrl)
+        http.forgetCookies(baseUrl)
         val manifest = ServerAuth.manifest(id, old.engine, name, baseUrl).copy(engineConfig = old.engineConfig)
-        if (sign != null) credentials?.put(id, sign)
+        // Typing only the user name keeps the saved password; the sign-in follows the new address.
+        ServerAuth.mergeCredentials(sign, credentials?.get(id))?.let { credentials?.put(id, it) }
         saveServerManifest(manifest)
         val next = _sources.value.toMutableList()
         upsert(next, createEngine(manifest))
@@ -240,6 +244,7 @@ class SourceRegistry(
         dao.deleteSourcePack(id)
         baseManifests.remove(id)?.takeIf { SourceEngines.isServer(it.engine) }?.let { server ->
             http.servers.unregister(server.baseUrl)
+            http.forgetCookies(server.baseUrl)
             credentials?.remove(id)
         }
         _sources.value = _sources.value.filterNot { it.manifest.id == id }

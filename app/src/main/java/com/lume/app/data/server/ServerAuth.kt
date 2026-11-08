@@ -27,6 +27,38 @@ object ServerAuth {
         return url.toString().trimEnd('/')
     }
 
+    /**
+     * Whether [input] points into the local network (private or link-local address, `.local`,
+     * a bare host name, the emulator's `10.0.2.2`). Android 17 asks for a permission for those.
+     */
+    fun isLocalNetwork(input: String): Boolean {
+        val host = (normalizeUrl(input) ?: return false).toHttpUrlOrNull()?.host?.lowercase() ?: return false
+        if (host == "localhost" || host.endsWith(".local") || host.endsWith(".lan") || host.endsWith(".home.arpa")) return true
+        val parts = host.split('.')
+        val octets = parts.mapNotNull { it.toIntOrNull()?.takeIf { n -> n in 0..255 } }
+        if (parts.size == 4 && octets.size == 4) {
+            val (a, b) = octets
+            return a == 10 || a == 127 || (a == 172 && b in 16..31) || (a == 192 && b == 168) || (a == 169 && b == 254)
+        }
+        if (host.startsWith("[") || ':' in host) {
+            return host.trim('[', ']').let { it == "::1" || it.startsWith("fe80") || it.startsWith("fc") || it.startsWith("fd") }
+        }
+        return '.' !in host
+    }
+
+    /**
+     * The sign-in to store after an edit. Nothing typed keeps [stored]; a user name without a
+     * password keeps the stored password when it is the same user (the field says "leave empty to
+     * keep the saved sign-in"). Null: nothing to write.
+     */
+    fun mergeCredentials(typed: ServerCredentials?, stored: ServerCredentials?): ServerCredentials? {
+        if (typed == null) return null
+        if (typed.hasPassword && typed.password.isEmpty() && stored != null && stored.username == typed.username) {
+            return typed.copy(password = stored.password)
+        }
+        return typed
+    }
+
     fun isPlainHttp(input: String): Boolean = input.trim().startsWith("http://", ignoreCase = true)
 
     fun manifest(id: String, engine: String, name: String, baseUrl: String): SourceManifest =

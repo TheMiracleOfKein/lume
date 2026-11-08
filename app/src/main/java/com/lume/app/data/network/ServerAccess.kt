@@ -1,5 +1,7 @@
 package com.lume.app.data.network
 
+import okhttp3.Cookie
+import okhttp3.CookieJar
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
@@ -86,3 +88,28 @@ class CleartextGuardInterceptor(private val servers: ServerEndpoints) : Intercep
 /** A plain-HTTP request to a host that is not a registered server; retrying cannot help. */
 class CleartextBlockedException(host: String) :
     IOException("Plain HTTP is only allowed for servers you added: $host")
+
+/**
+ * Keeps session cookies out of requests to registered servers. Komga answers with a
+ * `KOMGA-SESSION` cookie and then accepts it instead of the Basic sign-in, so a wrong or changed
+ * password would go unnoticed. Every request to a server signs in with its own headers instead.
+ */
+class ServerCookieJar(private val delegate: CookieJar, private val servers: ServerEndpoints) : CookieJar {
+    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+        if (!servers.isRegistered(url)) delegate.saveFromResponse(url, cookies)
+    }
+
+    override fun loadForRequest(url: HttpUrl): List<Cookie> =
+        if (servers.isRegistered(url)) emptyList() else delegate.loadForRequest(url)
+
+    /** Expires the cookies [delegate] holds for [url], for example when its server is edited or removed. */
+    fun forget(url: HttpUrl) {
+        val stored = runCatching { delegate.loadForRequest(url) }.getOrDefault(emptyList())
+        if (stored.isEmpty()) return
+        val expired = stored.map { cookie ->
+            Cookie.Builder().name(cookie.name).value("").path(cookie.path).expiresAt(0L)
+                .let { if (cookie.hostOnly) it.hostOnlyDomain(cookie.domain) else it.domain(cookie.domain) }.build()
+        }
+        delegate.saveFromResponse(url, expired)
+    }
+}
