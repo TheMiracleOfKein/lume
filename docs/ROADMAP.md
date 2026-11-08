@@ -244,8 +244,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 **Goal:** bring every comic you have into one place, and spend less battery and data on updates.
 
 **Self-hosted servers** (L)
-- An **OPDS** engine: Komga, Kavita, Calibre-Web and other servers that speak OPDS, with sign-in.
-- Native **Komga** and **Kavita** engines where OPDS is too limited (read progress back to the server).
+- 🟡 An **OPDS** engine: Komga, Kavita, Calibre-Web and other servers that speak OPDS, with sign-in. In progress for v0.9.2, not released yet.
+- 🟡 Native **Komga** and **Kavita** engines where OPDS is too limited (read progress back to the server). In progress for v0.9.2, not released yet. Servers are added in Sources → "Add server"; sign-ins are stored encrypted with a key from the Android Keystore, and plain `http://` works only for servers you added.
 
 **Local files**
 - ✅ **CBR, CB7 and PDF** (M). PDF through Android's own renderer; CBR through junrar, CB7 through Apache Commons Compress.

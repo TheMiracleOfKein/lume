@@ -59,6 +59,7 @@ apksigner verify --print-certs lume-vX.Y.Z.apk
 
 **Sources**
 - 12 built-in sources (11 sites in English and Russian, plus local files; listed below), plus your own JSON packs for Madara, LibSocial and HiveToons sites.
+- Your own servers (in development for v0.9.2): OPDS catalogues, Komga and Kavita, added in Sources with a password or API key, with reading progress sent back to Komga and Kavita.
 - Global search with per-source results, filters and history.
 - Open a title link from the browser or share it to Lume.
 - Cloudflare and DDoS-Guard checks are solved in a built-in browser; sign-in for MangaLib, YaoiLib and HentaiLib.

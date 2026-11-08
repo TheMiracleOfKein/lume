@@ -107,6 +107,38 @@ search → details → chapters → pages → first image):
 Sources unreachable from the test machine (geo-blocks, challenges needing a WebView) are
 reported as `SKIP`, not failures. Plain `testDebugUnitTest` runs only offline unit tests.
 
+## Self-hosted servers (OPDS, Komga, Kavita)
+
+These engines are not bundled and cannot be imported as JSON packs. You add one in
+Sources → "Add server" (type, address, sign-in). It becomes a source with the id
+`server-<uuid>` and is stored like a pack; its sign-in is not part of the manifest.
+
+- **Sign-in.** A user name and password, or an API key, kept in `ServerCredentialStore`:
+  AES-GCM with a key in the Android Keystore, written to its own DataStore file that is left
+  out of Android backups. Nothing is logged. `ServerAuthInterceptor` adds the header (Basic,
+  `X-API-Key`, or Kavita's Bearer token) to requests for the registered origin only
+  (scheme, host and port). It is a network interceptor, so a redirect to another host does
+  not carry it.
+- **Plain HTTP.** The platform allows cleartext, and `CleartextGuardInterceptor` refuses
+  `http://` for every host that is not a server you added. The add dialog warns for `http://`.
+- **OPDS** (`opds`): the address is the catalogue root (OPDS 1.2 Atom or 2.0 JSON, detected
+  from the body). A feed entry that opens a feed is a title, a book is a chapter. Pages come
+  from an OPDS-PSE stream link when the book has one; otherwise the CBZ, CBR, CB7 or PDF
+  acquisition is downloaded to the cache and read like a local file. Search uses the
+  OpenSearch template. The catalogue sections of the root show from the second time you open
+  the source.
+- **Komga** (`komga`): `/api/v1` series, books and pages; sign-in Basic or `X-API-Key`.
+  Reading progress goes back with `PATCH /books/{id}/read-progress`.
+- **Kavita** (`kavita`): signs in with `Plugin/authenticate` (API key) or `Account/login`, keeps
+  the JWT and signs in again on a 401. Page and cover URLs carry `apiKey=-`, which the HTTP
+  client replaces, so the key is never stored in history or the image cache. Progress goes
+  back with `Reader/progress` and `Reader/mark-chapter-read`.
+- Both can be limited to one library in the source's settings.
+
+Tests: `OpdsParsingTest`, `KomgaParsingTest`, `KavitaParsingTest` (hand-written fixtures in
+`fixtures/opds`, `fixtures/komga`, `fixtures/kavita`), `ServerAccessTest`,
+`ServerCredentialStoreTest`.
+
 ## Saved pages (offline parser tests)
 
 Every engine has a `<Engine>ParsingTest` that parses saved site responses, so a parser change
