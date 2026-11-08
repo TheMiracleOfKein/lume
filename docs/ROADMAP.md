@@ -216,7 +216,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.8.1: zoom pan fix** ✅ released 2026-11-07 ([notes](releases/v0.8.1.md)): a zoomed webtoon page no longer twitches when moved.
 
-**v0.9.0: CBR, CB7 and PDF** ([notes](releases/v0.9.0.md), [device check](releases/v0.9.0-check.md)): local chapters as CBR, CB7 and PDF, and offline parser tests.
+**v0.9.0: CBR, CB7 and PDF** ✅ released 2026-11-08 ([notes](releases/v0.9.0.md), [device check](releases/v0.9.0-check.md)): local chapters as CBR, CB7 and PDF, and offline parser tests.
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -741,7 +741,7 @@ Release notes: [docs/releases/v0.8.1.md](releases/v0.8.1.md).
 - ✅ **Webtoon zoom no longer twitches when moved:** `PageDetail` keeps the last sharp detail until the next one is ready and draws it at exact positions; a small pan inside the decoded detail keeps it.
 - ⏸️ Emulator check and smoke test skipped at the owner's request.
 
-### v0.9.0: CBR, CB7 and PDF
+### v0.9.0: CBR, CB7 and PDF ✅ released 2026-11-08
 
 Release notes: [docs/releases/v0.9.0.md](releases/v0.9.0.md); device check in [v0.9.0-check.md](releases/v0.9.0-check.md).
 
