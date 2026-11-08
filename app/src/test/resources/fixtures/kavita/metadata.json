@@ -1,0 +1,16 @@
+{
+  "id": 5,
+  "seriesId": 12,
+  "summary": "A pirate crew searches for the ultimate treasure.",
+  "genres": [{ "id": 1, "title": "Adventure" }, { "id": 2, "title": "Shounen" }],
+  "tags": [{ "id": 4, "title": "Pirates" }],
+  "writers": [{ "id": 9, "name": "Eiichiro Oda" }],
+  "pencillers": [{ "id": 9, "name": "Eiichiro Oda" }],
+  "inkers": [],
+  "colorists": [],
+  "coverArtists": [],
+  "ageRating": 4,
+  "releaseYear": 1997,
+  "language": "ja",
+  "publicationStatus": 0
+}
