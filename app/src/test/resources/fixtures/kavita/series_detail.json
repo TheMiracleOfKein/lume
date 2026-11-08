@@ -1,0 +1,101 @@
+{
+  "specials": [
+    {
+      "id": 902,
+      "range": "Omake.cbz",
+      "minNumber": -100000,
+      "maxNumber": -100000,
+      "sortOrder": 0,
+      "pages": 8,
+      "isSpecial": true,
+      "title": "Omake",
+      "titleName": "",
+      "volumeId": 70,
+      "files": [{ "id": 1, "filePath": "Omake.cbz", "pages": 8, "format": 1 }]
+    }
+  ],
+  "chapters": [
+    {
+      "id": 903,
+      "range": "1100",
+      "minNumber": 1100,
+      "maxNumber": 1100,
+      "sortOrder": 1100,
+      "pages": 17,
+      "isSpecial": false,
+      "title": "1100",
+      "titleName": "",
+      "volumeId": 71,
+      "releaseDate": "2024-05-01T00:00:00",
+      "createdUtc": "2024-05-02T08:00:00Z",
+      "files": [{ "id": 2, "filePath": "ch1100.cbz", "pages": 17, "format": 1 }]
+    }
+  ],
+  "volumes": [
+    {
+      "id": 80,
+      "minNumber": 2,
+      "maxNumber": 2,
+      "name": "2",
+      "pages": 190,
+      "pagesRead": 0,
+      "chapters": [
+        {
+          "id": 802,
+          "range": "-100000",
+          "minNumber": -100000,
+          "maxNumber": -100000,
+          "sortOrder": 2,
+          "pages": 190,
+          "isSpecial": false,
+          "title": "2",
+          "titleName": "",
+          "volumeId": 80,
+          "createdUtc": "2023-01-02T08:00:00Z",
+          "files": [{ "id": 3, "filePath": "v02.cbz", "pages": 190, "format": 1 }]
+        }
+      ]
+    },
+    {
+      "id": 79,
+      "minNumber": 1,
+      "maxNumber": 1,
+      "name": "1",
+      "pages": 200,
+      "pagesRead": 200,
+      "chapters": [
+        {
+          "id": 801,
+          "range": "-100000",
+          "minNumber": -100000,
+          "maxNumber": -100000,
+          "sortOrder": 1,
+          "pages": 200,
+          "isSpecial": false,
+          "title": "1",
+          "titleName": "Romance Dawn",
+          "volumeId": 79,
+          "createdUtc": "2023-01-01T08:00:00Z",
+          "files": [{ "id": 4, "filePath": "v01.cbz", "pages": 200, "format": 1 }]
+        },
+        {
+          "id": 804,
+          "range": "7",
+          "minNumber": 7,
+          "maxNumber": 7,
+          "sortOrder": 7,
+          "pages": 20,
+          "isSpecial": false,
+          "title": "7",
+          "titleName": "",
+          "volumeId": 79,
+          "files": [{ "id": 5, "filePath": "v01c07.epub", "pages": 20, "format": 3 }]
+        }
+      ]
+    }
+  ],
+  "storylineChapters": [],
+  "libraryType": 0,
+  "unreadCount": 3,
+  "totalCount": 5
+}

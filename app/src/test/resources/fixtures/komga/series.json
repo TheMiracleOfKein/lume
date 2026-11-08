@@ -1,0 +1,34 @@
+{
+  "id": "0A1B2C3D4E5F6",
+  "libraryId": "LIB1",
+  "name": "frieren",
+  "booksCount": 12,
+  "booksReadCount": 2,
+  "booksUnreadCount": 10,
+  "booksInProgressCount": 0,
+  "metadata": {
+    "status": "ONGOING",
+    "title": "Frieren: Beyond Journey's End",
+    "titleSort": "Frieren",
+    "summary": "An elf mage looks back on a quest that ended.",
+    "readingDirection": "RIGHT_TO_LEFT",
+    "publisher": "Shogakukan",
+    "language": "ja",
+    "genres": ["Adventure", "Fantasy"],
+    "tags": ["elf"],
+    "totalBookCount": 14,
+    "alternateTitles": [{ "label": "Romaji", "title": "Sousou no Frieren" }]
+  },
+  "booksMetadata": {
+    "authors": [
+      { "name": "Kanehito Yamada", "role": "writer" },
+      { "name": "Tsukasa Abe", "role": "penciller" }
+    ],
+    "tags": [],
+    "releaseDate": "2020-04-28",
+    "summary": "",
+    "summaryNumber": ""
+  },
+  "oneshot": false,
+  "deleted": false
+}

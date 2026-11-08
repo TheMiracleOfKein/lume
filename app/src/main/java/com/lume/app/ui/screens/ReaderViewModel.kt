@@ -24,13 +24,16 @@ import com.lume.app.data.title.TitleLoad
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ChapterNeighbours
 import com.lume.app.domain.chapterNeighbours
+import com.lume.app.domain.hasChapterBeyond
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.ReaderMode
 import com.lume.app.domain.ReaderTheme
 import com.lume.app.domain.dedupeChapters
 import com.lume.app.domain.inReadingOrder
+import com.lume.app.domain.ReadProgressSink
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -128,6 +131,15 @@ class ReaderViewModel(
     /** The chapters before and after the current one in reading order (null at either end). */
     val neighbours: ChapterNeighbours
         get() = chapterNeighbours(chapters, currentChapterId)
+    /**
+     * Whether a chapter lies beyond the end of what is loaded (the strip's edge), not beyond the
+     * chapter currently tracked: the tracked one can lag behind the list while a swipe lands in
+     * the next chapter.
+     */
+    fun hasChapterBeyondStrip(forward: Boolean): Boolean {
+        val edge = (if (forward) loaded.lastOrNull() else loaded.firstOrNull())?.chapter?.id ?: currentChapterId
+        return hasChapterBeyond(chapters, edge, forward)
+    }
     val currentChapterPageCount: Int
         get() = loaded.firstOrNull { chapterIdsMatch(it.chapter.id, currentChapterId) }?.pages?.size ?: 0
 
@@ -514,7 +526,9 @@ class ReaderViewModel(
         if (app.prefs.incognito.value) return
         val lc = loaded.firstOrNull { chapterIdsMatch(it.chapter.id, a.chapterId) } ?: return
         val count = lc.pages.size
-        writeChapterProgress(a, count, completed = isAtChapterEnd(a, count))
+        val atEnd = isAtChapterEnd(a, count)
+        writeChapterProgress(a, count, completed = atEnd)
+        reportToServer(lc.chapter, a.pageIndex, atEnd)
         dao.upsertProgress(
             ProgressEntity(
                 sourceId = sourceId,
@@ -531,6 +545,25 @@ class ReaderViewModel(
                 pageImageUrl = lc.pages.getOrNull(a.pageIndex)?.imageUrl,
             ),
         )
+    }
+
+    private var serverReport: Job? = null
+    private var serverReportFinished = false
+
+    /**
+     * Tells a server that keeps reading progress (Komga, Kavita) where you are. Fire and forget:
+     * it waits a moment so scrolling sends one update, and a failure is ignored. The scope
+     * outlives the reader, so the last position still goes out after Back.
+     */
+    private fun reportToServer(chapter: Chapter, pageIndex: Int, finished: Boolean) {
+        val sink = app.sources.engineById(sourceId) as? ReadProgressSink ?: return
+        if (serverReportFinished && serverReport?.isActive == true) return
+        serverReport?.cancel()
+        serverReportFinished = finished
+        serverReport = app.appScope.launch(Dispatchers.IO) {
+            if (!finished) delay(SERVER_REPORT_DELAY_MS)
+            runCatching { sink.reportProgress(chapter, pageIndex, finished) }
+        }
     }
 
     private suspend fun writeChapterProgress(a: ReaderAnchor, count: Int, completed: Boolean) {
@@ -682,6 +715,9 @@ class ReaderViewModel(
 
         /** Start loading the next chapter this many strip items before the end. */
         const val PREFETCH_WHEN_REMAINING = 12
+
+        /** How long the position must stay put before it is sent to a server. */
+        const val SERVER_REPORT_DELAY_MS = 2_000L
 
         /** Seamless webtoon: load the chapter before this close to the start of the strip. */
         const val PREFETCH_PREVIOUS_WHEN_WITHIN = 3

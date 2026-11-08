@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.CookieJar
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -49,8 +50,18 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
     var userAgent: String = DEFAULT_UA
         private set
 
+    /** Servers the user added; they get their sign-in headers and may use plain HTTP. */
+    val servers = ServerEndpoints()
+
+    private val serverCookies = ServerCookieJar(cookieJar, servers)
+
+    /** Drops cookies kept for a server's address (it was edited or removed). */
+    fun forgetCookies(baseUrl: String) {
+        baseUrl.toHttpUrlOrNull()?.let(serverCookies::forget)
+    }
+
     private val client: OkHttpClient = OkHttpClient.Builder()
-        .cookieJar(cookieJar)
+        .cookieJar(serverCookies)
         .dns(dns)
         .followRedirects(true)
         .followSslRedirects(true)
@@ -59,6 +70,10 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
         .writeTimeout(30, TimeUnit.SECONDS)
         .addInterceptor(rateLimiter)
         .addInterceptor(RetryInterceptor())
+        // Per hop (redirects included): the guard blocks unknown http hosts, the sign-in goes
+        // only to the server's own origin. Coil's client is derived from this one.
+        .addNetworkInterceptor(CleartextGuardInterceptor(servers))
+        .addNetworkInterceptor(ServerAuthInterceptor(servers))
         .build()
 
     val okHttp: OkHttpClient get() = client
@@ -117,13 +132,26 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
         return execute("POST", uri, source, headers, body, checkCloudflare)
     }
 
+    /** POST, PUT or PATCH with a JSON [body]; the answer is read as text (it may be empty). */
+    suspend fun sendJson(
+        method: String,
+        uri: URI,
+        body: String,
+        source: SourceManifest? = null,
+        headers: Map<String, String> = emptyMap(),
+    ): HttpResult {
+        require(method == "POST" || method == "PUT" || method == "PATCH") { "Unsupported method: $method" }
+        val requestBody = body.toRequestBody("application/json; charset=utf-8".toMediaType())
+        return execute(method, uri, source, mapOf("Accept" to "application/json") + headers, requestBody, checkCloudflare = false)
+    }
+
     suspend fun getBytes(
         uri: URI,
         source: SourceManifest? = null,
         headers: Map<String, String> = emptyMap(),
     ): ByteArray = withContext(Dispatchers.IO) {
         val request = buildRequest("GET", uri, source, headers, null)
-        client.newCall(request).await().use { response ->
+        awaitResponse(request).use { response ->
             if (!response.isSuccessful) {
                 val text = runCatching { response.peekBody(16_384).string() }.getOrDefault("")
                 validate(response, text, uri, checkCloudflare = true)
@@ -142,12 +170,33 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
         checkCloudflare: Boolean,
     ): HttpResult = withContext(Dispatchers.IO) {
         val request = buildRequest(method, uri, source, headers, body)
-        client.newCall(request).await().use { response ->
+        awaitResponse(request).use { response ->
             val text = response.body.string()
             validate(response, text, uri, checkCloudflare)
             responseTap?.invoke(uri, text)
             HttpResult(response.code, text, response.request.url.toString())
         }
+    }
+
+    /** Runs [request]; a network failure of a server the user added gets a message in the app's language. */
+    private suspend fun awaitResponse(request: Request): Response =
+        try {
+            client.newCall(request).await()
+        } catch (e: IOException) {
+            throw serverFailure(request.url, e) ?: e
+        }
+
+    private fun serverFailure(url: okhttp3.HttpUrl, e: IOException): IOException? {
+        if (e is CleartextBlockedException || !servers.isRegistered(url)) return null
+        val host = url.host
+        val message = when (e) {
+            is java.net.SocketTimeoutException, is java.io.InterruptedIOException -> appString(R.string.server_error_timeout, host)
+            is java.net.UnknownHostException -> appString(R.string.server_error_unknown_host, host)
+            is java.net.ConnectException, is java.net.NoRouteToHostException -> appString(R.string.server_error_unreachable, host)
+            is javax.net.ssl.SSLException -> appString(R.string.server_error_tls, host)
+            else -> appString(R.string.server_error_connection, host)
+        }
+        return ServerConnectionException(message.ifBlank { "Cannot connect to $host" }, e)
     }
 
     private fun buildRequest(
@@ -185,7 +234,8 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
             throw CloudflareException(uri)
         }
         if (status !in 200..299) {
-            throw SourceHttpException(status, uri.toString(), geoBlocked = AntiBot.isGeoBlocked(server, body))
+            val own = uri.toString().toHttpUrlOrNull()?.let(servers::isRegistered) == true
+            throw SourceHttpException(status, uri.toString(), geoBlocked = !own && AntiBot.isGeoBlocked(server, body), ownServer = own)
         }
     }
 
@@ -215,12 +265,15 @@ class SourceHttpException(
     val code: Int,
     val url: String,
     val geoBlocked: Boolean = false,
+    /** The address is a server the user added, so 401 and 403 mean its sign-in was refused. */
+    val ownServer: Boolean = false,
 ) : Exception("HTTP $code: $url") {
     private val host: String get() = runCatching { URI(url).host }.getOrNull() ?: url
 
     override val message: String
         get() = when {
             geoBlocked -> appString(R.string.error_http_geoblocked, host)
+            ownServer && (code == 401 || code == 403) -> appString(R.string.server_error_signin_rejected, host)
             code == 401 || code == 403 -> appString(R.string.error_http_forbidden, host, code)
             code == 404 -> appString(R.string.error_http_not_found, host)
             code == 429 -> appString(R.string.error_http_rate_limited, host)
@@ -231,3 +284,6 @@ class SourceHttpException(
 
 /** Largest image [AppHttp.getBytes] accepts. Long webtoon strips stay well below this. */
 internal const val MAX_IMAGE_BYTES = 48L * 1024 * 1024
+
+/** A request to one of the user's servers failed to connect; [message] says why in the app's language. */
+class ServerConnectionException(message: String, cause: Throwable) : IOException(message, cause)

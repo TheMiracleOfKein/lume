@@ -109,6 +109,15 @@ interface CatalogSource {
 }
 
 /**
+ * An engine whose server remembers reading progress (Komga, Kavita). The reader calls it,
+ * debounced and without waiting, whenever it saves the position.
+ * [page] is the 0-based index of the page the reader is on.
+ */
+interface ReadProgressSink {
+    suspend fun reportProgress(chapter: Chapter, page: Int, finished: Boolean)
+}
+
+/**
  * One per-source setting. The chosen value is stored per source and merged into the manifest's
  * `engineConfig[key]` before the engine is built, so engines read it like any other config value.
  * Multi-choice values are stored comma-separated.
@@ -129,6 +138,17 @@ sealed class SourceSetting {
         /** value → label */
         val options: List<Pair<String, String>>,
         val default: String,
+    ) : SourceSetting()
+
+    /**
+     * Free text. [secret] only masks the field; the value is stored like the others, so real
+     * sign-ins belong in the server credential store, not here.
+     */
+    data class Text(
+        override val key: String,
+        override val title: String,
+        val default: String = "",
+        val secret: Boolean = false,
     ) : SourceSetting()
 
     data class MultiChoice(

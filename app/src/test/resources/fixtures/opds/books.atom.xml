@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:opds="http://opds-spec.org/2010/catalog" xmlns:pse="http://vaemendis.net/opds-pse/1.0">
+  <id>urn:uuid:series-1</id>
+  <title>Akira</title>
+  <updated>2024-05-01T10:00:00Z</updated>
+  <link rel="self" href="/opds/v1.2/series/1" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+  <entry>
+    <id>urn:uuid:book-1</id>
+    <title>Akira 01</title>
+    <updated>2024-01-10T10:00:00Z</updated>
+    <author><name>Katsuhiro Otomo</name></author>
+    <link rel="http://opds-spec.org/image/thumbnail" href="/api/v1/books/1/thumbnail" type="image/jpeg"/>
+    <link rel="http://opds-spec.org/acquisition" href="/api/v1/books/1/file/akira01.cbz" type="application/vnd.comicbook+zip"/>
+    <link rel="http://vaemendis.net/opds-pse/stream" href="/api/v1/books/1/pages/{pageNumber}?zero_based=true" type="image/jpeg" pse:count="24"/>
+  </entry>
+  <entry>
+    <id>urn:uuid:book-2</id>
+    <title>Akira 02</title>
+    <updated>2024-01-11T10:00:00Z</updated>
+    <link rel="http://opds-spec.org/acquisition/open-access" href="/api/v1/books/2/file/akira02.epub" type="application/epub+zip"/>
+    <link rel="http://opds-spec.org/acquisition/open-access" href="/api/v1/books/2/file/akira02.cbr" type="application/x-cbr"/>
+    <link rel="http://opds-spec.org/acquisition/open-access" href="/api/v1/books/2/file/akira02.pdf" type="application/pdf"/>
+  </entry>
+  <entry>
+    <id>urn:uuid:book-3</id>
+    <title>Akira 03 (EPUB only)</title>
+    <updated>2024-01-12T10:00:00Z</updated>
+    <link rel="http://opds-spec.org/acquisition" href="/api/v1/books/3/file/akira03.epub" type="application/epub+zip"/>
+  </entry>
+</feed>

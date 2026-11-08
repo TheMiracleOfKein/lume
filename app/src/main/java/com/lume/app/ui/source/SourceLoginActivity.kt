@@ -52,6 +52,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
 import com.lume.app.LumeApp
 import com.lume.app.R
+import com.lume.app.ui.components.GuardedWebViewClient
 import com.lume.app.data.source.LibWebSession
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.LumeTheme
@@ -234,7 +235,7 @@ class SourceLoginActivity : ComponentActivity() {
                         if (firstPageChecked) userTouched = true
                         false
                     }
-                    webViewClient = object : WebViewClient() {
+                    webViewClient = object : GuardedWebViewClient(container.http.servers) {
                         override fun onPageFinished(view: WebView?, finishedUrl: String?) {
                             view ?: return
                             view.evaluateJavascript(

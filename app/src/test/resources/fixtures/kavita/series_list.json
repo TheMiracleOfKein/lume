@@ -1,0 +1,30 @@
+[
+  {
+    "id": 12,
+    "name": "One Piece",
+    "originalName": "One Piece",
+    "localizedName": "ワンピース",
+    "sortName": "One Piece",
+    "pages": 4200,
+    "pagesRead": 120,
+    "format": 1,
+    "libraryId": 2,
+    "libraryName": "Manga",
+    "lastChapterAdded": "2024-05-01T10:00:00",
+    "created": "2023-01-01T10:00:00"
+  },
+  {
+    "id": 31,
+    "name": "Berserk",
+    "originalName": "ベルセルク",
+    "localizedName": "Berserk",
+    "sortName": "Berserk",
+    "pages": 900,
+    "pagesRead": 0,
+    "format": 1,
+    "libraryId": 2,
+    "libraryName": "Manga",
+    "lastChapterAdded": "2024-04-01T10:00:00",
+    "created": "2023-02-01T10:00:00"
+  }
+]

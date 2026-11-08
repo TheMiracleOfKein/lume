@@ -1,0 +1,57 @@
+{
+  "content": [
+    {
+      "id": "BOOK0001",
+      "seriesId": "0A1B2C3D4E5F6",
+      "seriesTitle": "Frieren: Beyond Journey's End",
+      "name": "Frieren 01",
+      "number": 1,
+      "sizeBytes": 52428800,
+      "media": { "status": "READY", "mediaType": "application/zip", "pagesCount": 3 },
+      "metadata": { "title": "The End of the Journey", "number": "1", "numberSort": 1.0, "releaseDate": "2020-04-28", "authors": [], "tags": [] },
+      "readProgress": null,
+      "deleted": false
+    },
+    {
+      "id": "BOOK0002",
+      "seriesId": "0A1B2C3D4E5F6",
+      "seriesTitle": "Frieren: Beyond Journey's End",
+      "name": "Frieren 02",
+      "number": 2,
+      "sizeBytes": 51428800,
+      "media": { "status": "READY", "mediaType": "application/zip", "pagesCount": 3 },
+      "metadata": { "title": "Volume 2", "number": "2", "numberSort": 2.0, "releaseDate": null, "authors": [], "tags": [] },
+      "readProgress": { "page": 2, "completed": false, "readDate": "2024-01-01T10:00:00Z" },
+      "deleted": false
+    },
+    {
+      "id": "BOOK0003",
+      "seriesId": "0A1B2C3D4E5F6",
+      "seriesTitle": "Frieren: Beyond Journey's End",
+      "name": "Frieren 03 (EPUB)",
+      "number": 3,
+      "sizeBytes": 1048576,
+      "media": { "status": "READY", "mediaType": "application/epub+zip", "pagesCount": 100 },
+      "metadata": { "title": "Volume 3", "number": "3", "numberSort": 3.0, "authors": [], "tags": [] },
+      "deleted": false
+    },
+    {
+      "id": "BOOK0004",
+      "seriesId": "0A1B2C3D4E5F6",
+      "seriesTitle": "Frieren: Beyond Journey's End",
+      "name": "Frieren 04 (broken)",
+      "number": 4,
+      "sizeBytes": 1,
+      "media": { "status": "ERROR", "mediaType": "application/zip", "pagesCount": 0 },
+      "metadata": { "title": "Volume 4", "number": "4", "numberSort": 4.0, "authors": [], "tags": [] },
+      "deleted": false
+    }
+  ],
+  "number": 0,
+  "size": 4,
+  "totalElements": 4,
+  "totalPages": 1,
+  "first": true,
+  "last": true,
+  "empty": false
+}

@@ -53,7 +53,8 @@ class AppContainer(val app: Application) {
     // Reads the preferences file once, so every screen's first frame has the stored values.
     val prefs = AppPreferences(app, appScope)
     val libAuth = LibAuthStore(app)
-    val sources = SourceRegistry(app, http, prefs, dao, libAuth, imageReferers)
+    val serverCredentials = com.lume.app.data.server.ServerCredentialStore(app)
+    val sources = SourceRegistry(app, http, prefs, dao, libAuth, imageReferers, serverCredentials)
     val downloads = DownloadStore(app, dao, http, prefs)
     val offlineCache = OfflineTitleCache(dao)
     val localImporter = com.lume.app.data.local.LocalImporter(app)

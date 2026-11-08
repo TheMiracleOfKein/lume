@@ -205,6 +205,24 @@ Needs a MangaLib account (HentaiLib and YaoiLib too, if you use them).
 - [ ] Settings → Reader → Pages lists the new options, and settings search finds "panels", "spread", "crop" (and "кадры", "разворот").
 - [ ] Release build (R8): reader, paged zoom and spreads work as in the debug build.
 
+## v0.9.2: self-hosted servers
+
+Run Komga (port 25600) and Kavita (port 5000) in Docker on the host with a few CBZ files each. From the emulator the host is `10.0.2.2`, so the addresses are `http://10.0.2.2:25600` and `http://10.0.2.2:5000`. For OPDS use Komga's `http://10.0.2.2:25600/opds/v1.2/catalog`, Kavita's `http://10.0.2.2:5000/api/opds/<api key>/`, and a Calibre-Web catalogue if one is at hand.
+
+- [ ] Sources → Add server → Komga with `http://10.0.2.2:25600` shows the cleartext warning; with a user name and password the source appears, browse lists the series with covers, a chapter opens and reads.
+- [ ] Komga with an API key instead of a password works the same.
+- [ ] Read three pages of a Komga book, leave the reader: the book shows the page as progress in Komga's web UI. Read to the end: it shows as read.
+- [ ] Kavita with an API key: browse, covers and pages load; progress and "mark read" show in Kavita's web UI.
+- [ ] Kavita with a user name and password; after restarting the Kavita container (new token secret) the next request signs in again without an error.
+- [ ] OPDS against Komga and Kavita: folders open as titles, a book with page streaming reads without a download; search finds a title.
+- [ ] OPDS book without streaming (a CBZ or PDF acquisition only): the first open downloads it, the second is instant.
+- [ ] Wrong password: the source row shows the red status line ("forbidden"), and editing the server with the right one fixes it.
+- [ ] Edit server: change the name and address; the old address stops being reachable over http (try the old URL in a browser inside Lume, such as a title link).
+- [ ] Remove the server: the source is gone, and its stored sign-in with it (add it again: the password field is empty).
+- [ ] An `http://` link to a site that is not a server you added (a catalogue source with an http-only address) fails with the plain-HTTP message.
+- [ ] Release build (R8): the add dialog, sign-in and the Keystore encryption work (kill the app and reopen: the server still signs in).
+- [ ] Restore an app backup on another phone: the server is listed, but its sign-in is empty (the Keystore key does not move); editing it and saving the sign-in fixes it.
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.

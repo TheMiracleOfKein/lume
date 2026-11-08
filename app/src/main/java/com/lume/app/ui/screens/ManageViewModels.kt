@@ -12,6 +12,8 @@ import com.lume.app.data.db.DownloadEntity
 import com.lume.app.data.db.DownloadQueueEntity
 import com.lume.app.data.library.LibraryUpdateWorker
 import com.lume.app.data.prefs.ReaderSettings
+import com.lume.app.data.server.ServerAuth
+import com.lume.app.data.server.ServerCredentials
 import com.lume.app.data.source.LibAuthToken
 import com.lume.app.data.source.LibWebSession
 import com.lume.app.domain.AutoDownloadMode
@@ -690,6 +692,96 @@ class SourcesViewModel(private val app: AppContainer) : ViewModel() {
         viewModelScope.launch {
             app.sources.remove(id)
             refreshPackStates()
+        }
+    }
+
+    // ---- Self-hosted servers --------------------------------------------------------------------
+
+    /** The server being added or edited (null: no dialog). */
+    var serverDraft by mutableStateOf<ServerDraft?>(null)
+        private set
+
+    class ServerDraft(
+        /** Id of the server being edited; null when adding. */
+        val editId: String?,
+        engine: String,
+        name: String = "",
+        url: String = "",
+        username: String = "",
+        useApiKey: Boolean = false,
+    ) {
+        var engine by mutableStateOf(engine)
+        var name by mutableStateOf(name)
+        var url by mutableStateOf(url)
+        var username by mutableStateOf(username)
+        var password by mutableStateOf("")
+        var apiKey by mutableStateOf("")
+        var useApiKey by mutableStateOf(useApiKey)
+        var error by mutableStateOf<String?>(null)
+        var saving by mutableStateOf(false)
+
+        val isPlainHttp: Boolean get() = ServerAuth.isPlainHttp(url)
+
+        /** Null when nothing was typed (edit: keep the stored sign-in). */
+        fun credentials(): ServerCredentials? {
+            val c = if (useApiKey) ServerCredentials(apiKey = apiKey.trim()) else ServerCredentials(username.trim(), password)
+            return if (c.isEmpty) null else c
+        }
+    }
+
+    fun isServer(id: String): Boolean = app.sources.serverManifest(id) != null
+
+    fun startAddServer() {
+        serverDraft = ServerDraft(editId = null, engine = SourceEngines.OPDS)
+    }
+
+    fun startEditServer(id: String) {
+        val manifest = app.sources.serverManifest(id) ?: return
+        val stored = app.sources.serverCredentials(id)
+        serverDraft = ServerDraft(
+            editId = id,
+            engine = manifest.engine,
+            name = manifest.name,
+            url = manifest.baseUrl,
+            username = stored?.username.orEmpty(),
+            useApiKey = stored?.hasApiKey == true,
+        )
+    }
+
+    fun dismissServerDialog() {
+        serverDraft = null
+    }
+
+    fun saveServer() {
+        val draft = serverDraft ?: return
+        if (draft.saving) return
+        if (ServerAuth.normalizeUrl(draft.url) == null) {
+            draft.error = app.app.getString(R.string.server_error_url)
+            return
+        }
+        val sign = draft.credentials()
+        // Kavita has no anonymous access.
+        if (draft.engine == SourceEngines.KAVITA && sign == null && draft.editId == null) {
+            draft.error = app.app.getString(R.string.server_error_kavita_signin)
+            return
+        }
+        viewModelScope.launch {
+            draft.saving = true
+            draft.error = null
+            runCatching {
+                if (draft.editId == null) {
+                    app.sources.addServer(draft.engine, draft.name, draft.url, sign ?: ServerCredentials())
+                } else {
+                    app.sources.updateServer(draft.editId, draft.name, draft.url, sign)
+                    app.sources.serverManifest(draft.editId)!!
+                }
+            }.onSuccess { manifest ->
+                serverDraft = null
+                _messages.send(app.app.getString(R.string.server_saved, manifest.name))
+            }.onFailure {
+                draft.error = it.message ?: it.toString()
+            }
+            draft.saving = false
         }
     }
 

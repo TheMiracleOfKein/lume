@@ -143,8 +143,16 @@ class CatalogFeed(
     internal var page = 1
     internal var job: Job? = null
 
+    /** The source [items] came from; a first page for another source never shows them. */
+    internal var itemsSourceId: String? = null
+
     internal suspend fun load(source: CatalogSource, reset: Boolean) {
         if (reset) {
+            if (itemsSourceId != source.manifest.id) {
+                items = emptyList()
+                hasNext = false
+                page = 1
+            }
             loading = true
             error = null
             cloudflareUri = null
@@ -155,6 +163,7 @@ class CatalogFeed(
         try {
             val result = source.fetch(if (reset) 1 else page + 1)
             items = if (reset) result.items else items + result.items
+            itemsSourceId = source.manifest.id
             page = result.page
             hasNext = result.hasNext
             loadedOnce = true
@@ -272,6 +281,11 @@ class CatalogViewModel(
             }
             sourceId = source.manifest.id
             feed.load(source, reset)
+            // Some sources (OPDS) only know their sections once the first feed has been read.
+            if (source.manifest.id == sourceId) {
+                val fresh = source.browseSections()
+                if (fresh.map { it.id } != sections.map { it.id }) sections = fresh
+            }
         }
     }
 

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:opds="http://opds-spec.org/2010/catalog">
+  <id>urn:uuid:series</id>
+  <title>All series</title>
+  <updated>2024-05-01T10:00:00Z</updated>
+  <link rel="self" href="/opds/v1.2/series" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+  <link rel="next" href="/opds/v1.2/series?page=1" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+  <entry>
+    <id>urn:uuid:series-1</id>
+    <title>Akira</title>
+    <updated>2024-04-01T10:00:00Z</updated>
+    <author><name>Katsuhiro Otomo</name></author>
+    <summary>Neo-Tokyo, 2019.</summary>
+    <category term="seinen" label="Seinen"/>
+    <link rel="subsection" href="/opds/v1.2/series/1" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+    <link rel="http://opds-spec.org/image" href="/api/v1/series/1/thumbnail" type="image/jpeg"/>
+    <link rel="http://opds-spec.org/image/thumbnail" href="/api/v1/series/1/thumbnail?small" type="image/jpeg"/>
+  </entry>
+  <entry>
+    <id>urn:uuid:book-9</id>
+    <title>Loose Book 9</title>
+    <updated>2024-03-01T10:00:00Z</updated>
+    <link rel="http://opds-spec.org/acquisition" href="/books/9/file.cbz" type="application/vnd.comicbook+zip"/>
+  </entry>
+</feed>

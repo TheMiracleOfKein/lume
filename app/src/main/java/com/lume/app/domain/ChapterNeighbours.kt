@@ -17,3 +17,9 @@ fun chapterNeighbours(chapters: List<Chapter>, currentId: String): ChapterNeighb
 
 private fun sameChapterId(a: String, b: String): Boolean =
     a == b || a.trimEnd('/') == b.trimEnd('/')
+
+/** Whether the list has a chapter after ([forward]) or before [edgeChapterId] in reading order. */
+fun hasChapterBeyond(chapters: List<Chapter>, edgeChapterId: String, forward: Boolean): Boolean {
+    val n = chapterNeighbours(chapters, edgeChapterId)
+    return (if (forward) n.next else n.previous) != null
+}

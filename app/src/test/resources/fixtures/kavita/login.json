@@ -1,0 +1,10 @@
+{
+  "id": 1,
+  "username": "reader",
+  "email": "",
+  "roles": ["Login", "Pleb"],
+  "token": "jwt-token-1",
+  "refreshToken": "refresh-1",
+  "apiKey": "0f0e0d0c-0000-0000-0000-000000000001",
+  "kavitaVersion": "0.8.8.0"
+}

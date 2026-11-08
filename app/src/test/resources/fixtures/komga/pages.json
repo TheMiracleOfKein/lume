@@ -1,0 +1,5 @@
+[
+  { "number": 1, "fileName": "001.jpg", "mediaType": "image/jpeg", "width": 1200, "height": 1800, "sizeBytes": 400000 },
+  { "number": 2, "fileName": "002.png", "mediaType": "image/png", "width": 1200, "height": 1800, "sizeBytes": 900000 },
+  { "number": 3, "fileName": "003.avif", "mediaType": "image/avif", "width": 1200, "height": 1800, "sizeBytes": 200000 }
+]

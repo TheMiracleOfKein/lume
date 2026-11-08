@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.w3.org/2005/Atom">
+  <updated>2026-11-08T17:00:27</updated>
+  <id>recently-updated</id>
+  <title>Recently Updated</title>
+  <icon>/api/opds/APIKEY/favicon</icon>
+  <author>
+    <name>Kavita</name>
+    <uri>https://www.kavitareader.com</uri>
+  </author>
+  <totalResults xmlns="http://a9.com/-/spec/opensearch/1.1/">30</totalResults>
+  <itemsPerPage xmlns="http://a9.com/-/spec/opensearch/1.1/">20</itemsPerPage>
+  <startIndex xmlns="http://a9.com/-/spec/opensearch/1.1/">1</startIndex>
+  <link rel="self" type="application/atom+xml;profile=opds-catalog;kind=acquisition" href="/api/opds/APIKEY/recently-updated?pageNumber=1" />
+  <link rel="start" type="application/atom+xml;profile=opds-catalog;kind=navigation" href="/api/opds/APIKEY" />
+  <link rel="search" type="application/opensearchdescription+xml" href="/api/opds/APIKEY/search" />
+  <link rel="next" type="application/atom+xml;profile=opds-catalog;kind=navigation" href="/api/opds/APIKEY/recently-updated?pageNumber=2" />
+  <entry>
+    <updated>2026-11-08T17:00:27</updated>
+    <id>2</id>
+    <title>Lume Test One (3)</title>
+    <summary>Format: Archive</summary>
+    <link rel="subsection" type="application/atom+xml;profile=opds-catalog;kind=navigation" href="/api/opds/APIKEY/series/2" />
+    <link rel="http://opds-spec.org/image" type="image/jpeg" href="/api/image/series-cover?seriesId=2&amp;apiKey=APIKEY" />
+    <link rel="http://opds-spec.org/image/thumbnail" type="image/jpeg" href="/api/image/series-cover?seriesId=2&amp;apiKey=APIKEY" />
+  </entry>
+  <entry>
+    <updated>2026-11-08T17:00:27</updated>
+    <id>1</id>
+    <title>Lume Test Two (2)</title>
+    <summary>Format: Archive</summary>
+    <link rel="subsection" type="application/atom+xml;profile=opds-catalog;kind=navigation" href="/api/opds/APIKEY/series/1" />
+    <link rel="http://opds-spec.org/image" type="image/jpeg" href="/api/image/series-cover?seriesId=1&amp;apiKey=APIKEY" />
+    <link rel="http://opds-spec.org/image/thumbnail" type="image/jpeg" href="/api/image/series-cover?seriesId=1&amp;apiKey=APIKEY" />
+  </entry>
+</feed>

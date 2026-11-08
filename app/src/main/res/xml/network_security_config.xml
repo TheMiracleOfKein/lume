@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Plain HTTP is allowed at the platform level so self-hosted servers on a home network work.
+    The app itself blocks http:// for every host that is not a server the user added
+    (CleartextGuardInterceptor).
+-->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="false" />
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>
