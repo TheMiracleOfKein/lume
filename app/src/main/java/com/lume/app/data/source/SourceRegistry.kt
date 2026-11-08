@@ -170,13 +170,16 @@ class SourceRegistry(
         val old = baseManifests[id]?.takeIf { ServerAuth.isServerId(id) && SourceEngines.isServer(it.engine) }
             ?: error("Unknown server: $id")
         val baseUrl = ServerAuth.normalizeUrl(url) ?: error(context.getString(R.string.server_error_url))
+        val sameOrigin = ServerAuth.sameOrigin(old.baseUrl, baseUrl)
+        val stored = credentials?.get(id)
+        if (ServerAuth.needsReentry(sign, stored, sameOrigin)) error(context.getString(R.string.server_error_reenter))
         if (baseUrl != old.baseUrl) http.servers.unregister(old.baseUrl)
         // A session cookie from the old sign-in or address must not outlive the edit.
         http.forgetCookies(old.baseUrl)
         http.forgetCookies(baseUrl)
         val manifest = ServerAuth.manifest(id, old.engine, name, baseUrl).copy(engineConfig = old.engineConfig)
         // Typing only the user name keeps the saved password; the sign-in follows the new address.
-        ServerAuth.mergeCredentials(sign, credentials?.get(id))?.let { credentials?.put(id, it) }
+        ServerAuth.mergeCredentials(sign, stored, sameOrigin)?.let { credentials?.put(id, it) }
         saveServerManifest(manifest)
         val next = _sources.value.toMutableList()
         upsert(next, createEngine(manifest))

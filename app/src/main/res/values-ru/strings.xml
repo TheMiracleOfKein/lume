@@ -203,7 +203,8 @@
     <string name="server_password">Пароль</string>
     <string name="server_apikey">Ключ API</string>
     <string name="server_signin_optional">Оставьте пустым, если серверу не нужен вход. Данные для входа хранятся на устройстве в зашифрованном виде.</string>
-    <string name="server_signin_keep">Оставьте пустым, чтобы сохранить текущие данные для входа.</string>
+    <string name="server_signin_keep">Оставьте пустым, чтобы сохранить текущие данные для входа. Если вы меняете хост, порт или http/https, введите их заново.</string>
+    <string name="server_error_reenter">Адрес теперь указывает на другой сервер. Введите пароль или ключ API заново: сохранённые данные не отправляются на другой адрес.</string>
     <string name="server_saved">%1$s сохранён</string>
     <string name="server_error_url">Введите корректный адрес, например https://komga.example.com</string>
     <string name="server_error_kavita_signin">Для Kavita нужен вход: имя и пароль или ключ API.</string>

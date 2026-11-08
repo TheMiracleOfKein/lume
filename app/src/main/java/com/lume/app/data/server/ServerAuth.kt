@@ -51,12 +51,29 @@ object ServerAuth {
      * password keeps the stored password when it is the same user (the field says "leave empty to
      * keep the saved sign-in"). Null: nothing to write.
      */
-    fun mergeCredentials(typed: ServerCredentials?, stored: ServerCredentials?): ServerCredentials? {
+    fun mergeCredentials(typed: ServerCredentials?, stored: ServerCredentials?, sameOrigin: Boolean = true): ServerCredentials? {
         if (typed == null) return null
-        if (typed.hasPassword && typed.password.isEmpty() && stored != null && stored.username == typed.username) {
+        if (sameOrigin && typed.hasPassword && typed.password.isEmpty() && stored != null && stored.username == typed.username) {
             return typed.copy(password = stored.password)
         }
         return typed
+    }
+
+    /** Whether two addresses share scheme, host and port (a saved secret may only go to the same origin). */
+    fun sameOrigin(a: String, b: String): Boolean {
+        val x = a.toHttpUrlOrNull() ?: return false
+        val y = b.toHttpUrlOrNull() ?: return false
+        return x.scheme == y.scheme && x.host.equals(y.host, ignoreCase = true) && x.port == y.port
+    }
+
+    /**
+     * True when an edit moved the server to another origin while a saved secret would be left
+     * behind without a new one typed: the saved secret must not follow, so it has to be re-entered.
+     */
+    fun needsReentry(typed: ServerCredentials?, stored: ServerCredentials?, sameOrigin: Boolean): Boolean {
+        if (sameOrigin || stored == null || stored.isEmpty) return false
+        if (typed == null) return true
+        return !typed.hasApiKey && !(typed.hasPassword && typed.password.isNotEmpty())
     }
 
     fun isPlainHttp(input: String): Boolean = input.trim().startsWith("http://", ignoreCase = true)

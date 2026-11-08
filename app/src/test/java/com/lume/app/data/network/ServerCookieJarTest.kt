@@ -69,6 +69,30 @@ class ServerCookieJarTest {
     }
 
     @Test
+    fun savedSecretsOnlyFollowTheSameOrigin() {
+        val base = "https://komga.example.com"
+        assertTrue(ServerAuth.sameOrigin(base, "https://KOMGA.example.com/"))
+        assertTrue(ServerAuth.sameOrigin(base, "https://komga.example.com:443"))
+        assertFalse(ServerAuth.sameOrigin(base, "https://other.example.com"))
+        assertFalse(ServerAuth.sameOrigin(base, "https://komga.example.com:8443"))
+        assertFalse(ServerAuth.sameOrigin(base, "http://komga.example.com"))
+
+        val stored = ServerCredentials("me", "pw")
+        val key = ServerCredentials(apiKey = "k")
+        // Another origin: nothing typed, or a user name alone, has to be re-entered.
+        assertTrue(ServerAuth.needsReentry(null, stored, sameOrigin = false))
+        assertTrue(ServerAuth.needsReentry(ServerCredentials("me", ""), stored, sameOrigin = false))
+        assertTrue(ServerAuth.needsReentry(null, key, sameOrigin = false))
+        assertFalse(ServerAuth.needsReentry(ServerCredentials("me", "new"), stored, sameOrigin = false))
+        assertFalse(ServerAuth.needsReentry(key, stored, sameOrigin = false))
+        // Same origin, or nothing saved: nothing to protect.
+        assertFalse(ServerAuth.needsReentry(null, stored, sameOrigin = true))
+        assertFalse(ServerAuth.needsReentry(null, ServerCredentials(), sameOrigin = false))
+        // The stored password is never merged across origins.
+        assertEquals("", ServerAuth.mergeCredentials(ServerCredentials("me", ""), stored, sameOrigin = false)?.password)
+    }
+
+    @Test
     fun localNetworkAddressesAreRecognised() {
         listOf("http://10.0.2.2:25600", "192.168.1.5:5000", "http://172.20.0.1", "http://nas.local", "http://nas:8080", "localhost:25600")
             .forEach { assertTrue(it, ServerAuth.isLocalNetwork(it)) }

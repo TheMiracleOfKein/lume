@@ -212,7 +212,8 @@
     <string name="server_password">Password</string>
     <string name="server_apikey">API key</string>
     <string name="server_signin_optional">Leave empty if the server needs no sign-in. Credentials are stored encrypted on this device.</string>
-    <string name="server_signin_keep">Leave empty to keep the saved sign-in.</string>
+    <string name="server_signin_keep">Leave empty to keep the saved sign-in. If you change the host, port or http/https, enter it again.</string>
+    <string name="server_error_reenter">The address now points to another server. Enter the password or API key again; the saved one is not sent to a different address.</string>
     <string name="server_saved">%1$s saved</string>
     <string name="server_error_url">Enter a valid address, for example https://komga.example.com</string>
     <string name="server_error_kavita_signin">Kavita needs a sign-in: a user name and password, or an API key.</string>
