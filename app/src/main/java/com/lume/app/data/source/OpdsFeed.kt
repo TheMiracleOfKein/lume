@@ -55,6 +55,8 @@ internal data class OpdsFeed(
     val next: String? = null,
     val search: OpdsLink? = null,
     val newest: String? = null,
+    /** The feed's own `self` link says `kind=acquisition`: it lists titles or books, not folders. */
+    val listsItems: Boolean = false,
 )
 
 internal object OpdsParser {
@@ -85,17 +87,20 @@ internal object OpdsParser {
             next = links.firstOrNull { it.rel == "next" }?.href,
             search = links.firstOrNull { it.rel == "search" },
             newest = links.firstOrNull { it.rel == REL_NEW }?.href,
+            listsItems = links.firstOrNull { it.rel == "self" }?.type?.contains("kind=acquisition") == true,
         )
     }
 
     private fun atomLink(el: Element, base: String): OpdsLink {
         val raw = el.attr("href")
         val templated = '{' in raw
+        // The page count is `pse:count`, but servers bind the namespace to any prefix (Kavita: `p5:count`).
+        val count = el.attributes().firstOrNull { it.key == "count" || it.key.endsWith(":count") }?.value
         return OpdsLink(
             href = absolute(base, raw),
             type = el.attr("type").ifEmpty { null },
             rel = el.attr("rel").ifEmpty { null },
-            count = (el.attr("pse:count").ifEmpty { el.attr("count") }).toIntOrNull(),
+            count = count?.trim()?.toIntOrNull(),
             templated = templated,
         )
     }

@@ -89,19 +89,27 @@ class OpdsEngine(
         return listing(url, page)
     }
 
-    /** The first page to list for [url]: opens folders that only contain folders, down to the books or series. */
+    /**
+     * The first page to list for [url]. Only the catalogue root is opened further: it is a menu,
+     * so we go down to the series or book list (for example "All series"). Any other feed, such as
+     * a section the user picked, is listed as it is: its sub-entries are the titles.
+     */
     private suspend fun startOf(url: String): String {
+        if (url != root) return url
         descended[url]?.let { return it }
         var feed = fetchFeed(url)
-        if (url == root) {
-            rootNav = feed.entries.filter { it.navUrl != null && !it.isBook }
-        }
-        repeat(MAX_DESCENT) {
-            val listsTitles = feed.entries.any { it.isBook || (it.navUrl != null && it.navIsAcquisition) }
+        rootNav = feed.entries.filter { it.navUrl != null && !it.isBook }
+        for (step in 0 until MAX_DESCENT) {
+            val listsTitles = feed.listsItems || feed.entries.any { it.isBook || (it.navUrl != null && it.navIsAcquisition) }
             val folders = feed.entries.filter { it.navUrl != null }
-            if (listsTitles || folders.isEmpty()) return@repeat
-            val pick = folders.firstOrNull { ALL_TITLE.containsMatchIn(it.title) } ?: folders.first()
+            if (listsTitles || folders.isEmpty()) break
+            val series = folders.firstOrNull { SERIES_TITLE.containsMatchIn(it.title) }
+            val pick = series ?: folders.firstOrNull { NEWEST_TITLE.containsMatchIn(it.title) }
+                ?: folders.firstOrNull { ALL_TITLE.containsMatchIn(it.title) } ?: folders.first()
             feed = fetchFeed(pick.navUrl!!)
+            // Servers like Komga mark a list of series as navigation: once we reached the list
+            // named "series", its entries are the titles, not more menus.
+            if (series != null) break
         }
         return feed.url.also { descended[url] = it }
     }
@@ -215,11 +223,12 @@ class OpdsEngine(
             val acquisition = pickAcquisition(entry) ?: return null
             "${acquisition.href}#ext=${extensionOf(acquisition)}"
         }
+        val title = cleanBookTitle(entry.title)
         return Chapter(
             id = entry.id,
-            title = entry.title,
+            title = title,
             url = url,
-            number = (chapterNumberFrom(entry.title) ?: TRAILING_NUMBER.find(entry.title)?.groupValues?.get(1))?.let(::cleanNumber),
+            number = (chapterNumberFrom(title) ?: TRAILING_NUMBER.find(title)?.groupValues?.get(1))?.let(::cleanNumber),
             dateLabel = entry.updated?.take(10),
         )
     }
@@ -322,8 +331,11 @@ class OpdsEngine(
         return feed
     }
 
+    /** Replaces the network in tests. */
+    internal var fetcher: (suspend (String) -> String)? = null
+
     private suspend fun fetchText(url: String): String =
-        http.get(URI(url), manifest, mapOf("Accept" to ACCEPT), checkCloudflare = false).body
+        fetcher?.invoke(url) ?: http.get(URI(url), manifest, mapOf("Accept" to ACCEPT), checkCloudflare = false).body
 
     override fun webUrl(titleId: String): String? = null
 
@@ -359,11 +371,16 @@ class OpdsEngine(
         const val MAX_DOWNLOAD_CACHE = 600L * 1024 * 1024
 
         val NEWEST_TITLE = Regex("""new|recent|latest|свеж|нов|недавн""", RegexOption.IGNORE_CASE)
-        val ALL_TITLE = Regex("""\ball\b|series|library|titles|все|серии|книги""", RegexOption.IGNORE_CASE)
+        val SERIES_TITLE = Regex("""series|titles|books|серии|книги""", RegexOption.IGNORE_CASE)
+        val ALL_TITLE =Regex("""\ball\b|series|library|titles|все|серии|книги""", RegexOption.IGNORE_CASE)
         val TRAILING_NUMBER = Regex("""(\d+(?:[.,]\d+)?)\s*$""")
 
         /** Readable formats, best first. */
         private val READABLE = listOf("cbz", "zip", "cbr", "rar", "cb7", "7z", "pdf")
+
+        /** Kavita lists a started book twice and decorates titles: "Continue Reading from: ◕ Series - Chapter 1". */
+        fun cleanBookTitle(title: String): String =
+            title.removePrefix("Continue Reading from:").trim().trimStart('◕', '●', '○', '⭘', '◔', '◑', '◕').trim().ifEmpty { title }
 
         /** "01" -> "1", "2,5" -> "2.5". */
         fun cleanNumber(raw: String): String {
