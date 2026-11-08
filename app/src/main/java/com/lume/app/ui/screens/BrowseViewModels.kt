@@ -272,6 +272,11 @@ class CatalogViewModel(
             }
             sourceId = source.manifest.id
             feed.load(source, reset)
+            // Some sources (OPDS) only know their sections once the first feed has been read.
+            if (source.manifest.id == sourceId) {
+                val fresh = source.browseSections()
+                if (fresh.map { it.id } != sections.map { it.id }) sections = fresh
+            }
         }
     }
 
