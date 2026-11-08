@@ -45,6 +45,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
 import com.lume.app.LumeApp
 import com.lume.app.R
+import com.lume.app.ui.components.GuardedWebViewClient
 import com.lume.app.data.tracker.AniListTracker
 import com.lume.app.data.tracker.TrackerOAuthDefaults
 import com.lume.app.ui.theme.AppColors
@@ -174,19 +175,19 @@ class TrackerAuthActivity : ComponentActivity() {
                     }
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
-                    webViewClient = object : WebViewClient() {
+                    webViewClient = object : GuardedWebViewClient(container.http.servers) {
                         override fun shouldOverrideUrlLoading(
                             view: WebView?,
                             request: WebResourceRequest?,
                         ): Boolean {
                             val u = request?.url?.toString() ?: return false
-                            return handleRedirect(u, trackerId, onHandled)
+                            return super.shouldOverrideUrlLoading(view, request) || handleRedirect(u, trackerId, onHandled)
                         }
 
                         @Deprecated("Deprecated in Java")
                         override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
                             val u = url ?: return false
-                            return handleRedirect(u, trackerId, onHandled)
+                            return super.shouldOverrideUrlLoading(view, url) || handleRedirect(u, trackerId, onHandled)
                         }
 
                         override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {

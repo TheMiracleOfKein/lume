@@ -46,6 +46,16 @@ class ServerEndpoints {
 
     fun isRegistered(url: HttpUrl): Boolean = byOrigin.containsKey(originOf(url))
 
+    /**
+     * True for a plain `http://` [url] whose origin is not a registered server. Other schemes
+     * (https, about:, data:, app links) are not this check's business. Used by WebViews.
+     */
+    fun blocksCleartext(url: String): Boolean {
+        if (!url.trim().startsWith("http://", ignoreCase = true)) return false
+        val parsed = url.trim().toHttpUrlOrNull() ?: return true
+        return !isRegistered(parsed)
+    }
+
     fun accessFor(url: HttpUrl): ServerAccess? = byOrigin[originOf(url)]
 
     companion object {

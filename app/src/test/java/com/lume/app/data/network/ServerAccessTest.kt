@@ -160,4 +160,18 @@ class ServerAccessTest {
         assertFalse("KEY123" in text)
         assertFalse("alice" in text)
     }
+
+    @Test
+    fun webViewsBlockPlainHttpToUnregisteredHosts() {
+        assertTrue(servers.blocksCleartext("http://evil.example.com/x.png"))
+        assertTrue(servers.blocksCleartext("HTTP://evil.example.com"))
+        assertTrue(servers.blocksCleartext("http://"))
+        assertFalse(servers.blocksCleartext("https://example.com"))
+        assertFalse(servers.blocksCleartext("about:blank"))
+        assertFalse(servers.blocksCleartext("lume://oauth/cb"))
+        servers.register("http://10.0.2.2:25600")
+        assertFalse(servers.blocksCleartext("http://10.0.2.2:25600/page"))
+        // Same host, other port, is another origin.
+        assertTrue(servers.blocksCleartext("http://10.0.2.2:8080/page"))
+    }
 }

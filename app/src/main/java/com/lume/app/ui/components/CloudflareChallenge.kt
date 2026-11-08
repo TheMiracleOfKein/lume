@@ -111,12 +111,12 @@ fun CloudflareChallengeOverlay(
                     )
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
-                    settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+                    settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                     // cf_clearance is bound to the UA that solved it: use the app's UA, not the WebView's.
                     settings.userAgentString = http.userAgent
                     CookieManager.getInstance().setAcceptCookie(true)
                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-                    webViewClient = object : WebViewClient() {
+                    webViewClient = object : GuardedWebViewClient(http.servers) {
                         override fun onPageFinished(view: WebView?, url: String?) {
                             if (AntiBot.isChallengePageTitle(view?.title)) {
                                 sawChallenge.value = true
