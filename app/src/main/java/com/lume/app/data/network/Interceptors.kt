@@ -24,7 +24,9 @@ class RetryInterceptor(
                 chain.proceed(request)
             } catch (e: IOException) {
                 // Timeouts on a cancelled call surface as InterruptedIOException — never retry those.
-                if (!idempotent || attempt >= maxRetries || e is InterruptedIOException && chain.call().isCanceled()) {
+                if (!idempotent || attempt >= maxRetries || e is CleartextBlockedException ||
+                    e is InterruptedIOException && chain.call().isCanceled()
+                ) {
                     throw e
                 }
                 sleep(backoff(attempt++))

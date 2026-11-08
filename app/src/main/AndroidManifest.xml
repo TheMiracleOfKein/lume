@@ -26,8 +26,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Lume"
         android:localeConfig="@xml/locales_config"
-        tools:targetApi="33"
-        android:usesCleartextTraffic="false">
+        tools:targetApi="33">
         <service
             android:name="androidx.work.impl.foreground.SystemForegroundService"
             android:foregroundServiceType="dataSync"

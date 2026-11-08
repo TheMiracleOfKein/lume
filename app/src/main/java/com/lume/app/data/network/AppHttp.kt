@@ -49,6 +49,9 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
     var userAgent: String = DEFAULT_UA
         private set
 
+    /** Servers the user added; they get their sign-in headers and may use plain HTTP. */
+    val servers = ServerEndpoints()
+
     private val client: OkHttpClient = OkHttpClient.Builder()
         .cookieJar(cookieJar)
         .dns(dns)
@@ -59,6 +62,10 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
         .writeTimeout(30, TimeUnit.SECONDS)
         .addInterceptor(rateLimiter)
         .addInterceptor(RetryInterceptor())
+        // Per hop (redirects included): the guard blocks unknown http hosts, the sign-in goes
+        // only to the server's own origin. Coil's client is derived from this one.
+        .addNetworkInterceptor(CleartextGuardInterceptor(servers))
+        .addNetworkInterceptor(ServerAuthInterceptor(servers))
         .build()
 
     val okHttp: OkHttpClient get() = client
@@ -115,6 +122,19 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
             form.forEach { (k, v) -> add(k, v) }
         }.build()
         return execute("POST", uri, source, headers, body, checkCloudflare)
+    }
+
+    /** POST, PUT or PATCH with a JSON [body]; the answer is read as text (it may be empty). */
+    suspend fun sendJson(
+        method: String,
+        uri: URI,
+        body: String,
+        source: SourceManifest? = null,
+        headers: Map<String, String> = emptyMap(),
+    ): HttpResult {
+        require(method == "POST" || method == "PUT" || method == "PATCH") { "Unsupported method: $method" }
+        val requestBody = body.toRequestBody("application/json; charset=utf-8".toMediaType())
+        return execute(method, uri, source, mapOf("Accept" to "application/json") + headers, requestBody, checkCloudflare = false)
     }
 
     suspend fun getBytes(
