@@ -261,13 +261,66 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
     fun importLocalFolder(uri: android.net.Uri) {
         viewModelScope.launch {
             localBusy = true
-            runCatching { app.localImporter.import(uri) }
+            runCatching { app.localImporter.import(uri, app.dao) }
                 .onSuccess { r ->
                     statusMessage = if (r.titles == 0) string(R.string.local_import_empty)
                     else string(R.string.local_import_done, r.titles, r.chapters)
                 }
                 .onFailure { statusMessage = string(R.string.local_import_failed, it.message ?: it.toString()) }
             localBusy = false
+        }
+    }
+
+    val watchedFolders: StateFlow<List<com.lume.app.data.db.WatchedFolderEntity>> = app.dao.observeWatchedFolders()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val readGrant = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+
+    /** Starts watching [uri]: keeps the read permission across restarts and scans it once. */
+    fun addWatchedFolder(uri: android.net.Uri) {
+        viewModelScope.launch {
+            runCatching { app.app.contentResolver.takePersistableUriPermission(uri, readGrant) }
+            app.dao.upsertWatchedFolder(
+                com.lume.app.data.db.WatchedFolderEntity(treeUri = uri.toString(), label = folderName(uri.toString())),
+            )
+            com.lume.app.data.local.FolderScanWorker.runNow(app.app)
+        }
+    }
+
+    fun removeWatchedFolder(treeUri: String) {
+        viewModelScope.launch {
+            runCatching { app.app.contentResolver.releasePersistableUriPermission(treeUri.toUri(), readGrant) }
+            app.dao.deleteWatchedFolder(treeUri)
+            app.dao.deleteImportedFilesFor(treeUri)
+        }
+    }
+
+    /** Picks [old] again after its permission was lost; the folder keeps its history. */
+    fun reconnectWatchedFolder(old: com.lume.app.data.db.WatchedFolderEntity, uri: android.net.Uri) {
+        viewModelScope.launch {
+            runCatching { app.app.contentResolver.takePersistableUriPermission(uri, readGrant) }
+            if (uri.toString() == old.treeUri) {
+                app.dao.setWatchedFolderAvailable(old.treeUri, true)
+            } else {
+                // A different tree: document ids differ, so the old ledger no longer applies.
+                runCatching { app.app.contentResolver.releasePersistableUriPermission(old.treeUri.toUri(), readGrant) }
+                app.dao.deleteWatchedFolder(old.treeUri)
+                app.dao.deleteImportedFilesFor(old.treeUri)
+                app.dao.upsertWatchedFolder(old.copy(treeUri = uri.toString(), label = folderName(uri.toString()), available = true))
+            }
+            com.lume.app.data.local.FolderScanWorker.runNow(app.app)
+        }
+    }
+
+    fun scanWatchedFoldersNow() {
+        com.lume.app.data.local.FolderScanWorker.runNow(app.app)
+        statusMessage = string(R.string.watched_scan_started)
+    }
+
+    fun setFolderScanHours(hours: Int) {
+        viewModelScope.launch {
+            prefs.setFolderScanHours(hours)
+            com.lume.app.data.local.FolderScanWorker.schedule(app.app, hours)
         }
     }
 
@@ -389,6 +442,7 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
                         is com.lume.app.data.backup.BackupRepository.RestoreResult.Lume -> {
                             reschedule()
                             com.lume.app.data.backup.BackupWorker.schedule(app.app, prefs.autoBackupDays.value)
+                            com.lume.app.data.local.FolderScanWorker.schedule(app.app, prefs.folderScanHours.value)
                             string(R.string.backup_restored, folderName(uri.toString()))
                         }
                         is com.lume.app.data.backup.BackupRepository.RestoreResult.Mihon -> {

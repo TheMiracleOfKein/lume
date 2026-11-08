@@ -182,6 +182,35 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate12To13AddsWatchedFoldersAndLedger() {
+        helper.createDatabase(dbName, 12).apply {
+            execSQL(
+                "INSERT INTO reading_progress (sourceId, titleId, titleName, chapterId, chapterName, chapterUrl, pageIndex, pageCount, updatedAt, pageOffset) " +
+                    "VALUES ('s', 't', 'Title', 'c1', 'Ch 1', 'u', 3, 20, 5, 0.25)",
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(dbName, 13, true, LumeDatabase.MIGRATION_12_13)
+
+        db.query("SELECT pageIndex FROM reading_progress").use {
+            it.moveToFirst()
+            assertEquals(3, it.getInt(0))
+        }
+        db.execSQL("INSERT INTO watched_folders (treeUri, label, addedAt, lastScanAt, available) VALUES ('content://t', 'Manga', 1, 0, 1)")
+        db.execSQL("INSERT INTO imported_files (treeUri, documentId, size, lastModified, destPath) VALUES ('content://t', 'd1', 10, 20, '/x/y.cbz')")
+        db.query("SELECT label, available FROM watched_folders").use {
+            it.moveToFirst()
+            assertEquals("Manga", it.getString(0))
+            assertEquals(1, it.getInt(1))
+        }
+        db.query("SELECT destPath FROM imported_files WHERE treeUri = 'content://t' AND documentId = 'd1'").use {
+            it.moveToFirst()
+            assertEquals("/x/y.cbz", it.getString(0))
+        }
+    }
+
+    @Test
     fun freshDatabaseOpensWithAllMigrations() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         helper.createDatabase(dbName, 7).close()

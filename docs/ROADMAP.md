@@ -218,6 +218,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.0: CBR, CB7 and PDF** ✅ released 2026-11-08 ([notes](releases/v0.9.0.md), [device check](releases/v0.9.0-check.md)): local chapters as CBR, CB7 and PDF, and offline parser tests.
 
+**v0.9.1: watched folders** ([notes](releases/v0.9.1.md), [device check](releases/v0.9.1-check.md)): folders that Lume re-scans for new and changed chapters.
+
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
 - ✅ **Tall pages in pieces** (M). Paged modes decode pages in tiles through Telephoto; webtoon strips keep the slices from v0.7.11.
@@ -249,7 +251,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **Local files**
 - ✅ **CBR, CB7 and PDF** (M). PDF through Android's own renderer; CBR through junrar, CB7 through Apache Commons Compress.
-- **Watched folders** (M). New chapters in an imported folder appear without importing again.
+- ✅ **Watched folders** (M), in v0.9.1. Pick folders in Settings → Library; Lume re-scans them every 6, 12 or 24 hours (or on "Scan now"), copies only new and changed files (a ledger of size and modified time per file), and says "N new chapters". A folder whose permission is lost shows "Reconnect".
 - **Any folder as download storage** (M). The reader reads pages through the Storage Access Framework instead of file paths.
 
 **Library**
@@ -451,7 +453,7 @@ Release notes: [docs/releases/v0.5.0.md](releases/v0.5.0.md).
 - ✅ Download new chapters automatically; delete chapters after reading; storage usage.
 
 **Local files**
-- 🟡 Import a folder from your device; ComicInfo.xml and covers; clean temporary files. Done as a copy into the local library; the picked folder is not watched for later changes.
+- 🟡 Import a folder from your device; ComicInfo.xml and covers; clean temporary files. Done as a copy into the local library; folders you add under "Watched folders" are re-scanned for later changes (v0.9.1).
 
 **Backups**
 - ✅ Save and open backups anywhere on the device; automatic backups with rotation; include settings (account sign-ins stay out).
@@ -751,3 +753,13 @@ Release notes: [docs/releases/v0.9.0.md](releases/v0.9.0.md); device check in [v
 - ✅ **Clear errors** for RAR5 ("repack as CBZ") and damaged archives.
 - ✅ **Offline parser tests** for every engine (merged before this release).
 - ⏸️ A real RAR5 file wasn't tried on the device (no RAR tool at hand); a file with the RAR5 signature shows the RAR5 message.
+
+### v0.9.1: watched folders
+
+Release notes: [docs/releases/v0.9.1.md](releases/v0.9.1.md); device check in [v0.9.1-check.md](releases/v0.9.1-check.md).
+
+- ✅ **Watched folders** in Settings → Library → Local files: add, remove, "Scan now" and a scan interval (off, 6, 12 or 24 hours) run by `FolderScanWorker`.
+- ✅ **Import ledger** (`imported_files`, Room 13): only new and changed files are copied; a scan that finds chapters posts "N new chapters".
+- ✅ **Lost access** marks the folder and offers "Reconnect".
+- ⏸️ Not tried on the device: the 12→13 upgrade (covered by `MigrationTest` in CI), revoking access and "Reconnect", and a scan running in the background on its schedule.
+- ⏸️ Left for later: a watched folder doesn't ask for the notification permission by itself (only the update switch does), so on a new install the "new chapters" notice can stay silent.

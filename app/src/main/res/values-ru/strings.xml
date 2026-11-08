@@ -1044,4 +1044,29 @@
     <string name="home_refresh_failed">Не удалось обновить ленту</string>
     <string name="home_latest_empty">Сейчас нет новых релизов</string>
     <string name="search_start_hint">Введите название и начните поиск</string>
+    <string name="watched_title">Отслеживаемые папки</string>
+    <string name="watched_none">Отслеживаемых папок нет. Новые главы из такой папки копируются в библиотеку по расписанию.</string>
+    <string name="watched_add">Добавить отслеживаемую папку</string>
+    <string name="watched_add_hint">Папка с библиотекой или одной серией: Lume ищет в ней новые и изменённые файлы.</string>
+    <string name="watched_remove">Убрать</string>
+    <string name="watched_reconnect">Подключить снова</string>
+    <string name="watched_unavailable">Доступ к папке потерян. Подключите её снова, чтобы продолжить проверку.</string>
+    <string name="watched_never_scanned">Ещё не проверялась</string>
+    <string name="watched_last_scan">Последняя проверка: %1$s</string>
+    <string name="watched_scan_now">Проверить сейчас</string>
+    <string name="watched_scan_started">Проверяем отслеживаемые папки…</string>
+    <string name="watched_interval">Проверять каждые</string>
+    <plurals name="watched_interval_hours">
+        <item quantity="one">%d час</item>
+        <item quantity="few">%d часа</item>
+        <item quantity="many">%d часов</item>
+        <item quantity="other">%d часа</item>
+    </plurals>
+    <plurals name="notif_folder_scan_new">
+        <item quantity="one">%d новая глава</item>
+        <item quantity="few">%d новые главы</item>
+        <item quantity="many">%d новых глав</item>
+        <item quantity="other">%d новой главы</item>
+    </plurals>
+    <string name="settings_kw_watched">отслеживать, папка, проверка, новые главы, импорт, локальные, авто</string>
 </resources>

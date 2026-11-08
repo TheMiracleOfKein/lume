@@ -13,7 +13,19 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import android.text.format.DateUtils
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.sp
+import com.lume.app.data.db.WatchedFolderEntity
+import com.lume.app.ui.theme.AppColors
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -45,6 +57,18 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
     val pickLocalFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) vm.importLocalFolder(uri)
+    }
+
+    val watchedFolders by vm.watchedFolders.collectAsState()
+    val folderScanHours by prefs.folderScanHours.collectAsState()
+    var reconnecting by remember { mutableStateOf<WatchedFolderEntity?>(null) }
+    val addWatchedFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) vm.addWatchedFolder(uri)
+    }
+    val reconnectWatchedFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        val folder = reconnecting
+        reconnecting = null
+        if (uri != null && folder != null) vm.reconnectWatchedFolder(folder, uri)
     }
 
     SettingsSectionTitle(R.string.settings_group_updates)
@@ -154,6 +178,56 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
         }
         SettingItem("local_open") {
             SettingsLink(stringResource(R.string.local_open_library)) { nav.navigate(Routes.browse("local")) }
+        }
+        SettingItem("watched_add") {
+            SettingsLabel(stringResource(R.string.watched_title))
+            if (watchedFolders.isEmpty()) SettingsNote(stringResource(R.string.watched_none))
+            watchedFolders.forEach { folder ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(folder.label, color = AppColors.textPrimary, fontSize = 15.sp)
+                        Text(
+                            when {
+                                !folder.available -> stringResource(R.string.watched_unavailable)
+                                folder.lastScanAt == 0L -> stringResource(R.string.watched_never_scanned)
+                                else -> stringResource(
+                                    R.string.watched_last_scan,
+                                    DateUtils.formatDateTime(context, folder.lastScanAt, DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_SHOW_TIME),
+                                )
+                            },
+                            color = if (folder.available) AppColors.textSecondary else AppColors.danger,
+                            fontSize = 12.sp,
+                        )
+                    }
+                    if (!folder.available) {
+                        TextButton(onClick = {
+                            reconnecting = folder
+                            reconnectWatchedFolder.launch(null)
+                        }) { Text(stringResource(R.string.watched_reconnect)) }
+                    }
+                    TextButton(onClick = { vm.removeWatchedFolder(folder.treeUri) }) { Text(stringResource(R.string.watched_remove)) }
+                }
+            }
+            SettingsLink(stringResource(R.string.watched_add), stringResource(R.string.watched_add_hint)) {
+                addWatchedFolder.launch(null)
+            }
+        }
+        SettingItem("watched_scan_now") {
+            SettingsLink(stringResource(R.string.watched_scan_now)) { vm.scanWatchedFoldersNow() }
+        }
+        SettingItem("watched_interval") {
+            SettingsLabel(stringResource(R.string.watched_interval))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                AppPreferences.FOLDER_SCAN_HOURS.forEach { hours ->
+                    ChoiceChip(
+                        label = if (hours == 0) stringResource(R.string.backup_auto_off)
+                        else pluralStringResource(R.plurals.watched_interval_hours, hours, hours),
+                        selected = hours == folderScanHours,
+                        modifier = Modifier.weight(1f),
+                        onClick = { vm.setFolderScanHours(hours) },
+                    )
+                }
+            }
         }
         SettingItem("local_clean") {
             SettingsLink(stringResource(R.string.local_clean_temp), stringResource(R.string.local_clean_temp_hint)) {

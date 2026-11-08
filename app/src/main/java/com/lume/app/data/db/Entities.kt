@@ -271,3 +271,25 @@ data class TitleSourceEntity(
         const val DISMISSED = "dismissed"
     }
 }
+
+/** A device folder Lume re-scans for new chapters (Settings → Library → Watched folders). */
+@Entity(tableName = "watched_folders")
+data class WatchedFolderEntity(
+    @PrimaryKey val treeUri: String,
+    val label: String,
+    val addedAt: Long = System.currentTimeMillis(),
+    /** 0 = never scanned. */
+    val lastScanAt: Long = 0,
+    /** False when the read permission was lost; "Reconnect" picks the folder again. */
+    val available: Boolean = true,
+)
+
+/** One file copied from a picked folder: what it looked like then and where the copy is. */
+@Entity(tableName = "imported_files", primaryKeys = ["treeUri", "documentId"])
+data class ImportedFileEntity(
+    val treeUri: String,
+    val documentId: String,
+    val size: Long,
+    val lastModified: Long,
+    val destPath: String,
+)

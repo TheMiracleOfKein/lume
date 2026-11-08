@@ -401,6 +401,33 @@ interface LibraryDao {
 
     @Query("SELECT * FROM download_queue WHERE sourceId = :sourceId AND titleId = :titleId")
     suspend fun downloadQueueFor(sourceId: String, titleId: String): List<DownloadQueueEntity>
+
+    @Query("SELECT * FROM watched_folders ORDER BY addedAt")
+    fun observeWatchedFolders(): Flow<List<WatchedFolderEntity>>
+
+    @Query("SELECT * FROM watched_folders ORDER BY addedAt")
+    suspend fun watchedFolders(): List<WatchedFolderEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertWatchedFolder(folder: WatchedFolderEntity)
+
+    @Query("DELETE FROM watched_folders WHERE treeUri = :treeUri")
+    suspend fun deleteWatchedFolder(treeUri: String)
+
+    @Query("UPDATE watched_folders SET available = :available WHERE treeUri = :treeUri")
+    suspend fun setWatchedFolderAvailable(treeUri: String, available: Boolean)
+
+    @Query("UPDATE watched_folders SET lastScanAt = :at WHERE treeUri = :treeUri")
+    suspend fun setWatchedFolderScanned(treeUri: String, at: Long)
+
+    @Query("SELECT * FROM imported_files WHERE treeUri = :treeUri")
+    suspend fun importedFilesFor(treeUri: String): List<ImportedFileEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertImportedFile(file: ImportedFileEntity)
+
+    @Query("DELETE FROM imported_files WHERE treeUri = :treeUri")
+    suspend fun deleteImportedFilesFor(treeUri: String)
 }
 
 data class TitleKey(val sourceId: String, val titleId: String)

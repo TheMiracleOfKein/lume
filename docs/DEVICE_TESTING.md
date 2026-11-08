@@ -33,6 +33,12 @@ Use the signed release APK, installed over the previous release, so the database
 - [ ] Import a `.pdf` chapter: pages render sharp in paged and webtoon modes, the cover is its first page, zoom stays sharp, and a 200-page PDF scrolls without stutter or a crash.
 - [ ] A password-protected PDF and a RAR5 `.cbr`: the reader shows a clear message ("can't be opened" / "Repack it as CBZ"), no crash. Note whether the RAR5 file opens (junrar 8 reads many RAR5 files).
 - [ ] Release build (R8): CBR, CB7 and PDF chapters open as in the debug build.
+- [ ] Settings → Library → Watched folders → Add a folder with a series inside: it is scanned once and the series shows under "Open local titles".
+- [ ] Copy a new chapter (CBZ) into the watched folder on the device, then tap "Scan now": a "1 new chapter" notification appears and the chapter lists in the title. Scanning again with no changes posts no notification.
+- [ ] Replace a chapter file with a different one of the same name: the next scan copies it again, with no "new chapter" notification.
+- [ ] Set the interval to 6 hours, then leave the app: the scan runs in the background (check with `adb shell dumpsys jobscheduler`).
+- [ ] Revoke access (remove the folder's permission in system settings, or delete and recreate the folder): the folder shows "Access to this folder was lost. Reconnect to scan it again." with "Reconnect"; picking it again clears the message and the next scan works.
+- [ ] Remove a watched folder: it disappears from the list; the chapters already copied stay in the library.
 
 ## Backups and trackers (v0.5)
 

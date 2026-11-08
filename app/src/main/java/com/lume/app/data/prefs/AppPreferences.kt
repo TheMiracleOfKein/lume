@@ -231,6 +231,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val translateLabelsKey = booleanPreferencesKey("translate_chapter_labels")
     private val autoBackupDaysKey = intPreferencesKey("auto_backup_days")
     private val autoBackupKeepKey = intPreferencesKey("auto_backup_keep")
+    private val folderScanHoursKey = intPreferencesKey("folder_scan_hours")
     private val autoBackupFolderKey = stringPreferencesKey("auto_backup_folder")
     private val syncBackendKey = stringPreferencesKey("sync_backend")
     private val syncFolderKey = stringPreferencesKey("sync_folder")
@@ -578,6 +579,13 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
         }
     }
 
+    /** Hours between scans of the watched folders; 0 = off. */
+    val folderScanHours: StateFlow<Int> = state { it[folderScanHoursKey]?.takeIf { h -> h in FOLDER_SCAN_HOURS } ?: 0 }
+
+    suspend fun setFolderScanHours(hours: Int) {
+        context.appDataStore.edit { it[folderScanHoursKey] = hours }
+    }
+
     suspend fun setAutoBackupFolder(uri: String?) {
         context.privateDataStore.edit { if (uri.isNullOrBlank()) it.remove(autoBackupFolderKey) else it[autoBackupFolderKey] = uri }
     }
@@ -806,6 +814,8 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
         const val MAX_PARALLEL_PAGES = 4
         val AUTO_BACKUP_DAYS = listOf(0, 1, 3, 7)
         val AUTO_BACKUP_KEEP = listOf(3, 5, 10)
+        /** Hours between scans of the watched folders; 0 = only "Scan now". */
+        val FOLDER_SCAN_HOURS = listOf(0, 6, 12, 24)
         /** Hours between background syncs; 0 = only "Sync now" and app start. */
         val SYNC_INTERVALS = listOf(0, 1, 6, 12, 24)
         private val PRIVATE_KEY_PARTS = listOf("token", "secret", "client_id", "user_id", "password", "verifier")
