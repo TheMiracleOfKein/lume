@@ -218,7 +218,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.0: CBR, CB7 and PDF** ✅ released 2026-11-08 ([notes](releases/v0.9.0.md), [device check](releases/v0.9.0-check.md)): local chapters as CBR, CB7 and PDF, and offline parser tests.
 
-**v0.9.1: watched folders** ([notes](releases/v0.9.1.md), [device check](releases/v0.9.1-check.md)): folders that Lume re-scans for new and changed chapters.
+**v0.9.1: watched folders** ✅ released 2026-11-08 ([notes](releases/v0.9.1.md), [device check](releases/v0.9.1-check.md)): folders that Lume re-scans for new and changed chapters.
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -754,7 +754,7 @@ Release notes: [docs/releases/v0.9.0.md](releases/v0.9.0.md); device check in [v
 - ✅ **Offline parser tests** for every engine (merged before this release).
 - ⏸️ A real RAR5 file wasn't tried on the device (no RAR tool at hand); a file with the RAR5 signature shows the RAR5 message.
 
-### v0.9.1: watched folders
+### v0.9.1: watched folders ✅ released 2026-11-08
 
 Release notes: [docs/releases/v0.9.1.md](releases/v0.9.1.md); device check in [v0.9.1-check.md](releases/v0.9.1-check.md).
 
