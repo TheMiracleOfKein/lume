@@ -220,6 +220,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.1: watched folders** ✅ released 2026-11-08 ([notes](releases/v0.9.1.md), [device check](releases/v0.9.1-check.md)): folders that Lume re-scans for new and changed chapters.
 
+**v0.9.2: self-hosted servers** ([notes](releases/v0.9.2.md), [device check](releases/v0.9.2-check.md)): OPDS catalogues, Komga and Kavita as sources you add yourself.
+
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
 - ✅ **Tall pages in pieces** (M). Paged modes decode pages in tiles through Telephoto; webtoon strips keep the slices from v0.7.11.
@@ -246,8 +248,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 **Goal:** bring every comic you have into one place, and spend less battery and data on updates.
 
 **Self-hosted servers** (L)
-- 🟡 An **OPDS** engine: Komga, Kavita, Calibre-Web and other servers that speak OPDS, with sign-in. In progress for v0.9.2, not released yet.
-- 🟡 Native **Komga** and **Kavita** engines where OPDS is too limited (read progress back to the server). In progress for v0.9.2, not released yet. Servers are added in Sources → "Add server"; sign-ins are stored encrypted with a key from the Android Keystore, and plain `http://` works only for servers you added.
+- ✅ An **OPDS** engine: Komga, Kavita, Calibre-Web and other servers that speak OPDS, with sign-in. In v0.9.2.
+- ✅ Native **Komga** and **Kavita** engines where OPDS is too limited (read progress back to the server). In v0.9.2. Servers are added in Sources → "Add server"; sign-ins are stored encrypted with a key from the Android Keystore, and plain `http://` works only for servers you added.
 
 **Local files**
 - ✅ **CBR, CB7 and PDF** (M). PDF through Android's own renderer; CBR through junrar, CB7 through Apache Commons Compress.
@@ -763,3 +765,15 @@ Release notes: [docs/releases/v0.9.1.md](releases/v0.9.1.md); device check in [v
 - ✅ **Lost access** marks the folder and offers "Reconnect".
 - ⏸️ Not tried on the device: the 12→13 upgrade (covered by `MigrationTest` in CI), revoking access and "Reconnect", and a scan running in the background on its schedule.
 - ⏸️ Left for later: a watched folder doesn't ask for the notification permission by itself (only the update switch does), so on a new install the "new chapters" notice can stay silent.
+
+### v0.9.2: self-hosted servers
+
+Release notes: [docs/releases/v0.9.2.md](releases/v0.9.2.md); device check in [v0.9.2-check.md](releases/v0.9.2-check.md).
+
+- ✅ **Add server** in Sources: OPDS, Komga or Kavita, with edit and remove; servers are stored like source packs (no database change).
+- ✅ **Sign-ins** encrypted with an Android Keystore key (`ServerCredentialStore`), sent only to the server's own scheme, host and port (`ServerAuthInterceptor`); no session cookies for servers; a saved sign-in is kept on edit only while the server's address stays on the same origin.
+- ✅ **Plain HTTP** only for added servers: `CleartextGuardInterceptor` for the shared client, `GuardedWebViewClient` for the app's WebViews. Android 17's local network permission is asked for when a home server is added.
+- ✅ **Engines:** `KomgaEngine`, `KavitaEngine`, `OpdsEngine` (OPDS 1.2 and 2.0, page streaming or downloaded archives); reading progress goes back to Komga and Kavita.
+- ✅ **Errors** for unreachable servers and rejected sign-ins in EN and RU.
+- ⏸️ Known issue: in one Komga test chapter the reader stopped at page 3 of 4 at the end of the last chapter, so that chapter wasn't marked read. Cause not found yet.
+- ⏸️ Not tried on the device: denying the local network permission, a Cloudflare check with the new WebView guard, server-side progress for Kavita and OPDS, and real servers other than local Docker ones.
