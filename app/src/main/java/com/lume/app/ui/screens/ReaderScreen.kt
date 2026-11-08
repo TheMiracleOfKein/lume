@@ -163,8 +163,7 @@ fun ReaderScreen(
     var lastEdgeAt by remember { mutableLongStateOf(0L) }
     val onEdge: (Boolean) -> Unit = { forward ->
         val now = System.currentTimeMillis()
-        val neighbours = vm.neighbours
-        val missing = if (forward) neighbours.next == null else neighbours.previous == null
+        val missing = !vm.hasChapterBeyondStrip(forward)
         if (missing && vm.currentChapter != null && now - lastEdgeAt > EDGE_NOTICE_GAP_MS) {
             lastEdgeAt = now
             scope.launch {

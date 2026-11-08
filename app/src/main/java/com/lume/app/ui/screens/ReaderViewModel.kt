@@ -24,6 +24,7 @@ import com.lume.app.data.title.TitleLoad
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ChapterNeighbours
 import com.lume.app.domain.chapterNeighbours
+import com.lume.app.domain.hasChapterBeyond
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.ReaderMode
@@ -130,6 +131,15 @@ class ReaderViewModel(
     /** The chapters before and after the current one in reading order (null at either end). */
     val neighbours: ChapterNeighbours
         get() = chapterNeighbours(chapters, currentChapterId)
+    /**
+     * Whether a chapter lies beyond the end of what is loaded (the strip's edge), not beyond the
+     * chapter currently tracked: the tracked one can lag behind the list while a swipe lands in
+     * the next chapter.
+     */
+    fun hasChapterBeyondStrip(forward: Boolean): Boolean {
+        val edge = (if (forward) loaded.lastOrNull() else loaded.firstOrNull())?.chapter?.id ?: currentChapterId
+        return hasChapterBeyond(chapters, edge, forward)
+    }
     val currentChapterPageCount: Int
         get() = loaded.firstOrNull { chapterIdsMatch(it.chapter.id, currentChapterId) }?.pages?.size ?: 0
 

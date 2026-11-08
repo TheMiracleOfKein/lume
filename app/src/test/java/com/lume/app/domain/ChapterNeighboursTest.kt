@@ -74,4 +74,14 @@ class ChapterNeighboursTest {
         assertEquals("a", n.previous?.id)
         assertEquals("c", n.next?.id)
     }
+
+    @Test
+    fun edgeCheckLooksBeyondTheLoadedChapterNotTheTrackedOne() {
+        // Newest first, as Komga lists them after its own reversal is undone by the source.
+        val newestFirst = listOf(ch("b", "2"), ch("a", "1"))
+        assertEquals(true, hasChapterBeyond(newestFirst, "a", forward = true))
+        assertEquals(false, hasChapterBeyond(newestFirst, "b", forward = true))
+        assertEquals(false, hasChapterBeyond(newestFirst, "a", forward = false))
+        assertEquals(true, hasChapterBeyond(newestFirst, "b", forward = false))
+    }
 }
