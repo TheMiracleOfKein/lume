@@ -222,6 +222,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.2: self-hosted servers** ✅ released 2026-11-08 ([notes](releases/v0.9.2.md), [device check](releases/v0.9.2-check.md)): OPDS catalogues, Komga and Kavita as sources you add yourself.
 
+**v0.9.3: InkStory** ([notes](releases/v0.9.3.md), [device check](releases/v0.9.3-check.md)): a new Russian source; Com-X.life dropped for now.
+
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
 - ✅ **Tall pages in pieces** (M). Paged modes decode pages in tiles through Telephoto; webtoon strips keep the slices from v0.7.11.
@@ -264,7 +266,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - **Import Kotatsu backups** (M).
 
 **Sources**
-- InkStory and Com-X.life ([ENGINES.md](ENGINES.md)) (M each).
+- ✅ **InkStory** ([ENGINES.md](ENGINES.md)) (M). In v0.9.3.
+- ⏸️ **Com-X.life** (M): dropped for now. The site checks every visitor with its own browser-fingerprint test, which the app's challenge flow doesn't recognise.
 - ✅ **Offline parser tests** with saved pages for every engine (M), so a parser change is checked without the live sites. Fixtures are in `app/src/test/resources/fixtures` and recorded with `-Plume.live.record` ([ENGINES.md](ENGINES.md#saved-pages-offline-parser-tests)). The MangaDex and MangaBuff fixtures are hand-written until they can be recorded.
 - 🟡 **Source status in the app** (S): the last error per source on the Sources screen, so a broken source is visible before you open a title. Done in v0.7.13 for the running session; left: keeping it across restarts and showing it in global search.
 
@@ -777,3 +780,13 @@ Release notes: [docs/releases/v0.9.2.md](releases/v0.9.2.md); device check in [v
 - ✅ **Errors** for unreachable servers and rejected sign-ins in EN and RU.
 - ⏸️ Known issue: in one Komga test chapter the reader stopped at page 3 of 4 at the end of the last chapter, so that chapter wasn't marked read. Cause not found yet.
 - ⏸️ Not tried on the device: denying the local network permission, a Cloudflare check with the new WebView guard, server-side progress for Kavita and OPDS, and real servers other than local Docker ones.
+
+### v0.9.3: InkStory
+
+Release notes: [docs/releases/v0.9.3.md](releases/v0.9.3.md); device check in [v0.9.3-check.md](releases/v0.9.3-check.md).
+
+- ✅ **InkStory** (`InkStoryEngine`): popular, latest, search, sort, genre and tag filters, details, chapters from every team, pages. The data comes from the page the server renders (no public API); objects are found by field name.
+- ✅ Restricted titles are left out of lists, paid chapters are skipped, and a restricted title opened from a link gives a clear error.
+- ✅ Page images are unscrambled by `ImageDecryptInterceptor`, with the key the chapter page provides; other images pass through.
+- ⏸️ **Com-X.life** dropped for now: every page sits behind the site's own browser-fingerprint check, which the challenge flow doesn't recognise, so an engine couldn't work reliably.
+- ⏸️ Not tried on the device: titles with several teams, restricted and adult titles, typed Cyrillic search. The Browse screen has no "Latest" chip for InkStory; latest is under Search → Filters → Sort.
