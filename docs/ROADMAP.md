@@ -222,7 +222,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.2: self-hosted servers** ✅ released 2026-11-08 ([notes](releases/v0.9.2.md), [device check](releases/v0.9.2-check.md)): OPDS catalogues, Komga and Kavita as sources you add yourself.
 
-**v0.9.3: InkStory** ([notes](releases/v0.9.3.md), [device check](releases/v0.9.3-check.md)): a new Russian source; Com-X.life dropped for now.
+**v0.9.3: InkStory** ✅ released 2026-11-10 ([notes](releases/v0.9.3.md), [device check](releases/v0.9.3-check.md)): a new Russian source; Com-X.life dropped for now.
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -781,7 +781,7 @@ Release notes: [docs/releases/v0.9.2.md](releases/v0.9.2.md); device check in [v
 - ⏸️ Known issue: in one Komga test chapter the reader stopped at page 3 of 4 at the end of the last chapter, so that chapter wasn't marked read. Cause not found yet.
 - ⏸️ Not tried on the device: denying the local network permission, a Cloudflare check with the new WebView guard, server-side progress for Kavita and OPDS, and real servers other than local Docker ones.
 
-### v0.9.3: InkStory
+### v0.9.3: InkStory ✅ released 2026-11-10
 
 Release notes: [docs/releases/v0.9.3.md](releases/v0.9.3.md); device check in [v0.9.3-check.md](releases/v0.9.3-check.md).
 
