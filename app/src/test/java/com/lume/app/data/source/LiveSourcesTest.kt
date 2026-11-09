@@ -175,7 +175,8 @@ class LiveSourcesTest {
                 .header("User-Agent", http.userAgent)
                 .apply { referers.refererFor(hostOf(imageUrl))?.let { header("Referer", it) } }
                 .build()
-            http.okHttp.newCall(request).execute().use { response ->
+            // No cookies: the Android OkHttp artifact can't parse a `Domain=` cookie off-device (CDNs set them).
+            http.okHttp.newBuilder().cookieJar(CookieJar.NO_COOKIES).build().newCall(request).execute().use { response ->
                 val type = response.header("Content-Type").orEmpty()
                 if (!response.isSuccessful &&
                     AntiBot.isGeoBlocked(response.header("Server"), response.peekBody(16_384).string())
