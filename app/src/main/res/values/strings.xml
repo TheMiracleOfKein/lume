@@ -316,6 +316,8 @@
     <string name="error_source_login_required">%1$s shows chapters only to signed-in users. Sign in under Sources → %1$s.</string>
     <string name="error_http_generic" tools:ignore="PluralsCandidate">HTTP %1$d from %2$s</string>
     <string name="error_chapter_locked">This chapter is locked on %1$s (paid or early access).</string>
+    <string name="error_inkstory_restricted">%1$s offers this title only to signed-in readers, library members or subscribers. It has no free chapters.</string>
+    <string name="error_source_changed">%1$s has changed its pages and can\'t be read for now. The source needs an app update.</string>
     <string name="cd_open_in_browser">Open in browser</string>
     <string name="cd_share">Share</string>
     <string name="error_no_browser">No browser app found</string>
