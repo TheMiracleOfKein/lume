@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "inkstory",
+  "name": "InkStory",
+  "version": "1.0.0",
+  "mediaKind": "comics",
+  "language": "ru",
+  "engine": "inkstory",
+  "baseUrl": "https://inkstory.net",
+  "headers": {
+    "Referer": "https://inkstory.net/"
+  },
+  "engineConfig": {
+    "rateLimit": "1"
+  }
+}

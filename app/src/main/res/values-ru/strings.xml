@@ -305,6 +305,8 @@
     <string name="error_source_login_required">%1$s показывает главы только после входа. Войдите в разделе «Источники» → %1$s.</string>
     <string name="error_http_generic">HTTP %1$d от %2$s</string>
     <string name="error_chapter_locked">Глава закрыта на %1$s (платная или ранний доступ).</string>
+    <string name="error_inkstory_restricted">%1$s показывает этот тайтл только авторизованным читателям, участникам библиотеки или подписчикам. Бесплатных глав нет.</string>
+    <string name="error_source_changed">%1$s изменил страницы, и сейчас их не прочитать. Источнику нужно обновление приложения.</string>
     <string name="cd_open_in_browser">Открыть в браузере</string>
     <string name="cd_share">Поделиться</string>
     <string name="error_no_browser">Не найден браузер</string>

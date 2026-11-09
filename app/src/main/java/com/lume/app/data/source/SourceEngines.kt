@@ -21,6 +21,7 @@ object SourceEngines {
     const val ASURA = "asura"
     const val REMANGA = "remanga"
     const val MANGABUFF = "mangabuff"
+    const val INKSTORY = "inkstory"
     const val WEEBCENTRAL = "weebcentral"
     const val DEMONIC = "demonic"
     const val LOCAL = "local"
@@ -41,6 +42,7 @@ object SourceEngines {
         ASURA,
         REMANGA,
         MANGABUFF,
+        INKSTORY,
         LOCAL,
     )
 
@@ -68,6 +70,7 @@ object SourceEngines {
         ASURA -> "Asura"
         REMANGA -> "ReManga"
         MANGABUFF -> "MangaBuff"
+        INKSTORY -> "InkStory"
         WEEBCENTRAL -> "Weeb Central"
         DEMONIC -> "Demonic Scans"
         LOCAL -> "Local"
@@ -111,6 +114,7 @@ object SourceEngines {
             HIVETOONS -> HiveToonsEngine(manifest, http)
             REMANGA -> RemangaEngine(manifest, http)
             MANGABUFF -> MangaBuffEngine(manifest, http)
+            INKSTORY -> InkStoryEngine(manifest, http)
             else -> error(
                 if (isKnown(manifest.engine)) {
                     "Engine wiring missing for ${manifest.engine}"

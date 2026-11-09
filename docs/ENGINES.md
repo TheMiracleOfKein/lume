@@ -31,6 +31,7 @@ JSON pack ──► SourceRegistry ──► known engine id ──► Kotlin cl
 | `asura` | Asura API (`api.asurascans.com`, front `asurascans.com`) | no |
 | `remanga` | ReManga API | no |
 | `mangabuff` | MangaBuff HTML | no |
+| `inkstory` | InkStory pages (data script) | no |
 | `local` | Offline folders/CBZ | no |
 
 ## Bundled sources (assets)
@@ -45,6 +46,7 @@ JSON pack ──► SourceRegistry ──► known engine id ──► Kotlin cl
 | `hivetoons` / `vortexscans` | `hivetoons` | Family packs |
 | `remanga` | `remanga` | Russian API |
 | `mangabuff` | `mangabuff` | Russian HTML |
+| `inkstory` | `inkstory` | Russian, reads the site's pages |
 | `local` | `local` | Injected in code |
 
 Optional Madara mirrors (Cloudflare-prone) live under [`packs/madara`](packs/madara/likemanga.json) — import via Sources UI if needed.
@@ -53,7 +55,21 @@ LibSocial sources support **in-app login** (WebView → `localStorage.auth`) fro
 
 One-site engines (`weebcentral`, `demonic`) remain in the binary for compatibility but are **not** in default assets and **cannot** be imported as JSON. Sample manifests: [`packs/site`](packs/site/weebcentral.json).
 
-**Not bundled yet:** InkStory (opaque SPA API), Com-X.life (antibot gate) — need more reverse-engineering.
+**Not bundled:** Com-X.life, because its custom browser-fingerprint gate is not detected by the app's challenge flow.
+
+### InkStory
+
+[InkStory](https://inkstory.net) has no public API, so the engine reads the data script
+the site's own pages carry (it can break when the site is redeployed).
+
+- Popular, latest, search with genre and tag filters, details, chapters and pages work without an account.
+- Titles the site shows only to signed-in readers, library members or subscribers are left
+  out of the lists. If one is opened from a link, the chapter list says so instead of staying empty.
+- Paid chapters are skipped. Adult-flagged titles are not listed (the site serves them to signed-in readers only).
+- A title with several translation teams lists every team's chapters; pick the team in the chapter list.
+- Chapter pages are served masked. The engine tags each page URL with the key the site publishes,
+  and the app's HTTP client unmasks the image (reader, downloads and cache alike).
+- Requests are limited to one per second on the site (`rateLimit`).
 
 ## Import rules
 

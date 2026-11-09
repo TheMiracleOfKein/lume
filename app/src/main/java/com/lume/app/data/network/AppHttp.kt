@@ -68,6 +68,7 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(45, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
+        .addInterceptor(ImageDecryptInterceptor())
         .addInterceptor(rateLimiter)
         .addInterceptor(RetryInterceptor())
         // Per hop (redirects included): the guard blocks unknown http hosts, the sign-in goes
