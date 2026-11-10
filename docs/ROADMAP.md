@@ -263,9 +263,9 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - **Any folder as download storage** (M). The reader reads pages through the Storage Access Framework instead of file paths.
 
 **Library**
-- 🟡 **Smarter updates** (M): skip completed titles, titles you haven't started or titles with unread chapters, and only while charging, are done in v0.7.13. Left: update only some categories.
-- **Statistics** (M): chapters and pages read, reading time, per title and per month. Only on the phone.
-- **Grouped notifications** per title, and a switch per category (S).
+- 🟡 **Smarter updates** (M): skip completed titles, titles you haven't started or titles with unread chapters, and only while charging, are done in v0.7.13. Update only some categories (Settings → Library → "Update categories") is done on the branch, not released.
+- 🟡 **Statistics** (M): chapters and pages read, reading time, per title and per month, on a Reading statistics screen (History top bar and Settings → Library). Only on the phone, included in the JSON backup, not synced. Done on the branch, not released.
+- 🟡 **Grouped notifications** per title, and a switch per category (S): one notification per title under a summary, and "Notify for categories" in Settings → Library. Done on the branch, not released.
 - **Import a tracker list** (M): your AniList or MyAnimeList "Reading" list becomes library entries, found on your sources with the same matching as "Found for you".
 - **Import Kotatsu backups** (M).
 
@@ -273,7 +273,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - ✅ **InkStory** ([ENGINES.md](ENGINES.md)) (M). In v0.9.3.
 - ⏸️ **Com-X.life** (M): dropped for now. The site checks every visitor with its own browser-fingerprint test, which the app's challenge flow doesn't recognise.
 - ✅ **Offline parser tests** with saved pages for every engine (M), so a parser change is checked without the live sites. Fixtures are in `app/src/test/resources/fixtures` and recorded with `-Plume.live.record` ([ENGINES.md](ENGINES.md#saved-pages-offline-parser-tests)). The MangaDex and MangaBuff fixtures are hand-written until they can be recorded.
-- 🟡 **Source status in the app** (S): the last error per source on the Sources screen, so a broken source is visible before you open a title. Done in v0.7.13 for the running session; left: keeping it across restarts and showing it in global search.
+- 🟡 **Source status in the app** (S): the last error per source on the Sources screen, so a broken source is visible before you open a title. Done in v0.7.13 for the running session; keeping it across restarts (for a week, in private settings that are not backed up) and showing it in global search are done on the branch, not released.
 
 ## v0.10: on-device AI
 
