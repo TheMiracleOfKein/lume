@@ -61,7 +61,7 @@ class LibraryUpdateWorker(
         val rules = app.prefs.libraryUpdateRules.value
         val bookmarks = if (!rules.skipsAny) pool else {
             val stats = dao.observeLibraryStats().first().associateBy { it.sourceId to it.titleId }
-            pool.filterNot { b ->
+            pool.filter { b -> rules.inCategories(parseCategoryIds(b.categoryIdsJson)) }.filterNot { b ->
                 val s = stats[b.sourceId to b.titleId]
                 val status = runCatching { app.titles.ownCached(b.sourceId, b.titleId)?.details?.status }.getOrNull()
                 rules.skips(

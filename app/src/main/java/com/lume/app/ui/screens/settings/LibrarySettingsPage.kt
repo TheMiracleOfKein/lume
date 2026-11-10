@@ -56,6 +56,7 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
     val choices = categoryChoices(categories)
     val mutedCategories by prefs.notifyMutedCategories.collectAsState()
     var pickingNotify by remember { mutableStateOf(false) }
+    var pickingUpdate by remember { mutableStateOf(false) }
 
     // The worker re-checks the permission before every notification, so the answer needs no handling.
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
@@ -142,6 +143,13 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
             ) { pickingNotify = true }
         }
         // These apply to "Update now" too, so they stay visible with the background check off.
+        SettingItem("library_update_categories") {
+            val chosen = choices.filter { it.id in rules.categories }
+            SettingsLink(
+                stringResource(R.string.settings_update_categories),
+                if (chosen.isEmpty()) stringResource(R.string.settings_categories_all) else chosen.joinToString { it.name },
+            ) { pickingUpdate = true }
+        }
         SettingItem("library_skip_completed") {
             SwitchRow(
                 label = stringResource(R.string.settings_library_skip_completed),
@@ -164,6 +172,18 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
                 onCheckedChange = { value -> vm.setLibraryUpdateRules { it.copy(skipUnread = value) } },
             )
         }
+    }
+    if (pickingUpdate) {
+        CategoryPickDialog(
+            title = stringResource(R.string.settings_update_categories),
+            choices = choices,
+            selected = rules.categories,
+            onDismiss = { pickingUpdate = false },
+            onSave = { chosen ->
+                vm.setLibraryUpdateRules { it.copy(categories = chosen) }
+                pickingUpdate = false
+            },
+        )
     }
     if (pickingNotify) {
         val allIds = choices.map { it.id }.toSet()

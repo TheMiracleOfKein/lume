@@ -13,8 +13,14 @@ data class UpdateRules(
     val skipUnread: Boolean = false,
     /** Background checks wait for the charger (WorkManager constraint; "Update now" ignores it). */
     val chargingOnly: Boolean = false,
+    /** Category ids (0 = uncategorized) a check is limited to; empty means every category. */
+    val categories: Set<Long> = emptySet(),
 ) {
-    val skipsAny: Boolean get() = skipCompleted || skipNotStarted || skipUnread
+    val skipsAny: Boolean get() = skipCompleted || skipNotStarted || skipUnread || categories.isNotEmpty()
+
+    /** True when a title in [titleCats] (empty = uncategorized) is inside the chosen categories. */
+    fun inCategories(titleCats: Set<Long>): Boolean =
+        categories.isEmpty() || effectiveCategories(titleCats).any { it in categories }
 
     /**
      * True when a check should leave the title out. [total] and [unread] count chapters as the

@@ -108,4 +108,32 @@ class LibraryExtrasTest {
         assertTrue(unread.skips(completed = false, total = 5, unread = 1, lastReadAt = 1L))
         assertFalse(unread.skips(completed = false, total = 5, unread = 0, lastReadAt = 1L))
     }
+
+    @Test
+    fun noChosenCategoriesMeansEverything() {
+        val rules = UpdateRules()
+        assertTrue(rules.inCategories(emptySet()))
+        assertTrue(rules.inCategories(setOf(3L)))
+    }
+
+    @Test
+    fun chosenCategoriesMatchOnAnyIntersection() {
+        val rules = UpdateRules(categories = setOf(1L, 2L))
+        assertTrue(rules.inCategories(setOf(1L)))
+        assertTrue(rules.inCategories(setOf(5L, 2L)))
+        assertFalse(rules.inCategories(setOf(5L)))
+        assertFalse(rules.inCategories(emptySet()))
+    }
+
+    @Test
+    fun uncategorizedTitlesMatchZero() {
+        val rules = UpdateRules(categories = setOf(0L))
+        assertTrue(rules.inCategories(emptySet()))
+        assertFalse(rules.inCategories(setOf(1L)))
+    }
+
+    @Test
+    fun categoriesCountAsSkipping() {
+        assertTrue(UpdateRules(categories = setOf(1L)).skipsAny)
+    }
 }

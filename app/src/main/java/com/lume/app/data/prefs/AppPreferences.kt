@@ -176,6 +176,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val librarySkipNotStartedKey = booleanPreferencesKey("library_update_skip_not_started")
     private val librarySkipUnreadKey = booleanPreferencesKey("library_update_skip_unread")
     private val libraryChargingOnlyKey = booleanPreferencesKey("library_update_charging_only")
+    private val libraryUpdateCategoriesKey = stringSetPreferencesKey("library_update_categories")
     private val libraryNotifyMutedKey = stringSetPreferencesKey("library_notify_muted_categories")
     private val downloadsWifiOnlyKey = booleanPreferencesKey("downloads_wifi_only")
     private val globalSearchNsfwKey = booleanPreferencesKey("global_search_nsfw")
@@ -430,6 +431,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             skipNotStarted = it[librarySkipNotStartedKey] ?: false,
             skipUnread = it[librarySkipUnreadKey] ?: false,
             chargingOnly = it[libraryChargingOnlyKey] ?: false,
+            categories = it[libraryUpdateCategoriesKey].orEmpty().mapNotNull(String::toLongOrNull).toSet(),
         )
     }
     /** Category ids (0 = uncategorized) whose update notifications are muted. */
@@ -715,6 +717,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             it[librarySkipNotStartedKey] = rules.skipNotStarted
             it[librarySkipUnreadKey] = rules.skipUnread
             it[libraryChargingOnlyKey] = rules.chargingOnly
+            it[libraryUpdateCategoriesKey] = rules.categories.map(Long::toString).toSet()
         }
     }
 

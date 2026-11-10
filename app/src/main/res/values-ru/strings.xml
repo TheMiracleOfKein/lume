@@ -890,6 +890,8 @@
     <string name="settings_categories_all">Все категории</string>
     <string name="settings_notify_categories">Уведомлять по категориям</string>
     <string name="settings_notify_categories_hint">Выберите категории, новые главы которых показывают уведомление</string>
+    <string name="settings_update_categories">Категории для обновления</string>
+    <string name="settings_update_categories_hint">Проверять только тайтлы из выбранных категорий</string>
     <string name="settings_notify_categories_none">Ни одной</string>
     <string name="settings_kw_notify_categories">уведомления, отключить, без звука, категории, новые главы</string>
     <string name="settings_kw_library_rules">проверка обновлений, пропускать, батарея, трафик, зарядка, завершённые, непрочитанные</string>

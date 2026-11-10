@@ -82,6 +82,7 @@ object SettingsCatalog {
         SettingInfo("library_wifi", SettingsPage.Library, R.string.settings_wifi_only, R.string.settings_wifi_only_hint, R.string.settings_kw_wifi),
         SettingInfo("library_charging", SettingsPage.Library, R.string.settings_library_charging_only, R.string.settings_library_charging_only_hint, R.string.settings_kw_library_rules),
         SettingInfo("library_notify_categories", SettingsPage.Library, R.string.settings_notify_categories, R.string.settings_notify_categories_hint, R.string.settings_kw_notify_categories),
+        SettingInfo("library_update_categories", SettingsPage.Library, R.string.settings_update_categories, R.string.settings_update_categories_hint, R.string.settings_kw_library_rules),
         SettingInfo("library_skip_completed", SettingsPage.Library, R.string.settings_library_skip_completed, keywordsRes = R.string.settings_kw_library_rules),
         SettingInfo("library_skip_not_started", SettingsPage.Library, R.string.settings_library_skip_not_started, keywordsRes = R.string.settings_kw_library_rules),
         SettingInfo("library_skip_unread", SettingsPage.Library, R.string.settings_library_skip_unread, R.string.settings_library_skip_unread_hint, R.string.settings_kw_library_rules),

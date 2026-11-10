@@ -873,6 +873,8 @@
     <string name="settings_categories_all">All categories</string>
     <string name="settings_notify_categories">Notify for categories</string>
     <string name="settings_notify_categories_hint">Choose the categories whose new chapters raise a notification</string>
+    <string name="settings_update_categories">Update categories</string>
+    <string name="settings_update_categories_hint">Check only titles in the chosen categories</string>
     <string name="settings_notify_categories_none">None</string>
     <string name="settings_kw_notify_categories">notifications, mute, categories, new chapters</string>
     <string name="settings_kw_library_rules">update check, skip, battery, data, charger, completed, unread</string>
