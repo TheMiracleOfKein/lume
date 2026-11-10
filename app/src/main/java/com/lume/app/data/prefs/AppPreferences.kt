@@ -364,6 +364,16 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
         context.privateDataStore.edit { if (value.isNullOrBlank()) it.remove(key) else it[key] = value }
     }
 
+    /**
+     * The sources' last errors as JSON. They live in [privateDataStore], so they stay on the phone:
+     * out of the settings backup, sync and the system backup.
+     */
+    fun sourceProblemsRaw(): String? = currentPrivate.value[stringPreferencesKey("source_problems")]
+
+    suspend fun setSourceProblemsRaw(json: String) {
+        context.privateDataStore.edit { it[stringPreferencesKey("source_problems")] = json }
+    }
+
     /** Link titles to trackers by an exact title match when they are added to the library. */
     val trackerAutoLink: StateFlow<Boolean> = state { it[trackerAutoLinkKey] ?: true }
 

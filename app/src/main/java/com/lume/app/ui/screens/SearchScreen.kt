@@ -75,6 +75,7 @@ import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
 import com.lume.app.ui.components.QuickSearchBar
 import com.lume.app.ui.components.SegmentTab
+import com.lume.app.ui.components.SourceProblemLine
 import com.lume.app.ui.components.TitleListRow
 import com.lume.app.ui.components.libraryMarkKey
 import com.lume.app.ui.components.libraryStatusColor
@@ -375,16 +376,19 @@ private fun GlobalResults(
         return
     }
     val rows = vm.globalRows
+    val problems by vm.problems.collectAsState()
     val finished = vm.globalPending == 0
+    // An empty source with a known problem stays a row of its own, so its error line shows.
+    fun SourceRow.foldsAway() = (state as? SourceState.Done)?.items?.isEmpty() == true && sourceId !in problems
     // Rows stay in one fixed order (active source first) while results stream in, so nothing
     // jumps around under your finger. Once every source answered, the empty ones fold into a
     // one-line footer.
-    val emptyNames = remember(rows, finished) {
+    val emptyNames = remember(rows, finished, problems) {
         if (!finished) emptyList()
-        else rows.filter { (it.state as? SourceState.Done)?.items?.isEmpty() == true }.map { it.sourceName }
+        else rows.filter { it.foldsAway() }.map { it.sourceName }
     }
-    val shown = remember(rows, finished) {
-        if (!finished) rows else rows.filterNot { (it.state as? SourceState.Done)?.items?.isEmpty() == true }
+    val shown = remember(rows, finished, problems) {
+        if (!finished) rows else rows.filterNot { it.foldsAway() }
     }
     val total = rows.size
     val done = total - vm.globalPending
@@ -400,7 +404,7 @@ private fun GlobalResults(
                 )
             }
         }
-        if (vm.globalPending == 0 && rows.none { (it.state as? SourceState.Done)?.items?.isNotEmpty() == true }) {
+        if (vm.globalPending == 0 && shown.none { (it.state as? SourceState.Done)?.items?.isNotEmpty() == true || it.sourceId in problems }) {
             EmptyBox(stringResource(R.string.search_empty))
             return@Column
         }
@@ -411,6 +415,7 @@ private fun GlobalResults(
             items(shown, key = { it.sourceId }) { row ->
                 SourceResultRow(
                     row = row,
+                    problem = problems[row.sourceId],
                     modifier = fadingItem(),
                     onOpen = { titleId -> nav.navigate(Routes.title(row.sourceId, titleId)) },
                     onRetry = {
@@ -436,6 +441,7 @@ private fun GlobalResults(
 @Composable
 private fun SourceResultRow(
     row: SourceRow,
+    problem: com.lume.app.data.source.SourceProblem?,
     onOpen: (String) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
@@ -475,6 +481,15 @@ private fun SourceResultRow(
                     Text(stringResource(R.string.action_retry), color = AppColors.accentText, fontSize = 12.sp)
                 }
             }
+        }
+        // A source that failed before and has not answered yet (or answered nothing) shows why.
+        val showProblem = problem != null && when (val s = row.state) {
+            SourceState.Loading -> true
+            is SourceState.Done -> s.items.isEmpty()
+            is SourceState.Failed -> false
+        }
+        if (showProblem && problem != null) {
+            SourceProblemLine(problem, Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp))
         }
         when (val s = row.state) {
             is SourceState.Done -> if (s.items.isNotEmpty()) {

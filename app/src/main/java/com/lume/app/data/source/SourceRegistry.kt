@@ -42,6 +42,7 @@ class SourceRegistry(
     private val referers: ImageReferers? = null,
     private val credentials: ServerCredentialStore? = null,
     private val json: Json = Json { ignoreUnknownKeys = true; isLenient = true },
+    scope: kotlinx.coroutines.CoroutineScope? = null,
 ) {
     private val bundledIds = mutableSetOf<String>()
 
@@ -52,8 +53,8 @@ class SourceRegistry(
 
     val activeSourceId: StateFlow<String?> = prefs.activeSourceId
 
-    /** The last failure of each source in this session (Sources screen). */
-    val health = SourceHealth()
+    /** The last failure of each source, kept across restarts (Sources screen, global search). */
+    val health = SourceHealth(store = PrefsSourceHealthStore(prefs), scope = scope)
 
     private val loadedOnce = CompletableDeferred<Unit>()
 

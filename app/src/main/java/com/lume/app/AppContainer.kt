@@ -54,7 +54,7 @@ class AppContainer(val app: Application) {
     val prefs = AppPreferences(app, appScope)
     val libAuth = LibAuthStore(app)
     val serverCredentials = com.lume.app.data.server.ServerCredentialStore(app)
-    val sources = SourceRegistry(app, http, prefs, dao, libAuth, imageReferers, serverCredentials)
+    val sources = SourceRegistry(app, http, prefs, dao, libAuth, imageReferers, serverCredentials, scope = appScope)
     val downloads = DownloadStore(app, dao, http, prefs)
     val offlineCache = OfflineTitleCache(dao)
     val localImporter = com.lume.app.data.local.LocalImporter(app)

@@ -1,13 +1,21 @@
 package com.lume.app.data.source
 
+import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.domain.CloudflareException
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
 
-/** The last failed call of a source since the app started; cleared by its next successful call. */
+/** The last failed call of a source; cleared by its next successful call, dropped after a week. */
+@Serializable
 data class SourceProblem(
     val message: String,
     val at: Long,
@@ -15,13 +23,43 @@ data class SourceProblem(
     val siteCheck: Boolean = false,
 )
 
+/** Where [SourceHealth] keeps its entries between app starts. */
+interface SourceHealthStore {
+    fun load(): Map<String, SourceProblem>
+    suspend fun save(problems: Map<String, SourceProblem>)
+}
+
+/** Keeps the entries in the app's private preferences, as one JSON map. */
+class PrefsSourceHealthStore(private val prefs: AppPreferences) : SourceHealthStore {
+    private val json = Json { ignoreUnknownKeys = true }
+    private val serializer = MapSerializer(String.serializer(), SourceProblem.serializer())
+
+    override fun load(): Map<String, SourceProblem> =
+        prefs.sourceProblemsRaw()?.let { raw -> runCatching { json.decodeFromString(serializer, raw) }.getOrNull() }.orEmpty()
+
+    override suspend fun save(problems: Map<String, SourceProblem>) {
+        prefs.setSourceProblemsRaw(json.encodeToString(serializer, problems))
+    }
+}
+
 /**
- * How each source's calls went in this session, so the Sources screen can show a broken source
- * before a title is opened. Nothing is stored or sent anywhere.
+ * How each source's calls went, so the Sources screen and global search can show a broken source
+ * before a title is opened. Entries are kept on the phone for [MAX_AGE_MS] and never sent anywhere.
  */
-class SourceHealth(private val clock: () -> Long = System::currentTimeMillis) {
-    private val _problems = MutableStateFlow<Map<String, SourceProblem>>(emptyMap())
+class SourceHealth(
+    private val clock: () -> Long = System::currentTimeMillis,
+    private val store: SourceHealthStore? = null,
+    scope: CoroutineScope? = null,
+) {
+    private val _problems = MutableStateFlow(
+        store?.load().orEmpty().filterValues { clock() - it.at <= MAX_AGE_MS },
+    )
     val problems: StateFlow<Map<String, SourceProblem>> = _problems.asStateFlow()
+
+    init {
+        // A StateFlow conflates, so a burst of changes writes only the latest map.
+        if (store != null && scope != null) scope.launch { _problems.collect { store.save(it) } }
+    }
 
     fun succeeded(sourceId: String) {
         if (sourceId in _problems.value) _problems.update { it - sourceId }
@@ -48,5 +86,9 @@ class SourceHealth(private val clock: () -> Long = System::currentTimeMillis) {
         }
         succeeded(sourceId)
         return result
+    }
+
+    companion object {
+        const val MAX_AGE_MS = 7L * 24 * 60 * 60 * 1000
     }
 }
