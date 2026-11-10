@@ -53,6 +53,9 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         val state: SourceState,
     )
 
+    /** The last failure of each source, kept across restarts. */
+    val problems: StateFlow<Map<String, com.lume.app.data.source.SourceProblem>> = app.sources.health.problems
+
     var query by mutableStateOf("")
     var mode by mutableStateOf(Mode.Current)
     var searched by mutableStateOf(false)

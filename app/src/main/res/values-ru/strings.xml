@@ -886,6 +886,48 @@
     <string name="settings_kw_library_check">обновление, новые главы, уведомление, фон</string>
     <string name="settings_kw_interval">часы, частота, как часто</string>
     <string name="settings_kw_wifi">мобильные данные, трафик, сеть</string>
+    <string name="stats_title">Статистика чтения</string>
+    <string name="stats_empty">Пока пусто. Прочитайте главу, и здесь появятся время, страницы и главы.</string>
+    <string name="stats_time">Время</string>
+    <string name="stats_chapters">Главы</string>
+    <string name="stats_pages">Страницы</string>
+    <string name="stats_by_month">По месяцам</string>
+    <string name="stats_by_title">По тайтлам</string>
+    <string name="stats_under_minute">меньше минуты</string>
+    <string name="settings_stats_hint">Время, страницы и главы, которые вы прочитали</string>
+    <string name="settings_kw_stats">статистика, время чтения, страницы, главы, история</string>
+    <plurals name="stats_chapters_count">
+        <item quantity="one">%d глава</item>
+        <item quantity="few">%d главы</item>
+        <item quantity="many">%d глав</item>
+        <item quantity="other">%d главы</item>
+    </plurals>
+    <plurals name="stats_pages_count">
+        <item quantity="one">%d страница</item>
+        <item quantity="few">%d страницы</item>
+        <item quantity="many">%d страниц</item>
+        <item quantity="other">%d страницы</item>
+    </plurals>
+    <plurals name="stats_hours">
+        <item quantity="one">%d час</item>
+        <item quantity="few">%d часа</item>
+        <item quantity="many">%d часов</item>
+        <item quantity="other">%d часа</item>
+    </plurals>
+    <plurals name="stats_minutes">
+        <item quantity="one">%d минута</item>
+        <item quantity="few">%d минуты</item>
+        <item quantity="many">%d минут</item>
+        <item quantity="other">%d минуты</item>
+    </plurals>
+    <string name="category_uncategorized">Без категории</string>
+    <string name="settings_categories_all">Все категории</string>
+    <string name="settings_notify_categories">Уведомлять по категориям</string>
+    <string name="settings_notify_categories_hint">Выберите категории, новые главы которых показывают уведомление</string>
+    <string name="settings_update_categories">Категории для обновления</string>
+    <string name="settings_update_categories_hint">Проверять только тайтлы из выбранных категорий</string>
+    <string name="settings_notify_categories_none">Ни одной</string>
+    <string name="settings_kw_notify_categories">уведомления, отключить, без звука, категории, новые главы</string>
     <string name="settings_kw_library_rules">проверка обновлений, пропускать, батарея, трафик, зарядка, завершённые, непрочитанные</string>
     <string name="settings_kw_find_sources">также на, привязка, объединить, другие источники</string>
     <string name="settings_kw_categories">папки, вкладки, категория по умолчанию</string>

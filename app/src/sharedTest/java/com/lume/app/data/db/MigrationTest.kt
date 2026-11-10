@@ -211,6 +211,33 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate13To14AddsReadingSessions() {
+        helper.createDatabase(dbName, 13).apply {
+            execSQL(
+                "INSERT INTO reading_progress (sourceId, titleId, titleName, chapterId, chapterName, chapterUrl, pageIndex, pageCount, updatedAt, pageOffset) " +
+                    "VALUES ('s', 't', 'Title', 'c1', 'Ch 1', 'u', 3, 20, 5, 0.25)",
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(dbName, 14, true, LumeDatabase.MIGRATION_13_14)
+
+        db.query("SELECT pageIndex FROM reading_progress").use {
+            it.moveToFirst()
+            assertEquals(3, it.getInt(0))
+        }
+        db.execSQL(
+            "INSERT INTO reading_sessions (sourceId, titleId, titleName, chapterId, startedAt, durationMs, pagesRead) " +
+                "VALUES ('s', 't', 'Title', 'c1', 100, 60000, 12)",
+        )
+        db.query("SELECT durationMs, pagesRead FROM reading_sessions").use {
+            it.moveToFirst()
+            assertEquals(60000L, it.getLong(0))
+            assertEquals(12, it.getInt(1))
+        }
+    }
+
+    @Test
     fun freshDatabaseOpensWithAllMigrations() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         helper.createDatabase(dbName, 7).close()

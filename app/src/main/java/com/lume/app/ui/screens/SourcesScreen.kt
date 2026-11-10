@@ -101,6 +101,7 @@ import com.lume.app.ui.components.CheckRow
 import com.lume.app.ui.components.ChoiceChip
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.SwitchRow
+import com.lume.app.ui.components.sourceProblemText
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.source.SourceLoginActivity
 import com.lume.app.ui.theme.AppColors
@@ -693,10 +694,8 @@ private fun SourceRow(
             )
             Text(source.manifest.baseUrl, color = AppColors.textTertiary, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (problem != null) {
-                val ago = DateUtils.getRelativeTimeSpanString(problem.at, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)
                 Text(
-                    if (problem.siteCheck) stringResource(R.string.source_problem_site_check, ago)
-                    else stringResource(R.string.source_problem, ago, problem.message),
+                    sourceProblemText(problem),
                     color = AppColors.danger,
                     fontSize = 11.sp,
                     maxLines = 2,

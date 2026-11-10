@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.DeleteSweep
+import com.lume.app.ui.nav.Routes
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableStateOf
@@ -77,6 +79,9 @@ fun HistoryScreen(nav: NavHostController) {
                     BackButton(onClick = { nav.popBackStack() })
                 },
                 actions = {
+                    IconButton(onClick = { nav.navigate(Routes.Stats) }) {
+                        Icon(Icons.Outlined.BarChart, stringResource(R.string.stats_title), tint = AppColors.textPrimary)
+                    }
                     if (history.isNotEmpty()) {
                         IconButton(onClick = { confirmClear = true }) {
                             Icon(Icons.Outlined.DeleteSweep, stringResource(R.string.history_clear), tint = AppColors.textPrimary)

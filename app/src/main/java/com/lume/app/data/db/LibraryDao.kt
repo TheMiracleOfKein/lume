@@ -428,6 +428,21 @@ interface LibraryDao {
 
     @Query("DELETE FROM imported_files WHERE treeUri = :treeUri")
     suspend fun deleteImportedFilesFor(treeUri: String)
+
+    @Insert
+    suspend fun insertSession(item: ReadingSessionEntity)
+
+    @Insert
+    suspend fun insertSessions(items: List<ReadingSessionEntity>)
+
+    @Query("SELECT * FROM reading_sessions ORDER BY startedAt DESC")
+    fun observeSessions(): Flow<List<ReadingSessionEntity>>
+
+    @Query("SELECT * FROM reading_sessions ORDER BY startedAt")
+    suspend fun allSessions(): List<ReadingSessionEntity>
+
+    @Query("SELECT sourceId, titleId, readAt FROM chapter_read")
+    fun observeChapterReadTimes(): Flow<List<ChapterReadTime>>
 }
 
 data class TitleKey(val sourceId: String, val titleId: String)

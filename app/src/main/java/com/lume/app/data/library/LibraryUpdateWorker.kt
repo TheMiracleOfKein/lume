@@ -33,6 +33,8 @@ import com.lume.app.domain.LinkedChapterId
 import com.lume.app.domain.dedupeChapters
 import com.lume.app.domain.inReadingOrder
 import com.lume.app.domain.isCompletedStatus
+import com.lume.app.domain.notifiable
+import com.lume.app.domain.titleKey
 import kotlinx.coroutines.flow.first
 import com.lume.app.ui.nav.AppLinks
 import com.lume.app.ui.nav.Routes
@@ -59,7 +61,7 @@ class LibraryUpdateWorker(
         val rules = app.prefs.libraryUpdateRules.value
         val bookmarks = if (!rules.skipsAny) pool else {
             val stats = dao.observeLibraryStats().first().associateBy { it.sourceId to it.titleId }
-            pool.filterNot { b ->
+            pool.filter { b -> rules.inCategories(parseCategoryIds(b.categoryIdsJson)) }.filterNot { b ->
                 val s = stats[b.sourceId to b.titleId]
                 val status = runCatching { app.titles.ownCached(b.sourceId, b.titleId)?.details?.status }.getOrNull()
                 rules.skips(
@@ -69,6 +71,9 @@ class LibraryUpdateWorker(
                     lastReadAt = s?.lastReadAt,
                 )
             }
+        }
+        val categoriesByTitle = bookmarks.associate {
+            titleKey(it.sourceId, it.titleId) to parseCategoryIds(it.categoryIdsJson)
         }
         setProgress(workDataOf(KEY_DONE to 0, KEY_TOTAL to bookmarks.size))
         for ((index, bookmark) in bookmarks.withIndex()) {
@@ -129,8 +134,13 @@ class LibraryUpdateWorker(
         val outcome = LibraryCheckOutcome(checked, failed)
         app.prefs.setLibraryLastCheck(System.currentTimeMillis(), outcome)
 
-        if (results.isNotEmpty()) {
-            notifyUpdates(results)
+        val shown = notifiable(
+            results,
+            categoriesOf = { key -> categoriesByTitle[key].orEmpty() },
+            muted = app.prefs.notifyMutedCategories.value,
+        )
+        if (shown.isNotEmpty()) {
+            notifyUpdates(shown)
         }
         // A run the user started reports its outcome at once; only the background check retries.
         val manual = inputData.getBoolean(KEY_MANUAL, false)
@@ -149,14 +159,16 @@ class LibraryUpdateWorker(
         } else {
             applicationContext.resources.getQuantityString(R.plurals.notif_library_updates_many, results.size, results.size)
         }
-        val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
+        val inbox = NotificationCompat.InboxStyle().setBigContentTitle(title)
+        results.forEach { inbox.addLine(line(it)) }
+        val summary = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_lume)
             .setContentTitle(title)
             .setContentText(text)
-            .setStyle(
-                NotificationCompat.BigTextStyle().bigText(results.joinToString("\n") { line(it) }),
-            )
+            .setStyle(inbox)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setGroup(GROUP_KEY)
+            .setGroupSummary(true)
             .setContentIntent(
                 PendingIntent.getActivity(
                     applicationContext,
@@ -167,6 +179,26 @@ class LibraryUpdateWorker(
             )
             .setAutoCancel(true)
             .build()
+        // One notification per title; the next run replaces it through the stable tag.
+        val children = results.map { result ->
+            result to NotificationCompat.Builder(applicationContext, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_stat_lume)
+                .setContentTitle(result.titleName)
+                .setContentText(line(result))
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setGroup(GROUP_KEY)
+                .setOnlyAlertOnce(true)
+                .setContentIntent(
+                    PendingIntent.getActivity(
+                        applicationContext,
+                        titleKey(result.sourceId, result.titleId).hashCode(),
+                        AppLinks.intentFor(applicationContext, Routes.title(result.sourceId, result.titleId)),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    ),
+                )
+                .setAutoCancel(true)
+                .build()
+        }
         // Lint requires the check to be in the same method as notify().
         if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(
@@ -177,7 +209,11 @@ class LibraryUpdateWorker(
             return
         }
         try {
-            NotificationManagerCompat.from(applicationContext).notify(NOTIF_ID, notification)
+            val manager = NotificationManagerCompat.from(applicationContext)
+            children.forEach { (result, child) ->
+                manager.notify("title:${titleKey(result.sourceId, result.titleId)}", NOTIF_TITLE_ID, child)
+            }
+            manager.notify(NOTIF_ID, summary)
         } catch (_: SecurityException) {
             // User revoked notification permission between check and notify.
         }
@@ -220,6 +256,8 @@ class LibraryUpdateWorker(
         }
         const val CHANNEL_ID = "library_updates"
         private const val NOTIF_ID = 42
+        private const val NOTIF_TITLE_ID = 43
+        private const val GROUP_KEY = "com.lume.app.LIBRARY_UPDATES"
 
         fun schedule(
             context: Context,

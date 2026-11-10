@@ -9,6 +9,7 @@ object Routes {
     const val Home = "home"
     const val History = "history"
     const val Updates = "updates"
+    const val Stats = "stats"
     const val Search = "search"
     const val SearchAll = "search/all?q={q}"
     const val Sources = "sources"

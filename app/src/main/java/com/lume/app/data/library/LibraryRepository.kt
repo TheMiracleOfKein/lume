@@ -112,6 +112,10 @@ class LibraryRepository(
             dao.deleteCategory(id)
         }
         if (prefs.defaultCategoryId.value == id) prefs.setDefaultCategoryId(null)
+        val rules = prefs.libraryUpdateRules.value
+        if (id in rules.categories) prefs.setLibraryUpdateRules(rules.copy(categories = rules.categories - id))
+        val muted = prefs.notifyMutedCategories.value
+        if (id in muted) prefs.setNotifyMutedCategories(muted - id)
     }
 
     /** Moves a category one place up ([delta] = -1) or down (+1). */

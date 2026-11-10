@@ -176,6 +176,8 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val librarySkipNotStartedKey = booleanPreferencesKey("library_update_skip_not_started")
     private val librarySkipUnreadKey = booleanPreferencesKey("library_update_skip_unread")
     private val libraryChargingOnlyKey = booleanPreferencesKey("library_update_charging_only")
+    private val libraryUpdateCategoriesKey = stringSetPreferencesKey("library_update_categories")
+    private val libraryNotifyMutedKey = stringSetPreferencesKey("library_notify_muted_categories")
     private val downloadsWifiOnlyKey = booleanPreferencesKey("downloads_wifi_only")
     private val globalSearchNsfwKey = booleanPreferencesKey("global_search_nsfw")
     private val libraryUpdatesKey = booleanPreferencesKey("library_updates_enabled")
@@ -362,6 +364,16 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
         context.privateDataStore.edit { if (value.isNullOrBlank()) it.remove(key) else it[key] = value }
     }
 
+    /**
+     * The sources' last errors as JSON. They live in [privateDataStore], so they stay on the phone:
+     * out of the settings backup, sync and the system backup.
+     */
+    fun sourceProblemsRaw(): String? = currentPrivate.value[stringPreferencesKey("source_problems")]
+
+    suspend fun setSourceProblemsRaw(json: String) {
+        context.privateDataStore.edit { it[stringPreferencesKey("source_problems")] = json }
+    }
+
     /** Link titles to trackers by an exact title match when they are added to the library. */
     val trackerAutoLink: StateFlow<Boolean> = state { it[trackerAutoLinkKey] ?: true }
 
@@ -429,7 +441,12 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             skipNotStarted = it[librarySkipNotStartedKey] ?: false,
             skipUnread = it[librarySkipUnreadKey] ?: false,
             chargingOnly = it[libraryChargingOnlyKey] ?: false,
+            categories = it[libraryUpdateCategoriesKey].orEmpty().mapNotNull(String::toLongOrNull).toSet(),
         )
+    }
+    /** Category ids (0 = uncategorized) whose update notifications are muted. */
+    val notifyMutedCategories: StateFlow<Set<Long>> = state {
+        it[libraryNotifyMutedKey].orEmpty().mapNotNull(String::toLongOrNull).toSet()
     }
     val downloadsWifiOnly: StateFlow<Boolean> = state { it[downloadsWifiOnlyKey] ?: false }
     val globalSearchNsfw: StateFlow<Boolean> = state { it[globalSearchNsfwKey] ?: true }
@@ -710,7 +727,12 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             it[librarySkipNotStartedKey] = rules.skipNotStarted
             it[librarySkipUnreadKey] = rules.skipUnread
             it[libraryChargingOnlyKey] = rules.chargingOnly
+            it[libraryUpdateCategoriesKey] = rules.categories.map(Long::toString).toSet()
         }
+    }
+
+    suspend fun setNotifyMutedCategories(ids: Set<Long>) {
+        context.appDataStore.edit { it[libraryNotifyMutedKey] = ids.map(Long::toString).toSet() }
     }
 
     suspend fun setDownloadsWifiOnly(value: Boolean) {

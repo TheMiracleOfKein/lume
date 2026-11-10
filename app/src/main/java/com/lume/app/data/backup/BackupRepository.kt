@@ -9,6 +9,7 @@ import com.lume.app.data.db.ChapterProgressEntity
 import com.lume.app.data.db.ChapterReadEntity
 import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.db.PageBookmarkEntity
+import com.lume.app.data.db.ReadingSessionEntity
 import com.lume.app.data.db.ProgressEntity
 import com.lume.app.data.db.SourcePackEntity
 import com.lume.app.data.db.TitlePrefsEntity
@@ -52,9 +53,10 @@ data class BackupPayload(
     val chapterRead: List<ChapterReadDto> = emptyList(),
     val settings: List<SettingDto> = emptyList(),
     val titleSources: List<TitleSourceDto> = emptyList(),
+    val readingSessions: List<ReadingSessionDto> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 4
+        const val CURRENT_VERSION = 5
 
         val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
@@ -105,6 +107,17 @@ data class PageBookmarkDto(
     val pageImageUrl: String? = null,
     val note: String? = null,
     val createdAt: Long = 0L,
+)
+
+@Serializable
+data class ReadingSessionDto(
+    val sourceId: String,
+    val titleId: String,
+    val titleName: String = "",
+    val chapterId: String,
+    val startedAt: Long,
+    val durationMs: Long = 0L,
+    val pagesRead: Int = 0,
 )
 
 @Serializable
@@ -375,6 +388,9 @@ class BackupRepository(
                     addedAt = it.addedAt,
                 )
             },
+            readingSessions = dao.allSessions().map {
+                ReadingSessionDto(it.sourceId, it.titleId, it.titleName, it.chapterId, it.startedAt, it.durationMs, it.pagesRead)
+            },
         )
         return json.encodeToString(payload)
     }
@@ -640,6 +656,27 @@ class BackupRepository(
                     ),
                 )
             }
+        }
+        if (payload.readingSessions.isNotEmpty()) {
+            // Restoring the same file twice must not count the same reading twice.
+            val existing = dao.allSessions()
+                .map { listOf(it.sourceId, it.titleId, it.chapterId, it.startedAt) }
+                .toHashSet()
+            dao.insertSessions(
+                payload.readingSessions
+                    .filter { listOf(it.sourceId, it.titleId, it.chapterId, it.startedAt) !in existing }
+                    .map {
+                        ReadingSessionEntity(
+                            sourceId = it.sourceId,
+                            titleId = it.titleId,
+                            titleName = it.titleName,
+                            chapterId = it.chapterId,
+                            startedAt = it.startedAt,
+                            durationMs = it.durationMs,
+                            pagesRead = it.pagesRead,
+                        )
+                    },
+            )
         }
         for (s in payload.sourcePacks) {
             // A pack must never replace a built-in source.
