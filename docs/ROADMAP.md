@@ -228,7 +228,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.5: smooth webtoon drags** ✅ released 2026-11-10 ([notes](releases/v0.9.5.md), [device check](releases/v0.9.5-check.md)): long pages no longer jump when a short swipe starts, and never blank while they sharpen.
 
-**v0.9.6: library and stats** ([notes](releases/v0.9.6.md), [device check](releases/v0.9.6-check.md)): reading statistics, one notification per title, updates and notifications per category, and source errors kept across restarts and shown in global search.
+**v0.9.6: library and stats** ✅ released 2026-11-11 ([notes](releases/v0.9.6.md), [device check](releases/v0.9.6-check.md)): reading statistics, one notification per title, updates and notifications per category, and source errors kept across restarts and shown in global search.
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -811,7 +811,7 @@ Release notes: [docs/releases/v0.9.5.md](releases/v0.9.5.md); device check in [v
 - ✅ **No blank while sharpening.** The normal page bitmap stays under the slices until they're decoded.
 - ⏸️ The jump at drag start couldn't be reproduced on the emulator (instant GPU uploads); the cause is inferred from the code and frame logs. Needs a check on a real phone.
 
-### v0.9.6: library and stats
+### v0.9.6: library and stats ✅ released 2026-11-11
 
 Release notes: [docs/releases/v0.9.6.md](releases/v0.9.6.md); device check in [v0.9.6-check.md](releases/v0.9.6-check.md).
 
