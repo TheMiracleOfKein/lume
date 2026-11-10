@@ -1,22 +1,16 @@
 package com.lume.app.ui.screens
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.BitmapRegionDecoder
 import android.graphics.Rect
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.dp
 import com.lume.app.data.local.pdf.PdfPageUrl
-import com.lume.app.ui.theme.AppColors
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,7 +35,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-// Very tall webtoon pages: drawn as stacked slices, since one bitmap that tall will not draw.
+// Very tall webtoon pages: drawn as stacked slices over the normal (shrunk) page bitmap, since
+// one bitmap that tall will not draw.
 
 internal class TallSource(
     val decoder: BitmapRegionDecoder,
@@ -65,6 +60,24 @@ internal fun openTallSource(context: Context, imageUrl: String, targetWidth: Int
         TallSource(decoder, decoder.width, decoder.height, sample, tileBounds(decoder.height, sample))
     }
 }.getOrNull()
+
+/**
+ * [region] of [decoder] at [sample], moved into GPU memory (a hardware bitmap, like Coil's pages).
+ * A plain bitmap would be copied to the GPU on its first draw, and again whenever the GPU cache
+ * dropped it while the page sat still: several MB per slice in the first frame of the next drag,
+ * which shows as a jump. Falls back to the plain bitmap when the copy isn't possible.
+ */
+private fun decodeForDrawing(decoder: BitmapRegionDecoder, region: Rect, sample: Int): ImageBitmap? {
+    val options = BitmapFactory.Options().apply { inSampleSize = sample }
+    val plain = decoder.decodeRegion(region, options) ?: return null
+    val gpu = runCatching { plain.copy(Bitmap.Config.HARDWARE, false) }.getOrNull()
+    return if (gpu != null) {
+        plain.recycle()
+        gpu.asImageBitmap()
+    } else {
+        plain.asImageBitmap()
+    }
+}
 
 /** The page's original file on disk: the downloaded copy, or Coil's disk cache. */
 private fun originalPath(context: Context, imageUrl: String): String? = if (PdfPageUrl.isPdfPage(imageUrl)) {
@@ -132,8 +145,7 @@ private fun decodeDetail(context: Context, imageUrl: String, region: PageRect, s
         var sample = tileSampleSize(rect.width(), shownRegionWidth)
         // One drawable bitmap: keep both sides under the GPU limit.
         while (rect.height() / sample > MAX_DRAW_PX || rect.width() / sample > MAX_DRAW_PX) sample *= 2
-        val options = BitmapFactory.Options().apply { inSampleSize = sample }
-        val bitmap = runCatching { decoder.decodeRegion(rect, options)?.asImageBitmap() }.getOrNull() ?: return null
+        val bitmap = runCatching { decodeForDrawing(decoder, rect, sample) }.getOrNull() ?: return null
         // The rectangle actually decoded (whole source pixels), not the requested fractions.
         DecodedDetail(
             bitmap,
@@ -158,15 +170,11 @@ internal fun TiledPage(source: TallSource, colorFilter: ColorFilter?, modifier: 
 
 @Composable
 private fun TileImage(source: TallSource, tile: TileBounds, colorFilter: ColorFilter?, modifier: Modifier) {
-    var failed by remember(source, tile) { mutableStateOf(false) }
     val bitmap by produceState<ImageBitmap?>(null, source, tile) {
         value = withContext(Dispatchers.IO) {
-            runCatching {
-                val options = BitmapFactory.Options().apply { inSampleSize = source.sample }
-                source.decoder.decodeRegion(Rect(0, tile.top, source.width, tile.bottom), options)?.asImageBitmap()
-            }.getOrNull()
+            runCatching { decodeForDrawing(source.decoder, Rect(0, tile.top, source.width, tile.bottom), source.sample) }
+                .getOrNull()
         }
-        if (value == null) failed = true
     }
     val ready = bitmap
     if (ready != null) {
@@ -177,16 +185,8 @@ private fun TileImage(source: TallSource, tile: TileBounds, colorFilter: ColorFi
             contentScale = ContentScale.FillBounds,
             colorFilter = colorFilter,
         )
-    } else if (failed) {
-        Spacer(modifier)
     } else {
-        // Still decoding: a small spinner near the top of the slice.
-        Box(modifier, contentAlignment = Alignment.TopCenter) {
-            CircularProgressIndicator(
-                modifier = Modifier.padding(top = 24.dp).size(24.dp),
-                strokeWidth = 2.dp,
-                color = AppColors.accent,
-            )
-        }
+        // Still decoding (or failed): empty, so the normal page bitmap underneath shows through.
+        Spacer(modifier)
     }
 }

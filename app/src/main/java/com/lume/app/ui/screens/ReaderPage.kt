@@ -294,30 +294,28 @@ internal fun ReaderPageImage(
         val pageModifier = Modifier
             .fillMaxWidth()
             .then(if (aspect != null) Modifier.fillMaxSize() else Modifier)
-        val tiles = tall
-        if (tiles != null) {
-            TiledPage(tiles, colorFilter, pageModifier)
-        } else {
-            AsyncImage(
-                model = model,
-                contentDescription = null,
-                onLoading = { loading = true },
-                onSuccess = { success ->
-                    failed = false
-                    loading = false
-                    val size = success.painter.intrinsicSize
-                    if (size.isSpecified && size.width > 0f && size.height > 0f) {
-                        onAspect(size.width / size.height)
-                        // The decoded strip is shrunk to fit the height cap, so judge by its shape.
-                        if (isTallAtWidth(size.width, size.height, container.width)) tallCandidate = true
-                    }
-                },
-                onError = { failed = true; loading = false },
-                modifier = pageModifier,
-                contentScale = ContentScale.FillWidth,
-                colorFilter = colorFilter,
-            )
-        }
+        // The normal bitmap stays underneath a tall page's slices: each slice covers it once
+        // decoded, so the page never blanks out while it is being swapped for the sharp version.
+        AsyncImage(
+            model = model,
+            contentDescription = null,
+            onLoading = { loading = true },
+            onSuccess = { success ->
+                failed = false
+                loading = false
+                val size = success.painter.intrinsicSize
+                if (size.isSpecified && size.width > 0f && size.height > 0f) {
+                    onAspect(size.width / size.height)
+                    // The decoded strip is shrunk to fit the height cap, so judge by its shape.
+                    if (isTallAtWidth(size.width, size.height, container.width)) tallCandidate = true
+                }
+            },
+            onError = { failed = true; loading = false },
+            modifier = pageModifier,
+            contentScale = ContentScale.FillWidth,
+            colorFilter = colorFilter,
+        )
+        tall?.let { TiledPage(it, colorFilter, pageModifier) }
         if (detail != null && !loading && !failed && pageWidthPx > 0) {
             PageDetail(page.imageUrl, detail, (pageWidthPx * detailScale).roundToInt(), colorFilter)
         }

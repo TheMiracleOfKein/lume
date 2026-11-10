@@ -226,6 +226,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.4: sharp webtoon strips** ✅ released 2026-11-10 ([notes](releases/v0.9.4.md), [device check](releases/v0.9.4-check.md)): long strip pages in webtoon mode drawn at full quality again.
 
+**v0.9.5: smooth webtoon drags** ([notes](releases/v0.9.5.md), [device check](releases/v0.9.5-check.md)): long pages no longer jump when a short swipe starts, and never blank while they sharpen.
+
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
 - ✅ **Tall pages in pieces** (M). Paged modes decode pages in tiles through Telephoto; webtoon strips keep the slices from v0.7.11.
@@ -798,3 +800,11 @@ Release notes: [docs/releases/v0.9.3.md](releases/v0.9.3.md); device check in [v
 Release notes: [docs/releases/v0.9.4.md](releases/v0.9.4.md); device check in [v0.9.4-check.md](releases/v0.9.4-check.md).
 
 - ✅ **Long strips sharp in webtoon mode.** Since Coil 3 a strip was fitted into the 4096 px height cap, so it never switched to full-resolution slices and looked blurry. Tallness is now judged by the page's shape at screen width (`isTallAtWidth`).
+
+### v0.9.5: smooth webtoon drags
+
+Release notes: [docs/releases/v0.9.5.md](releases/v0.9.5.md); device check in [v0.9.5-check.md](releases/v0.9.5-check.md).
+
+- ✅ **Slices in GPU memory.** Slices and zoom detail are hardware bitmaps (`decodeForDrawing`), so the first frame of a drag doesn't upload them again.
+- ✅ **No blank while sharpening.** The normal page bitmap stays under the slices until they're decoded.
+- ⏸️ The jump at drag start couldn't be reproduced on the emulator (instant GPU uploads); the cause is inferred from the code and frame logs. Needs a check on a real phone.
