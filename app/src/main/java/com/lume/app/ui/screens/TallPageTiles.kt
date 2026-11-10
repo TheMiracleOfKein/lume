@@ -72,6 +72,17 @@ internal fun tileSampleSize(sourceWidth: Int, targetWidth: Int): Int {
     return sample
 }
 
+/**
+ * True when a page decoded as [decodedWidth] x [decodedHeight] would be taller than one drawable
+ * bitmap once shown [shownWidth] pixels wide. Judged by its shape, not the decoded height: the
+ * image loader shrinks a long strip until it fits the height cap, so that height never exceeds it.
+ */
+internal fun isTallAtWidth(decodedWidth: Float, decodedHeight: Float, shownWidth: Int): Boolean {
+    if (decodedWidth <= 0f || decodedHeight <= 0f) return false
+    val width = if (shownWidth > 0) shownWidth.toFloat() else decodedWidth
+    return decodedHeight * width / decodedWidth > MAX_DRAW_PX
+}
+
 /** True when the page, decoded at [sample], is taller than one drawable bitmap can be. */
 internal fun needsTiling(sourceHeight: Int, sample: Int): Boolean =
     sourceHeight / sample.coerceAtLeast(1) > MAX_DRAW_PX

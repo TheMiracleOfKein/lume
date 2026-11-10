@@ -308,7 +308,8 @@ internal fun ReaderPageImage(
                     val size = success.painter.intrinsicSize
                     if (size.isSpecified && size.width > 0f && size.height > 0f) {
                         onAspect(size.width / size.height)
-                        if (size.height > MAX_DRAW_PX) tallCandidate = true
+                        // The decoded strip is shrunk to fit the height cap, so judge by its shape.
+                        if (isTallAtWidth(size.width, size.height, container.width)) tallCandidate = true
                     }
                 },
                 onError = { failed = true; loading = false },
