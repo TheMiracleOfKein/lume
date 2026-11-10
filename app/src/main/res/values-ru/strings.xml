@@ -886,6 +886,12 @@
     <string name="settings_kw_library_check">обновление, новые главы, уведомление, фон</string>
     <string name="settings_kw_interval">часы, частота, как часто</string>
     <string name="settings_kw_wifi">мобильные данные, трафик, сеть</string>
+    <string name="category_uncategorized">Без категории</string>
+    <string name="settings_categories_all">Все категории</string>
+    <string name="settings_notify_categories">Уведомлять по категориям</string>
+    <string name="settings_notify_categories_hint">Выберите категории, новые главы которых показывают уведомление</string>
+    <string name="settings_notify_categories_none">Ни одной</string>
+    <string name="settings_kw_notify_categories">уведомления, отключить, без звука, категории, новые главы</string>
     <string name="settings_kw_library_rules">проверка обновлений, пропускать, батарея, трафик, зарядка, завершённые, непрочитанные</string>
     <string name="settings_kw_find_sources">также на, привязка, объединить, другие источники</string>
     <string name="settings_kw_categories">папки, вкладки, категория по умолчанию</string>

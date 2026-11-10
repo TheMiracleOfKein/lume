@@ -149,6 +149,13 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         }
     }
 
+    val categories: StateFlow<List<com.lume.app.data.db.CategoryEntity>> = app.dao.observeCategories()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun setNotifyMutedCategories(ids: Set<Long>) {
+        viewModelScope.launch { prefs.setNotifyMutedCategories(ids) }
+    }
+
     fun setThemeMode(mode: String) {
         viewModelScope.launch { prefs.setThemeMode(mode) }
     }

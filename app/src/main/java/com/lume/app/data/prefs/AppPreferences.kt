@@ -176,6 +176,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val librarySkipNotStartedKey = booleanPreferencesKey("library_update_skip_not_started")
     private val librarySkipUnreadKey = booleanPreferencesKey("library_update_skip_unread")
     private val libraryChargingOnlyKey = booleanPreferencesKey("library_update_charging_only")
+    private val libraryNotifyMutedKey = stringSetPreferencesKey("library_notify_muted_categories")
     private val downloadsWifiOnlyKey = booleanPreferencesKey("downloads_wifi_only")
     private val globalSearchNsfwKey = booleanPreferencesKey("global_search_nsfw")
     private val libraryUpdatesKey = booleanPreferencesKey("library_updates_enabled")
@@ -430,6 +431,10 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             skipUnread = it[librarySkipUnreadKey] ?: false,
             chargingOnly = it[libraryChargingOnlyKey] ?: false,
         )
+    }
+    /** Category ids (0 = uncategorized) whose update notifications are muted. */
+    val notifyMutedCategories: StateFlow<Set<Long>> = state {
+        it[libraryNotifyMutedKey].orEmpty().mapNotNull(String::toLongOrNull).toSet()
     }
     val downloadsWifiOnly: StateFlow<Boolean> = state { it[downloadsWifiOnlyKey] ?: false }
     val globalSearchNsfw: StateFlow<Boolean> = state { it[globalSearchNsfwKey] ?: true }
@@ -711,6 +716,10 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             it[librarySkipUnreadKey] = rules.skipUnread
             it[libraryChargingOnlyKey] = rules.chargingOnly
         }
+    }
+
+    suspend fun setNotifyMutedCategories(ids: Set<Long>) {
+        context.appDataStore.edit { it[libraryNotifyMutedKey] = ids.map(Long::toString).toSet() }
     }
 
     suspend fun setDownloadsWifiOnly(value: Boolean) {

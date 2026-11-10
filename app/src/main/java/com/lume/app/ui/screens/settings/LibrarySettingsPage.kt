@@ -52,6 +52,10 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
     val libraryWifiOnly by prefs.libraryUpdateWifiOnly.collectAsState()
     val rules by prefs.libraryUpdateRules.collectAsState()
     val findOtherSources by prefs.findOtherSources.collectAsState()
+    val categories by vm.categories.collectAsState()
+    val choices = categoryChoices(categories)
+    val mutedCategories by prefs.notifyMutedCategories.collectAsState()
+    var pickingNotify by remember { mutableStateOf(false) }
 
     // The worker re-checks the permission before every notification, so the answer needs no handling.
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
@@ -126,6 +130,17 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
                 }
             }
         }
+        SettingItem("library_notify_categories") {
+            val notified = choices.filter { it.id !in mutedCategories }
+            SettingsLink(
+                stringResource(R.string.settings_notify_categories),
+                when {
+                    notified.size == choices.size -> stringResource(R.string.settings_categories_all)
+                    notified.isEmpty() -> stringResource(R.string.settings_notify_categories_none)
+                    else -> notified.joinToString { it.name }
+                },
+            ) { pickingNotify = true }
+        }
         // These apply to "Update now" too, so they stay visible with the background check off.
         SettingItem("library_skip_completed") {
             SwitchRow(
@@ -149,6 +164,19 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
                 onCheckedChange = { value -> vm.setLibraryUpdateRules { it.copy(skipUnread = value) } },
             )
         }
+    }
+    if (pickingNotify) {
+        val allIds = choices.map { it.id }.toSet()
+        CategoryPickDialog(
+            title = stringResource(R.string.settings_notify_categories),
+            choices = choices,
+            selected = allIds - mutedCategories,
+            onDismiss = { pickingNotify = false },
+            onSave = { notified ->
+                vm.setNotifyMutedCategories(allIds - notified)
+                pickingNotify = false
+            },
+        )
     }
     SettingsSectionTitle(R.string.settings_section_library)
     SettingsGroup {
