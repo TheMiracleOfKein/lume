@@ -22,6 +22,21 @@ class TallPageTilesTest {
     }
 
     @Test
+    fun stripShrunkToHeightCapIsStillTall() {
+        // 800 x 14,000 strip fitted into 1080 x 4096 decodes as about 234 x 4096.
+        assertTrue(isTallAtWidth(234f, 4096f, 1080))
+        assertTrue(isTallAtWidth(800f, 4500f, 1080))
+    }
+
+    @Test
+    fun ordinaryPagesAreNotTall() {
+        assertFalse(isTallAtWidth(1080f, 1600f, 1080))
+        assertFalse(isTallAtWidth(1080f, 4096f, 1080))
+        assertFalse(isTallAtWidth(0f, 4096f, 1080))
+        assertFalse(isTallAtWidth(1080f, 3000f, 0))
+    }
+
+    @Test
     fun normalPagesNeedNoTiling() {
         assertFalse(needsTiling(1200, 1))
         assertFalse(needsTiling(4096, 1))
