@@ -224,6 +224,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.3: InkStory** ✅ released 2026-11-10 ([notes](releases/v0.9.3.md), [device check](releases/v0.9.3-check.md)): a new Russian source; Com-X.life dropped for now.
 
+**v0.9.4: sharp webtoon strips** ([notes](releases/v0.9.4.md), [device check](releases/v0.9.4-check.md)): long strip pages in webtoon mode drawn at full quality again.
+
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
 - ✅ **Tall pages in pieces** (M). Paged modes decode pages in tiles through Telephoto; webtoon strips keep the slices from v0.7.11.
@@ -790,3 +792,9 @@ Release notes: [docs/releases/v0.9.3.md](releases/v0.9.3.md); device check in [v
 - ✅ Page images are unscrambled by `ImageDecryptInterceptor`, with the key the chapter page provides; other images pass through.
 - ⏸️ **Com-X.life** dropped for now: every page sits behind the site's own browser-fingerprint check, which the challenge flow doesn't recognise, so an engine couldn't work reliably.
 - ⏸️ Not tried on the device: titles with several teams, restricted and adult titles, typed Cyrillic search. The Browse screen has no "Latest" chip for InkStory; latest is under Search → Filters → Sort.
+
+### v0.9.4: sharp webtoon strips
+
+Release notes: [docs/releases/v0.9.4.md](releases/v0.9.4.md); device check in [v0.9.4-check.md](releases/v0.9.4-check.md).
+
+- ✅ **Long strips sharp in webtoon mode.** Since Coil 3 a strip was fitted into the 4096 px height cap, so it never switched to full-resolution slices and looked blurry. Tallness is now judged by the page's shape at screen width (`isTallAtWidth`).
