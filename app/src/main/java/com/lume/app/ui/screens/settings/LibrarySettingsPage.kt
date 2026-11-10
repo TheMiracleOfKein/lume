@@ -208,6 +208,11 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
                 onCheckedChange = vm::setFindOtherSources,
             )
         }
+        SettingItem("reading_stats") {
+            SettingsLink(stringResource(R.string.stats_title), stringResource(R.string.settings_stats_hint)) {
+                nav.navigate(Routes.Stats)
+            }
+        }
         SettingItem("categories") {
             SettingsLink(stringResource(R.string.categories_title), stringResource(R.string.settings_categories_hint)) {
                 nav.navigate(Routes.Categories)

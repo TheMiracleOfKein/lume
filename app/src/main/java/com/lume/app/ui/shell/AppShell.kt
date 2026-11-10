@@ -97,6 +97,7 @@ import com.lume.app.ui.screens.CatalogScreen
 import com.lume.app.ui.screens.CategoriesScreen
 import com.lume.app.ui.screens.ChaptersScreen
 import com.lume.app.ui.screens.DownloadsScreen
+import com.lume.app.ui.screens.StatsScreen
 import com.lume.app.ui.screens.HistoryScreen
 import com.lume.app.ui.screens.HomeScreen
 import com.lume.app.ui.screens.LibraryScreen
@@ -209,6 +210,7 @@ fun AppShell(nav: NavHostController) {
                 )
             }
             lumeComposable(Routes.Downloads) { DownloadsScreen(nav) }
+            lumeComposable(Routes.Stats) { StatsScreen(nav) }
             lumeComposable(Routes.Categories) { CategoriesScreen(nav) }
             lumeComposable(Routes.About) { AboutScreen(nav) }
             lumeComposable(Routes.ReadingList) { ReadingListScreen(nav) }

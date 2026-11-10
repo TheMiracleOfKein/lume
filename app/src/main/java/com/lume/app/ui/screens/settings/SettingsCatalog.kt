@@ -87,6 +87,7 @@ object SettingsCatalog {
         SettingInfo("library_skip_not_started", SettingsPage.Library, R.string.settings_library_skip_not_started, keywordsRes = R.string.settings_kw_library_rules),
         SettingInfo("library_skip_unread", SettingsPage.Library, R.string.settings_library_skip_unread, R.string.settings_library_skip_unread_hint, R.string.settings_kw_library_rules),
         SettingInfo("find_sources", SettingsPage.Library, R.string.settings_find_other_sources, R.string.settings_find_other_sources_hint, R.string.settings_kw_find_sources),
+        SettingInfo("reading_stats", SettingsPage.Library, R.string.stats_title, R.string.settings_stats_hint, R.string.settings_kw_stats),
         SettingInfo("categories", SettingsPage.Library, R.string.categories_title, R.string.settings_categories_hint, R.string.settings_kw_categories),
         SettingInfo("local_import", SettingsPage.Library, R.string.local_import_folder, keywordsRes = R.string.settings_kw_local),
         SettingInfo("local_open", SettingsPage.Library, R.string.local_open_library, keywordsRes = R.string.settings_kw_local),

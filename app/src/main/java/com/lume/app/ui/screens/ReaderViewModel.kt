@@ -17,6 +17,7 @@ import com.lume.app.data.db.ChapterProgressEntity
 import com.lume.app.data.db.ChapterReadEntity
 import com.lume.app.data.db.PageBookmarkEntity
 import com.lume.app.data.db.ProgressEntity
+import com.lume.app.data.db.ReadingSessionEntity
 import com.lume.app.data.db.TitlePrefsEntity
 import com.lume.app.data.locale.appString
 import com.lume.app.data.prefs.ReaderSettings
@@ -28,6 +29,7 @@ import com.lume.app.domain.hasChapterBeyond
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.ReaderMode
+import com.lume.app.domain.ReadingSessionTracker
 import com.lume.app.domain.ReaderTheme
 import com.lume.app.domain.dedupeChapters
 import com.lume.app.domain.inReadingOrder
@@ -435,6 +437,7 @@ class ReaderViewModel(
         if (chapterChanged) currentChapterId = next.chapterId
         if (currentPageIndex != next.pageIndex) currentPageIndex = next.pageIndex
         pendingSave.value = next
+        trackReading(next)
 
         // Scrolling into a later chapter means the earlier ones you read were finished.
         val order = loaded.indexOfFirst { chapterIdsMatch(it.chapter.id, next.chapterId) }
@@ -464,6 +467,36 @@ class ReaderViewModel(
     }
 
     private var lastWarmedFrom = -1
+
+    // ---- Reading statistics -----------------------------------------------------------------
+
+    private val sessionTracker = ReadingSessionTracker()
+
+    /** Feeds the statistics; a chapter change closes the previous chapter's session. */
+    private fun trackReading(next: ReaderAnchor) {
+        if (app.prefs.incognito.value) return
+        sessionTracker.onPage(next.chapterId, next.pageIndex, System.currentTimeMillis())?.let(::saveSession)
+    }
+
+    /** The reader stopped or closed: the stretch of reading ends here. */
+    private fun finishReading() {
+        sessionTracker.finish(System.currentTimeMillis())?.let(::saveSession)
+    }
+
+    private fun saveSession(session: ReadingSessionTracker.Session) {
+        // Incognito: nothing about this reading is kept.
+        if (app.prefs.incognito.value) return
+        val entity = ReadingSessionEntity(
+            sourceId = sourceId,
+            titleId = titleId,
+            titleName = titleName,
+            chapterId = session.chapterId,
+            startedAt = session.startedAt,
+            durationMs = session.durationMs,
+            pagesRead = session.pagesRead,
+        )
+        app.appScope.launch { withContext(NonCancellable) { dao.insertSession(entity) } }
+    }
 
     /** A chapter counts as read (and trackers move) only once you reach its end. */
     private fun markFinished(chapterId: String) {
@@ -512,6 +545,7 @@ class ReaderViewModel(
 
     /** Save now, in a scope that survives this ViewModel (Back, stop, process going away). */
     fun flush() {
+        finishReading()
         if (!dirty) return
         val a = anchor
         app.appScope.launch { withContext(NonCancellable) { persist(a) } }

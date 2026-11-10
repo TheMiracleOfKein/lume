@@ -56,6 +56,28 @@ class BackupPayloadTest {
     }
 
     @Test
+    fun oldFileWithoutReadingSessionsStillParses() {
+        val v4 = """{"version": 4, "chapterRead": [{"sourceId":"s","titleId":"t","chapterId":"c"}]}"""
+        val payload = BackupPayload.parse(v4)
+        assertTrue(payload.readingSessions.isEmpty())
+        assertEquals(1, payload.chapterRead.size)
+    }
+
+    @Test
+    fun readingSessionsRoundTrip() {
+        val payload = BackupPayload(
+            createdAt = 1,
+            readingSessions = listOf(
+                ReadingSessionDto("s", "t", "Title", "c1", startedAt = 100, durationMs = 60_000, pagesRead = 12),
+            ),
+        )
+        val text = BackupPayload.json.encodeToString(BackupPayload.serializer(), payload)
+        val back = BackupPayload.parse(text)
+        assertEquals(payload.readingSessions, back.readingSessions)
+        assertEquals(5, back.version)
+    }
+
+    @Test
     fun unknownFieldsFromNewerVersionsAreIgnored() {
         val future = """{"version": 9, "somethingNew": [1, 2, 3], "chapterRead": [{"sourceId":"s","titleId":"t","chapterId":"c"}]}"""
         val payload = BackupPayload.parse(future)

@@ -72,7 +72,7 @@ class MihonBackupTest {
     fun lumeBackupKeepsSettings() {
         val payload = BackupPayload(settings = listOf(SettingDto("dark_theme", "bool", "false")))
         val parsed = BackupPayload.parse(BackupPayload.json.encodeToString(BackupPayload.serializer(), payload))
-        assertEquals(4, parsed.version)
+        assertEquals(BackupPayload.CURRENT_VERSION, parsed.version)
         assertEquals("dark_theme", parsed.settings.single().key)
         // Version 2 files have no settings.
         assertTrue(BackupPayload.parse("{\"version\":2}").settings.isEmpty())

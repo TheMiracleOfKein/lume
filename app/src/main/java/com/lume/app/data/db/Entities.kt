@@ -293,3 +293,25 @@ data class ImportedFileEntity(
     val lastModified: Long,
     val destPath: String,
 )
+
+/**
+ * One stretch of reading in one chapter, for the statistics screen. [titleName] is kept so titles
+ * that left the library still have a name.
+ */
+@Entity(
+    tableName = "reading_sessions",
+    indices = [Index("startedAt"), Index("sourceId", "titleId")],
+)
+data class ReadingSessionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val sourceId: String,
+    val titleId: String,
+    val titleName: String,
+    val chapterId: String,
+    val startedAt: Long,
+    val durationMs: Long,
+    val pagesRead: Int,
+)
+
+/** When a chapter was marked read, for the per-month and per-title chapter counts. */
+data class ChapterReadTime(val sourceId: String, val titleId: String, val readAt: Long)
