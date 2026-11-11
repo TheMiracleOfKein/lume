@@ -16,6 +16,8 @@ object Routes {
     const val Settings = "settings"
     const val SettingsPage = "settings/{page}?focus={focus}"
     const val Downloads = "downloads"
+    const val NearbySend = "downloads/send"
+    const val NearbyReceive = "downloads/receive"
     const val Categories = "categories"
     const val Browse = "browse/{sourceId}?genre={genre}"
     const val About = "about"

@@ -1172,4 +1172,50 @@
         <item quantity="other">%d новой главы</item>
     </plurals>
     <string name="settings_kw_watched">отслеживать, папка, проверка, новые главы, импорт, локальные, авто</string>
+
+    <!-- Передача загрузок на телефон рядом -->
+    <string name="nearby_send_title">Отправить на телефон рядом</string>
+    <string name="nearby_receive_title">Получить с телефона рядом</string>
+    <string name="nearby_send_intro">Выберите главы. На другом телефоне откройте «Загрузки» → «Получить». Оба телефона должны быть в одной сети Wi-Fi.</string>
+    <string name="nearby_select_all">Выбрать все</string>
+    <string name="nearby_select_none">Снять выбор</string>
+    <string name="nearby_read_marks">Передать отметки о прочтении</string>
+    <string name="nearby_start">Отправить: глав %1$d · %2$s</string>
+    <string name="nearby_waiting">Ждём другой телефон</string>
+    <string name="nearby_waiting_hint">На другом телефоне: «Загрузки» → «Получить», затем выберите «%1$s».</string>
+    <string name="nearby_address_hint">Если телефона нет в списке, введите там этот адрес:</string>
+    <string name="nearby_no_network">Нет сети Wi-Fi. Подключите оба телефона к одной сети.</string>
+    <string name="nearby_listening_note">Lume принимает подключения, только пока открыт этот экран.</string>
+    <string name="nearby_confirm_title">«%1$s» хочет получить главы</string>
+    <string name="nearby_code_check">Проверьте, что на другом телефоне тот же код.</string>
+    <string name="nearby_send">Отправить</string>
+    <string name="nearby_sending">Отправка на «%1$s»</string>
+    <string name="nearby_progress">%1$s из %2$s</string>
+    <string name="nearby_sent">Отправлено глав: %1$d</string>
+    <string name="nearby_declined">Другой телефон отказался</string>
+    <string name="nearby_cancelled">Передача остановлена</string>
+    <string name="nearby_failed">Связь прервалась: %1$s</string>
+    <string name="nearby_failed_resume">Связь прервалась. Подключитесь снова: дошедшие главы повторно не передаются.</string>
+    <string name="nearby_wait_again">Ждать другой телефон</string>
+    <string name="nearby_done">Готово</string>
+    <string name="nearby_looking">Ищем телефоны, которые отправляют главы через Lume в этой сети…</string>
+    <string name="nearby_found">Телефоны рядом</string>
+    <string name="nearby_enter_address">Адрес с экрана отправителя</string>
+    <string name="nearby_address_invalid">Введите адрес вида 192.168.1.5:41234</string>
+    <string name="nearby_connect">Подключиться</string>
+    <string name="nearby_connecting">Подключение…</string>
+    <string name="nearby_paired">Проверьте, что на «%1$s» тот же код. Ждём, пока там подтвердят отправку…</string>
+    <string name="nearby_offer_title">«%1$s» отправляет</string>
+    <string name="nearby_offer_total">Глав: %1$d · %2$s</string>
+    <string name="nearby_offer_have">Уже есть на этом телефоне, пропускаются: %1$d</string>
+    <string name="nearby_offer_unsupported">Пропускаются, их источника нет в Lume на этом телефоне: %1$s</string>
+    <string name="nearby_offer_read_marks">Отметки о прочтении тоже придут</string>
+    <string name="nearby_offer_note">Тайтлы попадут в библиотеку, главы — в загрузки. До вашего согласия ничего не сохраняется.</string>
+    <string name="nearby_accept">Принять</string>
+    <string name="nearby_decline">Отказаться</string>
+    <string name="nearby_receiving">Получение с «%1$s»</string>
+    <string name="nearby_received">Получено глав: %1$d</string>
+    <string name="nearby_declined_by_sender">Отправитель отменил передачу</string>
+    <string name="nearby_try_again">Повторить</string>
+    <string name="nearby_permission_denied">Без доступа к локальной сети телефоны не найдут друг друга.</string>
 </resources>
