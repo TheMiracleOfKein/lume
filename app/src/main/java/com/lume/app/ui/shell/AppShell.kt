@@ -21,6 +21,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Arrangement
@@ -167,6 +168,13 @@ fun AppShell(nav: NavHostController) {
 
     CompositionLocalProvider(LocalUseRail provides useRail) {
     Box(modifier = Modifier.fillMaxSize().background(AppColors.background)) {
+    // While the menu is open, TalkBack and other accessibility services see only the menu: the
+    // screen and the bars behind the scrim leave the semantics tree (they come back on close).
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(if (menuOpen) Modifier.clearAndSetSemantics {} else Modifier),
+    ) {
         // No shell padding at all: each destination pads itself (see lumeComposable), so the
         // bottom bar sliding in or out never re-lays-out a screen mid-transition.
         NavHost(
@@ -301,6 +309,7 @@ fun AppShell(nav: NavHostController) {
         ) {
             NavRail(currentRoute = route, onSelect = onSelect)
         }
+    }
 
         MainMenu(
             visible = menuOpen,
