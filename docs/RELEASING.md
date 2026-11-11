@@ -1,10 +1,12 @@
 # Releasing Lume
 
-Releases are signed with one key, so every APK installs over the previous one. A release can be
-built on the maintainer's computer (the usual path) or by the optional **Release** workflow
-([release.yml](../.github/workflows/release.yml)) from a tag, with the key kept in repository
-secrets. Both paths make the same thing: `lume-vX.Y.Z.apk` on a GitHub release titled
-`Lume X.Y.Z`, with the notes from `docs/releases/vX.Y.Z.md`.
+Releases are signed with one key, so every APK installs over the previous one. Since v0.9.11 a
+release is published by the **Release** workflow ([release.yml](../.github/workflows/release.yml))
+when its tag is pushed, with the key kept in repository secrets. A release can still be built on
+the maintainer's computer. Both paths make the same thing: `lume-vX.Y.Z.apk` and its checksum
+`lume-vX.Y.Z.apk.sha256` (the `sha256sum` format) on a GitHub release titled `Lume X.Y.Z`, with
+the notes from `docs/releases/vX.Y.Z.md`. Obtainium and other installers can check the APK
+against the checksum file.
 
 ## Before a release
 
@@ -27,6 +29,15 @@ apksigner verify --print-certs -v app/build/outputs/apk/release/app-release.apk
 
 The signer must be `CN=Lume App` with SHA-256
 `b1594cec70301bfd0f66d73d82e9bdcea6355b8df8d2abe50e1fc022629bd565`.
+
+A release published from a local build attaches the checksum file too:
+
+```bash
+cp app/build/outputs/apk/release/app-release.apk lume-vX.Y.Z.apk
+sha256sum lume-vX.Y.Z.apk > lume-vX.Y.Z.apk.sha256
+gh release create vX.Y.Z lume-vX.Y.Z.apk lume-vX.Y.Z.apk.sha256 --title "Lume X.Y.Z" \
+  --notes-file docs/releases/vX.Y.Z.md --verify-tag --latest
+```
 
 ## Release workflow (optional)
 

@@ -252,6 +252,14 @@ Two phones on the same Wi-Fi, one with a few downloaded titles (one stored as CB
 - [ ] Search: a title in the library from one source is marked in the results of another source with the same name, and in a source linked on the title screen.
 - [ ] Release build (R8): the crash log saves and shares as in the debug build.
 
+## v0.9.11: encrypted sign-ins and history
+
+- [ ] Update from v0.9.10 with a tracker, a MangaLib-family site and WebDAV sync signed in: all three still work, and `files/datastore/lume_private.preferences_pb` and `lib_auth.preferences_pb` no longer contain the tokens or the password as plain text (`adb shell run-as com.lume.app cat … | strings`).
+- [ ] Sign out of a tracker and in again; kill the app and reopen: still signed in.
+- [ ] Home: a long press on a Continue reading card asks "Remove from history?"; Remove takes only that title away, Cancel keeps it. Its chapters stay marked as read.
+- [ ] History: the same with a long press on a row, also after rotating with the dialog open. TalkBack offers "Remove from history" as an action.
+- [ ] Release build (R8): sign-ins and the sync password survive a restart.
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.
