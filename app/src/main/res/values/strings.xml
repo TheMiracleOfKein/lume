@@ -640,7 +640,7 @@
     <string name="error_backup_write">Couldn’t write the backup file</string>
     <string name="backup_save_to">Save a backup to…</string>
     <string name="backup_restore_file">Restore from a file…</string>
-    <string name="backup_restore_file_hint">A Lume backup or a Mihon / Tachiyomi backup (.tachibk)</string>
+    <string name="backup_restore_file_hint">A Lume, Mihon / Tachiyomi (.tachibk) or Kotatsu (.bk.zip) backup</string>
     <string name="backup_saved_to">Backup saved: %1$s</string>
     <string name="backup_restore_failed">Restore failed: %1$s</string>
     <plurals name="backup_mihon_progress">
@@ -648,6 +648,7 @@
         <item quantity="other">Reading chapter lists: %1$d of %2$d titles</item>
     </plurals>
     <string name="backup_mihon_done">Mihon import. Added: %1$d · already in the library: %2$d · chapters marked read: %3$d</string>
+    <string name="backup_kotatsu_done">Kotatsu import. Added: %1$d · already in the library: %2$d. Reading history isn’t imported.</string>
     <string name="backup_mihon_unmatched">Skipped, their source isn’t in Lume: %1$d (%2$s)</string>
     <string name="backup_mihon_read_failed">Titles without read marks, their chapter lists didn’t load: %1$d</string>
     <string name="backup_auto">Automatic backups</string>
@@ -805,7 +806,7 @@
     <string name="settings_summary_downloads">Wi-Fi, automatic downloads, storage</string>
     <string name="settings_summary_sources">Sources, 18+ in global search</string>
     <string name="settings_summary_trackers">AniList, Shikimori, MyAnimeList and more</string>
-    <string name="settings_summary_backup">Backups, Mihon import, automatic backups</string>
+    <string name="settings_summary_backup">Backups, Mihon and Kotatsu import, automatic backups</string>
     <string name="settings_summary_privacy">Incognito, app lock, hiding the app</string>
     <string name="settings_summary_network">DNS over HTTPS, cache, cookies</string>
     <string name="settings_summary_about">Version, licenses, links</string>
@@ -919,7 +920,7 @@
     <string name="settings_kw_trackers">anilist, shikimori, myanimelist, mal, kitsu, mangaupdates, sign in, login, account</string>
     <string name="settings_kw_auto_link">tracker, link, match</string>
     <string name="settings_kw_backup">save, export, copy</string>
-    <string name="settings_kw_restore">import, mihon, tachiyomi, tachibk</string>
+    <string name="settings_kw_restore">import, mihon, tachiyomi, tachibk, kotatsu</string>
     <string name="settings_kw_auto_backup">schedule, daily, weekly, folder</string>
     <string name="settings_kw_incognito">private, history</string>
     <string name="settings_kw_app_lock">fingerprint, pin, password, biometric, security</string>
