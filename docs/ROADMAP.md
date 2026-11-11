@@ -230,7 +230,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.6: library and stats** ✅ released 2026-11-11 ([notes](releases/v0.9.6.md), [device check](releases/v0.9.6-check.md)): reading statistics, one notification per title, updates and notifications per category, and source errors kept across restarts and shown in global search.
 
-**v0.9.7: imports and folders** ([notes](releases/v0.9.7.md), [device check](releases/v0.9.7-check.md)): Kotatsu backups, a tracker's reading list, and any folder as download storage.
+**v0.9.7: imports and folders** ✅ released 2026-11-11 ([notes](releases/v0.9.7.md), [device check](releases/v0.9.7-check.md)): Kotatsu backups, a tracker's reading list, and any folder as download storage.
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -822,7 +822,7 @@ Release notes: [docs/releases/v0.9.6.md](releases/v0.9.6.md); device check in [v
 - ✅ **Update categories**: the update check covers only titles in the chosen categories (the bell pool and its 20-title cap stay).
 - ✅ **Source status kept for a week** across restarts and shown in global search.
 
-### v0.9.7: imports and folders
+### v0.9.7: imports and folders ✅ released 2026-11-11
 
 Release notes: [docs/releases/v0.9.7.md](releases/v0.9.7.md); device check in [v0.9.7-check.md](releases/v0.9.7-check.md).
 
