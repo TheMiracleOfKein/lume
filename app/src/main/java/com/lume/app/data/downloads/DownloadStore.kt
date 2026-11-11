@@ -156,6 +156,17 @@ class DownloadStore(
         perTitle to perTitle.values.sum()
     }
 
+    /** Bytes of one stored chapter on disk (blocking). */
+    fun bytesOf(row: DownloadEntity): Long = decodePaths(row).sumOf(::pageSize)
+
+    /** Size of a page from [localPages]: a file path or a picked-folder URI (blocking). */
+    fun pageSize(path: String): Long =
+        if (isContentUri(path)) saf.size(Uri.parse(path)) else File(path).takeIf(File::isFile)?.length() ?: 0L
+
+    /** Opens a page from [localPages] (blocking). */
+    fun openPage(path: String): java.io.InputStream =
+        if (isContentUri(path)) saf.open(Uri.parse(path)) ?: throw java.io.IOException("Can't read a page") else File(path).inputStream()
+
     private fun titleDir(sourceId: String, titleId: String): File {
         val dir = File(downloadsDir(), "${safe(sourceId)}/${safe(titleId)}")
         if (!dir.exists()) dir.mkdirs()
@@ -690,42 +701,8 @@ class DownloadStore(
                 }.awaitAll()
             }
 
-            writeChapterMeta(dir, chapter)
-            val names = if (prefs?.downloadsAsCbz?.value == true) {
-                listOf(packCbz(dir, files, title, chapter, source).name)
-            } else {
-                files.map { it.name }
-            }
-            val paths = if (tree != null) {
-                withContext(Dispatchers.IO) {
-                    try {
-                        publishToSaf(tree, sourceId, titleId, chapter.id, dir, names)
-                    } catch (e: java.io.IOException) {
-                        saf.forgetAll(tree) // a remembered folder may be gone; look again next time
-                        throw e
-                    }
-                }.also { dir.deleteRecursively() }
-            } else {
-                val finalDir = chapterDirPath(sourceId, titleId, chapter.id)
-                finalDir.deleteRecursively()
-                if (!dir.renameTo(finalDir)) {
-                    dir.copyRecursively(finalDir, overwrite = true)
-                    dir.deleteRecursively()
-                }
-                names.map { File(finalDir, it).absolutePath }
-            }
-            dao.upsertDownload(
-                DownloadEntity(
-                    sourceId = sourceId,
-                    titleId = titleId,
-                    chapterId = chapter.id,
-                    titleName = title?.title ?: titleId,
-                    coverUrl = title?.coverUrl,
-                    chapterName = chapter.title,
-                    pageCount = files.size,
-                    pagePathsJson = json.encodeToString(paths),
-                ),
-            )
+            val web = title?.id?.let { runCatching { source.webUrl(it) }.getOrNull() }
+            storeChapter(sourceId, titleId, title, chapter, tree, dir, files, web)
         } catch (e: Throwable) {
             // Any failure (network, not an image, cancel): nothing half-done stays on disk.
             withContext(NonCancellable) { abortPartial(sourceId, titleId, chapter.id) }
@@ -733,6 +710,86 @@ class DownloadStore(
         } finally {
             progressMap.remove(key)
             _progress.value = progressMap.toMap()
+        }
+    }
+
+    /**
+     * Moves the complete pages in [dir] into place (as CBZ when that is the setting, in [tree] when
+     * downloads go to a picked folder) and records the download.
+     */
+    private suspend fun storeChapter(
+        sourceId: String,
+        titleId: String,
+        title: TitleDetails?,
+        chapter: Chapter,
+        tree: Uri?,
+        dir: File,
+        files: List<File>,
+        web: String?,
+    ) {
+        writeChapterMeta(dir, chapter)
+        val names = if (prefs?.downloadsAsCbz?.value == true) {
+            listOf(packCbz(dir, files, title, chapter, web).name)
+        } else {
+            files.map { it.name }
+        }
+        val paths = if (tree != null) {
+            withContext(Dispatchers.IO) {
+                try {
+                    publishToSaf(tree, sourceId, titleId, chapter.id, dir, names)
+                } catch (e: java.io.IOException) {
+                    saf.forgetAll(tree) // a remembered folder may be gone; look again next time
+                    throw e
+                }
+            }.also { dir.deleteRecursively() }
+        } else {
+            val finalDir = chapterDirPath(sourceId, titleId, chapter.id)
+            finalDir.deleteRecursively()
+            if (!dir.renameTo(finalDir)) {
+                dir.copyRecursively(finalDir, overwrite = true)
+                dir.deleteRecursively()
+            }
+            names.map { File(finalDir, it).absolutePath }
+        }
+        dao.upsertDownload(
+            DownloadEntity(
+                sourceId = sourceId,
+                titleId = titleId,
+                chapterId = chapter.id,
+                titleName = title?.title ?: titleId,
+                coverUrl = title?.coverUrl,
+                chapterName = chapter.title,
+                pageCount = files.size,
+                pagePathsJson = json.encodeToString(paths),
+            ),
+        )
+    }
+
+    /**
+     * Stores a chapter that came from another phone: [pages] are its page files in reading order
+     * (any names). Each one must be an image; the chapter is then saved like a download, in the
+     * storage and format this phone uses. [pages] are left where they are.
+     */
+    suspend fun saveReceivedChapter(sourceId: String, titleId: String, title: TitleDetails, chapter: Chapter, pages: List<File>) {
+        if (pages.isEmpty()) error(context.getString(R.string.error_no_pages_download))
+        try {
+            val tree = activeTree()
+            withContext(Dispatchers.IO) {
+                writeTitleMeta(sourceId, titleId, title, tree)
+                val dir = (if (tree != null) stagedPartDir(sourceId, titleId, chapter.id) else partDirPath(sourceId, titleId, chapter.id)).apply {
+                    deleteRecursively()
+                    mkdirs()
+                }
+                val files = pages.mapIndexed { i, page ->
+                    val ext = ImageBytes.extension(readHead(page, 32))
+                        ?: throw SourceFetchException(context.getString(R.string.error_page_not_image, i + 1))
+                    File(dir, "%04d.%s".format(i, ext)).also { page.copyTo(it, overwrite = true) }
+                }
+                storeChapter(sourceId, titleId, title, chapter, tree, dir, files, web = null)
+            }
+        } catch (e: Throwable) {
+            withContext(NonCancellable) { abortPartial(sourceId, titleId, chapter.id) }
+            throw e
         }
     }
 
@@ -785,7 +842,7 @@ class DownloadStore(
      * Zips [files] (plus ComicInfo.xml) into the chapter folder as [CBZ_NAME] and removes the
      * loose pages. Pages are stored uncompressed: images do not shrink and reading stays fast.
      */
-    private fun packCbz(dir: File, files: List<File>, title: TitleDetails?, chapter: Chapter, source: CatalogSource): File {
+    private fun packCbz(dir: File, files: List<File>, title: TitleDetails?, chapter: Chapter, web: String?): File {
         val target = File(dir, CBZ_NAME)
         val partial = File(dir, "$CBZ_NAME.part")
         java.util.zip.ZipOutputStream(partial.outputStream().buffered()).use { zip ->
@@ -811,7 +868,7 @@ class DownloadStore(
                 penciller = title?.artists.orEmpty(),
                 genre = title?.genres.orEmpty(),
                 pageCount = files.size,
-                web = title?.id?.let { runCatching { source.webUrl(it) }.getOrNull() },
+                web = web,
                 status = title?.status,
             )
             zip.putNextEntry(java.util.zip.ZipEntry("ComicInfo.xml"))
@@ -899,3 +956,17 @@ internal fun safeFolderName(value: String): String {
 }
 
 private const val MAX_FOLDER_BYTES = 200
+
+/** Up to [count] first bytes of [file]. */
+private fun readHead(file: File, count: Int): ByteArray {
+    val head = ByteArray(count)
+    var got = 0
+    file.inputStream().use { input ->
+        while (got < count) {
+            val n = input.read(head, got, count - got)
+            if (n < 0) break
+            got += n
+        }
+    }
+    return head.copyOf(got)
+}
