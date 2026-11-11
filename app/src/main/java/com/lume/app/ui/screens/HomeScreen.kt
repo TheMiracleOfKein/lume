@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -53,7 +52,6 @@ import com.lume.app.data.db.ProgressEntity
 import com.lume.app.ui.components.AnimatedLoadState
 import com.lume.app.ui.components.CoverCard
 import com.lume.app.ui.components.CoverImage
-import com.lume.app.ui.components.PageSpotImage
 import com.lume.app.ui.components.ErrorRetryBox
 import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LumeRefreshIndicator
@@ -332,17 +330,7 @@ private fun ContinueCard(item: ProgressEntity, onLongClick: () -> Unit, onClick:
                 onClick = onClick,
             ),
     ) {
-        // The panel you stopped at, when the page is known and has one; else the cover.
-        PageSpotImage(
-            url = item.pageImageUrl,
-            offset = item.pageOffset,
-            modifier = Modifier
-                .size(width = 110.dp, height = 150.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(AppColors.card),
-            sliceFallback = false,
-            fallback = { CoverImage(url = item.coverUrl, width = 110.dp, height = 150.dp, radius = 8.dp) },
-        )
+        CoverImage(url = item.coverUrl, width = 110.dp, height = 150.dp, radius = 8.dp)
         LinearProgressIndicator(
             progress = { progress.coerceIn(0f, 1f) },
             modifier = Modifier
