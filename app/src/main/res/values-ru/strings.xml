@@ -640,6 +640,12 @@
     <string name="settings_storage_external">Внешняя память %1$d</string>
     <string name="settings_storage_free">Свободно %1$s</string>
     <string name="settings_storage_note">Новые загрузки сохраняются в выбранное место; прежние остаются там, где были.</string>
+    <string name="settings_storage_folder_pick">Выбрать папку…</string>
+    <string name="settings_storage_folder_pick_hint">Любая папка, в том числе на SD-карте. Главы попадут в папку Lume внутри неё.</string>
+    <string name="settings_storage_folder">Выбранная папка</string>
+    <string name="settings_storage_folder_picked">Главы сохраняются в её папке Lume. Нажмите, чтобы выбрать другую.</string>
+    <string name="settings_storage_folder_lost">Доступ к этой папке потерян. Новые загрузки идут во внутреннюю память, пока вы не подключите её снова.</string>
+    <string name="settings_storage_reconnect">Подключить снова</string>
     <string name="settings_section_local">Локальные файлы</string>
     <string name="local_import_folder">Импортировать папку с устройства</string>
     <string name="local_importing">Импорт…</string>

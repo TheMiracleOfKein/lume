@@ -18,6 +18,7 @@ import com.lume.app.data.source.LibAuthToken
 import com.lume.app.data.source.LibWebSession
 import com.lume.app.domain.AutoDownloadMode
 import com.lume.app.domain.UpdateRules
+import com.lume.app.domain.isContentUri
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.PackEntry
 import com.lume.app.domain.PackState
@@ -121,9 +122,43 @@ class DownloadsViewModel(private val app: AppContainer) : ViewModel() {
 
 class SettingsViewModel(private val app: AppContainer) : ViewModel() {
     val prefs = app.prefs
-    var downloadPath: String by mutableStateOf(app.downloads.downloadsDir().absolutePath)
+    var downloadPath: String by mutableStateOf(currentDownloadPath())
         private set
     val storageChoices = app.downloads.storageChoices()
+
+    /** Name of the folder picked for downloads; null while none is picked or its name can't be read. */
+    var downloadsFolderName by mutableStateOf<String?>(null)
+        private set
+
+    /** True when a picked downloads folder lost its permission (new downloads use internal storage). */
+    var downloadsFolderLost by mutableStateOf(false)
+        private set
+
+    init {
+        refreshDownloadsFolder()
+    }
+
+    /** A folder path for file storages; empty when the downloads go to a picked folder. */
+    private fun currentDownloadPath(): String =
+        if (isContentUri(prefs.downloadsRoot.value)) "" else app.downloads.downloadsDir().absolutePath
+
+    /** Reads the picked folder's name and permission again (a content query, so off the main thread). */
+    fun refreshDownloadsFolder() {
+        val root = prefs.downloadsRoot.value
+        if (!isContentUri(root)) {
+            downloadsFolderName = null
+            downloadsFolderLost = false
+            return
+        }
+        viewModelScope.launch {
+            val tree = root.toUri()
+            val (name, lost) = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                (app.safStorage.displayName(tree) ?: folderName(root)) to !app.safStorage.hasAccess(tree)
+            }
+            downloadsFolderName = name
+            downloadsFolderLost = lost
+        }
+    }
 
     /** Result of the last action (backup, restore, logout …), shown under the settings. */
     var statusMessage by mutableStateOf<String?>(null)
@@ -359,9 +394,43 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
     /** New downloads go to [path]; existing ones stay where they are and keep working. */
     fun setDownloadsRoot(path: String) {
         viewModelScope.launch {
+            val old = prefs.downloadsRoot.value
             prefs.setDownloadsRoot(path)
-            downloadPath = app.downloads.downloadsDir().absolutePath
+            downloadPath = currentDownloadPath()
+            refreshDownloadsFolder()
+            releaseDownloadsFolder(old, keep = path)
         }
+    }
+
+    /**
+     * Downloads go to the picked folder [uri] (also used to reconnect one that lost its permission).
+     * Needs read and write access, kept across restarts.
+     */
+    fun setDownloadsFolder(uri: android.net.Uri) {
+        viewModelScope.launch {
+            val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            runCatching { app.app.contentResolver.takePersistableUriPermission(uri, flags) }
+            val old = prefs.downloadsRoot.value
+            prefs.setDownloadsRoot(uri.toString())
+            downloadPath = currentDownloadPath()
+            refreshDownloadsFolder()
+            releaseDownloadsFolder(old, keep = uri.toString())
+        }
+    }
+
+    /**
+     * Gives back the permission of the folder downloads used to go to, unless something still needs
+     * it: a stored download inside it, or another feature (backup, sync, watched folders) using it.
+     */
+    private suspend fun releaseDownloadsFolder(old: String, keep: String) {
+        if (!isContentUri(old) || old == keep) return
+        val inUse = old == prefs.autoBackupFolder.value ||
+            old == prefs.syncSettings.value.folder ||
+            app.dao.watchedFolders().any { it.treeUri == old } ||
+            app.downloads.referencesTree(old)
+        if (inUse) return
+        val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        runCatching { app.app.contentResolver.releasePersistableUriPermission(old.toUri(), flags) }
     }
 
     fun setSearchNsfw(value: Boolean) {
