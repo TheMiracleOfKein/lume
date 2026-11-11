@@ -65,6 +65,12 @@ interface Tracker {
     suspend fun fetchEntry(remoteId: String): TrackerEntry? =
         fetchProgress(remoteId)?.let { TrackerEntry(chaptersRead = it.chaptersRead, score = it.score ?: 0f) }
 
+    /** The tracker can hand over the signed-in user's "Reading" list ([fetchReadingList]). */
+    val supportsListImport: Boolean get() = false
+
+    /** The user's "Reading" list; null when unsupported, signed out or on errors. */
+    suspend fun fetchReadingList(): List<TrackerListEntry>? = null
+
     /** Writes status, score, chapters and dates (adds the title to the list when needed). */
     suspend fun updateEntry(remoteId: String, entry: TrackerEntry): Boolean = updateProgress(remoteId, entry.chaptersRead)
 }

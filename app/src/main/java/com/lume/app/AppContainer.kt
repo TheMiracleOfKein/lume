@@ -70,6 +70,7 @@ class AppContainer(val app: Application) {
     val library = LibraryRepository(database, dao, prefs, titles, libraryChapters, trackerSync, titleSources, appScope)
     val readingLists = com.lume.app.data.library.ReadingLists(app, dao, sources, library)
     val libBookmarkImport = com.lume.app.data.library.LibBookmarkImport(database, dao, sources, libraryChapters, appScope)
+    val trackerListImport = com.lume.app.data.tracker.TrackerListImport(dao, sources, trackers, titleSources, titles, library, appScope)
     val updates = com.lume.app.data.update.AppUpdater(app, http, appScope)
     val sync = com.lume.app.data.sync.SyncRepository(app, database, dao, prefs, library, sources, http)
 

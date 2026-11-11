@@ -87,6 +87,33 @@ class AniListTracker(
         }
     }
 
+    override val supportsListImport: Boolean get() = true
+
+    override suspend fun fetchReadingList(): List<TrackerListEntry>? = withContext(Dispatchers.IO) {
+        val token = prefs.anilistAccessToken.first() ?: return@withContext null
+        val viewer = rawGraphql("""{"query":"query{Viewer{id}}"}""", token) ?: return@withContext null
+        val userId = parseAniListViewerId(json, viewer) ?: return@withContext null
+        val body =
+            """{"query":"query(${'$'}userId:Int){MediaListCollection(userId:${'$'}userId,type:MANGA,status:CURRENT){lists{entries{progress score(format:POINT_10_DECIMAL) media{id title{romaji english native} synonyms siteUrl coverImage{large} staff(perPage:3){nodes{name{full}}}}}}}}","variables":{"userId":$userId}}"""
+        val text = rawGraphql(body, token) ?: return@withContext null
+        runCatching { parseAniListReadingList(json, text) }.getOrNull()
+    }
+
+    /** The raw answer text of a GraphQL call, or null when it failed. */
+    private fun rawGraphql(body: String, token: String): String? {
+        val request = Request.Builder()
+            .url("https://graphql.anilist.co")
+            .post(body.toRequestBody("application/json".toMediaType()))
+            .header("Authorization", "Bearer $token")
+            .header("Accept", "application/json")
+            .header("Content-Type", "application/json")
+            .build()
+        return http.okHttp.newCall(request).execute().use { response ->
+            val text = response.body.string()
+            text.takeIf { response.isSuccessful }
+        }
+    }
+
     override suspend fun fetchEntry(remoteId: String): TrackerEntry? {
         val token = prefs.anilistAccessToken.first() ?: return null
         val mediaId = remoteId.toLongOrNull() ?: return null

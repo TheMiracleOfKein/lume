@@ -143,6 +143,25 @@ class MyAnimeListTracker(
         }.orEmpty()
     }
 
+    override val supportsListImport: Boolean get() = true
+
+    override suspend fun fetchReadingList(): List<TrackerListEntry>? {
+        val all = mutableListOf<TrackerListEntry>()
+        var url: String? = "$API/users/@me/mangalist?status=reading&limit=1000" +
+            "&fields=list_status,alternative_titles,authors{first_name,last_name}"
+        var pages = 0
+        while (url != null && pages++ < MAX_LIST_PAGES) {
+            val page = url
+            val parsed = api({ url(page).get() }) { response ->
+                if (!response.isSuccessful) return@api null
+                runCatching { parseMalReadingList(json, response.body.string()) }.getOrNull()
+            } ?: return null
+            all += parsed.first
+            url = parsed.second
+        }
+        return all
+    }
+
     /** What MyAnimeList users recommend for [remoteId]; null when signed out or on errors. */
     suspend fun recommendations(remoteId: String): List<SimilarTitle>? =
         api({ url("$API/manga/$remoteId?fields=recommendations").get() }) { response ->
@@ -206,6 +225,7 @@ class MyAnimeListTracker(
         const val REDIRECT_URI = "lume://oauth/myanimelist"
         private const val OAUTH = "https://myanimelist.net/v1/oauth2"
         private const val API = "https://api.myanimelist.net/v2"
+        private const val MAX_LIST_PAGES = 20
         private val STATUS = StatusMap(
             listOf(
                 TrackStatus.Reading to "reading",
