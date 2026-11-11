@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.BitmapRegionDecoder
+import android.net.Uri
 import android.graphics.Rect
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.platform.LocalContext
 import coil3.imageLoader
+import androidx.core.net.toUri
+import com.lume.app.domain.isContentUri
 import com.lume.app.domain.page.PageRect
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
@@ -88,8 +91,28 @@ private fun originalPath(context: Context, imageUrl: String): String? = if (PdfP
     File(imageUrl).takeIf { it.isFile }?.absolutePath
 }
 
+/**
+ * A region decoder over a page in a folder picked for downloads. The file descriptor is
+ * seekable for file-backed providers (the decoder keeps its own copy of it); for the rest the
+ * stream is read through instead.
+ */
+private fun openContentRegionDecoder(context: Context, uri: Uri): BitmapRegionDecoder? {
+    val resolver = context.contentResolver
+    runCatching {
+        resolver.openFileDescriptor(uri, "r")?.use { pfd ->
+            @Suppress("DEPRECATION")
+            BitmapRegionDecoder.newInstance(pfd.fileDescriptor, false)
+        }
+    }.getOrNull()?.let { return it }
+    return resolver.openInputStream(uri)?.use { stream ->
+        @Suppress("DEPRECATION")
+        BitmapRegionDecoder.newInstance(stream, false)
+    }
+}
+
 /** A region decoder over the page's original, or null when it isn't on disk or can't be read. */
 private fun openRegionDecoder(context: Context, imageUrl: String): BitmapRegionDecoder? = runCatching {
+    if (isContentUri(imageUrl)) return@runCatching openContentRegionDecoder(context, imageUrl.toUri())
     val path = originalPath(context, imageUrl) ?: return@runCatching null
     @Suppress("DEPRECATION")
     BitmapRegionDecoder.newInstance(path, false)

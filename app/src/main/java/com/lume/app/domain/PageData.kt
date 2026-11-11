@@ -7,4 +7,7 @@ import java.io.File
  * pages (`lume-pdf://`), a [File] for unpacked or downloaded images.
  */
 fun pageData(url: String): Any =
-    if (url.startsWith("http") || url.startsWith("lume-pdf://")) url else File(url)
+    if (url.startsWith("http") || url.startsWith("lume-pdf://") || isContentUri(url)) url else File(url)
+
+/** True for a `content://` URI (a page stored in a folder picked through the Storage Access Framework). */
+fun isContentUri(value: String): Boolean = value.startsWith("content://")

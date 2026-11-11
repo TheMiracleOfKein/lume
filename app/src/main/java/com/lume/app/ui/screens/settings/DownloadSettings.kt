@@ -1,10 +1,19 @@
 package com.lume.app.ui.screens.settings
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.sp
+import com.lume.app.domain.isContentUri
+import com.lume.app.ui.theme.AppColors
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +44,11 @@ fun DownloadSettings(nav: NavHostController, vm: SettingsViewModel) {
     val parallelPages by prefs.downloadParallelPages.collectAsState()
     val downloadsRoot by prefs.downloadsRoot.collectAsState()
     var confirmRestore by rememberSaveable { mutableStateOf(false) }
+    val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) vm.setDownloadsFolder(uri)
+    }
+    // The permission can be taken away in the system settings: look again when the page opens.
+    LaunchedEffect(downloadsRoot) { vm.refreshDownloadsFolder() }
 
     SettingsGroup {
         SettingItem("downloads_wifi") {
@@ -122,7 +136,25 @@ fun DownloadSettings(nav: NavHostController, vm: SettingsViewModel) {
                     onClick = { vm.setDownloadsRoot(choice.path) },
                 )
             }
-            SettingsNote(vm.downloadPath)
+            val folderPicked = isContentUri(downloadsRoot)
+            StorageRow(
+                label = if (folderPicked) vm.downloadsFolderName ?: stringResource(R.string.settings_storage_folder) else stringResource(R.string.settings_storage_folder_pick),
+                detail = stringResource(if (folderPicked) R.string.settings_storage_folder_picked else R.string.settings_storage_folder_pick_hint),
+                selected = folderPicked,
+                onClick = { pickFolder.launch(null) },
+            )
+            if (folderPicked && vm.downloadsFolderLost) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        stringResource(R.string.settings_storage_folder_lost),
+                        color = AppColors.danger,
+                        fontSize = 12.sp,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = { pickFolder.launch(null) }) { Text(stringResource(R.string.settings_storage_reconnect)) }
+                }
+            }
+            if (vm.downloadPath.isNotEmpty()) SettingsNote(vm.downloadPath)
             SettingsNote(stringResource(R.string.settings_storage_note))
         }
         SettingItem("downloads_manage") {

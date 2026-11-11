@@ -627,6 +627,12 @@
     <string name="settings_storage_external">External storage %1$d</string>
     <string name="settings_storage_free">%1$s free</string>
     <string name="settings_storage_note">New downloads go to the chosen place; earlier ones stay where they are.</string>
+    <string name="settings_storage_folder_pick">Choose a folder…</string>
+    <string name="settings_storage_folder_pick_hint">Any folder, on an SD card too. Chapters go into a Lume folder inside it.</string>
+    <string name="settings_storage_folder">Chosen folder</string>
+    <string name="settings_storage_folder_picked">Chapters are saved in its Lume folder. Tap to pick another.</string>
+    <string name="settings_storage_folder_lost">Access to this folder was lost. New downloads use internal storage until you reconnect.</string>
+    <string name="settings_storage_reconnect">Reconnect</string>
     <string name="settings_section_local">Local files</string>
     <string name="local_import_folder">Import a folder from the device</string>
     <string name="local_importing">Importing…</string>
