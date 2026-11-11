@@ -43,6 +43,7 @@ class SourceRegistry(
     private val credentials: ServerCredentialStore? = null,
     private val json: Json = Json { ignoreUnknownKeys = true; isLenient = true },
     scope: kotlinx.coroutines.CoroutineScope? = null,
+    errorLog: com.lume.app.data.ErrorLog? = null,
 ) {
     private val bundledIds = mutableSetOf<String>()
 
@@ -54,7 +55,13 @@ class SourceRegistry(
     val activeSourceId: StateFlow<String?> = prefs.activeSourceId
 
     /** The last failure of each source, kept across restarts (Sources screen, global search). */
-    val health = SourceHealth(store = PrefsSourceHealthStore(prefs), scope = scope)
+    val health = SourceHealth(
+        store = PrefsSourceHealthStore(prefs),
+        scope = scope,
+        onFailure = errorLog?.let { log ->
+            { sourceId, error -> log.record(baseManifests[sourceId]?.name ?: sourceId, error) }
+        },
+    )
 
     private val loadedOnce = CompletableDeferred<Unit>()
 

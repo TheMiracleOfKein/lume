@@ -21,6 +21,7 @@ object Routes {
     const val Categories = "categories"
     const val Browse = "browse/{sourceId}?genre={genre}"
     const val About = "about"
+    const val ErrorLog = "error-log"
     const val ReadingList = "reading-list"
     const val Title = "title/{sourceId}/{titleId}"
     const val Chapters = "title/{sourceId}/{titleId}/chapters"

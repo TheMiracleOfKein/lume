@@ -50,6 +50,8 @@ class SourceHealth(
     private val clock: () -> Long = System::currentTimeMillis,
     private val store: SourceHealthStore? = null,
     scope: CoroutineScope? = null,
+    /** Also told about every failure, with the full error (the error log). */
+    private val onFailure: ((sourceId: String, error: Throwable) -> Unit)? = null,
 ) {
     private val _problems = MutableStateFlow(
         store?.load().orEmpty().filterValues { clock() - it.at <= MAX_AGE_MS },
@@ -72,6 +74,7 @@ class SourceHealth(
             siteCheck = error is CloudflareException,
         )
         _problems.update { it + (sourceId to problem) }
+        onFailure?.invoke(sourceId, error)
     }
 
     /** Runs [block] for [sourceId] and records how it went; a cancelled call records nothing. */

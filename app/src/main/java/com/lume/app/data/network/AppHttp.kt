@@ -75,6 +75,7 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
         // only to the server's own origin. Coil's client is derived from this one.
         .addNetworkInterceptor(CleartextGuardInterceptor(servers))
         .addNetworkInterceptor(ServerAuthInterceptor(servers))
+        .addNetworkInterceptor(AppUserAgentInterceptor(APP_UA))
         .build()
 
     val okHttp: OkHttpClient get() = client
@@ -243,6 +244,9 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
     companion object {
         const val DEFAULT_UA =
             "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36"
+
+        /** For APIs that challenge browser User-Agents (see [AppUserAgentInterceptor]). */
+        val APP_UA = "Lume/${com.lume.app.BuildConfig.VERSION_NAME}"
     }
 }
 

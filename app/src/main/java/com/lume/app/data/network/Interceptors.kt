@@ -62,6 +62,28 @@ class RetryInterceptor(
 }
 
 /**
+ * Hosts whose API sends browser User-Agents to a bot challenge page but serves apps that name
+ * themselves. MangaDex asks API clients for an honest User-Agent.
+ * A network interceptor, so it wins over the image loader's own User-Agent and applies per redirect.
+ */
+class AppUserAgentInterceptor(private val appUserAgent: String) : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val request = chain.request()
+        if (!wantsAppUserAgent(request.url.host)) return chain.proceed(request)
+        return chain.proceed(request.newBuilder().header("User-Agent", appUserAgent).build())
+    }
+
+    companion object {
+        private val DOMAINS = listOf("mangadex.org", "mangadex.network")
+
+        fun wantsAppUserAgent(host: String): Boolean {
+            val h = host.lowercase().trimEnd('.')
+            return DOMAINS.any { h == it || h.endsWith(".$it") }
+        }
+    }
+}
+
+/**
  * Simple per-host request spacing (e.g. MangaDex asks for ≤5 req/s on api.mangadex.org).
  * Hosts are registered at runtime from source manifests (`engineConfig.rateLimit`).
  */

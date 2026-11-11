@@ -731,6 +731,16 @@
     <string name="about_version">Версия %1$s (%2$d)</string>
     <string name="about_source_code">Исходный код</string>
     <string name="about_releases">Выпуски и изменения</string>
+    <string name="error_log_title">Журнал ошибок</string>
+    <string name="error_log_hint">Недавние ошибки источников с полным текстом. Хранятся только на этом телефоне. Нажмите на запись, чтобы увидеть технические подробности.</string>
+    <string name="error_log_empty">Ошибок нет</string>
+    <string name="error_log_copy">Копировать</string>
+    <string name="error_log_copy_all">Копировать всё</string>
+    <string name="error_log_copied">Скопировано</string>
+    <string name="error_log_share">Поделиться</string>
+    <string name="error_log_clear">Очистить</string>
+    <string name="error_log_clear_title">Очистить журнал ошибок?</string>
+    <string name="error_log_show_details">Подробнее</string>
     <string name="about_license_app">Лицензия Lume (Apache 2.0)</string>
     <string name="about_licenses">Библиотеки с открытым кодом</string>
     <string name="update_section_title">Обновления</string>

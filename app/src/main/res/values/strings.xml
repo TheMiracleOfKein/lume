@@ -714,6 +714,16 @@
     <string name="about_version">Version %1$s (%2$d)</string>
     <string name="about_source_code">Source code</string>
     <string name="about_releases">Releases and changes</string>
+    <string name="error_log_title">Error log</string>
+    <string name="error_log_hint">Recent errors of sources, with their full text. Kept only on this phone. Tap an entry for technical details.</string>
+    <string name="error_log_empty">No errors recorded</string>
+    <string name="error_log_copy">Copy</string>
+    <string name="error_log_copy_all">Copy all</string>
+    <string name="error_log_copied">Copied</string>
+    <string name="error_log_share">Share</string>
+    <string name="error_log_clear">Clear</string>
+    <string name="error_log_clear_title">Clear the error log?</string>
+    <string name="error_log_show_details">Show details</string>
     <string name="about_license_app">Lume license (Apache 2.0)</string>
     <string name="about_licenses">Open-source libraries</string>
     <string name="update_section_title">Updates</string>

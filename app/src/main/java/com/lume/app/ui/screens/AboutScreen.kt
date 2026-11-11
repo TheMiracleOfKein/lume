@@ -16,7 +16,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import com.lume.app.ui.components.BackButton
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import com.lume.app.ui.nav.Routes
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -109,6 +111,7 @@ fun AboutScreen(nav: NavHostController) {
                     LinkRow(stringResource(R.string.about_source_code)) { openInBrowser(context, REPO) }
                     LinkRow(stringResource(R.string.about_releases)) { openInBrowser(context, "$REPO/releases") }
                     LinkRow(stringResource(R.string.about_license_app)) { openInBrowser(context, "$REPO/blob/main/LICENSE") }
+                    LinkRow(stringResource(R.string.error_log_title), external = false) { nav.navigate(Routes.ErrorLog) }
                 }
             }
             item(key = "libs-title") {
@@ -139,12 +142,16 @@ fun AboutScreen(nav: NavHostController) {
 }
 
 @Composable
-private fun LinkRow(label: String, onClick: () -> Unit) {
+private fun LinkRow(label: String, external: Boolean = true, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick).padding(horizontal = 14.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, color = AppColors.textPrimary, fontSize = 15.sp, modifier = Modifier.weight(1f))
-        Icon(Icons.AutoMirrored.Outlined.OpenInNew, null, tint = AppColors.textSecondary)
+        Icon(
+            if (external) Icons.AutoMirrored.Outlined.OpenInNew else Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+            null,
+            tint = AppColors.textSecondary,
+        )
     }
 }

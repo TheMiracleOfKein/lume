@@ -37,6 +37,7 @@ import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.ReportProblem
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -144,6 +145,15 @@ fun SourcesScreen(nav: NavHostController) {
                 title = { Text(stringResource(R.string.sources_title), color = AppColors.textPrimary) },
                 navigationIcon = {
                     BackButton(onClick = { nav.popBackStack() })
+                },
+                actions = {
+                    IconButton(onClick = { nav.navigate(Routes.ErrorLog) }) {
+                        Icon(
+                            Icons.Outlined.ReportProblem,
+                            stringResource(R.string.error_log_title),
+                            tint = if (problems.isEmpty()) AppColors.textSecondary else AppColors.danger,
+                        )
+                    }
                 },
                 windowInsets = LumeInsets.topBar,
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),
