@@ -239,7 +239,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.8: nearby sending** ✅ released 2026-11-11 ([notes](releases/v0.9.8.md)): send downloaded chapters to another phone on the same Wi-Fi, paired with a code and encrypted (the v0.7.x plan, same-network part).
 
-**v0.9.9: fixes** ([notes](releases/v0.9.9.md), [device check](releases/v0.9.9-check.md)): MangaDex works again, an error log with the full text of source errors, and reading statistics that count only chapters read in the app.
+**v0.9.9: fixes** ✅ released 2026-11-11 ([notes](releases/v0.9.9.md), [device check](releases/v0.9.9-check.md)): MangaDex works again, an error log with the full text of source errors, and reading statistics that count only chapters read in the app.
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -852,7 +852,7 @@ Release notes: [docs/releases/v0.9.8.md](releases/v0.9.8.md).
 - ⏸️ QR code, Wi-Fi Direct and the local-only hotspot; sending from a title's chapter list.
 - 🟡 Not checked on a device: the emulator gate was skipped for this release; JVM tests cover the protocol.
 
-### v0.9.9: fixes
+### v0.9.9: fixes ✅ released 2026-11-11
 
 Release notes: [docs/releases/v0.9.9.md](releases/v0.9.9.md).
 
