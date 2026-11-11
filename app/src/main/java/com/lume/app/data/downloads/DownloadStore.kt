@@ -775,7 +775,8 @@ class DownloadStore(
         try {
             val tree = activeTree()
             withContext(Dispatchers.IO) {
-                writeTitleMeta(sourceId, titleId, title, tree)
+                // A title already on this phone keeps its own details.
+                if (dao.downloadsForTitle(sourceId, titleId).isEmpty()) writeTitleMeta(sourceId, titleId, title, tree)
                 val dir = (if (tree != null) stagedPartDir(sourceId, titleId, chapter.id) else partDirPath(sourceId, titleId, chapter.id)).apply {
                     deleteRecursively()
                     mkdirs()

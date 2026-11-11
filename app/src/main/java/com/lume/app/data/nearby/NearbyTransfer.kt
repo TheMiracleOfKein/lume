@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.Inet4Address
@@ -74,7 +75,21 @@ class NearbyTransfer(
     /** The pages of an offered chapter, read from this phone's downloads. */
     suspend fun pagesOf(title: OfferTitle, chapter: OfferChapter): List<OutgoingPage> = withContext(Dispatchers.IO) {
         val pages = downloads.localPages(title.sourceId, title.titleId, chapter.chapter.id).orEmpty()
-        pages.map { page -> OutgoingPage(downloads.pageSize(page.imageUrl)) { downloads.openPage(page.imageUrl) } }
+        val outgoing = pages.map { page -> OutgoingPage(downloads.pageSize(page.imageUrl)) { downloads.openPage(page.imageUrl) } }
+        // A missing or empty page means the chapter can't be sent whole: the sender skips it.
+        if (outgoing.any { it.size <= 0 }) emptyList() else outgoing
+    }
+
+    /** The offer's chapter with a [safeChapterUrl], so a sender can't plant a link for this phone to open. */
+    private fun cleaned(sourceId: String, chapter: Chapter): Chapter {
+        val base = sources.sourceById(sourceId)?.manifest?.baseUrl
+        val url = safeChapterUrl(chapter.url, chapter.id, base)
+        return if (url == chapter.url) chapter else chapter.copy(url = url)
+    }
+
+    private fun cleaned(details: TitleDetails): TitleDetails {
+        val cover = safeCoverUrl(details.coverUrl)
+        return if (cover == details.coverUrl) details else details.copy(coverUrl = cover)
     }
 
     /** What the receiver leaves out of [offer]: chapters already here and titles of sources this phone lacks. */
@@ -100,7 +115,7 @@ class NearbyTransfer(
     suspend fun saveReceived(offer: Offer, title: OfferTitle, chapter: OfferChapter, pages: List<File>, prepared: MutableSet<String>) {
         val key = "${title.sourceId}|${title.titleId}"
         if (prepared.add(key)) prepareTitle(offer, title)
-        downloads.saveReceivedChapter(title.sourceId, title.titleId, title.details, chapter.chapter, pages)
+        downloads.saveReceivedChapter(title.sourceId, title.titleId, cleaned(title.details), cleaned(title.sourceId, chapter.chapter), pages)
     }
 
     /**
@@ -109,16 +124,17 @@ class NearbyTransfer(
      */
     private suspend fun prepareTitle(offer: Offer, title: OfferTitle) {
         val existing = offlineCache.get(title.sourceId, title.titleId)
-        val incoming = title.allChapters.ifEmpty { title.chapters.map { it.chapter } }
+        val details = cleaned(title.details)
+        val incoming = title.allChapters.ifEmpty { title.chapters.map { it.chapter } }.map { cleaned(title.sourceId, it) }
         if (existing == null) {
-            offlineCache.save(title.sourceId, title.titleId, title.details, incoming)
+            offlineCache.save(title.sourceId, title.titleId, details, incoming)
         } else {
             val ids = existing.chapters.mapTo(HashSet()) { it.id }
             val added = incoming.filter { it.id !in ids }
             if (added.isNotEmpty()) offlineCache.save(title.sourceId, title.titleId, existing.details, existing.chapters + added)
         }
         if (dao.getBookmark(title.sourceId, title.titleId) == null) {
-            library.add(title.sourceId, title.titleId, title.details.title, title.details.coverUrl, title.details.typeLabel)
+            library.add(title.sourceId, title.titleId, details.title, details.coverUrl, details.typeLabel)
         }
         if (offer.readMarks && title.readChapterIds.isNotEmpty()) {
             val read = dao.readChapterIds(title.sourceId, title.titleId).toSet()
@@ -151,6 +167,41 @@ class NearbyTransfer(
     }
 }
 
+/**
+ * A chapter link from another phone that is safe to keep: a plain relative path, or a web link on
+ * the source's own site (or a subdomain of it). Anything else becomes the chapter id.
+ */
+internal fun safeChapterUrl(url: String, chapterId: String, sourceBaseUrl: String?): String {
+    val relative = "://" !in url && !url.startsWith("/") && !url.startsWith("\\") &&
+        url.substringBefore('/').none { it == ':' } &&
+        url.split('/', '\\').none { it == ".." }
+    if (relative) return url
+    val isWeb = url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)
+    if (!isWeb || sourceBaseUrl == null) return chapterId
+    val baseHost = runCatching { java.net.URI(sourceBaseUrl).host }.getOrNull()?.lowercase()
+    val host = runCatching { java.net.URI(url).host }.getOrNull()?.lowercase()
+    if (baseHost.isNullOrEmpty() || host.isNullOrEmpty()) return chapterId
+    return if (host == baseHost || host.endsWith(".$baseHost")) url else chapterId
+}
+
+/** [text] cut to at most [maxBytes] UTF-8 bytes, never in the middle of a character. */
+internal fun truncateUtf8(text: String, maxBytes: Int): String {
+    var bytes = 0
+    var end = 0
+    while (end < text.length) {
+        val cp = text.codePointAt(end)
+        val size = String(Character.toChars(cp)).toByteArray(Charsets.UTF_8).size
+        if (bytes + size > maxBytes) break
+        bytes += size
+        end += Character.charCount(cp)
+    }
+    return text.substring(0, end)
+}
+
+/** [url] when it is a web address, else null. */
+internal fun safeCoverUrl(url: String?): String? =
+    url?.takeIf { it.startsWith("http://", ignoreCase = true) || it.startsWith("https://", ignoreCase = true) }
+
 /** What the receiver skips; [alreadyHere] chapters are downloaded on this phone already. */
 data class ReceivePlan(val skip: Set<String>, val alreadyHere: Int, val unsupportedTitles: List<String>)
 
@@ -165,7 +216,7 @@ class NearbyAdvertiser(context: Context) {
     fun start(name: String, port: Int) {
         stop()
         val info = NsdServiceInfo().apply {
-            serviceName = name
+            serviceName = truncateUtf8(name, 63)
             serviceType = NearbyTransfer.SERVICE_TYPE
             setPort(port)
         }
@@ -207,7 +258,7 @@ class NearbyDiscovery(context: Context) {
             override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) = Unit
             override fun onServiceFound(info: NsdServiceInfo) = resolve(info)
             override fun onServiceLost(info: NsdServiceInfo) {
-                _peers.value = _peers.value.filterNot { it.name == info.serviceName }
+                _peers.update { list -> list.filterNot { it.name == info.serviceName } }
             }
         }
         listener = l
@@ -224,7 +275,7 @@ class NearbyDiscovery(context: Context) {
             }
         }
         synchronized(pending) { pending.clear() }
-        _peers.value = emptyList()
+        _peers.update { emptyList() }
     }
 
     fun close() {
@@ -235,7 +286,7 @@ class NearbyDiscovery(context: Context) {
     private fun found(name: String, host: String?, port: Int) {
         if (host == null || port <= 0) return
         val peer = NearbyPeer(name, host, port)
-        _peers.value = (_peers.value.filterNot { it.name == name } + peer).sortedBy { it.name.lowercase() }
+        _peers.update { list -> (list.filterNot { it.name == name } + peer).sortedBy { it.name.lowercase() } }
     }
 
     private fun resolve(info: NsdServiceInfo) {
@@ -247,7 +298,9 @@ class NearbyDiscovery(context: Context) {
                     found(updated.serviceName, host?.hostAddress, updated.port)
                 }
                 override fun onServiceLost() {
-                    _peers.value = _peers.value.filterNot { it.name == info.serviceName }
+                    _peers.update { list -> list.filterNot { it.name == info.serviceName } }
+                    runCatching { nsd?.unregisterServiceInfoCallback(this) }
+                    synchronized(callbacks) { callbacks.remove(this) }
                 }
                 override fun onServiceInfoCallbackUnregistered() = Unit
             }

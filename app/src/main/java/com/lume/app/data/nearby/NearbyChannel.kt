@@ -58,7 +58,9 @@ class NearbyChannel private constructor(
     /** Reads one frame: its type and body. Fails on a broken, tampered or replayed frame. */
     fun read(): Frame {
         val size = input.readInt()
-        if (size !in 1..(MAX_FRAME + 1 + TAG_BYTES)) throw IOException("Bad frame size $size")
+        // Before the handshake finishes only small hello frames are expected.
+        val limit = if (receiveKey == null) MAX_HANDSHAKE_FRAME else MAX_FRAME + 1 + TAG_BYTES
+        if (size !in 1..limit) throw IOException("Bad frame size $size")
         val raw = ByteArray(size)
         input.readFully(raw)
         val key = receiveKey
@@ -88,6 +90,7 @@ class NearbyChannel private constructor(
 
     companion object {
         const val MAX_FRAME = 4 * 1024 * 1024
+        private const val MAX_HANDSHAKE_FRAME = 4096
         private const val TAG_BYTES = 16
         private const val VERSION = 1
         private const val TYPE_HELLO = 0

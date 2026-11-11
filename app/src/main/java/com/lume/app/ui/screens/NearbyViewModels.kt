@@ -96,6 +96,7 @@ class NearbySendViewModel(private val app: AppContainer) : ViewModel() {
     private var offer: Offer? = null
     @Volatile private var busy = false
     @Volatile private var cancelled = false
+    private var starting = false
 
     init {
         viewModelScope.launch {
@@ -138,11 +139,18 @@ class NearbySendViewModel(private val app: AppContainer) : ViewModel() {
 
     /** Builds the offer and starts listening. */
     fun start() {
-        if (selection.isEmpty() || server != null) return
+        if (selection.isEmpty() || server != null || starting) return
+        starting = true
         viewModelScope.launch {
-            offer = app.nearby.buildOffer(selection, readMarks)
-            val socket = withContext(Dispatchers.IO) { runCatching { ServerSocket(0) }.getOrNull() }
+            offer = try {
+                app.nearby.buildOffer(selection, readMarks)
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                null
+            }
+            val socket = if (offer == null) null else withContext(Dispatchers.IO) { runCatching { ServerSocket(0) }.getOrNull() }
             if (socket == null) {
+                starting = false
                 phase = SendPhase.Finished(NearbyOutcome.Failed(null))
                 return@launch
             }
@@ -334,7 +342,7 @@ class NearbyReceiveViewModel(private val app: AppContainer) : ViewModel() {
             phase = when {
                 cancelled -> if (paired) ReceivePhase.Finished(NearbyOutcome.Cancelled) else ReceivePhase.Find
                 // The sender turned this phone away before sending anything.
-                paired && phase is ReceivePhase.Paired -> ReceivePhase.Finished(NearbyOutcome.Declined)
+                paired && phase is ReceivePhase.Paired && e is java.io.EOFException ->ReceivePhase.Finished(NearbyOutcome.Declined)
                 else -> ReceivePhase.Finished(NearbyOutcome.Failed(e.message))
             }
         } finally {

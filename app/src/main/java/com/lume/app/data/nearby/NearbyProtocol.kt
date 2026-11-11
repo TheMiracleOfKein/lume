@@ -79,6 +79,9 @@ private const val TYPE_CONTROL = 1
 private const val TYPE_DATA = 2
 private const val CHUNK = 256 * 1024
 private const val MAX_PAGE_BYTES = 128L * 1024 * 1024
+private const val MAX_PAGES = 2000
+private const val SIZE_SLACK = 16L * 1024 * 1024
+private const val SPARE_SPACE = 64L * 1024 * 1024
 
 private fun NearbyChannel.send(message: Control) =
     write(TYPE_CONTROL, controlJson.encodeToString(Control.serializer(), message).toByteArray())
@@ -120,15 +123,21 @@ class NearbySender(private val handshake: NearbyChannel.Handshake) {
         if (!answer.accept) return SendResult.Declined
         val skip = answer.skip.toSet()
         val wanted = offer.keys().filter { it !in skip }
-        val total = wanted.sumOf(offer::bytesOf)
+        var total = wanted.sumOf(offer::bytesOf)
         var sent = 0L
+        var count = 0
         val buffer = ByteArray(CHUNK)
         onProgress(0, total)
         for (key in wanted) {
             val (ti, ci) = offer.locate(key) ?: continue
             val title = offer.titles[ti]
             val pages = pagesOf(title, title.chapters[ci])
-            if (pages.isEmpty()) throw IOException("No pages in ${title.chapters[ci].chapter.title}")
+            if (pages.isEmpty()) {
+                // Nothing readable on this phone: leave the chapter out and carry on with the rest.
+                total -= offer.bytesOf(key)
+                onProgress(minOf(sent, total), total)
+                continue
+            }
             channel.send(Control.Head(key, pages.map { it.size }))
             val digest = MessageDigest.getInstance("SHA-256")
             for (page in pages) {
@@ -147,9 +156,10 @@ class NearbySender(private val handshake: NearbyChannel.Handshake) {
             }
             channel.send(Control.Tail(digest.digest().hex()))
             if (channel.expect<Control.Ack>().key != key) throw IOException("Wrong chapter confirmed")
+            count++
         }
         channel.send(Control.Done)
-        return SendResult.Sent(wanted.size)
+        return SendResult.Sent(count)
     }
 }
 
@@ -181,37 +191,46 @@ class NearbyReceiver(private val handshake: NearbyChannel.Handshake) {
         onProgress(0, total)
         while (true) {
             val head = when (val message = channel.receive()) {
-                is Control.Done -> return count
+                is Control.Done -> {
+                    // Chapters the sender had to leave out never arrive; don't leave the bar short.
+                    onProgress(total, total)
+                    return count
+                }
                 is Control.Head -> message
                 else -> throw IOException("Unexpected message")
             }
             val (ti, ci) = offer.locate(head.key)?.takeIf { head.key !in skip } ?: throw IOException("Chapter not asked for")
-            if (head.pageSizes.isEmpty() || head.pageSizes.any { it !in 1..MAX_PAGE_BYTES }) throw IOException("Bad page sizes")
+            if (head.pageSizes.isEmpty() || head.pageSizes.size > MAX_PAGES || head.pageSizes.any { it !in 1..MAX_PAGE_BYTES }) {
+                throw IOException("Bad page sizes")
+            }
+            val sum = head.pageSizes.sum()
+            val declared = offer.bytesOf(head.key)
+            if (sum > maxOf(declared * 2, declared + SIZE_SLACK)) throw IOException("Chapter bigger than offered")
+            if (workDir.usableSpace < sum + SPARE_SPACE) throw IOException("Not enough space")
             val dir = File(workDir, "chapter").apply { deleteRecursively(); mkdirs() }
-            val digest = MessageDigest.getInstance("SHA-256")
-            val files = head.pageSizes.mapIndexed { i, size ->
-                val file = File(dir, "%04d".format(i))
-                file.outputStream().buffered().use { out ->
-                    var remaining = size
-                    while (remaining > 0) {
-                        val frame = channel.read()
-                        if (frame.type != TYPE_DATA || frame.body.size > remaining) throw IOException("Bad page data")
-                        digest.update(frame.body)
-                        out.write(frame.body)
-                        remaining -= frame.body.size
-                        received += frame.body.size
-                        onProgress(minOf(received, total), total)
-                    }
-                }
-                file
-            }
-            val tail = channel.expect<Control.Tail>()
-            if (!MessageDigest.isEqual(tail.sha256.toByteArray(), digest.digest().hex().toByteArray())) {
-                dir.deleteRecursively()
-                throw IOException("Checksum mismatch")
-            }
-            val title = offer.titles[ti]
             try {
+                val digest = MessageDigest.getInstance("SHA-256")
+                val files = head.pageSizes.mapIndexed { i, size ->
+                    val file = File(dir, "%04d".format(i))
+                    file.outputStream().buffered().use { out ->
+                        var remaining = size
+                        while (remaining > 0) {
+                            val frame = channel.read()
+                            if (frame.type != TYPE_DATA || frame.body.size > remaining) throw IOException("Bad page data")
+                            digest.update(frame.body)
+                            out.write(frame.body)
+                            remaining -= frame.body.size
+                            received += frame.body.size
+                            onProgress(minOf(received, total), total)
+                        }
+                    }
+                    file
+                }
+                val tail = channel.expect<Control.Tail>()
+                if (!MessageDigest.isEqual(tail.sha256.toByteArray(), digest.digest().hex().toByteArray())) {
+                    throw IOException("Checksum mismatch")
+                }
+                val title = offer.titles[ti]
                 save(title, title.chapters[ci], files)
             } finally {
                 dir.deleteRecursively()

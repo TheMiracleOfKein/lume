@@ -143,6 +143,52 @@ class NearbyProtocolTest {
     }
 
     @Test
+    fun aChapterWithoutPagesIsSkippedAndTheRestStillArrives() {
+        val received = mutableListOf<String>()
+        var lastProgress = 0L to 0L
+        val result = pair({ hs ->
+            runBlocking {
+                NearbySender(hs).send(offer, { t, c -> if (keyOf(t, c) == "0/1") emptyList() else outgoing(t, c) })
+            }
+        }) { hs ->
+            val receiver = NearbyReceiver(hs)
+            val got = receiver.readOffer()
+            runBlocking {
+                receiver.receive(got, emptySet(), temp.newFolder(), save = { t, c, _ -> received += keyOf(t, c) }) { done, total ->
+                    lastProgress = done to total
+                }
+            }
+        }
+        assertEquals(SendResult.Sent(2), result)
+        assertEquals(listOf("0/0", "1/0"), received)
+        assertEquals(lastProgress.second, lastProgress.first)
+    }
+
+    @Test
+    fun aChapterBiggerThanOfferedIsRejectedAndNothingIsSaved() {
+        val big = Random(9).nextBytes(17 * 1024 * 1024)
+        val lying = Offer(
+            listOf(OfferTitle("src", "t1", TitleDetails(id = "t1", title = "One"), listOf(OfferChapter(Chapter("c1", "C", "c1"), 1, 10)))),
+            readMarks = false,
+        )
+        val received = mutableListOf<String>()
+        var failure: Throwable? = null
+        runCatching {
+            pair({ hs ->
+                runBlocking { NearbySender(hs).send(lying, { _, _ -> listOf(OutgoingPage(big.size.toLong()) { big.inputStream() }) }) }
+            }) { hs ->
+                val receiver = NearbyReceiver(hs)
+                val got = receiver.readOffer()
+                failure = runCatching {
+                    runBlocking { receiver.receive(got, emptySet(), temp.newFolder(), save = { _, _, _ -> received += "x" }) }
+                }.exceptionOrNull()
+            }
+        }
+        assertTrue(failure is IOException)
+        assertTrue(received.isEmpty())
+    }
+
+    @Test
     fun somethingThatIsNotLumeIsTurnedAway() {
         ServerSocket(0).use { server ->
             val sender = pool.submit(

@@ -346,7 +346,7 @@ fun NearbyReceiveScreen(nav: NavHostController) {
                 Spacer(Modifier.height(8.dp))
                 phase.offer.titles.forEach { title ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        CoverImage(url = title.details.coverUrl, width = 36.dp, height = 48.dp, radius = 4.dp)
+                        CoverImage(url = title.details.coverUrl?.takeIf { it.startsWith("https://") || it.startsWith("http://") },width = 36.dp, height = 48.dp, radius = 4.dp)
                         Column(Modifier.weight(1f).padding(start = 12.dp)) {
                             Text(title.details.title, color = AppColors.textPrimary, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             Text(
