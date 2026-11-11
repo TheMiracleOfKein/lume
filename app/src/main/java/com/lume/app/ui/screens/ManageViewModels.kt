@@ -440,7 +440,7 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         }
     }
 
-    /** Restores a picked file: a Lume backup or a Mihon / Tachiyomi one. */
+    /** Restores a picked file: a Lume backup or a Mihon / Tachiyomi / Kotatsu one. */
     fun restoreFrom(uri: android.net.Uri) {
         if (importProgress != null) return
         viewModelScope.launch {
@@ -453,6 +453,16 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
                             com.lume.app.data.backup.BackupWorker.schedule(app.app, prefs.autoBackupDays.value)
                             com.lume.app.data.local.FolderScanWorker.schedule(app.app, prefs.folderScanHours.value)
                             string(R.string.backup_restored, folderName(uri.toString()))
+                        }
+                        is com.lume.app.data.backup.BackupRepository.RestoreResult.Kotatsu -> {
+                            val r = result.result
+                            buildString {
+                                append(string(R.string.backup_kotatsu_done, r.added, r.alreadyInLibrary))
+                                if (r.unmatched.isNotEmpty()) {
+                                    append('\n')
+                                    append(string(R.string.backup_mihon_unmatched, r.unmatched.size, r.unmatched.take(10).joinToString()))
+                                }
+                            }
                         }
                         is com.lume.app.data.backup.BackupRepository.RestoreResult.Mihon -> {
                             val r = result.result

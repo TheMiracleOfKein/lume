@@ -653,7 +653,7 @@
     <string name="error_backup_write">Не удалось записать файл резервной копии</string>
     <string name="backup_save_to">Сохранить копию в…</string>
     <string name="backup_restore_file">Восстановить из файла…</string>
-    <string name="backup_restore_file_hint">Копия Lume или Mihon / Tachiyomi (.tachibk)</string>
+    <string name="backup_restore_file_hint">Копия Lume, Mihon / Tachiyomi (.tachibk) или Kotatsu (.bk.zip)</string>
     <string name="backup_saved_to">Копия сохранена: %1$s</string>
     <string name="backup_restore_failed">Не удалось восстановить: %1$s</string>
     <plurals name="backup_mihon_progress">
@@ -663,6 +663,7 @@
         <item quantity="other">Загрузка списков глав: %1$d из %2$d тайтла</item>
     </plurals>
     <string name="backup_mihon_done">Импорт из Mihon. Добавлено: %1$d · уже в библиотеке: %2$d · глав отмечено прочитанными: %3$d</string>
+    <string name="backup_kotatsu_done">Импорт из Kotatsu. Добавлено: %1$d · уже в библиотеке: %2$d. История чтения не переносится.</string>
     <string name="backup_mihon_unmatched">Пропущено, их источника нет в Lume: %1$d (%2$s)</string>
     <string name="backup_mihon_read_failed">Тайтлов без отметок о прочтении, не загрузились списки глав: %1$d</string>
     <string name="backup_auto">Автоматические копии</string>
@@ -822,7 +823,7 @@
     <string name="settings_summary_downloads">Wi-Fi, автозагрузка, хранилище</string>
     <string name="settings_summary_sources">Источники, 18+ в общем поиске</string>
     <string name="settings_summary_trackers">AniList, Shikimori, MyAnimeList и другие</string>
-    <string name="settings_summary_backup">Копии, импорт из Mihon, автокопии</string>
+    <string name="settings_summary_backup">Копии, импорт из Mihon и Kotatsu, автокопии</string>
     <string name="settings_summary_privacy">Инкогнито, блокировка, скрытие приложения</string>
     <string name="settings_summary_network">DNS over HTTPS, кэш, cookie</string>
     <string name="settings_summary_about">Версия, лицензии, ссылки</string>
@@ -944,7 +945,7 @@
     <string name="settings_kw_trackers">anilist, shikimori, шикимори, myanimelist, mal, kitsu, mangaupdates, вход, аккаунт</string>
     <string name="settings_kw_auto_link">трекер, привязка, совпадение</string>
     <string name="settings_kw_backup">сохранить, экспорт, копия, бэкап</string>
-    <string name="settings_kw_restore">импорт, mihon, tachiyomi, tachibk, бэкап</string>
+    <string name="settings_kw_restore">импорт, mihon, tachiyomi, tachibk, kotatsu, бэкап</string>
     <string name="settings_kw_auto_backup">расписание, ежедневно, еженедельно, папка, бэкап</string>
     <string name="settings_kw_incognito">приватно, история</string>
     <string name="settings_kw_app_lock">отпечаток, пин-код, пароль, биометрия, безопасность</string>

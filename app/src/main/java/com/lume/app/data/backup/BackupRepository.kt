@@ -72,7 +72,7 @@ data class SettingDto(
     val value: String,
 )
 
-/** What a Mihon / Tachiyomi import did. */
+/** What a Mihon / Tachiyomi or Kotatsu import did (Kotatsu marks no chapters read). */
 data class MihonImportResult(
     val added: Int,
     val alreadyInLibrary: Int,
@@ -404,15 +404,19 @@ class BackupRepository(
     sealed interface RestoreResult {
         data object Lume : RestoreResult
         data class Mihon(val result: MihonImportResult) : RestoreResult
+        data class Kotatsu(val result: MihonImportResult) : RestoreResult
     }
 
     /**
-     * Restores a file the user picked: a Lume backup (JSON) or a Mihon / Tachiyomi backup
-     * (`.tachibk`, gzipped protobuf). [onProgress] reports titles done / total for Mihon imports.
+     * Restores a file the user picked: a Lume backup (JSON), a Mihon / Tachiyomi backup
+     * (`.tachibk`, gzipped protobuf) or a Kotatsu backup (`.bk.zip`). [onProgress] reports titles done / total for Mihon imports.
      */
     suspend fun restoreFromUri(uri: Uri, onProgress: (Int, Int) -> Unit = { _, _ -> }): RestoreResult = withContext(Dispatchers.IO) {
         val bytes = context.contentResolver.openInputStream(uri)?.use { it.readCapped(MAX_BACKUP_BYTES) }
             ?: error(com.lume.app.data.locale.appString(com.lume.app.R.string.error_backup_read))
+        if (KotatsuBackupFormat.isZip(bytes)) {
+            return@withContext RestoreResult.Kotatsu(importKotatsu(KotatsuBackupFormat.parse(bytes)))
+        }
         val text = if (MihonBackupFormat.isGzip(bytes)) {
             java.util.zip.GZIPInputStream(bytes.inputStream()).use { it.readCapped(MAX_BACKUP_BYTES) }
         } else {
@@ -441,11 +445,7 @@ class BackupRepository(
         val existing = dao.allCategories().toMutableList()
         val categoryByOrder = HashMap<Long, Long>()
         for (cat in backup.backupCategories.sortedBy { it.order }) {
-            val found = existing.firstOrNull { it.name.equals(cat.name, ignoreCase = true) }
-            val id = found?.id ?: dao.upsertCategory(
-                CategoryEntity(name = cat.name, sortOrder = (existing.maxOfOrNull { it.sortOrder } ?: -1) + 1),
-            ).also { newId -> existing += CategoryEntity(id = newId, name = cat.name, sortOrder = existing.size) }
-            categoryByOrder[cat.order] = id
+            categoryByOrder[cat.order] = categoryIdByName(cat.name, existing)
         }
 
         data class Pending(val sourceId: String, val titleId: String, val manga: MihonManga)
@@ -519,6 +519,61 @@ class BackupRepository(
             }.awaitAll()
         }
         return MihonImportResult(added, already, unmatched, marked, failed)
+    }
+
+    /** The id of the category called [name] (case-insensitive); creates it when it's new. */
+    private suspend fun categoryIdByName(name: String, existing: MutableList<CategoryEntity>): Long {
+        existing.firstOrNull { it.name.equals(name, ignoreCase = true) }?.let { return it.id }
+        val id = dao.upsertCategory(CategoryEntity(name = name, sortOrder = (existing.maxOfOrNull { it.sortOrder } ?: -1) + 1))
+        existing += CategoryEntity(id = id, name = name, sortOrder = existing.size)
+        return id
+    }
+
+    /**
+     * Adds a Kotatsu library: favourites of sources Lume has, with their categories (merged by
+     * name). History is not imported (Kotatsu stores chapter hashes, not numbers), so no chapter
+     * lists are loaded and no chapters are marked read.
+     */
+    suspend fun importKotatsu(backup: KotatsuBackup): MihonImportResult {
+        sources.awaitLoaded()
+        val lumeSources = sources.sources.value.filter { it.manifest.id != "local" }.map { it.manifest.id to it.manifest.name }
+        val existing = dao.allCategories().toMutableList()
+        val unmatched = mutableListOf<String>()
+        var added = 0
+        var already = 0
+        for (title in backup.titles()) {
+            val manga = title.manga
+            val source = KotatsuBackupFormat.matchSource(manga.source, lumeSources)?.let(sources::sourceById)
+            val titleId = source?.let { s ->
+                KotatsuBackupFormat.linkCandidates(manga, s.manifest.baseUrl).firstNotNullOfOrNull { link ->
+                    runCatching { s.titleIdFromUrl(link) }.getOrNull()
+                }
+            }
+            if (source == null || titleId == null) {
+                unmatched += manga.title.ifBlank { manga.url }
+                continue
+            }
+            val categories = title.categoryNames.map { categoryIdByName(it, existing) }.toSet()
+            val current = dao.getBookmark(source.manifest.id, titleId)
+            if (current != null) {
+                already++
+                val merged = com.lume.app.data.library.parseCategoryIds(current.categoryIdsJson) + categories
+                dao.upsertBookmark(current.copy(categoryIdsJson = com.lume.app.data.library.encodeCategoryIds(merged)))
+            } else {
+                added++
+                dao.upsertBookmark(
+                    BookmarkEntity(
+                        sourceId = source.manifest.id,
+                        titleId = titleId,
+                        titleName = manga.title.ifBlank { titleId },
+                        coverUrl = (manga.coverUrl ?: manga.largeCoverUrl)?.takeIf { it.isNotBlank() },
+                        createdAt = title.createdAt.takeIf { it > 0 } ?: System.currentTimeMillis(),
+                        categoryIdsJson = com.lume.app.data.library.encodeCategoryIds(categories),
+                    ),
+                )
+            }
+        }
+        return MihonImportResult(added, already, unmatched, chaptersMarkedRead = 0, readMarksFailed = 0)
     }
 
     /** Marks chapters read by number and points "Continue" at the last chapter read in Mihon. */
