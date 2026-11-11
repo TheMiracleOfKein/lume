@@ -223,6 +223,26 @@ Run Komga (port 25600) and Kavita (port 5000) in Docker on the host with a few C
 - [ ] Release build (R8): the add dialog, sign-in and the Keystore encryption work (kill the app and reopen: the server still signs in).
 - [ ] Restore an app backup on another phone: the server is listed, but its sign-in is empty (the Keystore key does not move); editing it and saving the sign-in fixes it.
 
+## v0.9.8: send downloads to a nearby device
+
+Two phones on the same Wi-Fi, one with a few downloaded titles (one stored as CBZ, one in a picked folder if possible).
+
+- [ ] Downloads shows the Send and Receive buttons; Send is missing when nothing is downloaded.
+- [ ] Send: pick a whole title and a few chapters of another; the button shows the count and size; Select all / Clear selection work.
+- [ ] After **Send**, the screen shows the device name and an address. On the other phone, Downloads → Receive lists the sender within a few seconds.
+- [ ] Tap it: both phones show the same six-digit code. The sender taps **Send**; the receiver sees the titles, chapter counts and size, then **Accept**.
+- [ ] Progress moves on both phones; at the end both say how many chapters moved. The titles are in the receiver's library, the chapters in Downloads, and they read offline (airplane mode).
+- [ ] With "Send read marks too" on, read chapters show as read on the receiver; with it off, they don't.
+- [ ] **Decline** on the receiver: the sender says the other phone declined; nothing new is in the receiver's Downloads or library.
+- [ ] Cancel on the sender in the middle: the receiver says the connection was lost. **Try again** (the sender taps "Wait for another phone" first): chapters that arrived are skipped, the rest arrive.
+- [ ] Type the address by hand on the receiver (discovery off, for example on a guest network): it connects the same way. A wrong address shows the format hint or "Connection lost".
+- [ ] A title whose source the receiver doesn't have is listed as skipped.
+- [ ] Receiver with CBZ downloads on, and with a picked download folder: received chapters are stored that way.
+- [ ] Leaving the send screen stops listening: the receiver no longer lists the phone.
+- [ ] Android 17: the local network prompt appears on both screens; denying it shows the warning.
+- [ ] Russian: both screens are translated.
+- [ ] Release build (R8): a transfer works as in the debug build.
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.
