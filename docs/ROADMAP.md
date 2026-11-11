@@ -242,7 +242,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.9: fixes** ✅ released 2026-11-11 ([notes](releases/v0.9.9.md), [device check](releases/v0.9.9-check.md)): MangaDex works again, an error log with the full text of source errors, and reading statistics that count only chapters read in the app.
 
-**v0.9.10: crash log and backup format** ([notes](releases/v0.9.10.md), [device check](releases/v0.9.10-check.md)): crashes saved on the phone and shared from About, the backup format written down and pinned by tests, TalkBack only in the open menu, search marks for titles saved from another source, and an optional signed release workflow (all from v1.0 or older leftovers).
+**v0.9.10: crash log and backup format** ✅ released 2026-11-12 ([notes](releases/v0.9.10.md), [device check](releases/v0.9.10-check.md)): crashes saved on the phone and shared from About, the backup format written down and pinned by tests, TalkBack only in the open menu, search marks for titles saved from another source, and an optional signed release workflow (all from v1.0 or older leftovers).
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
