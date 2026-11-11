@@ -51,7 +51,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.io.File
+import com.lume.app.domain.pageData
 import java.net.URI
 
 /**
@@ -398,7 +398,7 @@ class ReaderViewModel(
                 val index = p.indexInChapter
                 loader.enqueue(
                     ImageRequest.Builder(app.app)
-                        .data(if (p.page.imageUrl.startsWith("http")) p.page.imageUrl else File(p.page.imageUrl))
+                        .data(pageData(p.page.imageUrl))
                         // Screen-wide is enough for the cache; the reader decodes detail itself.
                         .size(width, MAX_DRAW_PX)
                         .memoryCachePolicy(CachePolicy.ENABLED)
