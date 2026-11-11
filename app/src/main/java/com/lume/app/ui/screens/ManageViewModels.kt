@@ -394,6 +394,17 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         }
     }
 
+    /** The running or last finished list import; it runs app-wide, so it outlives this screen. */
+    val trackerImportStatus = app.trackerListImport.status
+
+    fun importTrackerList(trackerId: String) {
+        if (!app.trackerListImport.start(trackerId)) statusMessage = string(R.string.tracker_import_busy)
+    }
+
+    fun cancelTrackerImport() = app.trackerListImport.cancel()
+
+    fun dismissTrackerImport() = app.trackerListImport.dismiss()
+
     fun passwordLogin(tracker: com.lume.app.data.tracker.Tracker, user: String, password: String) {
         viewModelScope.launch {
             val ok = runCatching { tracker.login(user, password) }.getOrDefault(false)
