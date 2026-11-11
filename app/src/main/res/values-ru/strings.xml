@@ -741,6 +741,18 @@
     <string name="error_log_clear">Очистить</string>
     <string name="error_log_clear_title">Очистить журнал ошибок?</string>
     <string name="error_log_show_details">Подробнее</string>
+    <string name="crash_log_share">Поделиться журналом</string>
+    <string name="crash_log_none">Сбоев не сохранено</string>
+    <plurals name="crash_log_count">
+        <item quantity="one">Сохранён %d сбой</item>
+        <item quantity="few">Сохранено %d сбоя</item>
+        <item quantity="many">Сохранено %d сбоев</item>
+        <item quantity="other">Сохранено %d сбоя</item>
+    </plurals>
+    <string name="crash_log_clear">Очистить журнал сбоев</string>
+    <string name="crash_log_clear_title">Очистить журнал сбоев?</string>
+    <string name="crash_log_hint">Если Lume закрывается из-за сбоя, его описание сохраняется на этом телефоне. «Поделиться журналом» передаёт сбои, недавние ошибки, версию Android и модель телефона выбранному вами приложению, например в письмо или отчёт об ошибке. Само по себе ничего не отправляется.</string>
+    <string name="crash_log_subject">Журнал Lume %1$s</string>
     <string name="about_license_app">Лицензия Lume (Apache 2.0)</string>
     <string name="about_licenses">Библиотеки с открытым кодом</string>
     <string name="update_section_title">Обновления</string>

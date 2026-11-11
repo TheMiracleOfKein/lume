@@ -7,6 +7,8 @@
     <exclude domain="file" path="downloads/" />
     <exclude domain="file" path="local/" />
     <exclude domain="file" path="backups/" />
+    <exclude domain="file" path="error_log.json" />
+    <exclude domain="file" path="crash_log.json" />
     <exclude domain="root" path="app_webview/" />
     <exclude domain="external" path="." />
 </full-backup-content>

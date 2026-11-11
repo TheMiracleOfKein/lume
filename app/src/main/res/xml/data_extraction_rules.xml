@@ -4,7 +4,8 @@
     - lume_private holds tracker tokens and the backup folder, and lib_auth and the WebView data
       hold site sign-ins and cookies; all of them stay out;
     - downloads, imported local files and Lume's own backups are too large (cloud backup stops
-      entirely past 25 MB).
+      entirely past 25 MB);
+    - the error log and the crash log stay on this phone.
     Device-to-device transfer copies everything, as before.
 -->
 <data-extraction-rules>
@@ -15,6 +16,8 @@
         <exclude domain="file" path="downloads/" />
         <exclude domain="file" path="local/" />
         <exclude domain="file" path="backups/" />
+        <exclude domain="file" path="error_log.json" />
+        <exclude domain="file" path="crash_log.json" />
         <exclude domain="root" path="app_webview/" />
         <exclude domain="external" path="." />
     </cloud-backup>

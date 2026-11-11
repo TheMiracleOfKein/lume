@@ -21,7 +21,9 @@ class LumeApp : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        container = AppContainer(this)
+        // First, so a crash while the container is built is saved too.
+        val crashLog = crashLogFor(this).also { it.install() }
+        container = AppContainer(this, crashLog)
         // Per-app language: empty list = follow system (see AppLanguage.SYSTEM).
         runCatching {
             com.lume.app.data.locale.AppLocaleController.applyStoredTag(container.prefs.appLanguage.value)
@@ -68,6 +70,9 @@ class LumeApp : Application(), SingletonImageLoader.Factory {
     companion object {
         private const val IMAGE_CACHE = "image_cache_v3"
         private const val LEGACY_IMAGE_CACHE = "image_cache"
+
+        internal fun crashLogFor(app: Context): com.lume.app.data.CrashLog =
+            com.lume.app.data.CrashLog(app.filesDir.resolve("crash_log.json"), BuildConfig.VERSION_NAME)
 
         /** Only for [com.lume.app.data.locale.appString]; everything else uses [container]. */
         internal lateinit var instance: LumeApp
