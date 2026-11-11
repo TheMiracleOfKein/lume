@@ -7,7 +7,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.LocalShellBottomPadding
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -79,6 +79,8 @@ fun HomeScreen(nav: NavHostController) {
     var confirmClear by rememberSaveable { mutableStateOf(false) }
     var searchText by rememberSaveable { mutableStateOf("") }
     val history by vm.history.collectAsState()
+    // The card a long press asked to remove, as "sourceId:titleId" (survives rotation).
+    var removeKey by rememberSaveable { mutableStateOf<String?>(null) }
     val online by container.network.online.collectAsState()
     val downloads by container.dao.observeDownloads().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
@@ -207,7 +209,10 @@ fun HomeScreen(nav: NavHostController) {
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
                                     items(history, key = { "${it.sourceId}:${it.titleId}" }) { item ->
-                                        ContinueCard(item) {
+                                        ContinueCard(
+                                            item,
+                                            onLongClick = { removeKey = "${item.sourceId}:${item.titleId}" },
+                                        ) {
                                             nav.openReader(
                                                 item.sourceId,
                                                 item.titleId,
@@ -283,6 +288,13 @@ fun HomeScreen(nav: NavHostController) {
         }
     }
 
+    history.firstOrNull { "${it.sourceId}:${it.titleId}" == removeKey }?.let { item ->
+        RemoveFromHistoryDialog(item.titleName, onDismiss = { removeKey = null }) {
+            removeKey = null
+            scope.launch { container.dao.clearProgress(item.sourceId, item.titleId) }
+        }
+    }
+
     if (confirmClear) {
         AlertDialog(
             onDismissRequest = { confirmClear = false },
@@ -304,7 +316,7 @@ fun HomeScreen(nav: NavHostController) {
 }
 
 @Composable
-private fun ContinueCard(item: ProgressEntity, onClick: () -> Unit) {
+private fun ContinueCard(item: ProgressEntity, onLongClick: () -> Unit, onClick: () -> Unit) {
     val progress = if (item.pageCount > 0) {
         (item.pageIndex + 1).toFloat() / item.pageCount
     } else {
@@ -313,7 +325,12 @@ private fun ContinueCard(item: ProgressEntity, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .width(110.dp)
-            .clickable(role = Role.Button, onClick = onClick),
+            .combinedClickable(
+                role = Role.Button,
+                onLongClickLabel = stringResource(R.string.history_remove),
+                onLongClick = onLongClick,
+                onClick = onClick,
+            ),
     ) {
         // The panel you stopped at, when the page is known and has one; else the cover.
         PageSpotImage(
