@@ -1,0 +1,32 @@
+{
+  "version": 5,
+  "createdAt": 1762000000000,
+  "bookmarks": [
+    {"sourceId": "mangadex", "titleId": "t1", "titleName": "First Title", "coverUrl": "https://example.org/c1.jpg", "typeLabel": "Manga", "createdAt": 1690000000000, "categoryIdsJson": "[1]"}
+  ],
+  "progress": [
+    {"sourceId": "mangadex", "titleId": "t1", "titleName": "First Title", "coverUrl": "https://example.org/c1.jpg", "typeLabel": "Manga", "chapterId": "c3", "chapterName": "Chapter 3", "chapterUrl": "/chapter/c3", "pageIndex": 4, "pageCount": 20, "updatedAt": 1761000000000, "pageOffset": 0.25}
+  ],
+  "categories": [{"id": 1, "name": "Reading", "sortOrder": 0}],
+  "sourcePacks": [{"id": "pack.example", "json": "{\"id\":\"pack.example\"}", "installedAt": 1680000000000}],
+  "titlePrefs": [
+    {"sourceId": "mangadex", "titleId": "t1", "readerMode": 2, "readerTheme": 1, "gap": 4.0, "chapterFilter": 0, "chapterSortAsc": false, "branch": null, "showDuplicates": false, "autoDownload": false}
+  ],
+  "trackerLinks": [
+    {"sourceId": "mangadex", "titleId": "t1", "tracker": "anilist", "remoteId": "12345", "remoteUrl": null, "status": "CURRENT", "score": null, "lastSync": 0}
+  ],
+  "chapterProgress": [
+    {"sourceId": "mangadex", "titleId": "t1", "chapterId": "c3", "pageIndex": 4, "pageOffset": 0.25, "pageCount": 20, "completed": false, "pageAspectsJson": "[]", "updatedAt": 1761000000000}
+  ],
+  "pageBookmarks": [
+    {"sourceId": "mangadex", "titleId": "t1", "chapterId": "c2", "chapterName": "Chapter 2", "pageIndex": 7, "pageOffset": 0.0, "pageImageUrl": "https://example.org/p7.jpg", "note": null, "createdAt": 1760000000000}
+  ],
+  "chapterRead": [{"sourceId": "mangadex", "titleId": "t1", "chapterId": "c1", "readAt": 1759000000000}],
+  "settings": [{"key": "reader_mode", "type": "int", "value": "2"}],
+  "titleSources": [
+    {"sourceId": "mangadex", "titleId": "t1", "linkSourceId": "mangakatana", "linkTitleId": "first-title", "linkTitleName": "First Title", "coverUrl": null, "state": "linked", "priority": 0, "addedAt": 1729000000000}
+  ],
+  "readingSessions": [
+    {"sourceId": "mangadex", "titleId": "t1", "titleName": "First Title", "chapterId": "c3", "startedAt": 1761000000000, "durationMs": 600000, "pagesRead": 12}
+  ]
+}

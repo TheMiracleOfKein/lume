@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "createdAt": 1710000000000,
+  "bookmarks": [
+    {"sourceId": "mangadex", "titleId": "t1", "titleName": "First Title", "createdAt": 1690000000000, "categoryIdsJson": "[]"}
+  ],
+  "progress": [
+    {"sourceId": "mangadex", "titleId": "t1", "titleName": "First Title", "chapterId": "c3", "chapterName": "Chapter 3", "chapterUrl": "/chapter/c3", "pageIndex": 4, "pageCount": 20, "updatedAt": 1705000000000, "pageOffset": 0.25}
+  ],
+  "categories": [],
+  "sourcePacks": [],
+  "titlePrefs": [
+    {"sourceId": "mangadex", "titleId": "t1", "chapterFilter": 1, "chapterSortAsc": true}
+  ],
+  "trackerLinks": [],
+  "chapterProgress": [
+    {"sourceId": "mangadex", "titleId": "t1", "chapterId": "c3", "pageIndex": 4, "pageOffset": 0.25, "pageCount": 20, "completed": false, "pageAspectsJson": "[1.4]", "updatedAt": 1705000000000},
+    {"sourceId": "mangadex", "titleId": "t1", "chapterId": "c2", "pageIndex": 19, "pageOffset": 1.0, "pageCount": 20, "completed": true, "updatedAt": 1704000000000}
+  ],
+  "pageBookmarks": [
+    {"sourceId": "mangadex", "titleId": "t1", "chapterId": "c2", "chapterName": "Chapter 2", "pageIndex": 7, "pageOffset": 0.5, "note": "the fight", "createdAt": 1704500000000}
+  ],
+  "chapterRead": [
+    {"sourceId": "mangadex", "titleId": "t1", "chapterId": "c1", "readAt": 1703000000000},
+    {"sourceId": "mangadex", "titleId": "t1", "chapterId": "c2", "readAt": 1704000000000}
+  ]
+}

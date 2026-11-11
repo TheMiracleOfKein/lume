@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "createdAt": 1700000000000,
+  "bookmarks": [
+    {"sourceId": "mangadex", "titleId": "t1", "titleName": "First Title", "coverUrl": "https://example.org/c1.jpg", "typeLabel": "Manga", "createdAt": 1690000000000, "categoryIdsJson": "[1]"}
+  ],
+  "progress": [
+    {"sourceId": "mangadex", "titleId": "t1", "titleName": "First Title", "chapterId": "c3", "chapterName": "Chapter 3", "chapterUrl": "/chapter/c3", "pageIndex": 4, "pageCount": 20, "updatedAt": 1695000000000}
+  ],
+  "categories": [
+    {"id": 1, "name": "Reading", "sortOrder": 0}
+  ],
+  "sourcePacks": [
+    {"id": "pack.example", "json": "{\"id\":\"pack.example\"}", "installedAt": 1680000000000}
+  ],
+  "titlePrefs": [
+    {"sourceId": "mangadex", "titleId": "t1", "readerMode": 2, "readerTheme": 1, "gap": 4.0}
+  ],
+  "trackerLinks": [
+    {"sourceId": "mangadex", "titleId": "t1", "tracker": "anilist", "remoteId": "12345", "remoteUrl": "https://anilist.co/manga/12345", "status": "CURRENT", "score": 8.5, "lastSync": 1695000000000}
+  ]
+}

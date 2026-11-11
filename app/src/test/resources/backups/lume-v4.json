@@ -1,0 +1,13 @@
+{
+  "version": 4,
+  "createdAt": 1730000000000,
+  "bookmarks": [
+    {"sourceId": "mangadex", "titleId": "t1", "titleName": "First Title", "createdAt": 1690000000000}
+  ],
+  "titlePrefs": [
+    {"sourceId": "mangadex", "titleId": "t1", "branch": "team-a", "showDuplicates": true, "autoDownload": true}
+  ],
+  "titleSources": [
+    {"sourceId": "mangadex", "titleId": "t1", "linkSourceId": "mangakatana", "linkTitleId": "first-title", "linkTitleName": "First Title", "coverUrl": null, "state": "linked", "priority": 1, "addedAt": 1729000000000}
+  ]
+}

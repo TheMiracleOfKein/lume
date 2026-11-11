@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "createdAt": 1720000000000,
+  "bookmarks": [
+    {"sourceId": "mangadex", "titleId": "t1", "titleName": "First Title", "createdAt": 1690000000000}
+  ],
+  "chapterRead": [
+    {"sourceId": "mangadex", "titleId": "t1", "chapterId": "c1", "readAt": 1703000000000}
+  ],
+  "settings": [
+    {"key": "reader_mode", "type": "int", "value": "2"},
+    {"key": "keep_screen_on", "type": "bool", "value": "true"},
+    {"key": "hidden_sources", "type": "set", "value": "[\"a\",\"b\"]"}
+  ]
+}
