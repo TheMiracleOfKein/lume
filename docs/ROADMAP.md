@@ -195,7 +195,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ MangaBuff catalogue reads only title cards, with covers; collections like "за 2026 год" are gone.
 - 🟡 MangaBuff checked with unit tests only: the site is geo-blocked from the build machine.
 
-**v0.7.x: send downloads to a nearby device** (L) 🟡 same-Wi-Fi part in v0.9.8 ([details](#v098-nearby-sending))
+**v0.7.x: send downloads to a nearby device** (L) 🟡 same-Wi-Fi part in v0.9.8 ([details](#v098-nearby-sending--released-2026-11-11))
 
 Sync moves your library and progress, never the downloaded pages. This moves the pages: pick downloaded chapters on one phone, and another phone nearby receives them, without the internet and without a server.
 - **Choosing.** In Downloads (or on a title's chapter list), select titles or chapters → "Send to a nearby device". The sender shows the total size.
@@ -237,7 +237,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.7: imports and folders** ✅ released 2026-11-11 ([notes](releases/v0.9.7.md), [device check](releases/v0.9.7-check.md)): Kotatsu backups, a tracker's reading list, and any folder as download storage.
 
-**v0.9.8: nearby sending** ([notes](releases/v0.9.8.md)): send downloaded chapters to another phone on the same Wi-Fi, paired with a code and encrypted (the v0.7.x plan, same-network part).
+**v0.9.8: nearby sending** ✅ released 2026-11-11 ([notes](releases/v0.9.8.md)): send downloaded chapters to another phone on the same Wi-Fi, paired with a code and encrypted (the v0.7.x plan, same-network part).
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -839,7 +839,7 @@ Release notes: [docs/releases/v0.9.7.md](releases/v0.9.7.md); device check in [v
 - ✅ **Any folder as download storage** through the Storage Access Framework; content URIs in the reader, region decoder, panels, bookmarks and sharing.
 - 🟡 Moving storage to another folder keeps the old folder's permission while downloads remain there; it isn't released when the last one is deleted.
 
-### v0.9.8: nearby sending
+### v0.9.8: nearby sending ✅ released 2026-11-11
 
 Release notes: [docs/releases/v0.9.8.md](releases/v0.9.8.md).
 
