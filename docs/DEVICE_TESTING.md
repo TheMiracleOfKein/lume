@@ -243,6 +243,15 @@ Two phones on the same Wi-Fi, one with a few downloaded titles (one stored as CB
 - [ ] Russian: both screens are translated.
 - [ ] Release build (R8): a transfer works as in the debug build.
 
+## v0.9.10: crash log, backup format and fixes
+
+- [ ] About shows "Share log" with "No crashes saved"; tapping it opens the share sheet with the phone line and recent errors.
+- [ ] After a crash (`adb shell am crash com.lume.app`), About says "1 crash saved"; the shared text has the stack trace. "Clear crash log" asks first, then the count is gone.
+- [ ] A new backup starts with `"version": 5` and `"createdAt"`; a backup made by v0.9.9 or older still restores.
+- [ ] TalkBack: with the menu open, swiping moves only through the menu; after closing it, the screen and the bottom bar are read again.
+- [ ] Search: a title in the library from one source is marked in the results of another source with the same name, and in a source linked on the title screen.
+- [ ] Release build (R8): the crash log saves and shares as in the debug build.
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.

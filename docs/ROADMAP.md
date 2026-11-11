@@ -122,7 +122,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Lib API requests spaced to one per 0.5 s; import brings only Reading / Planned / Dropped / Read, and "Read" marks every chapter.
 - ✅ Update checks look only at titles with the bell (up to 20), or the 20 last read when none has it.
 - ✅ Library badge shows read of total; search results in the library get a status colour bar.
-- ⏸️ Search marks don't match a library title saved from another source.
+- ✅ Search marks don't match a library title saved from another source: fixed in v0.9.10 (linked sources and same-named titles are marked).
 
 **v0.7.7: Lib sign-out and back animation** ✅ released 2026-11-01 ([details](#v077-lib-sign-out-and-back-animation--released-2026-11-01))
 - ✅ Sign-out of a Lib site clears its web session, so another account can log in; the login screen offers saved passwords through autofill.
@@ -187,7 +187,8 @@ Patch releases from the v0.6 line, as needed.
 - ✅ One icon for each action (heart for the library everywhere), a shared sheet header, widget fixes.
 - ✅ Russian plurals, translated reader modes, locale-aware scores.
 - ✅ Empty and error states, confirmations before clearing data, Undo for deleted bookmarks, a password eye, keyboard Next/Done.
-- ⏸️ Design-level spacing and radius standardisation (I9 leftovers) and hiding the content behind the menu drawer from TalkBack (A12): need a design pass.
+- ⏸️ Design-level spacing and radius standardisation (I9 leftovers): needs a design pass.
+- ✅ Hiding the content behind the menu drawer from TalkBack (A12): in v0.9.10.
 
 **v0.7.16: Home and source fixes** ✅ released 2026-11-07 ([details](#v0716-home-and-source-fixes--released-2026-11-07))
 - ✅ Home list no longer slides down when coming back with "Continue reading" filled.
@@ -240,6 +241,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 **v0.9.8: nearby sending** ✅ released 2026-11-11 ([notes](releases/v0.9.8.md)): send downloaded chapters to another phone on the same Wi-Fi, paired with a code and encrypted (the v0.7.x plan, same-network part).
 
 **v0.9.9: fixes** ✅ released 2026-11-11 ([notes](releases/v0.9.9.md), [device check](releases/v0.9.9-check.md)): MangaDex works again, an error log with the full text of source errors, and reading statistics that count only chapters read in the app.
+
+**v0.9.10: crash log and backup format** ([notes](releases/v0.9.10.md), [device check](releases/v0.9.10-check.md)): crashes saved on the phone and shared from About, the backup format written down and pinned by tests, TalkBack only in the open menu, search marks for titles saved from another source, and an optional signed release workflow (all from v1.0 or older leftovers).
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -314,8 +317,8 @@ Learned models stay optional because of their size, their speed on older phones 
 
 **Trust**
 - **Encrypted sign-ins** (M): tracker and site tokens encrypted with the Android Keystore.
-- **Crash log** (S): crashes are saved on the phone; About → "Share log" attaches it to a bug report. Nothing is sent automatically.
-- **Backup format documented** and kept stable; every older backup keeps loading (S).
+- ✅ **Crash log** (S): crashes are saved on the phone; About → "Share log" attaches it to a bug report. Nothing is sent automatically. In v0.9.10.
+- ✅ **Backup format documented** and kept stable; every older backup keeps loading (S). [BACKUP_FORMAT.md](BACKUP_FORMAT.md), with a saved sample per format version that tests load. In v0.9.10.
 
 **Everyone**
 - **Accessibility pass** (M): TalkBack labels for every button, font size up to 200 %, touch targets, contrast.
@@ -325,7 +328,7 @@ Learned models stay optional because of their size, their speed on older phones 
 **Quality**
 - Emulator tests on CI (Gradle managed devices): migrations and a smoke test of the main screens (M).
 - Screenshot tests for the main screens in light, dark and large font (M).
-- Optional release workflow that builds and signs from a tag with repository secrets (S), so a release no longer depends on one computer.
+- 🟡 Optional release workflow that builds and signs from a tag with repository secrets (S), so a release no longer depends on one computer. In v0.9.10 ([RELEASING.md](RELEASING.md)); it hasn't run yet because the signing secrets aren't in the repository.
 - Done when: the device checklist passes on three phones and one tablet, no open crash reports, and the user guide covers every setting.
 
 ## Every release
@@ -347,7 +350,7 @@ Learned models stay optional because of their size, their speed on older phones 
 | The Room migration test is skipped on Windows JVM runs | CI (Linux) runs it; v1.0 adds emulator tests on CI |
 | ✅ Coil 2 is in maintenance | Coil 3 since v0.8.0 |
 | ✅ Large files: `SettingsScreen.kt` and `LibraryScreen.kt` split in v0.6.2 and v0.6.3, `Database.kt` in v0.8.0 | Entities, `LibraryDao` and `LumeDatabase` in their own files |
-| Releases are built on one computer | v1.0: optional signed release workflow |
+| 🟡 Releases are built on one computer | Optional signed release workflow since v0.9.10; needs the signing secrets in the repository |
 | ✅ Engine parsers were only tested against the live sites | Offline parser tests with saved pages (v0.9) |
 
 ## Ideas, not planned yet

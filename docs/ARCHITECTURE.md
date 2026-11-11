@@ -25,7 +25,8 @@ domain/     plain Kotlin models and pure logic (no Android): unit-tested on the 
 | Titles | `data/title/` | `TitleRepository` loads a title and its chapters (network first, offline cache as fallback), merges linked sources and loads pages with fallback to other copies. `TitleSourceRepository` finds, links, unlinks and migrates sources. |
 | Library | `data/library/` | `LibraryRepository` (membership, categories, read marks), `LibraryChapters` (which chapters are new, by id), `LibraryUpdateWorker` (background checks, notifications). |
 | Downloads | `data/downloads/` | `DownloadQueue` (Room-backed queue), `DownloadWorker` (foreground job), `DownloadStore` (files, CBZ, storage choice). |
-| Backups | `data/backup/` | `BackupRepository` (Lume's JSON backups, versioned), `MihonBackup` (`.tachibk` import), `BackupWorker` (scheduled backups). |
+| Backups | `data/backup/` | `BackupRepository` (Lume's JSON backups, versioned; format in [BACKUP_FORMAT.md](BACKUP_FORMAT.md)), `MihonBackup` (`.tachibk` import), `BackupWorker` (scheduled backups). |
+| Logs | `data/ErrorLog.kt`, `data/CrashLog.kt` | Recent source errors and saved crashes, kept only on the phone; About → "Share log" hands them to an app the user picks. |
 | Trackers | `data/tracker/` | One class per tracker behind the `Tracker` interface; `TrackerSync` pushes progress when a chapter is finished. |
 | Continuity | `data/continuity/`, `ui/widget/` | Launcher shortcuts and the "Continue reading" widget. |
 | Preferences | `data/prefs/` | `AppPreferences` over DataStore; account tokens never go into backups. |

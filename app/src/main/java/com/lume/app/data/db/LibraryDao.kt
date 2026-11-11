@@ -356,6 +356,10 @@ interface LibraryDao {
     @Query("SELECT * FROM title_sources")
     suspend fun allTitleSources(): List<TitleSourceEntity>
 
+    /** Every linked source of every title (search results mark titles saved from another source). */
+    @Query("SELECT * FROM title_sources WHERE state = 'linked'")
+    fun observeLinkedTitleSources(): Flow<List<TitleSourceEntity>>
+
     /** Linked sources per title that has any (for the library's sources badge). */
     @Query("SELECT sourceId, titleId, COUNT(*) AS linked FROM title_sources WHERE state = 'linked' GROUP BY sourceId, titleId")
     fun observeLinkedSourceCounts(): Flow<List<LinkedSourceCount>>

@@ -724,6 +724,16 @@
     <string name="error_log_clear">Clear</string>
     <string name="error_log_clear_title">Clear the error log?</string>
     <string name="error_log_show_details">Show details</string>
+    <string name="crash_log_share">Share log</string>
+    <string name="crash_log_none">No crashes saved</string>
+    <plurals name="crash_log_count">
+        <item quantity="one">%d crash saved</item>
+        <item quantity="other">%d crashes saved</item>
+    </plurals>
+    <string name="crash_log_clear">Clear crash log</string>
+    <string name="crash_log_clear_title">Clear the crash log?</string>
+    <string name="crash_log_hint">When Lume closes because of a crash, the details are saved on this phone. "Share log" hands the crashes, recent errors, Android version and phone model to an app you choose, for example an email or a bug report. Nothing is sent by itself.</string>
+    <string name="crash_log_subject">Lume %1$s log</string>
     <string name="about_license_app">Lume license (Apache 2.0)</string>
     <string name="about_licenses">Open-source libraries</string>
     <string name="update_section_title">Updates</string>

@@ -32,7 +32,11 @@ import kotlinx.coroutines.launch
  * Everything the app shares, built once per process. Screens get it through [LocalAppContainer],
  * ViewModels through their constructor, workers and activities through [LumeApp.container].
  */
-class AppContainer(val app: Application) {
+class AppContainer(
+    val app: Application,
+    /** Crashes saved on the phone (About → "Share log"); built first by [LumeApp] so it sees start-up crashes. */
+    val crashLog: com.lume.app.data.CrashLog = LumeApp.crashLogFor(app),
+) {
     /**
      * Lives as long as the process. Used for work that must finish even when the screen that
      * started it is gone (for example saving reading progress after Back).

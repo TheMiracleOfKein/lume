@@ -27,6 +27,20 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
+import android.os.Build
+import com.lume.app.LocalAppContainer
+import com.lume.app.data.CrashLog
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,6 +86,26 @@ private const val REPO = "https://github.com/TheMiracleOfKein/lume"
 @Composable
 fun AboutScreen(nav: NavHostController) {
     val context = LocalContext.current
+    val container = LocalAppContainer.current
+    // A small file, written only by a crash: reading it once per visit is enough.
+    var crashes by remember { mutableStateOf(container.crashLog.entries()) }
+    var confirmClear by rememberSaveable { mutableStateOf(false) }
+    if (confirmClear) {
+        AlertDialog(
+            onDismissRequest = { confirmClear = false },
+            title = { Text(stringResource(R.string.crash_log_clear_title)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    container.crashLog.clear()
+                    crashes = emptyList()
+                    confirmClear = false
+                }) { Text(stringResource(R.string.error_log_clear)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmClear = false }) { Text(stringResource(android.R.string.cancel)) }
+            },
+        )
+    }
     Scaffold(
         containerColor = AppColors.background,
         contentWindowInsets = LumeInsets.scaffold,
@@ -114,6 +148,33 @@ fun AboutScreen(nav: NavHostController) {
                     LinkRow(stringResource(R.string.error_log_title), external = false) { nav.navigate(Routes.ErrorLog) }
                 }
             }
+            item(key = "crash-log") {
+                Spacer(Modifier.height(12.dp))
+                Column(Modifier.clip(RoundedCornerShape(14.dp)).background(AppColors.surface)) {
+                    val subject = stringResource(R.string.crash_log_subject, BuildConfig.VERSION_NAME)
+                    LinkRow(
+                        stringResource(R.string.crash_log_share),
+                        subtitle = if (crashes.isEmpty()) {
+                            stringResource(R.string.crash_log_none)
+                        } else {
+                            pluralStringResource(R.plurals.crash_log_count, crashes.size, crashes.size)
+                        },
+                        icon = Icons.Outlined.Share,
+                    ) {
+                        val report = CrashLog.report(deviceLine(), crashes, container.errorLog.entries.value)
+                        shareText(context, report, subject)
+                    }
+                    if (crashes.isNotEmpty()) {
+                        LinkRow(stringResource(R.string.crash_log_clear), icon = Icons.Outlined.Delete) { confirmClear = true }
+                    }
+                }
+                Text(
+                    stringResource(R.string.crash_log_hint),
+                    color = AppColors.textTertiary,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 6.dp, start = 4.dp, end = 4.dp),
+                )
+            }
             item(key = "libs-title") {
                 Text(
                     stringResource(R.string.about_licenses),
@@ -142,16 +203,30 @@ fun AboutScreen(nav: NavHostController) {
 }
 
 @Composable
-private fun LinkRow(label: String, external: Boolean = true, onClick: () -> Unit) {
+private fun LinkRow(
+    label: String,
+    external: Boolean = true,
+    subtitle: String? = null,
+    icon: ImageVector? = null,
+    onClick: () -> Unit,
+) {
     Row(
         Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick).padding(horizontal = 14.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, color = AppColors.textPrimary, fontSize = 15.sp, modifier = Modifier.weight(1f))
+        Column(Modifier.weight(1f)) {
+            Text(label, color = AppColors.textPrimary, fontSize = 15.sp)
+            if (subtitle != null) Text(subtitle, color = AppColors.textSecondary, fontSize = 12.sp)
+        }
         Icon(
-            if (external) Icons.AutoMirrored.Outlined.OpenInNew else Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+            icon ?: if (external) Icons.AutoMirrored.Outlined.OpenInNew else Icons.AutoMirrored.Outlined.KeyboardArrowRight,
             null,
             tint = AppColors.textSecondary,
         )
     }
 }
+
+/** App version, Android version and phone model: the first line of a shared log. */
+private fun deviceLine(): String =
+    "Lume ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) · Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}) · " +
+        "${Build.MANUFACTURER} ${Build.MODEL}"

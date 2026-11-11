@@ -77,7 +77,6 @@ import com.lume.app.ui.components.QuickSearchBar
 import com.lume.app.ui.components.SegmentTab
 import com.lume.app.ui.components.SourceProblemLine
 import com.lume.app.ui.components.TitleListRow
-import com.lume.app.ui.components.libraryMarkKey
 import com.lume.app.ui.components.libraryStatusColor
 import com.lume.app.ui.components.libraryStatusLabel
 import com.lume.app.ui.components.rememberLibraryMarks
@@ -292,8 +291,8 @@ private fun CurrentSourceResults(
                             coverUrl = item.coverUrl,
                             subtitle = item.latestChapter,
                             typeLabel = item.typeLabel,
-                            marker = marks[libraryMarkKey(vm.currentSourceId, item.id)]?.let { libraryStatusColor(it) },
-                            markerLabel = marks[libraryMarkKey(vm.currentSourceId, item.id)]?.let { libraryStatusLabel(it) },
+                            marker = marks.statusOf(vm.currentSourceId, item.id, item.title)?.let { libraryStatusColor(it) },
+                            markerLabel = marks.statusOf(vm.currentSourceId, item.id, item.title)?.let { libraryStatusLabel(it) },
                             modifier = animatedItem(),
                             onClick = { nav.navigate(Routes.title(vm.currentSourceId, item.id)) },
                         )
@@ -503,8 +502,8 @@ private fun SourceResultRow(
                             coverUrl = item.coverUrl,
                             badge = item.latestChapter,
                             width = 104.dp,
-                            marker = marks[libraryMarkKey(row.sourceId, item.id)]?.let { libraryStatusColor(it) },
-                            markerLabel = marks[libraryMarkKey(row.sourceId, item.id)]?.let { libraryStatusLabel(it) },
+                            marker = marks.statusOf(row.sourceId, item.id, item.title)?.let { libraryStatusColor(it) },
+                            markerLabel = marks.statusOf(row.sourceId, item.id, item.title)?.let { libraryStatusLabel(it) },
                             onClick = { onOpen(item.id) },
                         )
                     }

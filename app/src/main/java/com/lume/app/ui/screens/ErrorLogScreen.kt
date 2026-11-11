@@ -189,10 +189,10 @@ private fun copyText(context: Context, text: String) {
     if (android.os.Build.VERSION.SDK_INT < 33) Toast.makeText(context, R.string.error_log_copied, Toast.LENGTH_SHORT).show()
 }
 
-private fun shareText(context: Context, text: String) {
+internal fun shareText(context: Context, text: String, subject: String = context.getString(R.string.error_log_title)) {
     val send = android.content.Intent(android.content.Intent.ACTION_SEND)
         .setType("text/plain")
-        .putExtra(android.content.Intent.EXTRA_SUBJECT, context.getString(R.string.error_log_title))
+        .putExtra(android.content.Intent.EXTRA_SUBJECT, subject)
         // An intent extra must stay well under the binder limit.
         .putExtra(android.content.Intent.EXTRA_TEXT, text.take(MAX_SHARED_CHARS))
     try {

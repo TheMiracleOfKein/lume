@@ -26,6 +26,8 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -34,14 +36,20 @@ import java.util.Date
 import java.util.Locale
 
 /**
+ * A Lume backup file. The format is documented in docs/BACKUP_FORMAT.md and pinned by
+ * BackupFormatTest: only add fields, always with a default, and bump [CURRENT_VERSION] with a new
+ * saved sample file.
+ *
  * Version 2 adds per-chapter progress, page bookmarks and read marks; version 3 adds settings;
- * version 4 adds the other sources of each title.
+ * version 4 adds the other sources of each title; version 5 adds reading sessions.
  * Older files still load: the new lists default to empty.
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class BackupPayload(
-    val version: Int = CURRENT_VERSION,
-    val createdAt: Long = System.currentTimeMillis(),
+    // Written even though they are defaults, so a file always says what made it and when.
+    @EncodeDefault val version: Int = CURRENT_VERSION,
+    @EncodeDefault val createdAt: Long = System.currentTimeMillis(),
     val bookmarks: List<BookmarkEntityDto> = emptyList(),
     val progress: List<ProgressEntityDto> = emptyList(),
     val categories: List<CategoryEntityDto> = emptyList(),

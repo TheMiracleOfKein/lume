@@ -9,6 +9,7 @@ import androidx.compose.ui.res.stringResource
 import com.lume.app.R
 import com.lume.app.LocalAppContainer
 import com.lume.app.data.library.parseCategoryIds
+import com.lume.app.domain.LibraryMarkIndex
 import com.lume.app.domain.LibraryStatus
 import com.lume.app.domain.libraryStatusOf
 import com.lume.app.ui.theme.AppColors
@@ -23,22 +24,31 @@ fun libraryStatusColor(status: LibraryStatus): Color = when (status) {
     LibraryStatus.Other -> AppColors.accent
 }
 
-/** Library titles by [libraryMarkKey], each with its status; titles outside the library are absent. */
+/**
+ * Library titles with their status, found by source and id, by a linked source, or by name
+ * ([LibraryMarkIndex]), so a title saved from another source is marked too.
+ */
 @Composable
-fun rememberLibraryMarks(): Map<String, LibraryStatus> {
+fun rememberLibraryMarks(): LibraryMarkIndex {
     val dao = LocalAppContainer.current.dao
     val bookmarks by remember(dao) { dao.observeBookmarks() }.collectAsState(initial = emptyList())
     val categories by remember(dao) { dao.observeCategories() }.collectAsState(initial = emptyList())
-    return remember(bookmarks, categories) {
+    val links by remember(dao) { dao.observeLinkedTitleSources() }.collectAsState(initial = emptyList())
+    return remember(bookmarks, categories, links) {
         val names = categories.associate { it.id to it.name }
-        bookmarks.associate { b ->
-            libraryMarkKey(b.sourceId, b.titleId) to
-                libraryStatusOf(parseCategoryIds(b.categoryIdsJson).mapNotNull { names[it] })
-        }
+        LibraryMarkIndex(
+            entries = bookmarks.map { b ->
+                LibraryMarkIndex.Entry(
+                    b.sourceId,
+                    b.titleId,
+                    b.titleName,
+                    libraryStatusOf(parseCategoryIds(b.categoryIdsJson).mapNotNull { names[it] }),
+                )
+            },
+            links = links.map { LibraryMarkIndex.Link(it.sourceId, it.titleId, it.linkSourceId, it.linkTitleId, it.linkTitleName) },
+        )
     }
 }
-
-fun libraryMarkKey(sourceId: String, titleId: String): String = "$sourceId\u0000$titleId"
 
 /** The spoken form of the colour bar for a library title of this status. */
 @Composable
