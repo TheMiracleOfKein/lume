@@ -195,7 +195,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ MangaBuff catalogue reads only title cards, with covers; collections like "за 2026 год" are gone.
 - 🟡 MangaBuff checked with unit tests only: the site is geo-blocked from the build machine.
 
-**v0.7.x: send downloads to a nearby device** (L)
+**v0.7.x: send downloads to a nearby device** (L) 🟡 same-Wi-Fi part in v0.9.8 ([details](#v098-nearby-sending))
 
 Sync moves your library and progress, never the downloaded pages. This moves the pages: pick downloaded chapters on one phone, and another phone nearby receives them, without the internet and without a server.
 - **Choosing.** In Downloads (or on a title's chapter list), select titles or chapters → "Send to a nearby device". The sender shows the total size.
@@ -207,6 +207,11 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - **Safety.** A short code shown on both screens, or the QR code, pairs the two phones; the transfer is encrypted with a key made for that session only. Lume listens only while the send screen is open.
 - **Transfer.** Chapters go one by one as CBZ with their metadata (title, source, chapter names and numbers), with a checksum each; a dropped connection resumes at the chapter it stopped on. The receiver adds the title to the library if it isn't there, and the chapters show as downloaded. Read marks can come along (a switch).
 - Done when: 1 GB of chapters moves between two phones on the same Wi-Fi and over Wi-Fi Direct, a cancelled transfer resumes, and declining writes nothing.
+- ✅ In v0.9.8: choosing in Downloads (a send screen with titles and chapters, total size), same-Wi-Fi discovery and a typed address, accepting or declining, the pairing code and per-session encryption, page-by-page transfer with a checksum per chapter, resume by connecting again, library entry and read marks.
+- ⏸️ QR code: needs a camera scanner and a QR library; the typed address covers blocked discovery for now.
+- ⏸️ Wi-Fi Direct and the local-only hotspot: need location / nearby-devices permissions and can't be checked without two real phones (the emulator has neither).
+- ⏸️ Sending from a title's chapter list: the send screen lists every downloaded title instead.
+- 🟡 Checked with JVM tests over real sockets (full transfer, decline, broken connection, a non-Lume client); not yet on two phones or the emulator.
 
 ## v0.8: reader 2.0
 
@@ -231,6 +236,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 **v0.9.6: library and stats** ✅ released 2026-11-11 ([notes](releases/v0.9.6.md), [device check](releases/v0.9.6-check.md)): reading statistics, one notification per title, updates and notifications per category, and source errors kept across restarts and shown in global search.
 
 **v0.9.7: imports and folders** ✅ released 2026-11-11 ([notes](releases/v0.9.7.md), [device check](releases/v0.9.7-check.md)): Kotatsu backups, a tracker's reading list, and any folder as download storage.
+
+**v0.9.8: nearby sending** ([notes](releases/v0.9.8.md)): send downloaded chapters to another phone on the same Wi-Fi, paired with a code and encrypted (the v0.7.x plan, same-network part).
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -831,3 +838,14 @@ Release notes: [docs/releases/v0.9.7.md](releases/v0.9.7.md); device check in [v
 - 🟡 Tracker list import not tried with a real account; the requests follow the documented APIs and are covered by parser tests.
 - ✅ **Any folder as download storage** through the Storage Access Framework; content URIs in the reader, region decoder, panels, bookmarks and sharing.
 - 🟡 Moving storage to another folder keeps the old folder's permission while downloads remain there; it isn't released when the last one is deleted.
+
+### v0.9.8: nearby sending
+
+Release notes: [docs/releases/v0.9.8.md](releases/v0.9.8.md).
+
+- ✅ **Send to a nearby device** (Downloads): pick titles or chapters, the other phone finds this one on the same Wi-Fi (`_lume._tcp`) or types its address.
+- ✅ **Pairing and encryption**: both screens show the same six-digit code (ECDH P-256 with a commitment); AES-GCM with keys for that connection only.
+- ✅ **Accept or decline** on the receiver; nothing is saved before. Chapters already there, and titles of sources the receiver lacks, are skipped.
+- ✅ **Transfer**: page by page with a SHA-256 checksum per chapter; each chapter is stored as soon as it's checked, so connecting again continues. Titles go to the library; read marks optional.
+- ⏸️ QR code, Wi-Fi Direct and the local-only hotspot; sending from a title's chapter list.
+- 🟡 Not checked on a device: the emulator gate was skipped for this release; JVM tests cover the protocol.

@@ -26,6 +26,8 @@ import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material.icons.outlined.InstallMobile
+import androidx.compose.material.icons.outlined.SendToMobile
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -114,6 +116,14 @@ fun DownloadsScreen(nav: NavHostController) {
                     BackButton(onClick = { nav.popBackStack() })
                 },
                 actions = {
+                    if (groups.isNotEmpty()) {
+                        IconButton(onClick = { nav.navigate(Routes.NearbySend) }) {
+                            Icon(Icons.Outlined.SendToMobile, stringResource(R.string.nearby_send_title), tint = AppColors.textPrimary)
+                        }
+                    }
+                    IconButton(onClick = { nav.navigate(Routes.NearbyReceive) }) {
+                        Icon(Icons.Outlined.InstallMobile, stringResource(R.string.nearby_receive_title), tint = AppColors.textPrimary)
+                    }
                     if (activeQueue.isNotEmpty() || paused) {
                         IconButton(onClick = { if (paused) vm.resume() else vm.pause() }) {
                             Icon(

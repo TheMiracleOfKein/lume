@@ -210,6 +210,8 @@ fun AppShell(nav: NavHostController) {
                 )
             }
             lumeComposable(Routes.Downloads) { DownloadsScreen(nav) }
+            lumeComposable(Routes.NearbySend) { com.lume.app.ui.screens.NearbySendScreen(nav) }
+            lumeComposable(Routes.NearbyReceive) { com.lume.app.ui.screens.NearbyReceiveScreen(nav) }
             lumeComposable(Routes.Stats) { StatsScreen(nav) }
             lumeComposable(Routes.Categories) { CategoriesScreen(nav) }
             lumeComposable(Routes.About) { AboutScreen(nav) }

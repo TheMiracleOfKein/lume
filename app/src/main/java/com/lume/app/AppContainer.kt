@@ -74,6 +74,7 @@ class AppContainer(val app: Application) {
     val trackerListImport = com.lume.app.data.tracker.TrackerListImport(dao, sources, trackers, titleSources, titles, library, appScope)
     val updates = com.lume.app.data.update.AppUpdater(app, http, appScope)
     val sync = com.lume.app.data.sync.SyncRepository(app, database, dao, prefs, library, sources, http)
+    val nearby = com.lume.app.data.nearby.NearbyTransfer(app, dao, downloads, offlineCache, titles, library, sources)
 
     val imageLoader: ImageLoader get() = app.imageLoader
 
