@@ -328,7 +328,7 @@ Learned models stay optional because of their size, their speed on older phones 
 **Quality**
 - Emulator tests on CI (Gradle managed devices): migrations and a smoke test of the main screens (M).
 - Screenshot tests for the main screens in light, dark and large font (M).
-- 🟡 Optional release workflow that builds and signs from a tag with repository secrets (S), so a release no longer depends on one computer. In v0.9.10 ([RELEASING.md](RELEASING.md)); it hasn't run yet because the signing secrets aren't in the repository.
+- ✅ Optional release workflow that builds and signs from a tag with repository secrets (S), so a release no longer depends on one computer. In v0.9.10 ([RELEASING.md](RELEASING.md)); secrets set and checked with a test run on v0.9.10 (same signing certificate), and every pushed `v*` tag now starts it.
 - Done when: the device checklist passes on three phones and one tablet, no open crash reports, and the user guide covers every setting.
 
 ## Every release
@@ -350,7 +350,7 @@ Learned models stay optional because of their size, their speed on older phones 
 | The Room migration test is skipped on Windows JVM runs | CI (Linux) runs it; v1.0 adds emulator tests on CI |
 | ✅ Coil 2 is in maintenance | Coil 3 since v0.8.0 |
 | ✅ Large files: `SettingsScreen.kt` and `LibraryScreen.kt` split in v0.6.2 and v0.6.3, `Database.kt` in v0.8.0 | Entities, `LibraryDao` and `LumeDatabase` in their own files |
-| 🟡 Releases are built on one computer | Optional signed release workflow since v0.9.10; needs the signing secrets in the repository |
+| ✅ Releases are built on one computer | Signed release workflow from a tag since v0.9.10 ([RELEASING.md](RELEASING.md)) |
 | ✅ Engine parsers were only tested against the live sites | Offline parser tests with saved pages (v0.9) |
 
 ## Ideas, not planned yet
