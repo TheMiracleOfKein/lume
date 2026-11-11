@@ -51,8 +51,9 @@ data class ReadingStats(
 }
 
 /**
- * Chapters come from the read marks (so reading before sessions were recorded still counts),
- * pages and time from the sessions. Months are cut in [zone].
+ * Chapters come from the read marks of chapters read in the app (the DAO leaves out marks that
+ * only came from imports, sync or "mark as read"), pages and time from the sessions.
+ * Months are cut in [zone].
  */
 fun computeReadingStats(
     sessions: List<StatSession>,

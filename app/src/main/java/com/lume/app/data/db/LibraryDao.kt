@@ -441,7 +441,15 @@ interface LibraryDao {
     @Query("SELECT * FROM reading_sessions ORDER BY startedAt")
     suspend fun allSessions(): List<ReadingSessionEntity>
 
-    @Query("SELECT sourceId, titleId, readAt FROM chapter_read")
+    /**
+     * Read marks of chapters actually read in this app (they have a reading session). Marks from
+     * imports, sync, trackers or "mark as read" would otherwise flood the statistics.
+     */
+    @Query(
+        """SELECT r.sourceId, r.titleId, r.readAt FROM chapter_read r
+        WHERE EXISTS (SELECT 1 FROM reading_sessions s
+            WHERE s.sourceId = r.sourceId AND s.titleId = r.titleId AND s.chapterId = r.chapterId)""",
+    )
     fun observeChapterReadTimes(): Flow<List<ChapterReadTime>>
 }
 
