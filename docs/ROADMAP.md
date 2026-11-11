@@ -230,6 +230,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.6: library and stats** ✅ released 2026-11-11 ([notes](releases/v0.9.6.md), [device check](releases/v0.9.6-check.md)): reading statistics, one notification per title, updates and notifications per category, and source errors kept across restarts and shown in global search.
 
+**v0.9.7: imports and folders** ([notes](releases/v0.9.7.md), [device check](releases/v0.9.7-check.md)): Kotatsu backups, a tracker's reading list, and any folder as download storage.
+
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
 - ✅ **Tall pages in pieces** (M). Paged modes decode pages in tiles through Telephoto; webtoon strips keep the slices from v0.7.11.
@@ -262,14 +264,14 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 **Local files**
 - ✅ **CBR, CB7 and PDF** (M). PDF through Android's own renderer; CBR through junrar, CB7 through Apache Commons Compress.
 - ✅ **Watched folders** (M), in v0.9.1. Pick folders in Settings → Library; Lume re-scans them every 6, 12 or 24 hours (or on "Scan now"), copies only new and changed files (a ledger of size and modified time per file), and says "N new chapters". A folder whose permission is lost shows "Reconnect".
-- **Any folder as download storage** (M). The reader reads pages through the Storage Access Framework instead of file paths.
+- ✅ **Any folder as download storage** (M). Settings → Downloads → Storage → "Choose a folder…"; chapters go to `<folder>/Lume/…` and the reader reads `content://` pages. Existing downloads stay where they are. In v0.9.7.
 
 **Library**
 - ✅ **Smarter updates** (M): skip completed titles, titles you haven't started or titles with unread chapters, and only while charging, in v0.7.13. Update only some categories (Settings → Library → "Update categories") in v0.9.6.
 - ✅ **Statistics** (M): chapters and pages read, reading time, per title and per month, on a Reading statistics screen (History top bar and Settings → Library). Only on the phone, included in the JSON backup, not synced. In v0.9.6.
 - ✅ **Grouped notifications** per title, and a switch per category (S): one notification per title under a summary, and "Notify for categories" in Settings → Library. In v0.9.6.
-- **Import a tracker list** (M): your AniList or MyAnimeList "Reading" list becomes library entries, found on your sources with the same matching as "Found for you".
-- **Import Kotatsu backups** (M).
+- ✅ **Import a tracker list** (M): your AniList or MyAnimeList "Reading" list becomes library entries, found on your sources with the same matching as "Found for you", linked and marked read up to the tracker's progress (Settings → Trackers). In v0.9.7.
+- ✅ **Import Kotatsu backups** (M): favourites and categories. Reading history isn't imported (Kotatsu keeps no chapter numbers). In v0.9.7.
 
 **Sources**
 - ✅ **InkStory** ([ENGINES.md](ENGINES.md)) (M). In v0.9.3.
@@ -819,3 +821,13 @@ Release notes: [docs/releases/v0.9.6.md](releases/v0.9.6.md); device check in [v
 - ✅ **One notification per title** under a group summary, replaced by the next check; "Notify for categories" mutes categories.
 - ✅ **Update categories**: the update check covers only titles in the chosen categories (the bell pool and its 20-title cap stay).
 - ✅ **Source status kept for a week** across restarts and shown in global search.
+
+### v0.9.7: imports and folders
+
+Release notes: [docs/releases/v0.9.7.md](releases/v0.9.7.md); device check in [v0.9.7-check.md](releases/v0.9.7-check.md).
+
+- ✅ **Kotatsu backups**: favourites and categories; titles of sources Lume doesn't have are listed. No reading history (chapter hashes, no numbers).
+- ✅ **Tracker reading list** (AniList, MyAnimeList): matched like "Found for you", linked, read up to the tracker's progress.
+- 🟡 Tracker list import not tried with a real account; the requests follow the documented APIs and are covered by parser tests.
+- ✅ **Any folder as download storage** through the Storage Access Framework; content URIs in the reader, region decoder, panels, bookmarks and sharing.
+- 🟡 Moving storage to another folder keeps the old folder's permission while downloads remain there; it isn't released when the last one is deleted.
