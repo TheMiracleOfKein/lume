@@ -215,6 +215,7 @@ fun AppShell(nav: NavHostController) {
             lumeComposable(Routes.Stats) { StatsScreen(nav) }
             lumeComposable(Routes.Categories) { CategoriesScreen(nav) }
             lumeComposable(Routes.About) { AboutScreen(nav) }
+            lumeComposable(Routes.ErrorLog) { com.lume.app.ui.screens.ErrorLogScreen(nav) }
             lumeComposable(Routes.ReadingList) { ReadingListScreen(nav) }
             lumeComposable(
                 route = Routes.Browse,

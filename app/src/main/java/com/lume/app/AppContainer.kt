@@ -54,7 +54,9 @@ class AppContainer(val app: Application) {
     val prefs = AppPreferences(app, appScope)
     val libAuth = LibAuthStore(app)
     val serverCredentials = com.lume.app.data.server.ServerCredentialStore(app)
-    val sources = SourceRegistry(app, http, prefs, dao, libAuth, imageReferers, serverCredentials, scope = appScope)
+    /** Full text of recent errors (Sources → Error log), kept only on the phone. */
+    val errorLog = com.lume.app.data.ErrorLog(app.filesDir.resolve("error_log.json"), appScope)
+    val sources = SourceRegistry(app, http, prefs, dao, libAuth, imageReferers, serverCredentials, scope = appScope, errorLog = errorLog)
     val safStorage = com.lume.app.data.downloads.SafStorage(app)
     val downloads = DownloadStore(app, dao, http, prefs, safStorage)
     val offlineCache = OfflineTitleCache(dao)
