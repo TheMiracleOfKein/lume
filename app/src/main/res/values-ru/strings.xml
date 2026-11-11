@@ -76,7 +76,7 @@
     <string name="history_clear">Очистить историю</string>
     <string name="history_remove">Убрать из истории</string>
     <string name="history_remove_confirm_title">Убрать из истории?</string>
-    <string name="history_remove_confirm_text">«%1$s» пропадёт из «Продолжить читать» и истории, сохранённая позиция забудется. Отметки о прочитанных главах останутся.</string>
+    <string name="history_remove_confirm_text">%1$s пропадёт из «Продолжить читать» и истории. Отметки о прочтении и позиции в главах останутся.</string>
     <string name="search_title">Поиск</string>
     <string name="search_mode_current">Текущий источник</string>
     <string name="search_mode_all">Все источники</string>

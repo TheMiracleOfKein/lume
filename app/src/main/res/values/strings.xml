@@ -81,7 +81,7 @@
     <string name="history_clear">Clear history</string>
     <string name="history_remove">Remove from history</string>
     <string name="history_remove_confirm_title">Remove from history?</string>
-    <string name="history_remove_confirm_text">“%1$s” leaves Continue reading and the history, and its saved position is forgotten. Chapters stay marked as read.</string>
+    <string name="history_remove_confirm_text">%1$s leaves Continue reading and the history. Its chapters keep their read marks and page positions.</string>
     <string name="search_title">Search</string>
     <string name="search_mode_current">Current source</string>
     <string name="search_mode_all">All sources</string>

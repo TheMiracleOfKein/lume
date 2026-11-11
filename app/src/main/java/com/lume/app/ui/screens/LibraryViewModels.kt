@@ -44,7 +44,7 @@ class HistoryViewModel(private val app: AppContainer) : ViewModel() {
         viewModelScope.launch { app.dao.clearAllProgress() }
     }
 
-    /** Forgets one title's position; its chapter read marks stay. */
+    /** Takes one title out of the history; its chapters keep read marks and page positions. */
     fun remove(item: ProgressEntity) {
         viewModelScope.launch { app.dao.clearProgress(item.sourceId, item.titleId) }
     }
