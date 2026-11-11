@@ -245,7 +245,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.11: encrypted sign-ins** ✅ released 2026-11-12 ([notes](releases/v0.9.11.md), [device check](releases/v0.9.11-check.md)): tracker tokens, site sign-ins and the sync password encrypted with the Android Keystore, a checksum file next to each APK, and one title at a time out of Continue reading and the history (from v1.0).
 
-**v0.9.12: Continue reading covers** ([notes](releases/v0.9.12.md)): cards under Continue reading show the cover instead of a cut-out of the page.
+**v0.9.12: Continue reading covers** ✅ released 2026-11-12 ([notes](releases/v0.9.12.md)): cards under Continue reading show the cover instead of a cut-out of the page.
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -843,7 +843,7 @@ Release notes: [docs/releases/v0.9.8.md](releases/v0.9.8.md).
 - ⏸️ QR code, Wi-Fi Direct and the local-only hotspot; sending from a title's chapter list.
 - 🟡 Not checked on a device: the emulator gate was skipped for this release; JVM tests cover the protocol.
 
-### v0.9.12: Continue reading covers
+### v0.9.12: Continue reading covers ✅ released 2026-11-12
 
 Release notes: [docs/releases/v0.9.12.md](releases/v0.9.12.md).
 
