@@ -35,8 +35,8 @@ android {
         applicationId = "com.lume.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 43
-        versionName = "0.9.11"
+        versionCode = 44
+        versionName = "0.9.12"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // OAuth app credentials for AniList / Shikimori (identify Lume itself).
