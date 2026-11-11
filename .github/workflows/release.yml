@@ -1,0 +1,149 @@
+name: Release
+
+# Optional: builds and signs a release APK from a tag with repository secrets, so a release no
+# longer depends on one computer. Setup and the secrets it needs: docs/RELEASING.md.
+#
+# - Started by hand (Actions → Release → Run workflow) with a tag, or on every pushed `v*` tag
+#   when the repository variable LUME_RELEASE_FROM_CI is "true". Without that variable, tags
+#   pushed by a local release don't start it.
+# - Publishes the GitHub release only when the tag has none yet; a release that already exists
+#   is never changed. The APK and its checksum are always kept as a workflow artifact.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build, e.g. v1.0.0 (must already be pushed)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, sign and publish
+    if: github.event_name == 'workflow_dispatch' || vars.LUME_RELEASE_FROM_CI == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      # Lume's public signing certificate. Override with the LUME_CERT_SHA256 variable if the key changes.
+      CERT_SHA256: ${{ vars.LUME_CERT_SHA256 || 'b1594cec70301bfd0f66d73d82e9bdcea6355b8df8d2abe50e1fc022629bd565' }}
+    steps:
+      - name: Check the tag name
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'$TAG' is not a release tag like v1.2.3"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - name: Check the signing secrets
+        env:
+          KEYSTORE: ${{ secrets.LUME_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.LUME_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.LUME_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.LUME_KEY_PASSWORD }}
+        run: |
+          missing=""
+          [ -n "$KEYSTORE" ] || missing="$missing LUME_KEYSTORE_BASE64"
+          [ -n "$STORE_PASSWORD" ] || missing="$missing LUME_STORE_PASSWORD"
+          [ -n "$KEY_ALIAS" ] || missing="$missing LUME_KEY_ALIAS"
+          [ -n "$KEY_PASSWORD" ] || missing="$missing LUME_KEY_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing (see docs/RELEASING.md)"
+            exit 1
+          fi
+
+      - name: Check the version matches the tag
+        run: |
+          name=$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' app/build.gradle.kts)
+          if [ "v$name" != "$TAG" ]; then
+            echo "::error::versionName is $name but the tag is $TAG"
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Prepare the keystore and app keys
+        env:
+          KEYSTORE: ${{ secrets.LUME_KEYSTORE_BASE64 }}
+          ANILIST_ID: ${{ secrets.LUME_ANILIST_CLIENT_ID }}
+          ANILIST_SECRET: ${{ secrets.LUME_ANILIST_CLIENT_SECRET }}
+          SHIKIMORI_ID: ${{ secrets.LUME_SHIKIMORI_CLIENT_ID }}
+          SHIKIMORI_SECRET: ${{ secrets.LUME_SHIKIMORI_CLIENT_SECRET }}
+          MAL_ID: ${{ secrets.LUME_MAL_CLIENT_ID }}
+        run: |
+          echo "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/lume-release.jks"
+          # Tracker app ids are optional: without them the matching sign-ins are off in this build.
+          {
+            [ -z "$ANILIST_ID" ] || echo "LUME_ANILIST_CLIENT_ID=$ANILIST_ID"
+            [ -z "$ANILIST_SECRET" ] || echo "LUME_ANILIST_CLIENT_SECRET=$ANILIST_SECRET"
+            [ -z "$SHIKIMORI_ID" ] || echo "LUME_SHIKIMORI_CLIENT_ID=$SHIKIMORI_ID"
+            [ -z "$SHIKIMORI_SECRET" ] || echo "LUME_SHIKIMORI_CLIENT_SECRET=$SHIKIMORI_SECRET"
+            [ -z "$MAL_ID" ] || echo "LUME_MAL_CLIENT_ID=$MAL_ID"
+          } > local.properties
+          if [ -z "$ANILIST_ID" ] || [ -z "$SHIKIMORI_ID" ] || [ -z "$MAL_ID" ]; then
+            echo "::warning::Some tracker app ids are missing; their sign-in won't work in this build"
+          fi
+
+      - name: Build the signed release APK
+        env:
+          ORG_GRADLE_PROJECT_LUME_STORE_FILE: ${{ runner.temp }}/lume-release.jks
+          ORG_GRADLE_PROJECT_LUME_STORE_PASSWORD: ${{ secrets.LUME_STORE_PASSWORD }}
+          ORG_GRADLE_PROJECT_LUME_KEY_ALIAS: ${{ secrets.LUME_KEY_ALIAS }}
+          ORG_GRADLE_PROJECT_LUME_KEY_PASSWORD: ${{ secrets.LUME_KEY_PASSWORD }}
+        run: ./gradlew --no-configuration-cache :app:clean :app:assembleRelease
+
+      - name: Remove the keystore and app keys
+        if: always()
+        run: rm -f "$RUNNER_TEMP/lume-release.jks" local.properties
+
+      - name: Check the signature, version and profile
+        run: |
+          apk=app/build/outputs/apk/release/app-release.apk
+          if [ ! -f "$apk" ]; then
+            echo "::error::No signed APK (only an unsigned one?)"
+            exit 1
+          fi
+          bt=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          certs=$("$bt/apksigner" verify --print-certs -v "$apk")
+          echo "$certs" | grep -q "^Verifies" || { echo "::error::apksigner does not verify the APK"; exit 1; }
+          echo "$certs" | grep -qi "SHA-256 digest: $CERT_SHA256" || { echo "::error::The APK is signed with another certificate"; exit 1; }
+          "$bt/aapt2" dump badging "$apk" | grep -q "versionName='${TAG#v}'" || { echo "::error::The APK has another version"; exit 1; }
+          unzip -l "$apk" | grep -q "baseline.prof" || echo "::warning::No baseline profile in the APK"
+          mkdir -p dist
+          cp "$apk" "dist/lume-$TAG.apk"
+          (cd dist && sha256sum "lume-$TAG.apk" > "lume-$TAG.apk.sha256")
+          cat "dist/lume-$TAG.apk.sha256"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lume-${{ env.TAG }}
+          path: dist/
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "::notice::Release $TAG already exists; left as it is. The APK is in the workflow artifact."
+            exit 0
+          fi
+          notes="docs/releases/$TAG.md"
+          [ -f "$notes" ] || { echo "::error::No release notes at $notes"; exit 1; }
+          gh release create "$TAG" "dist/lume-$TAG.apk" "dist/lume-$TAG.apk.sha256" \
+            --title "Lume ${TAG#v}" --notes-file "$notes" --verify-tag --latest
