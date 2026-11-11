@@ -194,6 +194,8 @@ fun TitleListRow(
     /** Spoken form of [marker]. */
     markerLabel: String? = null,
     onLongClick: (() -> Unit)? = null,
+    /** What [onLongClick] does, for TalkBack's actions menu. */
+    onLongClickLabel: String? = null,
     onClick: () -> Unit,
 ) {
     Row(
@@ -212,7 +214,7 @@ fun TitleListRow(
             )
             .then(
                 if (onLongClick != null) {
-                    Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                    Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick, onLongClickLabel = onLongClickLabel)
                 } else {
                     Modifier.clickable(onClick = onClick)
                 },

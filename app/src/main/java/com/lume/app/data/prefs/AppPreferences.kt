@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.lume.app.data.security.SecretSealer
 import com.lume.app.domain.AutoDownloadMode
 import com.lume.app.domain.LibraryCheckOutcome
 import com.lume.app.domain.LibraryDisplay
@@ -143,7 +144,12 @@ data class SyncStatus(
  * synchronously, when the app starts. Screens read `.value` on their first frame, so switches,
  * expanded sections and the theme never start from a default and then animate to the real value.
  */
-class AppPreferences(private val context: Context, private val scope: CoroutineScope) {
+class AppPreferences(
+    private val context: Context,
+    private val scope: CoroutineScope,
+    /** Encrypts tokens, passwords and app secrets in [privateDataStore]; see [isSecretKey]. */
+    private val secrets: SecretSealer = SecretSealer(),
+) {
     private val darkThemeKey = booleanPreferencesKey("dark_theme")
     private val activeSourceKey = stringPreferencesKey("active_source_id")
     private val readerModeKey = intPreferencesKey("reader_mode")
@@ -248,7 +254,10 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private val syncChangesKey = intPreferencesKey("sync_changes")
 
     init {
-        runBlocking { movePrivateValues() }
+        runBlocking {
+            movePrivateValues()
+            sealPrivateValues()
+        }
     }
 
     private val initial: Preferences = runBlocking { context.appDataStore.data.first() }
@@ -273,6 +282,25 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             moving.forEach { (key, value) -> target[key as Preferences.Key<Any>] = value }
         }
         context.appDataStore.edit { prefs -> moving.keys.forEach { prefs.remove(it) } }
+    }
+
+    /** Up to v0.9.10 the private values were plain text; the secret ones are encrypted once. */
+    private suspend fun sealPrivateValues() {
+        val plain = context.privateDataStore.data.first().asMap().mapNotNull { (key, value) ->
+            if (value !is String || !isSecretKey(key.name) || secrets.isSealed(value)) return@mapNotNull null
+            val sealed = secrets.seal(value)
+            if (secrets.isSealed(sealed)) Pair(stringPreferencesKey(key.name), sealed) else null
+        }
+        if (plain.isEmpty()) return
+        context.privateDataStore.edit { target -> plain.forEach { (key, sealed) -> target[key] = sealed } }
+    }
+
+    /** A secret value of the private store, decrypted. */
+    private fun Preferences.secret(key: Preferences.Key<String>): String? = secrets.open(this[key])
+
+    /** Writes [value] to the private store, encrypted, or removes [key] when it is blank. */
+    private suspend fun putSecret(key: Preferences.Key<String>, value: String?) {
+        context.privateDataStore.edit { if (value.isNullOrBlank()) it.remove(key) else it[key] = secrets.seal(value) }
     }
 
     val darkTheme: StateFlow<Boolean> = state { it[darkThemeKey] ?: true }
@@ -341,11 +369,11 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     /** "system" | "en" | "ru" | … — see [com.lume.app.data.locale.AppLanguage]. */
     val appLanguage: StateFlow<String> = state { it[appLanguageKey] ?: "system" }
 
-    val anilistAccessToken: StateFlow<String?> = privateState { it[anilistTokenKey] }
+    val anilistAccessToken: StateFlow<String?> = privateState { it.secret(anilistTokenKey) }
     val anilistClientId: StateFlow<String?> = privateState { it[anilistClientIdKey] }
-    val anilistClientSecret: StateFlow<String?> = privateState { it[anilistClientSecretKey] }
-    val shikimoriAccessToken: StateFlow<String?> = privateState { it[shikiTokenKey] }
-    val shikimoriRefreshToken: StateFlow<String?> = privateState { it[shikiRefreshKey] }
+    val anilistClientSecret: StateFlow<String?> = privateState { it.secret(anilistClientSecretKey) }
+    val shikimoriAccessToken: StateFlow<String?> = privateState { it.secret(shikiTokenKey) }
+    val shikimoriRefreshToken: StateFlow<String?> = privateState { it.secret(shikiRefreshKey) }
 
     /**
      * Values of the trackers added in v0.5 (MyAnimeList, Kitsu, MangaUpdates), stored as
@@ -353,15 +381,15 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
      */
     val trackerValues: StateFlow<Map<String, String>> = privateState { prefs ->
         prefs.asMap().mapNotNull { (k, v) ->
-            if (k.name.startsWith(TRACKER_PREFIX) && v is String) k.name.removePrefix(TRACKER_PREFIX) to v else null
+            if (!k.name.startsWith(TRACKER_PREFIX) || v !is String) return@mapNotNull null
+            secrets.open(v)?.let { k.name.removePrefix(TRACKER_PREFIX) to it }
         }.toMap()
     }
 
     fun trackerValue(trackerId: String, name: String): String? = trackerValues.value["${trackerId}_$name"]
 
     suspend fun setTrackerValue(trackerId: String, name: String, value: String?) {
-        val key = stringPreferencesKey("$TRACKER_PREFIX${trackerId}_$name")
-        context.privateDataStore.edit { if (value.isNullOrBlank()) it.remove(key) else it[key] = value }
+        putSecret(stringPreferencesKey("$TRACKER_PREFIX${trackerId}_$name"), value)
     }
 
     /**
@@ -396,7 +424,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     }
     val shikimoriUserId: StateFlow<String?> = privateState { it[shikiUserIdKey] }
     val shikimoriClientId: StateFlow<String?> = privateState { it[shikiClientIdKey] }
-    val shikimoriClientSecret: StateFlow<String?> = privateState { it[shikiClientSecretKey] }
+    val shikimoriClientSecret: StateFlow<String?> = privateState { it.secret(shikiClientSecretKey) }
 
     val readerSettings: StateFlow<ReaderSettings> = state { prefs ->
         val modeIndex = prefs[readerModeKey] ?: ReaderMode.Webtoon.prefsIndex
@@ -617,8 +645,8 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             folder = p[syncFolderKey]?.takeIf(String::isNotBlank),
             webDavUrl = p[syncWebDavUrlKey].orEmpty(),
             webDavUser = p[syncWebDavUserKey].orEmpty(),
-            webDavPassword = p[syncWebDavPasswordKey].orEmpty(),
-            passphrase = p[syncPassphraseKey].orEmpty(),
+            webDavPassword = p.secret(syncWebDavPasswordKey).orEmpty(),
+            passphrase = p.secret(syncPassphraseKey).orEmpty(),
             intervalHours = p[syncIntervalKey]?.takeIf { it in SYNC_INTERVALS } ?: 6,
         )
     }
@@ -639,8 +667,8 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
             if (settings.folder == null) it.remove(syncFolderKey) else it[syncFolderKey] = settings.folder
             it[syncWebDavUrlKey] = settings.webDavUrl.trim()
             it[syncWebDavUserKey] = settings.webDavUser.trim()
-            it[syncWebDavPasswordKey] = settings.webDavPassword
-            it[syncPassphraseKey] = settings.passphrase
+            it[syncWebDavPasswordKey] = secrets.seal(settings.webDavPassword)
+            it[syncPassphraseKey] = secrets.seal(settings.passphrase)
             it[syncIntervalKey] = settings.intervalHours
         }
     }
@@ -695,6 +723,10 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     private fun isPrivateKey(name: String): Boolean =
         PRIVATE_KEY_PARTS.any { name.contains(it) } || name == "auto_backup_folder" || name.startsWith("sync_") ||
             (name.startsWith(TRACKER_PREFIX) && name != "tracker_auto_link_enabled")
+
+    /** Private values that are encrypted at rest: tokens, passwords, app secrets, tracker values. */
+    private fun isSecretKey(name: String): Boolean =
+        SECRET_KEY_PARTS.any { name.contains(it) } || (name.startsWith(TRACKER_PREFIX) && name != "tracker_auto_link_enabled")
 
     /** Where the pack catalogue is read from; see `docs/packs/index.json`. */
     val packIndexUrl: StateFlow<String> = state { it[packIndexUrlKey]?.takeIf(String::isNotBlank) ?: DEFAULT_PACK_INDEX }
@@ -789,16 +821,14 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     }
 
     suspend fun setAniListAccessToken(token: String?) {
-        context.privateDataStore.edit {
-            if (token.isNullOrBlank()) it.remove(anilistTokenKey) else it[anilistTokenKey] = token
-        }
+        putSecret(anilistTokenKey, token)
     }
 
     @Suppress("unused")
     suspend fun setAniListClient(clientId: String, clientSecret: String) {
         context.privateDataStore.edit {
             it[anilistClientIdKey] = clientId
-            it[anilistClientSecretKey] = clientSecret
+            it[anilistClientSecretKey] = secrets.seal(clientSecret)
         }
     }
 
@@ -808,9 +838,9 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
                 it.remove(shikiTokenKey)
                 it.remove(shikiUserIdKey)
             } else {
-                it[shikiTokenKey] = access
+                it[shikiTokenKey] = secrets.seal(access)
             }
-            if (refresh.isNullOrBlank()) it.remove(shikiRefreshKey) else it[shikiRefreshKey] = refresh
+            if (refresh.isNullOrBlank()) it.remove(shikiRefreshKey) else it[shikiRefreshKey] = secrets.seal(refresh)
         }
     }
 
@@ -824,7 +854,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
     suspend fun setShikimoriClient(clientId: String, clientSecret: String) {
         context.privateDataStore.edit {
             it[shikiClientIdKey] = clientId
-            it[shikiClientSecretKey] = clientSecret
+            it[shikiClientSecretKey] = secrets.seal(clientSecret)
         }
     }
 
@@ -841,6 +871,7 @@ class AppPreferences(private val context: Context, private val scope: CoroutineS
         /** Hours between background syncs; 0 = only "Sync now" and app start. */
         val SYNC_INTERVALS = listOf(0, 1, 6, 12, 24)
         private val PRIVATE_KEY_PARTS = listOf("token", "secret", "client_id", "user_id", "password", "verifier")
+        private val SECRET_KEY_PARTS = listOf("token", "secret", "password", "verifier", "passphrase")
         private const val TRACKER_PREFIX = "tracker_"
         const val DEFAULT_PACK_INDEX = "https://raw.githubusercontent.com/TheMiracleOfKein/lume/main/docs/packs/index.json"
         private val prefsJson = Json { ignoreUnknownKeys = true }

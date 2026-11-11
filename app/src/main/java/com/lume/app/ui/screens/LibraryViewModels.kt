@@ -43,6 +43,11 @@ class HistoryViewModel(private val app: AppContainer) : ViewModel() {
     fun clearAll() {
         viewModelScope.launch { app.dao.clearAllProgress() }
     }
+
+    /** Takes one title out of the history; its chapters keep read marks and page positions. */
+    fun remove(item: ProgressEntity) {
+        viewModelScope.launch { app.dao.clearProgress(item.sourceId, item.titleId) }
+    }
 }
 
 /** Status and alternative title from the cached details, for filters and search. */

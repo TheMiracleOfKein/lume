@@ -28,7 +28,6 @@ These hold for every release:
 | **0.7** | Sync and everyday reading 🟡 | Sync between devices; page slider, orientation lock, auto-scroll, colour filters | L |
 | **0.8** | Reader 2.0 🟡 | Tall pages without memory problems, sharp zoom, crop and spreads, guided panel view, Coil 3 | L |
 | **0.9** | Library and sources | Self-hosted servers (OPDS, Komga, Kavita), CBR and PDF, watched folders, smarter updates, statistics | L |
-| **0.10** | On-device AI | Translate raws, sharper old scans (separate build flavor) | L |
 | **1.0** | Stable | Distribution, update check, crash log, accessibility, encrypted sign-ins, test coverage, user guide | M–L |
 
 Order can change when a source breaks or a bug needs a patch release first.
@@ -155,7 +154,7 @@ Patch releases from the v0.6 line, as needed.
 - ⏸️ Links still open under the app lock (hidden by it); waiting for unlock needs the lock state in the shell.
 
 **v0.7.12: polish** ✅ released 2026-11-01 ([details](#v0712-polish--released-2026-11-01))
-- ✅ Main menu without the bottom-bar tabs; Home search opens the all-sources search with the query; History has clear-all.
+- ✅ Main menu without the bottom-bar tabs; Home search opens the all-sources search with the query; History has clear-all (and, since v0.9.11, removing one title with a long press).
 - ✅ Library grid adapts to the screen width; Settings and title details are width-capped on wide screens.
 - ✅ Dialogs and typed text survive rotation.
 - ✅ The library check reports failures; downloaded and local pages in natural order; one queue row per chapter; CBZ cache capped at 300 MB.
@@ -244,6 +243,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.10: crash log and backup format** ✅ released 2026-11-12 ([notes](releases/v0.9.10.md), [device check](releases/v0.9.10-check.md)): crashes saved on the phone and shared from About, the backup format written down and pinned by tests, TalkBack only in the open menu, search marks for titles saved from another source, and an optional signed release workflow (all from v1.0 or older leftovers).
 
+**v0.9.11: encrypted sign-ins** ([notes](releases/v0.9.11.md), [device check](releases/v0.9.11-check.md)): tracker tokens, site sign-ins and the sync password encrypted with the Android Keystore, a checksum file next to each APK, and one title at a time out of Continue reading and the history (from v1.0).
+
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
 - ✅ **Tall pages in pieces** (M). Paged modes decode pages in tiles through Telephoto; webtoon strips keep the slices from v0.7.11.
@@ -255,7 +256,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - ✅ **Previous chapter above** the current one in seamless webtoon mode (M).
 - ✅ **Two-pane title screen on tablets** (840 dp and wider): details on the left, chapters on the right (M).
 
-**Guided panel view** (signature feature 2, first part, L)
+**Guided panel view** (signature feature 2, L)
 - ✅ Classic image processing (a recursive cut along the gutters) finds the panels of a page; no model, no download.
 - ✅ A tap or page turn moves to the next panel with a smooth zoom, in the page's reading direction; each page starts whole.
 - ✅ The same analysis powers border cropping.
@@ -291,32 +292,18 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - ✅ **Offline parser tests** with saved pages for every engine (M), so a parser change is checked without the live sites. Fixtures are in `app/src/test/resources/fixtures` and recorded with `-Plume.live.record` ([ENGINES.md](ENGINES.md#saved-pages-offline-parser-tests)). The MangaDex and MangaBuff fixtures are hand-written until they can be recorded.
 - ✅ **Source status in the app** (S): the last error per source on the Sources screen, so a broken source is visible before you open a title. In v0.7.13 for the running session; kept across restarts (for a week, in private settings that are not backed up) and shown in global search since v0.9.6.
 
-## v0.10: on-device AI
-
-Signature feature 2, second part. It ships in a separate build flavor (`ai`), so the standard build stays fully open source and small.
-
-- **Translate raws** (L). Text recognition (Japanese, Korean, Chinese, Latin scripts) and on-device translation. Lume finds each speech bubble, clears it, and draws the translated text inside.
-  - Results are saved per page.
-  - It can be turned on per title.
-  - It works offline once the language is downloaded.
-- **Sharper old scans** (L). Optional upscaling of low-resolution pages, piece by piece on the GPU, cached.
-- **Learned panel detection** (M), optional, for pages where the classic detection from v0.8 fails.
-- Done when: a 20-page raw chapter translates on a mid-range phone in under a minute, offline, and the `ai` build stays under 60 MB without models.
-
-Learned models stay optional because of their size, their speed on older phones and the licenses of their training data.
-
 ## v1.0: stable
 
 **Goal:** an app people can install from a store, trust with their library, and get help with.
 
 **Distribution**
 - **IzzyOnDroid** first; **F-Droid** when the build is reproducible (the standard flavor has no proprietary parts) (M).
-- **Obtainium**: release names and assets stay stable; a checksum file next to each APK (S).
+- ✅ **Obtainium**: release names and assets stay stable; a checksum file next to each APK (S). From v0.9.11 every release has `lume-vX.Y.Z.apk.sha256` (SHA-256 and file name, the `sha256sum` format) next to the APK; the tag-started release workflow publishes both ([RELEASING.md](RELEASING.md)).
 - **Update check** (S), on by default and switchable in About: asks GitHub's release API for a newer version, at most every 6 hours, nothing else.
 - Google Play stays out ([below](#out-of-scope)).
 
 **Trust**
-- **Encrypted sign-ins** (M): tracker and site tokens encrypted with the Android Keystore.
+- ✅ **Encrypted sign-ins** (M): tracker and site tokens encrypted with the Android Keystore. In v0.9.11: tracker tokens and app secrets, MangaLib-family site tokens and the sync WebDAV password and passphrase (AES-256-GCM, a key that never leaves the Keystore; server sign-ins were already encrypted since v0.9.2). Values from older versions are encrypted on the first start. Cookies of sites signed in through the WebView stay in Android's WebView storage, which Lume can't encrypt; like the rest, they are kept out of cloud backups.
 - ✅ **Crash log** (S): crashes are saved on the phone; About → "Share log" attaches it to a bug report. Nothing is sent automatically. In v0.9.10.
 - ✅ **Backup format documented** and kept stable; every older backup keeps loading (S). [BACKUP_FORMAT.md](BACKUP_FORMAT.md), with a saved sample per format version that tests load. In v0.9.10.
 
@@ -378,12 +365,11 @@ A library entry can be backed by several sources at once.
 - **One-tap migration.** Move progress, page bookmarks, categories and tracker links to another source.
 - ✅ Library badge with the number of sources (v0.6.1).
 
-### 2. On-device reading help (v0.8 and v0.10)
+### 2. On-device reading help (v0.8)
 
 Everything runs on the phone, with no account.
 
 - ✅ **Guided panel view** (v0.8.0): classic panel detection, no model.
-- **Translate raws** and **sharper old scans** (v0.10): in the separate `ai` build flavor.
 
 ### 3. Sync and continuity 🟡
 
@@ -854,6 +840,15 @@ Release notes: [docs/releases/v0.9.8.md](releases/v0.9.8.md).
 - ✅ **Transfer**: page by page with a SHA-256 checksum per chapter; each chapter is stored as soon as it's checked, so connecting again continues. Titles go to the library; read marks optional.
 - ⏸️ QR code, Wi-Fi Direct and the local-only hotspot; sending from a title's chapter list.
 - 🟡 Not checked on a device: the emulator gate was skipped for this release; JVM tests cover the protocol.
+
+### v0.9.11: encrypted sign-ins
+
+Release notes: [docs/releases/v0.9.11.md](releases/v0.9.11.md).
+
+- ✅ **Encrypted sign-ins**: `SecretSealer` (AES-256-GCM, key `lume_secrets` in the Android Keystore) for the secret values of the private settings and for `LibAuthStore`; plain values from older versions are sealed once on start and read until then.
+- ✅ **Checksum file** next to each APK (`lume-vX.Y.Z.apk.sha256`), published by the release workflow.
+- ✅ **Remove one title** from Continue reading (Home) and the history: long press, then confirm. Read marks and page positions in its chapters stay.
+- 🟡 After a device-to-device transfer the Keystore key stays behind: tracker and site sign-ins have to be done again (they already did for servers).
 
 ### v0.9.9: fixes ✅ released 2026-11-11
 

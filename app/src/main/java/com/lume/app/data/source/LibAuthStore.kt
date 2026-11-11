@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.lume.app.data.security.SecretSealer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -17,14 +18,28 @@ private val Context.libAuthStore by preferencesDataStore("lib_auth")
  * Stores MangaLib-family WebView `localStorage.auth` tokens per source id.
  * Shape matches cdnlibs / LibGroup AuthToken JSON.
  */
-class LibAuthStore(private val context: Context) {
+class LibAuthStore(
+    private val context: Context,
+    /** Tokens are encrypted at rest; values from before v0.9.11 are sealed by [sealStored]. */
+    private val secrets: SecretSealer = SecretSealer(),
+) {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
     fun tokenFlow(sourceId: String): Flow<LibAuthToken?> =
         context.libAuthStore.data.map { prefs ->
-            val raw = prefs[key(sourceId)] ?: return@map null
+            val raw = secrets.open(prefs[key(sourceId)]) ?: return@map null
             runCatching { json.decodeFromString(LibAuthToken.serializer(), raw) }.getOrNull()
         }
+
+    /** Encrypts tokens saved as plain text by older versions. Runs once on start. */
+    suspend fun sealStored() {
+        val plain = context.libAuthStore.data.first().asMap().mapNotNull { (key, value) ->
+            if (value !is String || secrets.isSealed(value)) return@mapNotNull null
+            secrets.seal(value).takeIf(secrets::isSealed)?.let { Pair(stringPreferencesKey(key.name), it) }
+        }
+        if (plain.isEmpty()) return
+        context.libAuthStore.edit { target -> plain.forEach { (key, sealed) -> target[key] = sealed } }
+    }
 
     suspend fun getToken(sourceId: String): LibAuthToken? = tokenFlow(sourceId).first()
 
@@ -43,7 +58,8 @@ class LibAuthStore(private val context: Context) {
 
     suspend fun saveRaw(sourceId: String, rawJson: String): LibAuthToken? {
         val token = parse(rawJson) ?: return null
-        context.libAuthStore.edit { it[key(sourceId)] = json.encodeToString(LibAuthToken.serializer(), token) }
+        val sealed = secrets.seal(json.encodeToString(LibAuthToken.serializer(), token))
+        context.libAuthStore.edit { it[key(sourceId)] = sealed }
         return token
     }
 

@@ -49,6 +49,14 @@ fun HistoryScreen(nav: NavHostController) {
     val vm: HistoryViewModel = viewModel { HistoryViewModel(container) }
     val history by vm.history.collectAsState()
     var confirmClear by rememberSaveable { mutableStateOf(false) }
+    // The title a long press asked to remove, as "sourceId:titleId" (survives rotation).
+    var removeKey by rememberSaveable { mutableStateOf<String?>(null) }
+    history.firstOrNull { "${it.sourceId}:${it.titleId}" == removeKey }?.let { item ->
+        RemoveFromHistoryDialog(item.titleName, onDismiss = { removeKey = null }) {
+            removeKey = null
+            vm.remove(item)
+        }
+    }
 
     if (confirmClear) {
         AlertDialog(
@@ -111,6 +119,8 @@ fun HistoryScreen(nav: NavHostController) {
                             coverUrl = item.coverUrl,
                             subtitle = item.chapterName,
                             typeLabel = item.typeLabel,
+                            onLongClick = { removeKey = "${item.sourceId}:${item.titleId}" },
+                            onLongClickLabel = stringResource(R.string.history_remove),
                             onClick = {
                                 nav.openReader(item.sourceId, item.titleId, item.chapterId, item.pageIndex, item.pageOffset)
                             },
@@ -120,4 +130,20 @@ fun HistoryScreen(nav: NavHostController) {
             }
         }
     }
+}
+
+/** Asks before one title leaves Continue reading and the history (Home and History share it). */
+@Composable
+internal fun RemoveFromHistoryDialog(titleName: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.history_remove_confirm_title)) },
+        text = { Text(stringResource(R.string.history_remove_confirm_text, titleName)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text(stringResource(R.string.action_remove), color = AppColors.danger) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
 }
