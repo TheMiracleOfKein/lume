@@ -55,8 +55,10 @@ class AppContainer(
     val dao: LibraryDao = database.libraryDao()
 
     // Reads the preferences file once, so every screen's first frame has the stored values.
-    val prefs = AppPreferences(app, appScope)
-    val libAuth = LibAuthStore(app)
+    // Tracker tokens, site sign-ins and the sync password are encrypted with a Keystore key.
+    private val secrets = com.lume.app.data.security.SecretSealer()
+    val prefs = AppPreferences(app, appScope, secrets)
+    val libAuth = LibAuthStore(app, secrets)
     val serverCredentials = com.lume.app.data.server.ServerCredentialStore(app)
     /** Full text of recent errors (Sources → Error log), kept only on the phone. */
     val errorLog = com.lume.app.data.ErrorLog(app.filesDir.resolve("error_log.json"), appScope)
@@ -101,6 +103,7 @@ class AppContainer(
             prefs.dnsOverHttps.collect { id -> http.dns.use(com.lume.app.data.network.DohProvider.byId(id)) }
         }
         appScope.launch(Dispatchers.IO) {
+            runCatching { libAuth.sealStored() }
             sources.load()
             val recovered = downloads.recoverFromDisk()
             if (recovered > 0) {
