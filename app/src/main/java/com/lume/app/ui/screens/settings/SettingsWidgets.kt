@@ -158,7 +158,7 @@ fun StorageRow(label: String, detail: String, selected: Boolean, onClick: () -> 
         RadioButton(
             selected = selected,
             onClick = null,
-            colors = RadioButtonDefaults.colors(selectedColor = AppColors.accent, unselectedColor = AppColors.textSecondary),
+            colors = RadioButtonDefaults.colors(selectedColor = AppColors.accentText, unselectedColor = AppColors.textSecondary),
         )
         Column {
             Text(label, color = AppColors.textPrimary, fontSize = 15.sp)

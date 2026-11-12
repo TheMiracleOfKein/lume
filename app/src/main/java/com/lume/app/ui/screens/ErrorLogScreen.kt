@@ -171,7 +171,7 @@ private fun ErrorRow(entry: ErrorEntry, onCopy: () -> Unit) {
             } else {
                 Text(
                     stringResource(R.string.error_log_show_details),
-                    color = AppColors.accent,
+                    color = AppColors.accentText,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(top = 4.dp),
                 )

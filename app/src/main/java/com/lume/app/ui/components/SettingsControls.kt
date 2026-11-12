@@ -179,7 +179,7 @@ fun SegmentTab(
     onClick: () -> Unit,
 ) {
     val color by animateColorAsState(
-        if (selected) AppColors.accent else AppColors.textSecondary,
+        if (selected) AppColors.accentText else AppColors.textSecondary,
         Motion.short(),
         label = "tabColor",
     )

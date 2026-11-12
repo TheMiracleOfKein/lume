@@ -237,23 +237,6 @@ fun ChaptersScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),
             )
         },
-        bottomBar = {
-            AnimatedVisibility(
-                visible = vm.selecting,
-                enter = Motion.barEnterFromBottom,
-                exit = Motion.barExitToBottom,
-            ) {
-                ChapterSelectionBar(
-                    single = vm.selected.size == 1,
-                    onRead = { vm.markSelected(read = true) },
-                    onUnread = { vm.markSelected(read = false) },
-                    onPreviousRead = vm::markPreviousRead,
-                    canDownload = canDownload,
-                    onDownload = vm::downloadSelected,
-                    onDelete = vm::deleteSelectedDownloads,
-                )
-            }
-        },
     ) { padding ->
         AnimatedLoadState(
             state = loadStateOf(vm.loading, vm.error),
@@ -278,7 +261,8 @@ fun ChaptersScreen(
                         .padding(padding)
                         .fillMaxSize()
                         .background(AppColors.background),
-                    contentPadding = PaddingValues(bottom = 16.dp),
+                    // Fixed room for the overlaid selection bar, so the list never resizes.
+                    contentPadding = PaddingValues(bottom = 16.dp + SelectionBarHeight),
                 ) {
                     if (branches.isNotEmpty() || multiSource) {
                         item(key = "teams") {
@@ -324,6 +308,25 @@ fun ChaptersScreen(
                         )
                     }
                 }
+            }
+        }
+        // The selection bar overlays the list instead of being the Scaffold bottom bar, so the
+        // content padding (and the list) stays put when it appears.
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+            AnimatedVisibility(
+                visible = vm.selecting,
+                enter = Motion.barEnterFromBottom,
+                exit = Motion.barExitToBottom,
+            ) {
+                ChapterSelectionBar(
+                    single = vm.selected.size == 1,
+                    onRead = { vm.markSelected(read = true) },
+                    onUnread = { vm.markSelected(read = false) },
+                    onPreviousRead = vm::markPreviousRead,
+                    canDownload = canDownload,
+                    onDownload = vm::downloadSelected,
+                    onDelete = vm::deleteSelectedDownloads,
+                )
             }
         }
     }
@@ -477,7 +480,7 @@ private fun ChapterRow(
                             if (queueItem.status == DownloadQueueEntity.STATUS_RUNNING) {
                                 CircularProgressIndicator(
                                     progress = { queueItem.progress },
-                                    color = AppColors.accent,
+                                    color = AppColors.accentText,
                                     strokeWidth = 2.dp,
                                     modifier = Modifier.size(22.dp),
                                 )
@@ -505,6 +508,8 @@ private fun ChapterRow(
     }
 }
 
+private val SelectionBarHeight = 56.dp
+
 @Composable
 private fun ChapterSelectionBar(
     single: Boolean,
@@ -523,7 +528,7 @@ private fun ChapterSelectionBar(
                 WindowInsets.navigationBars.union(WindowInsets.displayCutout)
                     .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
             )
-            .height(56.dp),
+            .height(SelectionBarHeight),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {

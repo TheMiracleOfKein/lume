@@ -338,7 +338,7 @@ private fun ContinueCard(item: ProgressEntity, onLongClick: () -> Unit, onClick:
                 .padding(top = 6.dp)
                 .height(3.dp)
                 .clip(RoundedCornerShape(2.dp)),
-            color = AppColors.accent,
+            color = AppColors.accentText,
             trackColor = AppColors.card,
         )
         Text(
