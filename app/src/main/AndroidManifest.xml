@@ -12,6 +12,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <!-- Installs an update downloaded from the GitHub releases; Android asks the user first. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Scanning a nearby sender's QR code; phones without a camera still install and just hide the button. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
     <!-- enableOnBackInvokedCallback="false": no predictive-back animations anywhere (system
          back-to-home and cross-activity, Material sheets, navigation). Back acts at once. -->
@@ -135,5 +139,11 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/shared_files" />
         </provider>
+        <!-- The QR scanner's own screen: follow the phone's rotation instead of the library's landscape lock. -->
+        <activity
+            android:name="com.journeyapps.barcodescanner.CaptureActivity"
+            android:screenOrientation="fullUser"
+            android:exported="false"
+            tools:replace="android:screenOrientation" />
     </application>
 </manifest>

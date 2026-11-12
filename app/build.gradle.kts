@@ -146,6 +146,8 @@ dependencies {
     // App lock: the system screen-lock prompt (fingerprint, face, PIN).
     implementation(libs.androidx.biometric)
     implementation(libs.jsoup)
+    implementation(libs.zxing.core)
+    implementation(libs.zxing.embedded)
     implementation(libs.jspecify)
     implementation(libs.junrar)
     implementation(libs.commons.compress)
