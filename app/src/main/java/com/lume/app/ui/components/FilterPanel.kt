@@ -390,7 +390,7 @@ private fun filterFieldColors() = TextFieldDefaults.colors(
     focusedTextColor = AppColors.textPrimary,
     unfocusedTextColor = AppColors.textPrimary,
     cursorColor = AppColors.accent,
-    focusedIndicatorColor = AppColors.accent,
+    focusedIndicatorColor = AppColors.accentText,
     unfocusedIndicatorColor = AppColors.divider,
 )
 

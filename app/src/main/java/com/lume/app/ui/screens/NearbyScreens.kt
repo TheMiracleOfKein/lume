@@ -149,7 +149,7 @@ private fun Progress(done: Long, total: Long) {
     LinearProgressIndicator(
         progress = { fraction },
         modifier = Modifier.fillMaxWidth(),
-        color = AppColors.accent,
+        color = AppColors.accentText,
         trackColor = AppColors.card,
     )
     Body(stringResource(R.string.nearby_progress, Formatter.formatShortFileSize(context, done), Formatter.formatShortFileSize(context, total)))

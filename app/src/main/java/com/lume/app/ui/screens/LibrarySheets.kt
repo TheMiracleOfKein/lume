@@ -72,7 +72,7 @@ internal fun LibrarySheet(settings: LibrarySettings, onChange: ((LibrarySettings
             contentColor = AppColors.accentText,
             divider = {},
             indicator = {
-                TabRowDefaults.SecondaryIndicator(Modifier.tabIndicatorOffset(tab), color = AppColors.accent)
+                TabRowDefaults.SecondaryIndicator(Modifier.tabIndicatorOffset(tab), color = AppColors.accentText)
             },
         ) {
             tabs.forEachIndexed { index, label ->

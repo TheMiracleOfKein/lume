@@ -199,7 +199,7 @@ private fun DefaultOption(label: String, selected: Boolean, onClick: () -> Unit)
         RadioButton(
             selected = selected,
             onClick = onClick,
-            colors = RadioButtonDefaults.colors(selectedColor = AppColors.accent),
+            colors = RadioButtonDefaults.colors(selectedColor = AppColors.accentText),
         )
         Spacer(Modifier.width(4.dp))
         Text(label, color = AppColors.textPrimary, fontSize = 15.sp)
