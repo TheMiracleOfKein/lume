@@ -289,6 +289,13 @@ class NearbyReceiveViewModel(private val app: AppContainer) : ViewModel() {
         return true
     }
 
+    /** Connects to the sender in a scanned QR code; false when it isn't a Lume nearby code. */
+    fun connectQr(text: String): Boolean {
+        val target = com.lume.app.data.nearby.NearbyQr.parse(text) ?: return false
+        connect(target.host, target.port)
+        return true
+    }
+
     fun connect(host: String, port: Int) {
         if (phase !is ReceivePhase.Find && phase !is ReceivePhase.Finished) return
         last = host to port
