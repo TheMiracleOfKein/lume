@@ -18,12 +18,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 
 /**
  * [LibraryViewModel] against the real container and an empty Room database: titles are written
  * through the DAO and the view model's own flows turn them into what the screen shows.
  */
 @RunWith(AndroidJUnit4::class)
+@Config(instrumentedPackages = [VIEW_MODEL_SANDBOX])
 class LibraryViewModelTest {
     private var app = testContainer()
     private val dao get() = app.dao

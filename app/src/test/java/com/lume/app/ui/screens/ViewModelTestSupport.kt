@@ -12,6 +12,14 @@ import androidx.compose.runtime.snapshots.Snapshot
 import org.robolectric.Shadows.shadowOf
 
 /**
+ * Robolectric builds one sandbox (one class loader) per distinct configuration. The app's
+ * preferences file is a process-wide delegate that keeps the first folder it was opened in, and
+ * `PrivatePreferencesTest` needs it untouched. View model tests open the real preferences, so
+ * they run in a sandbox of their own: this package name only makes their configuration differ.
+ */
+internal const val VIEW_MODEL_SANDBOX = "com.lume.app.ui.screens.sandbox"
+
+/**
  * Shared helpers for ViewModel tests: a real [AppContainer] on the Robolectric application (its
  * own empty Room database; background start-up work is not started) and a wait that lets both
  * the main looper and Room's background threads run.
