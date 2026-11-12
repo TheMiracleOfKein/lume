@@ -115,7 +115,7 @@ Patch releases from the v0.6 line, as needed.
 **v0.7.5: import progress and app updates** ✅ released 2026-11-01 ([details](#v075-import-progress-and-app-updates--released-2026-11-01))
 - ✅ Bookmark import shows its step and a progress bar, and keeps running after leaving Sources.
 - ✅ Update check against GitHub releases, with download and install.
-- ⏸️ The import doesn't survive Android killing the process (no WorkManager job yet).
+- ✅ The import survives Android killing the process: in v0.9.13 it runs as a WorkManager job with a progress notification and starts again after a kill.
 
 **v0.7.6: request limit, bell pool and library marks** ✅ released 2026-11-01 ([details](#v076-request-limit-bell-pool-and-library-marks--released-2026-11-01))
 - ✅ Lib API requests spaced to one per 0.5 s; import brings only Reading / Planned / Dropped / Read, and "Read" marks every chapter.
@@ -168,7 +168,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Update checks can skip completed, unstarted and unread titles and wait for the charger (from the v0.9 "smarter updates" item; per-category updates still to come).
 - ✅ Source status on the Sources screen (from v0.9; this session only, not stored).
 - ✅ Release notes rendered as Markdown in the update dialog (left over from v0.7.5).
-- ⏸️ Genre filter inside the library: needs the genres stored per title (a database change).
+- ✅ Genre filter inside the library: in v0.9.13. Genres are stored per title (a database change) and fill in when a title is added, opened or checked for updates; the filter sheet lists the library's genres, merged without regard to case.
 
 **v0.7.14: UI fixes, part one** ✅ released 2026-11-06 ([details](#v0714-ui-fixes-part-one--released-2026-11-06))
 - ✅ System bar icons follow the app theme; login screens use the app theme; the reader keeps white bar icons.
