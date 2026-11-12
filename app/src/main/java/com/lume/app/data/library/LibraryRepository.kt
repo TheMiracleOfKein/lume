@@ -13,6 +13,7 @@ import com.lume.app.data.tracker.TrackerSync
 import com.lume.app.data.tracker.chapterProgressNumber
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.dedupeChapters
+import com.lume.app.domain.encodeGenres
 import com.lume.app.domain.dedupeKey
 import com.lume.app.domain.inReadingOrder
 import kotlinx.coroutines.CoroutineScope
@@ -58,6 +59,7 @@ class LibraryRepository(
     ) {
         val defaultCategory = prefs.defaultCategoryId.value
             ?.takeIf { id -> dao.allCategories().any { it.id == id } }
+        val known = titles.cached(sourceId, titleId)
         dao.upsertBookmark(
             BookmarkEntity(
                 sourceId = sourceId,
@@ -66,10 +68,10 @@ class LibraryRepository(
                 coverUrl = coverUrl,
                 typeLabel = typeLabel,
                 categoryIdsJson = encodeCategoryIds(setOfNotNull(defaultCategory)),
+                genresJson = encodeGenres(known?.details?.genres.orEmpty()),
             ),
         )
         // Know the chapters right away: unread counts work and the next check only reports new ones.
-        val known = titles.cached(sourceId, titleId)
         known?.chapters?.let { libraryChapters.sync(sourceId, titleId, it) }
         if (!discover) return
         // Signed-in trackers link the title when they find it under the same name.

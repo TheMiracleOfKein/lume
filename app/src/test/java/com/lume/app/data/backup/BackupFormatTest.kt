@@ -129,7 +129,7 @@ class BackupFormatTest {
     private companion object {
         val FORMAT = """
             BackupPayload: version?, createdAt?, bookmarks?, progress?, categories?, sourcePacks?, titlePrefs?, trackerLinks?, chapterProgress?, pageBookmarks?, chapterRead?, settings?, titleSources?, readingSessions?
-            BookmarkEntityDto: sourceId, titleId, titleName, coverUrl?, typeLabel?, createdAt?, categoryIdsJson?
+            BookmarkEntityDto: sourceId, titleId, titleName, coverUrl?, typeLabel?, createdAt?, categoryIdsJson?, genresJson?
             ProgressEntityDto: sourceId, titleId, titleName, coverUrl?, typeLabel?, chapterId, chapterName, chapterUrl, pageIndex?, pageCount?, updatedAt?, pageOffset?
             CategoryEntityDto: id?, name, sortOrder?
             SourcePackDto: id, json, installedAt?

@@ -238,6 +238,23 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate14To15AddsEmptyGenresToBookmarks() {
+        helper.createDatabase(dbName, 14).apply {
+            execSQL("INSERT INTO bookmarks (sourceId, titleId, titleName, createdAt, categoryIdsJson) VALUES ('s', 't', 'Title', 1, '[2]')")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(dbName, 15, true, LumeDatabase.MIGRATION_14_15)
+
+        db.query("SELECT titleName, categoryIdsJson, genresJson FROM bookmarks").use {
+            it.moveToFirst()
+            assertEquals("Title", it.getString(0))
+            assertEquals("[2]", it.getString(1))
+            assertEquals("[]", it.getString(2))
+        }
+    }
+
+    @Test
     fun freshDatabaseOpensWithAllMigrations() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         helper.createDatabase(dbName, 7).close()

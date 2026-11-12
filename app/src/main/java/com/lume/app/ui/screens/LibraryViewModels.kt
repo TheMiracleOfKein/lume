@@ -22,6 +22,9 @@ import com.lume.app.domain.Chapter
 import com.lume.app.domain.LibraryItem
 import com.lume.app.domain.LibrarySettings
 import com.lume.app.domain.TitleDetails
+import com.lume.app.domain.GenreOption
+import com.lume.app.domain.collectLibraryGenres
+import com.lume.app.domain.decodeGenres
 import com.lume.app.domain.isCompletedStatus
 import com.lume.app.domain.queryLibrary
 import kotlinx.coroutines.Dispatchers
@@ -51,7 +54,7 @@ class HistoryViewModel(private val app: AppContainer) : ViewModel() {
 }
 
 /** Status and alternative title from the cached details, for filters and search. */
-private data class TitleInfo(val altTitle: String?, val completed: Boolean)
+private data class TitleInfo(val altTitle: String?, val completed: Boolean, val genres: List<String> = emptyList())
 
 class LibraryViewModel(private val app: AppContainer) : ViewModel() {
     private val json = Json { ignoreUnknownKeys = true }
@@ -65,7 +68,7 @@ class LibraryViewModel(private val app: AppContainer) : ViewModel() {
     private val titleInfo = dao.observeLibraryTitleJson().map { rows ->
         rows.associate { row: TitleJsonRow ->
             val details = runCatching { json.decodeFromString<TitleDetails>(row.titleJson) }.getOrNull()
-            "${row.sourceId}\u0000${row.titleId}" to TitleInfo(details?.altTitle, isCompletedStatus(details?.status))
+            "${row.sourceId}\u0000${row.titleId}" to TitleInfo(details?.altTitle, isCompletedStatus(details?.status), details?.genres.orEmpty())
         }
     }
 
@@ -106,6 +109,8 @@ class LibraryViewModel(private val app: AppContainer) : ViewModel() {
                 completed = info[key]?.completed == true,
                 hasNew = key in newKeys,
                 sources = 1 + (linked[key] ?: 0),
+                // Stored genres first; titles not refreshed since the column appeared use the cached details.
+                genres = decodeGenres(b.genresJson).ifEmpty { info[key]?.genres.orEmpty() },
             )
         }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, null)
@@ -125,6 +130,10 @@ class LibraryViewModel(private val app: AppContainer) : ViewModel() {
         val base = if (isOnline) all else all.filter { it.downloaded > 0 }
         queryLibrary(base, s, category, query)
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** Genres the filter offers: those of the library's titles, merged and sorted. */
+    val genreOptions: StateFlow<List<GenreOption>> = items.map { collectLibraryGenres(it.orEmpty()) }
+        .flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     /** False until the first database answer, so an empty library isn't flashed on start. */
     val loaded: StateFlow<Boolean> = items.map { it != null }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
