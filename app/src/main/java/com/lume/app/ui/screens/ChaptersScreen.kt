@@ -418,10 +418,10 @@ internal fun ChapterRow(
     selecting: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    canDownload: Boolean = true,
     onDownload: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    canDownload: Boolean = true,
 ) {
     val background by animateColorAsState(
         if (selected) AppColors.selection else Color.Transparent,
