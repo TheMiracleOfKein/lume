@@ -181,3 +181,27 @@ samples from `docs/packs/site`. Sources that cannot be reached (geo-block, chall
 nothing; their fixtures are written by hand from the shape the parser reads, and the test's
 comment says so (MangaDex and MangaBuff at the time of writing). After recording, shrink big
 files and run the offline tests: `./gradlew :app:testDebugUnitTest`.
+
+### Coverage gaps
+
+Not every engine has all five cases saved as their own file. Where a case is missing, the test
+reads that engine's chapter list from its title page, or the case is simply not tested yet.
+
+| Source | Saved as own file | Gap |
+| --- | --- | --- |
+| `asura` | popular, search, details, chapters, pages | none |
+| `demonicscans` | popular, search, details, pages | chapters are read from `details.html`; no `chapters` file |
+| `hivetoons` | popular, search, details, chapters, pages | none (pages are HTML, the rest JSON) |
+| `inkstory` | popular, search, details, chapters, pages, latest | none (includes a restricted-chapters case) |
+| `likemanga` | popular, search, details, pages | chapters are read from `details.html`; no `chapters` file |
+| `mangabuff` | popular, search, details, pages, `chapters-2` | no base `chapters` file; `chapters-2` is a second response |
+| `mangadex` | popular, search, details, chapters, pages | none; `details-2` is the statistics response (fixtures hand-written, see above) |
+| `mangakatana` | popular, search, details, pages | chapters are read from `details.html`; no `chapters` file |
+| `mangalib` | popular, search, details, chapters, pages | none |
+| `remanga` | popular, search, details, pages, `chapters-page1`, `chapters-last` | chapters split into pages; no single `chapters` file |
+| `vortexscans` | popular, search, details, chapters, pages | none (pages are HTML, the rest JSON) |
+| `weebcentral` | popular, search, details, chapters, pages | none |
+| `komga`, `kavita`, `opds` | server responses, not per-case | only `pages` for Komga; server feeds are tested separately |
+
+Known gaps to fill when a source can be recorded again: a `chapters` file for DemonicScans,
+LikeManga, MangaBuff and MangaKatana, and a `latest` case for any engine that has a latest list.
