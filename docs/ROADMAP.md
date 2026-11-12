@@ -247,7 +247,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.12: Continue reading covers** ✅ released 2026-11-12 ([notes](releases/v0.9.12.md)): cards under Continue reading show the cover instead of a cut-out of the page.
 
-**v0.9.13: quality pass** 🟡 in progress ([notes](releases/v0.9.13.md), [device check](releases/v0.9.13-check.md)): genre filter in the library, QR code for nearby sending, bookmark import as background work, WCAG AA colours and large-font fixes, the chapter list jump (O17), ViewModel, screenshot and emulator tests, and the user guide (from v1.0 and older leftovers).
+**v0.9.13: quality pass** ✅ released 2026-11-12 ([notes](releases/v0.9.13.md), [device check](releases/v0.9.13-check.md)): genre filter in the library, QR code for nearby sending, bookmark import as background work, WCAG AA colours and large-font fixes, the chapter list jump (O17), ViewModel, screenshot and emulator tests, and the user guide (from v1.0 and older leftovers).
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -845,7 +845,7 @@ Release notes: [docs/releases/v0.9.8.md](releases/v0.9.8.md).
 - ⏸️ Wi-Fi Direct and the local-only hotspot; sending from a title's chapter list. (QR code: ✅ in v0.9.13.)
 - 🟡 Not checked on a device: the emulator gate was skipped for this release; JVM tests cover the protocol.
 
-### v0.9.13: quality pass 🟡 in progress
+### v0.9.13: quality pass ✅ released 2026-11-12
 
 Release notes: [docs/releases/v0.9.13.md](releases/v0.9.13.md). Device check: [docs/releases/v0.9.13-check.md](releases/v0.9.13-check.md).
 
