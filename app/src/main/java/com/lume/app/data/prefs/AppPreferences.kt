@@ -202,6 +202,7 @@ class AppPreferences(
     private val librarySortKey = stringPreferencesKey("library_sort")
     private val librarySortAscKey = booleanPreferencesKey("library_sort_asc")
     private val libraryFiltersKey = stringPreferencesKey("library_filters")
+    private val libraryGenresKey = stringSetPreferencesKey("library_genre_filter")
     private val libraryUnreadBadgeKey = booleanPreferencesKey("library_badge_unread")
     private val libraryDownloadedBadgeKey = booleanPreferencesKey("library_badge_downloaded")
     private val librarySourcesBadgeKey = booleanPreferencesKey("library_badge_sources")
@@ -490,6 +491,7 @@ class AppPreferences(
             sourcesBadge = prefs[librarySourcesBadgeKey] ?: true,
             filterChips = prefs[libraryFilterChipsKey] ?: true,
             continueButton = prefs[libraryContinueButtonKey] ?: false,
+            genres = prefs[libraryGenresKey].orEmpty(),
         )
     }
 
@@ -507,6 +509,7 @@ class AppPreferences(
             it[librarySourcesBadgeKey] = settings.sourcesBadge
             it[libraryFilterChipsKey] = settings.filterChips
             it[libraryContinueButtonKey] = settings.continueButton
+            it[libraryGenresKey] = settings.genres
         }
     }
 

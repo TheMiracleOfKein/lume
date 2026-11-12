@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lume.app.R
 import com.lume.app.data.db.CategoryEntity
+import com.lume.app.domain.GenreOption
 import com.lume.app.domain.LibraryDisplay
 import com.lume.app.domain.LibraryFilter
 import com.lume.app.domain.LibrarySettings
@@ -61,7 +62,11 @@ import com.lume.app.ui.theme.AppColors
 /* The library options sheet (filter, sort, display) and its dialogs. */
 
 @Composable
-internal fun LibrarySheet(settings: LibrarySettings, onChange: ((LibrarySettings) -> LibrarySettings) -> Unit) {
+internal fun LibrarySheet(
+    settings: LibrarySettings,
+    genres: List<GenreOption>,
+    onChange: ((LibrarySettings) -> LibrarySettings) -> Unit,
+) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val tabs = listOf(R.string.library_tab_filter, R.string.library_tab_sort, R.string.library_tab_display)
     Column(Modifier.padding(bottom = 24.dp)) {
@@ -85,22 +90,44 @@ internal fun LibrarySheet(settings: LibrarySettings, onChange: ((LibrarySettings
         }
         Spacer(Modifier.height(8.dp))
         when (tab) {
-            0 -> LibraryFilter.entries.forEach { filter ->
-                val state = settings.filter(filter)
-                SheetRow(
-                    label = stringResource(filter.labelRes),
-                    icon = when (state) {
-                        TriState.Off -> Icons.Outlined.CheckBoxOutlineBlank
-                        TriState.Include -> Icons.Outlined.CheckBox
-                        TriState.Exclude -> Icons.Outlined.IndeterminateCheckBox
-                    },
-                    iconTint = when (state) {
-                        TriState.Off -> AppColors.textSecondary
-                        TriState.Include -> AppColors.accentText
-                        TriState.Exclude -> AppColors.danger
-                    },
-                    onClick = { onChange { it.cycled(filter) } },
-                )
+            0 -> Column(Modifier.verticalScroll(rememberScrollState())) {
+                LibraryFilter.entries.forEach { filter ->
+                    val state = settings.filter(filter)
+                    SheetRow(
+                        label = stringResource(filter.labelRes),
+                        icon = when (state) {
+                            TriState.Off -> Icons.Outlined.CheckBoxOutlineBlank
+                            TriState.Include -> Icons.Outlined.CheckBox
+                            TriState.Exclude -> Icons.Outlined.IndeterminateCheckBox
+                        },
+                        iconTint = when (state) {
+                            TriState.Off -> AppColors.textSecondary
+                            TriState.Include -> AppColors.accentText
+                            TriState.Exclude -> AppColors.danger
+                        },
+                        onClick = { onChange { it.cycled(filter) } },
+                    )
+                }
+                if (genres.isNotEmpty() || settings.genres.isNotEmpty()) {
+                    Text(
+                        stringResource(R.string.library_filter_genres),
+                        color = AppColors.textSecondary,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 4.dp),
+                    )
+                    // A selected genre stays listed even when no title has it any more, so it can be cleared.
+                    val shown = genres + settings.genres.filter { key -> genres.none { it.key == key } }
+                        .map { GenreOption(it, it) }
+                    shown.forEach { genre ->
+                        val on = genre.key in settings.genres
+                        SheetRow(
+                            label = genre.label,
+                            icon = if (on) Icons.Outlined.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
+                            iconTint = if (on) AppColors.accentText else AppColors.textSecondary,
+                            onClick = { onChange { it.withGenreToggled(genre.key) } },
+                        )
+                    }
+                }
             }
             1 -> LibrarySort.entries.forEach { sort ->
                 val active = settings.sort == sort

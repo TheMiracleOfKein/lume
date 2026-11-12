@@ -52,7 +52,9 @@ out; the default is shown.
 ## Lists
 
 **`bookmarks`**: `sourceId`, `titleId`, `titleName`, `coverUrl?` (null), `typeLabel?` (null, e.g.
-"Manga"), `createdAt?` (0), `categoryIdsJson?` (`"[]"`, a JSON array of category ids as a string).
+"Manga"), `createdAt?` (0), `categoryIdsJson?` (`"[]"`, a JSON array of category ids as a string),
+`genresJson?` (`"[]"`, a JSON array of genre names as a string; added in v0.9.13 without a version
+bump, older files load with no genres and Lume fills them in later).
 
 **`progress`**: `sourceId`, `titleId`, `titleName`, `coverUrl?`, `typeLabel?`, `chapterId`,
 `chapterName`, `chapterUrl`, `pageIndex?` (0), `pageCount?` (0), `updatedAt?` (0), `pageOffset?`

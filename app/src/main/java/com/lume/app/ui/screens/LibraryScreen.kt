@@ -245,7 +245,8 @@ fun LibraryScreen(nav: NavHostController) {
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = AppColors.surface,
         ) {
-            LibrarySheet(settings = settings, onChange = vm::updateSettings)
+            val genres by vm.genreOptions.collectAsState()
+            LibrarySheet(settings = settings, genres = genres, onChange = vm::updateSettings)
         }
     }
 

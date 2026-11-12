@@ -17,6 +17,9 @@ data class BookmarkEntity(
     val createdAt: Long = System.currentTimeMillis(),
     /** JSON array of category ids, e.g. `[1,2]` */
     val categoryIdsJson: String = "[]",
+    /** JSON array of the title's genre names as the source spells them; filled from title details. */
+    @ColumnInfo(defaultValue = "'[]'")
+    val genresJson: String = "[]",
 )
 
 @Entity(tableName = "reading_progress", primaryKeys = ["sourceId", "titleId"])

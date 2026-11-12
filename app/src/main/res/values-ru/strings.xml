@@ -377,6 +377,7 @@
     <string name="cd_invert_selection">Инвертировать выбор</string>
     <string name="library_selected">Выбрано: %d</string>
     <string name="library_tab_filter">Фильтр</string>
+    <string name="library_filter_genres">Жанры (у тайтла должны быть все выбранные)</string>
     <string name="library_tab_sort">Сортировка</string>
     <string name="library_tab_display">Вид</string>
     <string name="library_filter_unread">Есть непрочитанное</string>
@@ -614,6 +615,7 @@
     <string name="downloads_move_down">Ниже</string>
     <string name="downloads_usage">Загрузки занимают %1$s</string>
     <string name="notif_downloads_channel">Загрузки</string>
+    <string name="notif_bookmark_import_channel">Импорт закладок</string>
     <plurals name="notif_downloads_title">
         <item quantity="one">Скачивается %d глава</item>
         <item quantity="few">Скачиваются %d главы</item>

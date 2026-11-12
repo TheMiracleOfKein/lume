@@ -14,6 +14,8 @@ import com.lume.app.domain.ComicPage
 import com.lume.app.domain.LinkedChapterId
 import com.lume.app.domain.SourceChapters
 import com.lume.app.domain.alternativeCopies
+import com.lume.app.domain.cleanGenres
+import com.lume.app.domain.encodeGenres
 import com.lume.app.domain.mergeSourceChapters
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -185,10 +187,36 @@ class TitleRepository(
                 fresh
             }
             if (result.chapters.isNotEmpty()) offline.save(sourceId, titleId, result.details, result.chapters)
+            saveGenres(sourceId, titleId, result.details.genres)
             memory[k] = result
             refreshedAt[k] = System.currentTimeMillis()
             result
         }
+    }
+
+    /**
+     * Keeps the library entry's genres (for the library's genre filter) in step with freshly
+     * loaded details. A title outside the library is untouched; an empty list never wipes known genres.
+     */
+    suspend fun saveGenres(sourceId: String, titleId: String, genres: List<String>) {
+        val clean = cleanGenres(genres)
+        if (clean.isEmpty()) return
+        dao.setBookmarkGenres(sourceId, titleId, encodeGenres(clean))
+    }
+
+    /**
+     * Fills a library title's genres without fetching chapters: from the cached details when
+     * there are any, otherwise from the source. Returns false when none could be found.
+     */
+    suspend fun fillGenres(sourceId: String, titleId: String): Boolean {
+        val cachedGenres = ownCached(sourceId, titleId)?.details?.genres.orEmpty()
+        val genres = cachedGenres.ifEmpty {
+            val source = sources.sourceById(sourceId) ?: return false
+            withContext(Dispatchers.IO) { source.getTitle(titleId).genres }
+        }
+        if (cleanGenres(genres).isEmpty()) return false
+        saveGenres(sourceId, titleId, genres)
+        return true
     }
 
     /**

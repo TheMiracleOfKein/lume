@@ -330,6 +330,8 @@ class SyncRepository(
                             coverUrl = it.coverUrl,
                             typeLabel = it.typeLabel,
                             createdAt = it.createdAt,
+                            // Genres don't sync; keep what this phone already knows.
+                            genresJson = dao.getBookmark(it.sourceId, it.titleId)?.genresJson ?: "[]",
                             categoryIdsJson = encodeCategoryIds(it.categories.mapNotNull { n -> idByName[n.lowercase()] }.toSet()),
                         ),
                     )

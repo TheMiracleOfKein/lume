@@ -384,6 +384,7 @@
     <string name="cd_invert_selection">Invert selection</string>
     <string name="library_selected" tools:ignore="PluralsCandidate">%d selected</string>
     <string name="library_tab_filter">Filter</string>
+    <string name="library_filter_genres">Genres (a title must have all selected)</string>
     <string name="library_tab_sort">Sort</string>
     <string name="library_tab_display">Display</string>
     <string name="library_filter_unread">Unread</string>
@@ -605,6 +606,7 @@
     <string name="downloads_move_down">Move down</string>
     <string name="downloads_usage">Downloads use %1$s</string>
     <string name="notif_downloads_channel">Downloads</string>
+    <string name="notif_bookmark_import_channel">Bookmark import</string>
     <plurals name="notif_downloads_title">
         <item quantity="one">Downloading %d chapter</item>
         <item quantity="other">Downloading %d chapters</item>
