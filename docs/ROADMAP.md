@@ -247,6 +247,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.12: Continue reading covers** ✅ released 2026-11-12 ([notes](releases/v0.9.12.md)): cards under Continue reading show the cover instead of a cut-out of the page.
 
+**v0.9.13: quality pass** 🟡 in progress ([notes](releases/v0.9.13.md), [device check](releases/v0.9.13-check.md)): genre filter in the library, QR code for nearby sending, bookmark import as background work, WCAG AA colours and large-font fixes, the chapter list jump (O17), ViewModel, screenshot and emulator tests, and the user guide (from v1.0 and older leftovers).
+
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
 - ✅ **Tall pages in pieces** (M). Paged modes decode pages in tiles through Telephoto; webtoon strips keep the slices from v0.7.11.
@@ -842,6 +844,19 @@ Release notes: [docs/releases/v0.9.8.md](releases/v0.9.8.md).
 - ✅ **Transfer**: page by page with a SHA-256 checksum per chapter; each chapter is stored as soon as it's checked, so connecting again continues. Titles go to the library; read marks optional.
 - ⏸️ Wi-Fi Direct and the local-only hotspot; sending from a title's chapter list. (QR code: ✅ in v0.9.13.)
 - 🟡 Not checked on a device: the emulator gate was skipped for this release; JVM tests cover the protocol.
+
+### v0.9.13: quality pass 🟡 in progress
+
+Release notes: [docs/releases/v0.9.13.md](releases/v0.9.13.md). Device check: [docs/releases/v0.9.13-check.md](releases/v0.9.13-check.md).
+
+- ✅ **Genre filter in the library** (database 14 → 15, genres per title, filled when a title is opened or updated).
+- ✅ **QR code for nearby sending** (ZXing, Apache-2.0); Wi-Fi Direct and the hotspot stay ⏸️.
+- ✅ **MangaLib bookmark import** as a WorkManager job that survives process death.
+- ✅ **Chapter list jump (O17)**: the selection bar overlays the list.
+- 🟡 **Accessibility**: WCAG AA colours with a test, bars and dialogs that grow with the font; a real-device check at 200 % is still open.
+- ✅ **Tests**: reader and library ViewModel tests (deferred since v0.7.0), the migration test on Windows, Roborazzi screenshot tests, an emulator job on CI.
+- ✅ **User guide** ([USER_GUIDE.md](USER_GUIDE.md)).
+- 🟡 The spotlight chapter badge on Home cuts the chapter number at 200 % font.
 
 ### v0.9.12: Continue reading covers ✅ released 2026-11-12
 
