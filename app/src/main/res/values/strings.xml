@@ -1162,6 +1162,15 @@
     <string name="nearby_waiting">Waiting for the other phone</string>
     <string name="nearby_waiting_hint">On the other phone: Downloads → Receive, then choose “%1$s”.</string>
     <string name="nearby_address_hint">If this phone isn\'t listed there, type this address:</string>
+    <string name="nearby_qr_description">QR code with this phone\'s address</string>
+    <string name="nearby_qr_hint">On the other phone, tap “Scan QR code”. You will still check the code on both screens.</string>
+    <string name="nearby_scan_qr">Scan QR code</string>
+    <string name="nearby_scan_prompt">Point the camera at the QR code on the sending phone</string>
+    <string name="nearby_qr_invalid">That is not a Lume QR code. Scan the one on the sending phone.</string>
+    <string name="nearby_camera_title">Camera access</string>
+    <string name="nearby_camera_rationale">Lume uses the camera only to read the QR code on the other phone. Nothing is recorded or saved.</string>
+    <string name="nearby_camera_allow">Continue</string>
+    <string name="nearby_camera_denied">Camera access was denied. Allow it in the app settings, or type the address instead.</string>
     <string name="nearby_no_network">No Wi-Fi network. Connect both phones to the same one.</string>
     <string name="nearby_listening_note">Lume accepts connections only while this screen is open.</string>
     <string name="nearby_confirm_title">“%1$s” wants to receive chapters</string>

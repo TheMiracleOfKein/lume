@@ -208,7 +208,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - **Transfer.** Chapters go one by one as CBZ with their metadata (title, source, chapter names and numbers), with a checksum each; a dropped connection resumes at the chapter it stopped on. The receiver adds the title to the library if it isn't there, and the chapters show as downloaded. Read marks can come along (a switch).
 - Done when: 1 GB of chapters moves between two phones on the same Wi-Fi and over Wi-Fi Direct, a cancelled transfer resumes, and declining writes nothing.
 - ✅ In v0.9.8: choosing in Downloads (a send screen with titles and chapters, total size), same-Wi-Fi discovery and a typed address, accepting or declining, the pairing code and per-session encryption, page-by-page transfer with a checksum per chapter, resume by connecting again, library entry and read marks.
-- ⏸️ QR code: needs a camera scanner and a QR library; the typed address covers blocked discovery for now.
+- ✅ In v0.9.13: QR code. The sender shows a code with its address; the receiver scans it (camera asked only then) and connects as if typed, the pairing code is still checked on both screens.
 - ⏸️ Wi-Fi Direct and the local-only hotspot: need location / nearby-devices permissions and can't be checked without two real phones (the emulator has neither).
 - ⏸️ Sending from a title's chapter list: the send screen lists every downloaded title instead.
 - 🟡 Checked with JVM tests over real sockets (full transfer, decline, broken connection, a non-Lume client); not yet on two phones or the emulator.
@@ -840,7 +840,7 @@ Release notes: [docs/releases/v0.9.8.md](releases/v0.9.8.md).
 - ✅ **Pairing and encryption**: both screens show the same six-digit code (ECDH P-256 with a commitment); AES-GCM with keys for that connection only.
 - ✅ **Accept or decline** on the receiver; nothing is saved before. Chapters already there, and titles of sources the receiver lacks, are skipped.
 - ✅ **Transfer**: page by page with a SHA-256 checksum per chapter; each chapter is stored as soon as it's checked, so connecting again continues. Titles go to the library; read marks optional.
-- ⏸️ QR code, Wi-Fi Direct and the local-only hotspot; sending from a title's chapter list.
+- ⏸️ Wi-Fi Direct and the local-only hotspot; sending from a title's chapter list. (QR code: ✅ in v0.9.13.)
 - 🟡 Not checked on a device: the emulator gate was skipped for this release; JVM tests cover the protocol.
 
 ### v0.9.12: Continue reading covers ✅ released 2026-11-12

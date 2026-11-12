@@ -142,8 +142,7 @@
         <!-- The QR scanner's own screen: follow the phone's rotation instead of the library's landscape lock. -->
         <activity
             android:name="com.journeyapps.barcodescanner.CaptureActivity"
-            android:screenOrientation="fullUser"
             android:exported="false"
-            tools:replace="android:screenOrientation" />
+            tools:remove="android:screenOrientation" />
     </application>
 </manifest>

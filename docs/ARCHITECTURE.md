@@ -31,6 +31,7 @@ domain/     plain Kotlin models and pure logic (no Android): unit-tested on the 
 | Continuity | `data/continuity/`, `ui/widget/` | Launcher shortcuts and the "Continue reading" widget. |
 | Preferences | `data/prefs/` | `AppPreferences` over DataStore; account tokens never go into backups. |
 | Reader | `ui/screens/Reader*` | Webtoon and paged modes, chapter-relative positions, page bookmarks. |
+| Nearby | `data/nearby/` | Sending downloads to another phone on the same network: discovery, encrypted channel, transfer. `NearbyQr` builds and parses the sender's QR link (`lume-nearby://host:port?name=...`, no secret in it) and renders it with ZXing. |
 
 ## Database
 
@@ -52,6 +53,14 @@ A chapter that comes from a linked source keeps its place inside the main title 
 ## Background work
 
 WorkManager runs library checks (`LibraryUpdateWorker`), downloads (`DownloadWorker`, foreground with a notification) and scheduled backups (`BackupWorker`). Start-up work (loading sources, recovering downloads from disk, scheduling) runs in `AppContainer.start()`.
+
+## Third-party code for QR codes
+
+Nearby sending uses ZXing, with nothing from Google Play services, so F-Droid builds keep it.
+
+- `com.google.zxing:core` (Apache-2.0): encodes the sender's QR code and decodes what the camera sees.
+- `com.journeyapps:zxing-android-embedded` (Apache-2.0): the camera scanner screen (`ScanContract`). Chosen over CameraX plus a ZXing analyzer because it is a single small library with no Play services, and it needs no extra camera preview code. Its scanner activity is declared in the manifest to follow the phone's rotation.
+- Camera access: the `CAMERA` permission is asked only when "Scan QR code" is tapped, after a short explanation; `android.hardware.camera` is `required="false"`, and phones without a camera don't see the button.
 
 ## Tests
 
