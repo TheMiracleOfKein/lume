@@ -410,7 +410,7 @@ private fun LibraryTopBar(
 }
 
 @Composable
-private fun CategoryRow(
+internal fun CategoryRow(
     categories: List<CategoryEntity>,
     selectedId: Long?,
     onSelect: (Long?) -> Unit,
@@ -462,7 +462,7 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
 
 /** The sheet's filters as chips: a tap goes off → only these → hide these → off. */
 @Composable
-private fun FilterChipRow(settings: LibrarySettings, onCycle: (LibraryFilter) -> Unit) {
+internal fun FilterChipRow(settings: LibrarySettings, onCycle: (LibraryFilter) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

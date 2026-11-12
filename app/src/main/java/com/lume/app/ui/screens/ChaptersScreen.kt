@@ -401,7 +401,7 @@ private fun TeamChip(label: String, selected: Boolean, onClick: () -> Unit) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ChapterRow(
+internal fun ChapterRow(
     chapter: Chapter,
     showTeam: Boolean,
     /** The chapter's source, for titles with linked sources. */

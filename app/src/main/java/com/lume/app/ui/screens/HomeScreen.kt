@@ -49,6 +49,7 @@ import androidx.navigation.NavHostController
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.db.ProgressEntity
+import com.lume.app.domain.HomeFeed
 import com.lume.app.ui.components.AnimatedLoadState
 import com.lume.app.ui.components.CoverCard
 import com.lume.app.ui.components.CoverImage
@@ -161,125 +162,20 @@ fun HomeScreen(nav: NavHostController) {
                             LumeRefreshIndicator(ptrState, loading, Modifier.align(Alignment.TopCenter))
                         },
                     ) {
-                    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalShellBottomPadding.current)) {
-                        item(key = "spotlight") {
-                            val spotlight = feed?.spotlight.orEmpty()
-                            if (spotlight.isNotEmpty()) {
-                                LazyRow(
-                                    contentPadding = PaddingValues(horizontal = 16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                ) {
-                                    items(spotlight, key = { it.id }) { item ->
-                                        CoverCard(
-                                            title = item.title,
-                                            coverUrl = item.coverUrl,
-                                            badge = item.latestChapter,
-                                            onClick = { nav.navigate(Routes.title(sourceId, item.id)) },
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        if (history.isNotEmpty()) {
-                            item(key = "continue-header") {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.home_continue_reading),
-                                        color = AppColors.textPrimary,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    TextButton(onClick = { confirmClear = true }) {
-                                        Text(stringResource(R.string.action_clear), color = AppColors.accentText)
-                                    }
-                                }
-                            }
-                            item(key = "continue-row") {
-                                LazyRow(
-                                    contentPadding = PaddingValues(horizontal = 16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                ) {
-                                    items(history, key = { "${it.sourceId}:${it.titleId}" }) { item ->
-                                        ContinueCard(
-                                            item,
-                                            onLongClick = { removeKey = "${item.sourceId}:${item.titleId}" },
-                                        ) {
-                                            nav.openReader(
-                                                item.sourceId,
-                                                item.titleId,
-                                                item.chapterId,
-                                                item.pageIndex,
-                                                item.pageOffset,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        item(key = "now-reading-header") {
-                            SectionHeader(
-                                title = stringResource(R.string.home_now_reading),
-                                onTap = { nav.navigate(Routes.Catalog) },
-                            )
-                            Text(
-                                text = stringResource(R.string.home_new_releases),
-                                color = AppColors.textSecondary,
-                                fontSize = 13.sp,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                            )
-                        }
-
-                        if (error != null && feed != null) {
-                            item(key = "refresh-error") {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        stringResource(R.string.home_refresh_failed),
-                                        color = AppColors.danger,
-                                        fontSize = 13.sp,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    TextButton(onClick = vm::refresh) {
-                                        Text(stringResource(R.string.action_retry), color = AppColors.accentText)
-                                    }
-                                }
-                            }
-                        }
-                        if (feed != null && feed.latest.isEmpty() && error == null) {
-                            item(key = "latest-empty") {
-                                Text(
-                                    stringResource(R.string.home_latest_empty),
-                                    color = AppColors.textSecondary,
-                                    fontSize = 14.sp,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-                                )
-                            }
-                        }
-
-                        items(feed?.latest.orEmpty(), key = { it.id }) { item ->
-                            TitleListRow(
-                                modifier = animatedItem(),
-                                title = item.title,
-                                coverUrl = item.coverUrl,
-                                subtitle = item.latestChapter ?: item.updatedLabel,
-                                typeLabel = item.typeLabel,
-                                sourceId = sourceId,
-                                onClick = { nav.navigate(Routes.title(sourceId, item.id)) },
-                            )
-                        }
-
-                        item(key = "bottom-spacer") { Spacer(Modifier.height(24.dp)) }
-                    }
+                    HomeFeedList(
+                        feed = feed,
+                        history = history,
+                        error = error,
+                        sourceId = sourceId,
+                        onClearHistory = { confirmClear = true },
+                        onOpenCatalog = { nav.navigate(Routes.Catalog) },
+                        onOpenTitle = { id -> nav.navigate(Routes.title(sourceId, id)) },
+                        onRetry = vm::refresh,
+                        onRemoveContinue = { item -> removeKey = "${item.sourceId}:${item.titleId}" },
+                        onContinue = { item ->
+                            nav.openReader(item.sourceId, item.titleId, item.chapterId, item.pageIndex, item.pageOffset)
+                        },
+                    )
                     }
                 }
             }
@@ -357,4 +253,133 @@ private fun ContinueCard(item: ProgressEntity, onLongClick: () -> Unit, onClick:
             overflow = TextOverflow.Ellipsis,
         )
     }
+}
+
+/** The home feed: spotlight, Continue reading and the latest releases. */
+@Composable
+internal fun HomeFeedList(
+    feed: HomeFeed?,
+    history: List<ProgressEntity>,
+    error: String?,
+    sourceId: String,
+    onClearHistory: () -> Unit,
+    onOpenCatalog: () -> Unit,
+    onOpenTitle: (String) -> Unit,
+    onRetry: () -> Unit,
+    onRemoveContinue: (ProgressEntity) -> Unit,
+    onContinue: (ProgressEntity) -> Unit,
+) {
+                    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalShellBottomPadding.current)) {
+                        item(key = "spotlight") {
+                            val spotlight = feed?.spotlight.orEmpty()
+                            if (spotlight.isNotEmpty()) {
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    items(spotlight, key = { it.id }) { item ->
+                                        CoverCard(
+                                            title = item.title,
+                                            coverUrl = item.coverUrl,
+                                            badge = item.latestChapter,
+                                            onClick = { onOpenTitle(item.id) },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        if (history.isNotEmpty()) {
+                            item(key = "continue-header") {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.home_continue_reading),
+                                        color = AppColors.textPrimary,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    TextButton(onClick = { onClearHistory() }) {
+                                        Text(stringResource(R.string.action_clear), color = AppColors.accentText)
+                                    }
+                                }
+                            }
+                            item(key = "continue-row") {
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    items(history, key = { "${it.sourceId}:${it.titleId}" }) { item ->
+                                        ContinueCard(
+                                            item,
+                                            onLongClick = { onRemoveContinue(item) },
+                                        ) {
+                                            onContinue(item)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        item(key = "now-reading-header") {
+                            SectionHeader(
+                                title = stringResource(R.string.home_now_reading),
+                                onTap = { onOpenCatalog() },
+                            )
+                            Text(
+                                text = stringResource(R.string.home_new_releases),
+                                color = AppColors.textSecondary,
+                                fontSize = 13.sp,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            )
+                        }
+
+                        if (error != null && feed != null) {
+                            item(key = "refresh-error") {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        stringResource(R.string.home_refresh_failed),
+                                        color = AppColors.danger,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    TextButton(onClick = onRetry) {
+                                        Text(stringResource(R.string.action_retry), color = AppColors.accentText)
+                                    }
+                                }
+                            }
+                        }
+                        if (feed != null && feed.latest.isEmpty() && error == null) {
+                            item(key = "latest-empty") {
+                                Text(
+                                    stringResource(R.string.home_latest_empty),
+                                    color = AppColors.textSecondary,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+                                )
+                            }
+                        }
+
+                        items(feed?.latest.orEmpty(), key = { it.id }) { item ->
+                            TitleListRow(
+                                modifier = animatedItem(),
+                                title = item.title,
+                                coverUrl = item.coverUrl,
+                                subtitle = item.latestChapter ?: item.updatedLabel,
+                                typeLabel = item.typeLabel,
+                                sourceId = sourceId,
+                                onClick = { onOpenTitle(item.id) },
+                            )
+                        }
+
+                        item(key = "bottom-spacer") { Spacer(Modifier.height(24.dp)) }
+                    }
 }
