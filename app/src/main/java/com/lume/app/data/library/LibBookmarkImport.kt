@@ -16,13 +16,12 @@ import com.lume.app.data.source.LibSocialEngine
 import com.lume.app.data.source.SourceRegistry
 import com.lume.app.domain.Chapter
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
+import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -51,38 +50,53 @@ data class LibBookmarkImportResult(
  * before it are marked read; local read marks and progress are never taken away.
  */
 class LibBookmarkImport(
+    private val context: Context,
     private val db: LumeDatabase,
     private val dao: LibraryDao,
     private val sources: SourceRegistry,
     private val libraryChapters: LibraryChapters,
-    private val scope: CoroutineScope,
 ) {
     private val _status = MutableStateFlow<LibImportStatus?>(null)
 
     /**
-     * The running or last finished import; null when there is nothing to show. Lives as long as
-     * the process, so leaving the Sources screen neither stops the import nor hides it.
+     * The running or last finished import; null when there is nothing to show. Written by
+     * [LibBookmarkImportWorker] while it runs, so leaving the Sources screen neither stops the
+     * import nor hides it. After the process was killed the worker restarts the import and
+     * this shows it again from the first stage.
      */
     val status: StateFlow<LibImportStatus?> = _status.asStateFlow()
 
-    /** Starts importing [sourceId] in the app scope. False when an import is already running. */
+    /**
+     * Queues the import of [sourceId] as background work (one per source, a running one is kept)
+     * that survives the app being closed or killed. False when an import is already running.
+     */
     fun start(sourceId: String, sourceName: String): Boolean {
         if (_status.value?.running == true) return false
         _status.value = LibImportStatus(sourceId, sourceName, LibImportStage.Fetching)
-        scope.launch {
-            val outcome = runCatching {
-                import(sourceId) { stage -> _status.update { it?.copy(stage = stage) } }
-            }
-            if (outcome.exceptionOrNull() is CancellationException) return@launch
-            _status.update {
-                it?.copy(
-                    stage = LibImportStage.Finished,
-                    result = outcome.getOrNull(),
-                    error = outcome.exceptionOrNull()?.let { e -> e.message ?: e.toString() },
-                )
-            }
-        }
+        LibBookmarkImportWorker.enqueue(context, sourceId, sourceName)
         return true
+    }
+
+    /**
+     * Runs the import to its end and publishes every stage in [status]; called by the worker.
+     * Returns the error message, or null when it finished. Safe to run again after a kill:
+     * titles and folders are matched by id and name, read marks are only added.
+     */
+    suspend fun run(sourceId: String, sourceName: String): String? {
+        _status.value = LibImportStatus(sourceId, sourceName, LibImportStage.Fetching)
+        val outcome = runCatching {
+            import(sourceId) { stage -> _status.update { it?.copy(stage = stage) } }
+        }
+        val error = outcome.exceptionOrNull()
+        if (error is CancellationException) throw error
+        _status.update {
+            it?.copy(
+                stage = LibImportStage.Finished,
+                result = outcome.getOrNull(),
+                error = error?.let { e -> e.message ?: e.toString() },
+            )
+        }
+        return error?.let { it.message ?: it.toString() }
     }
 
     /** Hides a finished import's summary. */
@@ -235,6 +249,13 @@ sealed interface LibImportStage {
 
     data object Finished : LibImportStage
 }
+
+/** (done, total) of a stage with a countable progress; null while the stage has no measure. */
+internal fun LibImportStage.counts(): Pair<Int, Int>? = (this as? LibImportStage.Progress)?.takeIf { it.total > 0 }?.let { it.done to it.total }
+
+/** Whole percent of [done] of [total], clamped to 0..100. */
+internal fun libImportPercent(done: Int, total: Int): Int =
+    if (total <= 0) 0 else (done.coerceIn(0, total) * 100L / total).toInt()
 
 /** One bookmark import for the UI: its stage, then its result or error. */
 data class LibImportStatus(
