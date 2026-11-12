@@ -1,6 +1,7 @@
 package com.lume.app.data.db
 
 import androidx.room.testing.MigrationTestHelper
+import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
@@ -8,8 +9,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeFalse
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -19,24 +18,35 @@ import org.junit.runner.RunWith
  * Room expects. 6→7 can't be checked here: no v6 schema was ever exported.
  *
  * Shared between JVM tests (Robolectric, run by CI on Linux) and instrumented tests
- * (`connectedDebugAndroidTest`). Room's test driver compares database paths with "/", so the
- * JVM run is skipped on Windows; there, run it on a device or emulator.
+ * (`connectedDebugAndroidTest`).
+ *
+ * Why [FullPathNameFactory]: Room's `SupportSQLiteDriver` accepts the requested file only when it
+ * equals the helper's database name or ends with `"/" + name`. On Windows the test helper asks
+ * for a path with backslashes, so every `createDatabase` call failed. The factory reports the
+ * full path as the name, which matches on every platform.
  */
+/** Opens the same framework helper, but names it by its full file path (see [MigrationTest]). */
+private class FullPathNameFactory : SupportSQLiteOpenHelper.Factory {
+    override fun create(configuration: SupportSQLiteOpenHelper.Configuration): SupportSQLiteOpenHelper {
+        val inner = FrameworkSQLiteOpenHelperFactory().create(configuration)
+        val name = configuration.name ?: return inner
+        val path = configuration.context.getDatabasePath(name).absolutePath
+        return object : SupportSQLiteOpenHelper by inner {
+            override val databaseName: String? get() = path
+        }
+    }
+}
+
 @RunWith(AndroidJUnit4::class)
 class MigrationTest {
     private val dbName = "migration-test"
-
-    @Before
-    fun notOnWindowsJvm() {
-        assumeFalse(System.getProperty("os.name").orEmpty().startsWith("Windows"))
-    }
 
     @get:Rule
     val helper = MigrationTestHelper(
         InstrumentationRegistry.getInstrumentation(),
         LumeDatabase::class.java,
         emptyList(),
-        FrameworkSQLiteOpenHelperFactory(),
+        FullPathNameFactory(),
     )
 
     @Test
