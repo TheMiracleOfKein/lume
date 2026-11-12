@@ -177,7 +177,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Overlaps fixed: Home offline list, browse list under the nav bar, nav rail in landscape, compact grid badges, library selection bar, Cloudflare overlay, keyboard over login fields.
 - ✅ Confirmation before deleting downloads; passwords kept out of saved screen state.
 - ✅ The rest of the UI audit shipped in v0.7.15.
-- ⏸️ Chapter list jumps when the selection bar appears (O17): needs the bar moved out of the Scaffold.
+- ✅ Chapter list jumps when the selection bar appears (O17): fixed in v0.9.13. The bar now overlays the list instead of being the Scaffold bottom bar.
 
 **v0.7.15: UI fixes, part two** ✅ released 2026-11-06 ([details](#v0715-ui-fixes-part-two--released-2026-11-06))
 - ✅ Text that ends with "…" instead of being cut off, and rows that grow with large fonts.
@@ -310,7 +310,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - ✅ **Backup format documented** and kept stable; every older backup keeps loading (S). [BACKUP_FORMAT.md](BACKUP_FORMAT.md), with a saved sample per format version that tests load. In v0.9.10.
 
 **Everyone**
-- **Accessibility pass** (M): TalkBack labels for every button, font size up to 200 %, touch targets, contrast.
+- 🟡 **Accessibility pass** (M): TalkBack labels for every button (v0.7.15). In v0.9.13: colours checked against WCAG AA in all themes (a test guards them), fixed-height bars and dialogs made to grow with the font size. Still open: a check on a real device at 200 %. See [ACCESSIBILITY.md](ACCESSIBILITY.md).
 - **Translations** through a translation platform (for example Weblate), starting with Ukrainian, Spanish and Brazilian Portuguese (M, then contributors).
 - **User guide** (M): reading, sources and packs, sync, backups, trackers, troubleshooting.
 
@@ -714,7 +714,7 @@ Release notes: [docs/releases/v0.7.14.md](releases/v0.7.14.md); device check in 
 - ✅ **Layout:** Home offline column, `listBottomPadding()`, scrolling and compact nav rail, `LumeInsets.sides`, compact grid Continue button, selection bar overflow menu, scrolling sheets and dialogs, `imePadding` on Search and Sources.
 - ✅ **WebView screens:** theme, keyboard, Back in history, load progress, WebView destroyed on release; Cloudflare overlay consumes taps.
 - ✅ **Safety:** delete confirmation in Downloads; `remember` instead of `rememberSaveable` for passwords.
-- ⏸️ O17 chapter list jump (see the summary).
+- ✅ O17 chapter list jump: fixed in v0.9.13.
 
 ### v0.7.16: Home and source fixes ✅ released 2026-11-07
 
