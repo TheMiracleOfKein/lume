@@ -315,8 +315,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - ✅ **User guide** (M): reading, sources and packs, sync, backups, trackers, troubleshooting, and every setting. In v0.9.13 ([USER_GUIDE.md](USER_GUIDE.md)).
 
 **Quality**
-- Emulator tests on CI (Gradle managed devices): migrations and a smoke test of the main screens (M).
-- Screenshot tests for the main screens in light, dark and large font (M).
+- ✅ Emulator tests on CI (M). In v0.9.13: an API 34 emulator job runs the Room migration tests and a smoke test that opens Home, Library and Settings.
+- ✅ Screenshot tests (M). In v0.9.13: Roborazzi golden images of Home, Library, title details, chapters, Settings and the reader bars in light, dark and large font, checked on CI.
 - ✅ Optional release workflow that builds and signs from a tag with repository secrets (S), so a release no longer depends on one computer. In v0.9.10 ([RELEASING.md](RELEASING.md)); secrets set and checked with a test run on v0.9.10 (same signing certificate), and every pushed `v*` tag now starts it.
 - Done when: the device checklist passes on three phones and one tablet, no open crash reports, and the user guide covers every setting.
 
@@ -336,7 +336,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 | MangaRead and ToonGod often show Cloudflare checks; ReManga and MangaBuff block some regions | The in-app browser handles checks; region blocks can't be fixed in the app |
 | HentaiLib needs a signed-in account to read | Works as designed since v0.6.1; the reader says so |
 | Room 6→7 migration can't be tested (no v6 schema was exported) | Accepted; every later migration is tested |
-| The Room migration test is skipped on Windows JVM runs | CI (Linux) runs it; v1.0 adds emulator tests on CI |
+| The Room migration test is skipped on Windows JVM runs | CI (Linux) and the emulator job run it |
 | ✅ Coil 2 is in maintenance | Coil 3 since v0.8.0 |
 | ✅ Large files: `SettingsScreen.kt` and `LibraryScreen.kt` split in v0.6.2 and v0.6.3, `Database.kt` in v0.8.0 | Entities, `LibraryDao` and `LumeDatabase` in their own files |
 | ✅ Releases are built on one computer | Signed release workflow from a tag since v0.9.10 ([RELEASING.md](RELEASING.md)) |

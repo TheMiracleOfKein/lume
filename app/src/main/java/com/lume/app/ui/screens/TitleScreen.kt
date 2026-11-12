@@ -94,6 +94,7 @@ import com.lume.app.data.tracker.TrackerSearchResult
 import com.lume.app.ui.components.TrackerEntryDialog
 import com.lume.app.domain.AutoDownloadMode
 import com.lume.app.domain.Chapter
+import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.inReadingOrder
 import com.lume.app.domain.dedupeChapters
 import com.lume.app.data.db.TitleSourceEntity
@@ -269,100 +270,24 @@ private fun TitleDetailsPane(nav: NavHostController, sourceId: String, titleId: 
                             .widthIn(max = 840.dp)
                             .padding(16.dp),
                     ) {
-                        Row {
-                            CoverImage(
-                                url = d.coverUrl,
-                                width = 120.dp,
-                                height = 170.dp,
-                                radius = 8.dp,
-                                sourceId = sourceId,
-                            )
-                            Spacer(Modifier.width(16.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    d.title,
-                                    color = AppColors.textPrimary,
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                d.altTitle?.let {
-                                    Text(
-                                        it,
-                                        color = AppColors.textSecondary,
-                                        fontSize = 13.sp,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.padding(top = 4.dp),
-                                    )
+                        TitleHeader(
+                            d = d,
+                            sourceId = sourceId,
+                            hasProgress = progressState != null,
+                            canRead = chapters.isNotEmpty(),
+                            onRead = {
+                                val p = progressState
+                                if (p != null) {
+                                    // The exact spot, even if that chapter's own row says "finished".
+                                    nav.openReader(sourceId, titleId, p.chapterId, p.pageIndex, p.pageOffset)
+                                } else {
+                                    // No progress yet: start from the first chapter, not the newest one.
+                                    chapters.inReadingOrder().firstOrNull()?.let {
+                                        nav.openReader(sourceId, titleId, it.id)
+                                    }
                                 }
-                                d.status?.let {
-                                    Text(
-                                        stringResource(R.string.title_status, it),
-                                        color = AppColors.textSecondary,
-                                        fontSize = 13.sp,
-                                        modifier = Modifier.padding(top = 8.dp),
-                                    )
-                                }
-                                if (d.authors.isNotEmpty()) {
-                                    Text(
-                                        stringResource(R.string.title_by, d.authors.joinToString()),
-                                        color = AppColors.textSecondary,
-                                        fontSize = 13.sp,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.padding(top = 4.dp),
-                                    )
-                                }
-                                val artOnly = d.artists.filter { it !in d.authors }
-                                if (artOnly.isNotEmpty()) {
-                                    Text(
-                                        stringResource(R.string.title_art_by, artOnly.joinToString()),
-                                        color = AppColors.textSecondary,
-                                        fontSize = 13.sp,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.padding(top = 2.dp),
-                                    )
-                                }
-                                // "Manhwa · 2018 · ★ 9.3"
-                                val facts = listOfNotNull(
-                                    d.typeLabel,
-                                    d.year?.toString(),
-                                    d.score?.let { stringResource(R.string.title_score, String.format(LocalConfiguration.current.locales[0], "%.1f", it)) },
-                                )
-                                if (facts.isNotEmpty()) {
-                                    Text(facts.joinToString(" · "), color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
-                                }
-                                Spacer(Modifier.height(12.dp))
-                                Button(
-                                    onClick = {
-                                        val p = progressState
-                                        if (p != null) {
-                                            // The exact spot, even if that chapter's own row says "finished".
-                                            nav.openReader(sourceId, titleId, p.chapterId, p.pageIndex, p.pageOffset)
-                                        } else {
-                                            // No progress yet: start from the first chapter, not the newest one.
-                                            chapters.inReadingOrder().firstOrNull()?.let {
-                                                nav.openReader(sourceId, titleId, it.id)
-                                            }
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = AppColors.accent,
-                                        contentColor = AppColors.onAccent,
-                                    ),
-                                    enabled = chapters.isNotEmpty(),
-                                ) {
-                                    Text(
-                                        if (progressState != null) {
-                                            stringResource(R.string.action_continue)
-                                        } else {
-                                            stringResource(R.string.action_read)
-                                        },
-                                    )
-                                }
-                            }
-                        }
+                            },
+                        )
                         val suggestions = titleSources.filter { it.state == TitleSourceEntity.SUGGESTED }
                         AnimatedVisibility(
                             visible = suggestions.isNotEmpty(),
@@ -934,4 +859,98 @@ private fun TrackersDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
         },
     )
+}
+
+/** The cover, names, facts and the Read / Continue button at the top of a title. */
+@Composable
+internal fun TitleHeader(
+    d: TitleDetails,
+    sourceId: String,
+    hasProgress: Boolean,
+    canRead: Boolean,
+    onRead: () -> Unit,
+) {
+                        Row {
+                            CoverImage(
+                                url = d.coverUrl,
+                                width = 120.dp,
+                                height = 170.dp,
+                                radius = 8.dp,
+                                sourceId = sourceId,
+                            )
+                            Spacer(Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    d.title,
+                                    color = AppColors.textPrimary,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                d.altTitle?.let {
+                                    Text(
+                                        it,
+                                        color = AppColors.textSecondary,
+                                        fontSize = 13.sp,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(top = 4.dp),
+                                    )
+                                }
+                                d.status?.let {
+                                    Text(
+                                        stringResource(R.string.title_status, it),
+                                        color = AppColors.textSecondary,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.padding(top = 8.dp),
+                                    )
+                                }
+                                if (d.authors.isNotEmpty()) {
+                                    Text(
+                                        stringResource(R.string.title_by, d.authors.joinToString()),
+                                        color = AppColors.textSecondary,
+                                        fontSize = 13.sp,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(top = 4.dp),
+                                    )
+                                }
+                                val artOnly = d.artists.filter { it !in d.authors }
+                                if (artOnly.isNotEmpty()) {
+                                    Text(
+                                        stringResource(R.string.title_art_by, artOnly.joinToString()),
+                                        color = AppColors.textSecondary,
+                                        fontSize = 13.sp,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(top = 2.dp),
+                                    )
+                                }
+                                // "Manhwa · 2018 · ★ 9.3"
+                                val facts = listOfNotNull(
+                                    d.typeLabel,
+                                    d.year?.toString(),
+                                    d.score?.let { stringResource(R.string.title_score, String.format(LocalConfiguration.current.locales[0], "%.1f", it)) },
+                                )
+                                if (facts.isNotEmpty()) {
+                                    Text(facts.joinToString(" · "), color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                                }
+                                Spacer(Modifier.height(12.dp))
+                                Button(
+                                    onClick = onRead,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = AppColors.accent,
+                                        contentColor = AppColors.onAccent,
+                                    ),
+                                    enabled = canRead,
+                                ) {
+                                    Text(
+                                        if (hasProgress) {
+                                            stringResource(R.string.action_continue)
+                                        } else {
+                                            stringResource(R.string.action_read)
+                                        },
+                                    )
+                                }
+                            }
+                        }
 }

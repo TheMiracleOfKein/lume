@@ -99,19 +99,7 @@ fun SettingsScreen(nav: NavHostController) {
             }
         }
         when {
-            query.isBlank() -> SECTION_GROUPS.forEach { pages ->
-                Spacer(Modifier.height(12.dp))
-                SettingsGroup {
-                    pages.forEach { page ->
-                        SectionRow(
-                            icon = page.icon,
-                            title = stringResource(page.titleRes),
-                            summary = stringResource(page.summaryRes),
-                            onClick = { open(page, null) },
-                        )
-                    }
-                }
-            }
+            query.isBlank() -> SettingsSections(onOpen = { open(it, null) })
             results.isEmpty() -> Text(
                 stringResource(R.string.settings_search_empty, query.trim()),
                 color = AppColors.textSecondary,
@@ -126,6 +114,24 @@ fun SettingsScreen(nav: NavHostController) {
                         SearchResultRow(result, icon = info.page.icon, onClick = { open(info.page, info.id) })
                     }
                 }
+            }
+        }
+    }
+}
+
+/** The grouped list of sections on the main settings page. */
+@Composable
+internal fun SettingsSections(onOpen: (SettingsPage) -> Unit) {
+    SECTION_GROUPS.forEach { pages ->
+        Spacer(Modifier.height(12.dp))
+        SettingsGroup {
+            pages.forEach { page ->
+                SectionRow(
+                    icon = page.icon,
+                    title = stringResource(page.titleRes),
+                    summary = stringResource(page.summaryRes),
+                    onClick = { onOpen(page) },
+                )
             }
         }
     }
@@ -168,7 +174,7 @@ private const val FOCUS_TIMEOUT_MS = 3_000L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsScaffold(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
+internal fun SettingsScaffold(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
     Scaffold(
         containerColor = AppColors.background,
         contentWindowInsets = LumeInsets.scaffold,

@@ -30,6 +30,26 @@ jobs:
       - name: Build, test and lint
         run: ./gradlew --no-configuration-cache :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 
+      # Screenshot tests: the screens are rendered again and compared with the golden images in
+      # app/src/test/screenshots (docs/ARCHITECTURE.md, "Screenshot tests"). Plain unit tests
+      # above skip the comparison.
+      - name: Verify screenshots
+        run: ./gradlew --no-configuration-cache :app:verifyRoborazziDebug --tests "com.lume.app.ui.screenshots.*"
+
+      # If the comparison failed because the screens really changed (or Linux draws text slightly
+      # differently), the images as drawn on CI can be downloaded and committed as the new goldens.
+      - name: Record screenshots as drawn on CI
+        if: failure()
+        run: ./gradlew --no-configuration-cache :app:recordRoborazziDebug --tests "com.lume.app.ui.screenshots.*"
+
+      - name: Upload recorded screenshots
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshots-recorded-on-ci
+          path: app/src/test/screenshots/
+          if-no-files-found: ignore
+
       # The R8-shrunk release build (unsigned here), so a missing keep rule fails the PR rather
       # than the release.
       - name: Release build (R8)
@@ -43,4 +63,5 @@ jobs:
           path: |
             app/build/reports/tests/
             app/build/reports/lint-results-debug.html
+            app/build/outputs/roborazzi/
           if-no-files-found: ignore

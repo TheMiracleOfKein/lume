@@ -68,3 +68,13 @@ Nearby sending uses ZXing, with nothing from Google Play services, so F-Droid bu
 - `app/src/sharedTest/`: tests that run both on Robolectric and on a device (Room migrations).
 - `LiveSourcesTest`: opt-in checks of every bundled source against the real site (`-Plume.live`); also runs weekly on CI.
 - `:baselineprofile`: profile generation and a startup benchmark (needs a device).
+- `app/src/androidTest/`: instrumented tests; `SmokeTest` starts the app and opens Home, Library and Settings. `.github/workflows/emulator.yml` runs it, together with the Room migration test, on an API 34 emulator (`reactivecircus/android-emulator-runner`, KVM, cached AVD snapshot). Locally: `./gradlew :app:connectedDebugAndroidTest` with a device or emulator attached.
+
+### Screenshot tests
+
+Roborazzi (on the Robolectric setup) renders Home, Library (grid, list, empty), Title details, Chapter list, Settings and the Reader bars in light, dark and large font (font scale 2.0), from fixed data with no network. They live in `app/src/test/java/com/lume/app/ui/screenshots/` and use the stateless composables of each screen (`HomeFeedList`, `LibraryContent`, `TitleHeader`, `ChapterRow`, `SettingsSections`, `ReaderTopBar`/`ReaderBottomBar`). The golden images are in `app/src/test/screenshots/`.
+
+- A plain `testDebugUnitTest` only composes the screens; it does not compare images.
+- `./gradlew :app:verifyRoborazziDebug` compares against the goldens (up to 1% of pixels may differ, to absorb text anti-aliasing between operating systems). CI runs it on Linux; on failure it uploads the images as drawn on CI as an artifact.
+- After a deliberate UI change, re-record and commit the images: `./gradlew :app:recordRoborazziDebug --tests "com.lume.app.ui.screenshots.*"`, then look at the changed PNGs in the diff.
+- New screens: add a test class that extends `ScreenshotTest` and calls `shoot("name", Look.Light) { ... }` for each look.
