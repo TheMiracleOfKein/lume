@@ -312,7 +312,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 **Everyone**
 - **Accessibility pass** (M): TalkBack labels for every button, font size up to 200 %, touch targets, contrast.
 - **Translations** through a translation platform (for example Weblate), starting with Ukrainian, Spanish and Brazilian Portuguese (M, then contributors).
-- **User guide** (M): reading, sources and packs, sync, backups, trackers, troubleshooting.
+- ✅ **User guide** (M): reading, sources and packs, sync, backups, trackers, troubleshooting, and every setting. In v0.9.13 ([USER_GUIDE.md](USER_GUIDE.md)).
 
 **Quality**
 - Emulator tests on CI (Gradle managed devices): migrations and a smoke test of the main screens (M).
