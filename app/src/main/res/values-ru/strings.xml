@@ -377,6 +377,7 @@
     <string name="cd_invert_selection">Инвертировать выбор</string>
     <string name="library_selected">Выбрано: %d</string>
     <string name="library_tab_filter">Фильтр</string>
+    <string name="library_filter_genres">Жанры (у тайтла должны быть все выбранные)</string>
     <string name="library_tab_sort">Сортировка</string>
     <string name="library_tab_display">Вид</string>
     <string name="library_filter_unread">Есть непрочитанное</string>
@@ -614,6 +615,7 @@
     <string name="downloads_move_down">Ниже</string>
     <string name="downloads_usage">Загрузки занимают %1$s</string>
     <string name="notif_downloads_channel">Загрузки</string>
+    <string name="notif_bookmark_import_channel">Импорт закладок</string>
     <plurals name="notif_downloads_title">
         <item quantity="one">Скачивается %d глава</item>
         <item quantity="few">Скачиваются %d главы</item>
@@ -1209,6 +1211,15 @@
     <string name="nearby_waiting">Ждём другой телефон</string>
     <string name="nearby_waiting_hint">На другом телефоне: «Загрузки» → «Получить», затем выберите «%1$s».</string>
     <string name="nearby_address_hint">Если телефона нет в списке, введите там этот адрес:</string>
+    <string name="nearby_qr_description">QR-код с адресом этого телефона</string>
+    <string name="nearby_qr_hint">На другом телефоне нажмите «Сканировать QR-код». Код всё равно нужно сверить на обоих экранах.</string>
+    <string name="nearby_scan_qr">Сканировать QR-код</string>
+    <string name="nearby_scan_prompt">Наведите камеру на QR-код на телефоне-отправителе</string>
+    <string name="nearby_qr_invalid">Это не QR-код Lume. Отсканируйте код на телефоне-отправителе.</string>
+    <string name="nearby_camera_title">Доступ к камере</string>
+    <string name="nearby_camera_rationale">Lume использует камеру только чтобы прочитать QR-код на другом телефоне. Ничего не записывается и не сохраняется.</string>
+    <string name="nearby_camera_allow">Продолжить</string>
+    <string name="nearby_camera_denied">Доступ к камере запрещён. Разрешите его в настройках приложения или введите адрес вручную.</string>
     <string name="nearby_no_network">Нет сети Wi-Fi. Подключите оба телефона к одной сети.</string>
     <string name="nearby_listening_note">Lume принимает подключения, только пока открыт этот экран.</string>
     <string name="nearby_confirm_title">«%1$s» хочет получить главы</string>

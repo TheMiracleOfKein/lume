@@ -243,9 +243,9 @@ private fun List<MdSpan>.toAnnotated(linkColor: Color, codeBackground: Color): A
 private fun DownloadBar(fraction: Float?) {
     Column {
         if (fraction == null) {
-            LinearProgressIndicator(Modifier.fillMaxWidth(), color = AppColors.accent)
+            LinearProgressIndicator(Modifier.fillMaxWidth(), color = AppColors.accentText)
         } else {
-            LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth(), color = AppColors.accent)
+            LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth(), color = AppColors.accentText)
             Text(
                 "${(fraction * 100).toInt()}%",
                 color = AppColors.textSecondary,

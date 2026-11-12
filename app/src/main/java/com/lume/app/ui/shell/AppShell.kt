@@ -69,6 +69,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -519,7 +520,7 @@ private fun NavSlot(
             Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
         }
         Spacer(Modifier.height(1.dp))
-        Text(label, color = color, fontSize = 11.sp)
+        Text(label, color = color, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

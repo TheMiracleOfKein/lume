@@ -27,13 +27,18 @@ data class LibrarySettings(
     val filterChips: Boolean = true,
     /** A play button on each started title that opens the reader where reading stopped. */
     val continueButton: Boolean = false,
+    /** Selected genres as normalized keys (see `normalizeGenre`); a title must have all of them. */
+    val genres: Set<String> = emptySet(),
 ) {
     fun filter(key: LibraryFilter): TriState = filters[key] ?: TriState.Off
 
     /** The same settings with [key] moved to its next state (off → include → exclude → off). */
     fun cycled(key: LibraryFilter): LibrarySettings = copy(filters = filters + (key to filter(key).next()))
 
-    val activeFilterCount: Int get() = filters.count { it.value != TriState.Off }
+    /** The same settings with the genre [key] selected or, if it was, deselected. */
+    fun withGenreToggled(key: String): LibrarySettings = copy(genres = if (key in genres) genres - key else genres + key)
+
+    val activeFilterCount: Int get() = filters.count { it.value != TriState.Off } + genres.size
 }
 
 /** One title as the library shows it. */
@@ -57,6 +62,8 @@ data class LibraryItem(
     val hasNew: Boolean = false,
     /** The main source plus linked sources. */
     val sources: Int = 1,
+    /** Genre names as the source spells them; empty until known. */
+    val genres: List<String> = emptyList(),
 ) {
     val key: String get() = "$sourceId\u0000$titleId"
     val started: Boolean get() = lastReadAt != null || (totalChapters > 0 && unread < totalChapters)
@@ -85,6 +92,7 @@ fun queryLibrary(
         (categoryId == null || categoryId in item.categoryIds) &&
             (needle.isEmpty() || item.title.lowercase().contains(needle) ||
                 item.altTitle?.lowercase()?.contains(needle) == true) &&
+            hasAllGenres(item, settings.genres) &&
             settings.filters.all { (filter, state) ->
                 when (state) {
                     TriState.Off -> true

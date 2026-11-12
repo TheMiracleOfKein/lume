@@ -23,6 +23,10 @@ interface LibraryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertBookmark(item: BookmarkEntity)
 
+    /** Stores a library title's genres; does nothing for titles outside the library or when unchanged. */
+    @Query("UPDATE bookmarks SET genresJson = :genresJson WHERE sourceId = :sourceId AND titleId = :titleId AND genresJson != :genresJson")
+    suspend fun setBookmarkGenres(sourceId: String, titleId: String, genresJson: String)
+
     @Query("DELETE FROM bookmarks WHERE sourceId = :sourceId AND titleId = :titleId")
     suspend fun deleteBookmark(sourceId: String, titleId: String)
 

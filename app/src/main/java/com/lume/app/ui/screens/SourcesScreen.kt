@@ -364,7 +364,7 @@ private fun ImportSection(vm: SourcesViewModel) {
                 focusedTextColor = AppColors.textPrimary,
                 unfocusedTextColor = AppColors.textPrimary,
                 cursorColor = AppColors.accent,
-                focusedIndicatorColor = AppColors.accent,
+                focusedIndicatorColor = AppColors.accentText,
                 unfocusedIndicatorColor = AppColors.divider,
             ),
         )
@@ -420,7 +420,7 @@ private fun ServerTextField(
             focusedTextColor = AppColors.textPrimary,
             unfocusedTextColor = AppColors.textPrimary,
             cursorColor = AppColors.accent,
-            focusedIndicatorColor = AppColors.accent,
+            focusedIndicatorColor = AppColors.accentText,
             unfocusedIndicatorColor = AppColors.divider,
         ),
     )
@@ -657,7 +657,7 @@ private fun SourceRow(
             selected = selected,
             onClick = null,
             colors = RadioButtonDefaults.colors(
-                selectedColor = AppColors.accent,
+                selectedColor = AppColors.accentText,
                 unselectedColor = AppColors.textSecondary,
             ),
         )

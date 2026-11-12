@@ -193,7 +193,7 @@ fun DownloadsScreen(nav: NavHostController) {
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .padding(top = 6.dp),
-                                            color = AppColors.accent,
+                                            color = AppColors.accentText,
                                             trackColor = AppColors.card,
                                         )
                                     } else {

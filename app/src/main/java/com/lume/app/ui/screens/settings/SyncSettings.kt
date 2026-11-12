@@ -265,7 +265,7 @@ private fun PassphraseDialog(current: String, onDismiss: () -> Unit, onSave: (St
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.sync_passphrase)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 PasswordField(
                     value = value,
                     onValueChange = { value = it },

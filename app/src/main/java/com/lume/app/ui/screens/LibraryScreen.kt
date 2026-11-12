@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -244,7 +245,8 @@ fun LibraryScreen(nav: NavHostController) {
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = AppColors.surface,
         ) {
-            LibrarySheet(settings = settings, onChange = vm::updateSettings)
+            val genres by vm.genreOptions.collectAsState()
+            LibrarySheet(settings = settings, genres = genres, onChange = vm::updateSettings)
         }
     }
 
@@ -312,7 +314,7 @@ private fun LibraryTopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .heightIn(min = 56.dp)
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -410,7 +412,7 @@ private fun LibraryTopBar(
 }
 
 @Composable
-private fun CategoryRow(
+internal fun CategoryRow(
     categories: List<CategoryEntity>,
     selectedId: Long?,
     onSelect: (Long?) -> Unit,
@@ -462,7 +464,7 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
 
 /** The sheet's filters as chips: a tap goes off → only these → hide these → off. */
 @Composable
-private fun FilterChipRow(settings: LibrarySettings, onCycle: (LibraryFilter) -> Unit) {
+internal fun FilterChipRow(settings: LibrarySettings, onCycle: (LibraryFilter) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

@@ -115,7 +115,7 @@ Patch releases from the v0.6 line, as needed.
 **v0.7.5: import progress and app updates** ✅ released 2026-11-01 ([details](#v075-import-progress-and-app-updates--released-2026-11-01))
 - ✅ Bookmark import shows its step and a progress bar, and keeps running after leaving Sources.
 - ✅ Update check against GitHub releases, with download and install.
-- ⏸️ The import doesn't survive Android killing the process (no WorkManager job yet).
+- ✅ The import survives Android killing the process: in v0.9.13 it runs as a WorkManager job with a progress notification and starts again after a kill.
 
 **v0.7.6: request limit, bell pool and library marks** ✅ released 2026-11-01 ([details](#v076-request-limit-bell-pool-and-library-marks--released-2026-11-01))
 - ✅ Lib API requests spaced to one per 0.5 s; import brings only Reading / Planned / Dropped / Read, and "Read" marks every chapter.
@@ -168,7 +168,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Update checks can skip completed, unstarted and unread titles and wait for the charger (from the v0.9 "smarter updates" item; per-category updates still to come).
 - ✅ Source status on the Sources screen (from v0.9; this session only, not stored).
 - ✅ Release notes rendered as Markdown in the update dialog (left over from v0.7.5).
-- ⏸️ Genre filter inside the library: needs the genres stored per title (a database change).
+- ✅ Genre filter inside the library: in v0.9.13. Genres are stored per title (a database change) and fill in when a title is added, opened or checked for updates; the filter sheet lists the library's genres, merged without regard to case.
 
 **v0.7.14: UI fixes, part one** ✅ released 2026-11-06 ([details](#v0714-ui-fixes-part-one--released-2026-11-06))
 - ✅ System bar icons follow the app theme; login screens use the app theme; the reader keeps white bar icons.
@@ -177,7 +177,7 @@ Patch releases from the v0.6 line, as needed.
 - ✅ Overlaps fixed: Home offline list, browse list under the nav bar, nav rail in landscape, compact grid badges, library selection bar, Cloudflare overlay, keyboard over login fields.
 - ✅ Confirmation before deleting downloads; passwords kept out of saved screen state.
 - ✅ The rest of the UI audit shipped in v0.7.15.
-- ⏸️ Chapter list jumps when the selection bar appears (O17): needs the bar moved out of the Scaffold.
+- ✅ Chapter list jumps when the selection bar appears (O17): fixed in v0.9.13. The bar now overlays the list instead of being the Scaffold bottom bar.
 
 **v0.7.15: UI fixes, part two** ✅ released 2026-11-06 ([details](#v0715-ui-fixes-part-two--released-2026-11-06))
 - ✅ Text that ends with "…" instead of being cut off, and rows that grow with large fonts.
@@ -208,7 +208,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - **Transfer.** Chapters go one by one as CBZ with their metadata (title, source, chapter names and numbers), with a checksum each; a dropped connection resumes at the chapter it stopped on. The receiver adds the title to the library if it isn't there, and the chapters show as downloaded. Read marks can come along (a switch).
 - Done when: 1 GB of chapters moves between two phones on the same Wi-Fi and over Wi-Fi Direct, a cancelled transfer resumes, and declining writes nothing.
 - ✅ In v0.9.8: choosing in Downloads (a send screen with titles and chapters, total size), same-Wi-Fi discovery and a typed address, accepting or declining, the pairing code and per-session encryption, page-by-page transfer with a checksum per chapter, resume by connecting again, library entry and read marks.
-- ⏸️ QR code: needs a camera scanner and a QR library; the typed address covers blocked discovery for now.
+- ✅ In v0.9.13: QR code. The sender shows a code with its address; the receiver scans it (camera asked only then) and connects as if typed, the pairing code is still checked on both screens.
 - ⏸️ Wi-Fi Direct and the local-only hotspot: need location / nearby-devices permissions and can't be checked without two real phones (the emulator has neither).
 - ⏸️ Sending from a title's chapter list: the send screen lists every downloaded title instead.
 - 🟡 Checked with JVM tests over real sockets (full transfer, decline, broken connection, a non-Lume client); not yet on two phones or the emulator.
@@ -246,6 +246,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 **v0.9.11: encrypted sign-ins** ✅ released 2026-11-12 ([notes](releases/v0.9.11.md), [device check](releases/v0.9.11-check.md)): tracker tokens, site sign-ins and the sync password encrypted with the Android Keystore, a checksum file next to each APK, and one title at a time out of Continue reading and the history (from v1.0).
 
 **v0.9.12: Continue reading covers** ✅ released 2026-11-12 ([notes](releases/v0.9.12.md)): cards under Continue reading show the cover instead of a cut-out of the page.
+
+**v0.9.13: quality pass** 🟡 in progress ([notes](releases/v0.9.13.md), [device check](releases/v0.9.13-check.md)): genre filter in the library, QR code for nearby sending, bookmark import as background work, WCAG AA colours and large-font fixes, the chapter list jump (O17), ViewModel, screenshot and emulator tests, and the user guide (from v1.0 and older leftovers).
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -310,13 +312,13 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - ✅ **Backup format documented** and kept stable; every older backup keeps loading (S). [BACKUP_FORMAT.md](BACKUP_FORMAT.md), with a saved sample per format version that tests load. In v0.9.10.
 
 **Everyone**
-- **Accessibility pass** (M): TalkBack labels for every button, font size up to 200 %, touch targets, contrast.
+- 🟡 **Accessibility pass** (M): TalkBack labels for every button (v0.7.15). In v0.9.13: colours checked against WCAG AA in all themes (a test guards them), fixed-height bars and dialogs made to grow with the font size. Still open: a check on a real device at 200 %. See [ACCESSIBILITY.md](ACCESSIBILITY.md).
 - **Translations** through a translation platform (for example Weblate), starting with Ukrainian, Spanish and Brazilian Portuguese (M, then contributors).
-- **User guide** (M): reading, sources and packs, sync, backups, trackers, troubleshooting.
+- ✅ **User guide** (M): reading, sources and packs, sync, backups, trackers, troubleshooting, and every setting. In v0.9.13 ([USER_GUIDE.md](USER_GUIDE.md)).
 
 **Quality**
-- Emulator tests on CI (Gradle managed devices): migrations and a smoke test of the main screens (M).
-- Screenshot tests for the main screens in light, dark and large font (M).
+- ✅ Emulator tests on CI (M). In v0.9.13: an API 34 emulator job runs the Room migration tests and a smoke test that opens Home, Library and Settings.
+- ✅ Screenshot tests (M). In v0.9.13: Roborazzi golden images of Home, Library, title details, chapters, Settings and the reader bars in light, dark and large font, checked on CI.
 - ✅ Optional release workflow that builds and signs from a tag with repository secrets (S), so a release no longer depends on one computer. In v0.9.10 ([RELEASING.md](RELEASING.md)); secrets set and checked with a test run on v0.9.10 (same signing certificate), and every pushed `v*` tag now starts it.
 - Done when: the device checklist passes on three phones and one tablet, no open crash reports, and the user guide covers every setting.
 
@@ -336,7 +338,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 | MangaRead and ToonGod often show Cloudflare checks; ReManga and MangaBuff block some regions | The in-app browser handles checks; region blocks can't be fixed in the app |
 | HentaiLib needs a signed-in account to read | Works as designed since v0.6.1; the reader says so |
 | Room 6→7 migration can't be tested (no v6 schema was exported) | Accepted; every later migration is tested |
-| The Room migration test is skipped on Windows JVM runs | CI (Linux) runs it; v1.0 adds emulator tests on CI |
+| ✅ The Room migration test was skipped on Windows JVM runs | Fixed in v0.9.13: the test names its open helper by full path, so Room's path check passes on Windows too; the emulator job on CI runs it on a device |
 | ✅ Coil 2 is in maintenance | Coil 3 since v0.8.0 |
 | ✅ Large files: `SettingsScreen.kt` and `LibraryScreen.kt` split in v0.6.2 and v0.6.3, `Database.kt` in v0.8.0 | Entities, `LibraryDao` and `LumeDatabase` in their own files |
 | ✅ Releases are built on one computer | Signed release workflow from a tag since v0.9.10 ([RELEASING.md](RELEASING.md)) |
@@ -422,7 +424,7 @@ Release notes: [docs/releases/v0.4.0.md](releases/v0.4.0.md).
 **Foundation**
 - ✅ ViewModels for every screen. Library, Updates, History, Downloads, Settings, Sources and Categories got theirs in v0.4.
 - ✅ A small app container (`AppContainer`) instead of `LumeApp.instance` lookups. Only `appString()` still uses `LumeApp.instance`.
-- 🟡 Room migration tests. 7→8 is tested on Robolectric (CI) and on a device. Left: the test is skipped on Windows JVM runs, because Room's test helper compares paths with "/". The 6→7 migration can only be checked by hand, because no v6 schema was ever exported.
+- 🟡 Room migration tests. 7→8 is tested on Robolectric (CI) and on a device. The test also runs on Windows JVM now (its open helper reports the full path, which Room's path check accepts). The 6→7 migration can only be checked by hand, because no v6 schema was ever exported.
 - ✅ GitHub Actions with build, unit tests and lint.
 - ✅ Tests for reading order and tracker matching, plus the new library, chapter-list and update logic.
 - ✅ Measured baseline profile and a startup benchmark (`:baselineprofile`).
@@ -714,7 +716,7 @@ Release notes: [docs/releases/v0.7.14.md](releases/v0.7.14.md); device check in 
 - ✅ **Layout:** Home offline column, `listBottomPadding()`, scrolling and compact nav rail, `LumeInsets.sides`, compact grid Continue button, selection bar overflow menu, scrolling sheets and dialogs, `imePadding` on Search and Sources.
 - ✅ **WebView screens:** theme, keyboard, Back in history, load progress, WebView destroyed on release; Cloudflare overlay consumes taps.
 - ✅ **Safety:** delete confirmation in Downloads; `remember` instead of `rememberSaveable` for passwords.
-- ⏸️ O17 chapter list jump (see the summary).
+- ✅ O17 chapter list jump: fixed in v0.9.13.
 
 ### v0.7.16: Home and source fixes ✅ released 2026-11-07
 
@@ -840,8 +842,21 @@ Release notes: [docs/releases/v0.9.8.md](releases/v0.9.8.md).
 - ✅ **Pairing and encryption**: both screens show the same six-digit code (ECDH P-256 with a commitment); AES-GCM with keys for that connection only.
 - ✅ **Accept or decline** on the receiver; nothing is saved before. Chapters already there, and titles of sources the receiver lacks, are skipped.
 - ✅ **Transfer**: page by page with a SHA-256 checksum per chapter; each chapter is stored as soon as it's checked, so connecting again continues. Titles go to the library; read marks optional.
-- ⏸️ QR code, Wi-Fi Direct and the local-only hotspot; sending from a title's chapter list.
+- ⏸️ Wi-Fi Direct and the local-only hotspot; sending from a title's chapter list. (QR code: ✅ in v0.9.13.)
 - 🟡 Not checked on a device: the emulator gate was skipped for this release; JVM tests cover the protocol.
+
+### v0.9.13: quality pass 🟡 in progress
+
+Release notes: [docs/releases/v0.9.13.md](releases/v0.9.13.md). Device check: [docs/releases/v0.9.13-check.md](releases/v0.9.13-check.md).
+
+- ✅ **Genre filter in the library** (database 14 → 15, genres per title, filled when a title is opened or updated).
+- ✅ **QR code for nearby sending** (ZXing, Apache-2.0); Wi-Fi Direct and the hotspot stay ⏸️.
+- ✅ **MangaLib bookmark import** as a WorkManager job that survives process death.
+- ✅ **Chapter list jump (O17)**: the selection bar overlays the list.
+- 🟡 **Accessibility**: WCAG AA colours with a test, bars and dialogs that grow with the font; a real-device check at 200 % is still open.
+- ✅ **Tests**: reader and library ViewModel tests (deferred since v0.7.0), the migration test on Windows, Roborazzi screenshot tests, an emulator job on CI.
+- ✅ **User guide** ([USER_GUIDE.md](USER_GUIDE.md)).
+- 🟡 The spotlight chapter badge on Home cuts the chapter number at 200 % font.
 
 ### v0.9.12: Continue reading covers ✅ released 2026-11-12
 

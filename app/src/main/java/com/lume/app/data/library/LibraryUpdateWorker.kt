@@ -51,6 +51,7 @@ class LibraryUpdateWorker(
         val results = mutableListOf<LibraryUpdateResult>()
         var checked = 0
         var failed = 0
+        var genreLookups = 0
         // A cold start for this job alone would otherwise see an empty source list and do nothing.
         app.sources.awaitLoaded()
 
@@ -84,6 +85,11 @@ class LibraryUpdateWorker(
                 // New = ids never seen before (not "more chapters than last time"), one per chapter.
                 // With linked sources, the copy found first is the new one.
                 val fresh = app.libraryChapters.sync(bookmark.sourceId, bookmark.titleId, all)
+                // Titles added before genres were stored get them now, a few per run to spare the sites.
+                if (bookmark.genresJson == "[]" && genreLookups < GENRE_LOOKUPS_PER_RUN) {
+                    genreLookups++
+                    runCatching { app.titles.fillGenres(bookmark.sourceId, bookmark.titleId) }
+                }
                 val prev = dao.getTitleMeta(bookmark.sourceId, bookmark.titleId)
                 val last = chapters.firstOrNull()
                 dao.upsertTitleMeta(
@@ -242,6 +248,7 @@ class LibraryUpdateWorker(
         const val KEY_DONE = "done"
         const val KEY_TOTAL = "total"
         const val KEY_MANUAL = "manual"
+        private const val GENRE_LOOKUPS_PER_RUN = 25
 
         /**
          * "Update now": one run right away, whatever the schedule says. A run in progress is kept.

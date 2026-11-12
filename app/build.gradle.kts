@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.baselineprofile)
+    alias(libs.plugins.roborazzi)
 }
 
 // Must stay outside android { defaultConfig } — nested mapNotNull/return@ confuses the IDE
@@ -35,8 +36,8 @@ android {
         applicationId = "com.lume.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 44
-        versionName = "0.9.12"
+        versionCode = 45
+        versionName = "0.9.13"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // OAuth app credentials for AniList / Shikimori (identify Lume itself).
@@ -123,6 +124,13 @@ android.sourceSets.getByName("androidTest").kotlin.directories.add("src/sharedTe
 android.sourceSets.getByName("androidTest").assets.directories.add("$projectDir/schemas")
 android.sourceSets.getByName("debug").assets.directories.add("$projectDir/schemas")
 
+// Screenshot tests (Roborazzi): golden images live in the repository under src/test/screenshots.
+// A plain testDebugUnitTest skips the image step; recordRoborazziDebug writes the goldens and
+// verifyRoborazziDebug compares against them (see docs/ARCHITECTURE.md, "Screenshot tests").
+roborazzi {
+    outputDir.set(layout.projectDirectory.dir("src/test/screenshots"))
+}
+
 // Exported Room schemas (app/schemas) make future migrations reviewable and testable.
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
@@ -146,6 +154,8 @@ dependencies {
     // App lock: the system screen-lock prompt (fingerprint, face, PIN).
     implementation(libs.androidx.biometric)
     implementation(libs.jsoup)
+    implementation(libs.zxing.core)
+    implementation(libs.zxing.embedded)
     implementation(libs.jspecify)
     implementation(libs.junrar)
     implementation(libs.commons.compress)
@@ -172,9 +182,17 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.room.testing)
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
 }

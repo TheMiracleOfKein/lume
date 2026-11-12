@@ -6,6 +6,7 @@ import android.text.format.Formatter
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,6 +55,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -70,6 +73,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
+import com.lume.app.data.nearby.NearbyQr
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import com.lume.app.ui.components.BackButton
 import com.lume.app.ui.components.CoverImage
 import com.lume.app.ui.components.EmptyBox
@@ -149,7 +155,7 @@ private fun Progress(done: Long, total: Long) {
     LinearProgressIndicator(
         progress = { fraction },
         modifier = Modifier.fillMaxWidth(),
-        color = AppColors.accent,
+        color = AppColors.accentText,
         trackColor = AppColors.card,
     )
     Body(stringResource(R.string.nearby_progress, Formatter.formatShortFileSize(context, done), Formatter.formatShortFileSize(context, total)))
@@ -181,6 +187,15 @@ fun NearbySendScreen(nav: NavHostController) {
                 if (phase.addresses.isEmpty()) {
                     Body(stringResource(R.string.nearby_no_network), AppColors.danger)
                 } else {
+                    val qrText = NearbyQr.encode(phase.addresses.first(), phase.port, phase.name)
+                    val qr = remember(qrText) { NearbyQr.render(qrText) }
+                    Image(
+                        bitmap = qr,
+                        contentDescription = stringResource(R.string.nearby_qr_description),
+                        filterQuality = FilterQuality.None,
+                        modifier = Modifier.size(240.dp).background(androidx.compose.ui.graphics.Color.White),
+                    )
+                    Body(stringResource(R.string.nearby_qr_hint))
                     Body(stringResource(R.string.nearby_address_hint))
                     phase.addresses.forEach {
                         Text("$it:${phase.port}", color = AppColors.textPrimary, fontSize = 18.sp, fontFamily = FontFamily.Monospace)
@@ -401,6 +416,45 @@ private fun ReceiveFind(vm: NearbyReceiveViewModel, denied: Boolean) {
     val peers by vm.peers.collectAsState()
     var invalid by remember { mutableStateOf(false) }
     val submit = { invalid = !vm.connectTyped() }
+    val context = LocalContext.current
+    val hasCamera = remember { context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY) }
+    var scanMessage by remember { mutableStateOf<Int?>(null) }
+    var rationale by remember { mutableStateOf(false) }
+    val scanner = rememberLauncherForActivityResult(ScanContract()) { result ->
+        val text = result.contents
+        if (text != null) scanMessage = if (vm.connectQr(text)) null else R.string.nearby_qr_invalid
+    }
+    val scanPrompt = stringResource(R.string.nearby_scan_prompt)
+    val launchScan = {
+        scanner.launch(
+            ScanOptions()
+                .setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                .setPrompt(scanPrompt)
+                .setBeepEnabled(false)
+                .setOrientationLocked(false),
+        )
+    }
+    val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            scanMessage = null
+            launchScan()
+        } else {
+            scanMessage = R.string.nearby_camera_denied
+        }
+    }
+    if (rationale) {
+        AlertDialog(
+            onDismissRequest = { rationale = false },
+            title = { Text(stringResource(R.string.nearby_camera_title)) },
+            text = { Text(stringResource(R.string.nearby_camera_rationale)) },
+            confirmButton = {
+                TextButton(onClick = { rationale = false; cameraPermission.launch(android.Manifest.permission.CAMERA) }) {
+                    Text(stringResource(R.string.nearby_camera_allow))
+                }
+            },
+            dismissButton = { TextButton(onClick = { rationale = false }) { Text(stringResource(R.string.action_cancel)) } },
+        )
+    }
     LazyColumn(Modifier.fillMaxSize()) {
         item(key = "found") {
             Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -436,6 +490,24 @@ private fun ReceiveFind(vm: NearbyReceiveViewModel, denied: Boolean) {
         }
         item(key = "manual") {
             Column(Modifier.padding(16.dp)) {
+                if (hasCamera) {
+                    OutlinedButton(
+                        onClick = {
+                            if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                                scanMessage = null
+                                launchScan()
+                            } else {
+                                rationale = true
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    ) {
+                        Text(stringResource(R.string.nearby_scan_qr))
+                    }
+                    scanMessage?.let {
+                        Text(stringResource(it), color = AppColors.danger, fontSize = 13.sp, modifier = Modifier.padding(bottom = 8.dp))
+                    }
+                }
                 OutlinedTextField(
                     value = vm.address,
                     onValueChange = { vm.address = it; invalid = false },

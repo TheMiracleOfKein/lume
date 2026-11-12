@@ -145,6 +145,7 @@ data class BookmarkEntityDto(
     val typeLabel: String? = null,
     val createdAt: Long = 0L,
     val categoryIdsJson: String = "[]",
+    val genresJson: String = "[]",
 )
 
 @Serializable
@@ -303,6 +304,7 @@ class BackupRepository(
                     typeLabel = it.typeLabel,
                     createdAt = it.createdAt,
                     categoryIdsJson = it.categoryIdsJson,
+                    genresJson = it.genresJson,
                 )
             },
             progress = dao.allProgress().map {
@@ -654,6 +656,7 @@ class BackupRepository(
                     typeLabel = b.typeLabel,
                     createdAt = b.createdAt,
                     categoryIdsJson = b.categoryIdsJson,
+                    genresJson = b.genresJson,
                 ),
             )
         }

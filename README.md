@@ -133,6 +133,7 @@ AniList, Shikimori and MyAnimeList sign-ins need *application* keys that identif
 
 ## Documentation
 
+- [User guide](docs/USER_GUIDE.md)
 - [Roadmap](docs/ROADMAP.md) and [release notes](docs/releases/)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Catalogue engines](docs/ENGINES.md) and [source packs](docs/packs/README.md)
