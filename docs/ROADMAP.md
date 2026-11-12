@@ -336,7 +336,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 | MangaRead and ToonGod often show Cloudflare checks; ReManga and MangaBuff block some regions | The in-app browser handles checks; region blocks can't be fixed in the app |
 | HentaiLib needs a signed-in account to read | Works as designed since v0.6.1; the reader says so |
 | Room 6→7 migration can't be tested (no v6 schema was exported) | Accepted; every later migration is tested |
-| The Room migration test is skipped on Windows JVM runs | CI (Linux) and the emulator job run it |
+| ✅ The Room migration test was skipped on Windows JVM runs | Fixed in v0.9.13: the test names its open helper by full path, so Room's path check passes on Windows too; the emulator job on CI runs it on a device |
 | ✅ Coil 2 is in maintenance | Coil 3 since v0.8.0 |
 | ✅ Large files: `SettingsScreen.kt` and `LibraryScreen.kt` split in v0.6.2 and v0.6.3, `Database.kt` in v0.8.0 | Entities, `LibraryDao` and `LumeDatabase` in their own files |
 | ✅ Releases are built on one computer | Signed release workflow from a tag since v0.9.10 ([RELEASING.md](RELEASING.md)) |
@@ -422,7 +422,7 @@ Release notes: [docs/releases/v0.4.0.md](releases/v0.4.0.md).
 **Foundation**
 - ✅ ViewModels for every screen. Library, Updates, History, Downloads, Settings, Sources and Categories got theirs in v0.4.
 - ✅ A small app container (`AppContainer`) instead of `LumeApp.instance` lookups. Only `appString()` still uses `LumeApp.instance`.
-- 🟡 Room migration tests. 7→8 is tested on Robolectric (CI) and on a device. Left: the test is skipped on Windows JVM runs, because Room's test helper compares paths with "/". The 6→7 migration can only be checked by hand, because no v6 schema was ever exported.
+- 🟡 Room migration tests. 7→8 is tested on Robolectric (CI) and on a device. The test also runs on Windows JVM now (its open helper reports the full path, which Room's path check accepts). The 6→7 migration can only be checked by hand, because no v6 schema was ever exported.
 - ✅ GitHub Actions with build, unit tests and lint.
 - ✅ Tests for reading order and tracker matching, plus the new library, chapter-list and update logic.
 - ✅ Measured baseline profile and a startup benchmark (`:baselineprofile`).
