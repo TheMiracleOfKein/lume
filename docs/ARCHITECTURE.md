@@ -59,7 +59,7 @@ WorkManager runs library checks (`LibraryUpdateWorker`), downloads (`DownloadWor
 Nearby sending uses ZXing, with nothing from Google Play services, so F-Droid builds keep it.
 
 - `com.google.zxing:core` (Apache-2.0): encodes the sender's QR code and decodes what the camera sees.
-- `com.journeyapps:zxing-android-embedded` (Apache-2.0): the camera scanner screen (`ScanContract`). Chosen over CameraX plus a ZXing analyzer because it is a single small library with no Play services, and it needs no extra camera preview code. Its scanner activity is declared in the manifest to follow the phone's rotation.
+- `com.journeyapps:zxing-android-embedded` (Apache-2.0): the camera scanner screen (`ScanContract`). Chosen over CameraX plus a ZXing analyzer because it is a single small library with no Play services, and it needs no extra camera preview code. Its scanner activity is overridden in the manifest to drop the library's landscape lock.
 - Camera access: the `CAMERA` permission is asked only when "Scan QR code" is tapped, after a short explanation; `android.hardware.camera` is `required="false"`, and phones without a camera don't see the button.
 
 ## Tests
