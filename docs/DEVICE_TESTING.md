@@ -260,6 +260,15 @@ Two phones on the same Wi-Fi, one with a few downloaded titles (one stored as CB
 - [ ] History: the same with a long press on a row, also after rotating with the dialog open. TalkBack offers "Remove from history" as an action.
 - [ ] Release build (R8): sign-ins and the sync password survive a restart.
 
+## v0.9.14: catalogue search and chapters ahead
+
+- [ ] Reader settings and Settings > Reader show "Chapters loaded ahead" (Off, 1, 2). With 2, read an old chapter for a minute, then turn the network off: the next chapter still opens from the cache.
+- [ ] With chapters ahead on, a long session on a rate-limited site is not blocked, and the error log shows no burst of 429 answers.
+- [ ] Search "hero" (or "герой"): titles with the word in the name come first, the ones that only mention it come after.
+- [ ] A source's catalogue: the search field and the filter button find titles in that source only; X and Back return to the tabs; switching the active source clears the search.
+- [ ] Filter sheet: type in a genre group's Find field, then swipe the sheet down. The keyboard closes and the sheet closes or settles without shaking.
+- [ ] Release build (R8): chapters ahead and catalogue search work as in the debug build.
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.
