@@ -42,6 +42,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Tune
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import com.lume.app.ui.components.FilterPanel
+import com.lume.app.ui.components.QuickSearchBar
 import com.lume.app.ui.components.BackButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -65,6 +77,7 @@ import com.lume.app.ui.theme.animatedItem
  * [browseSourceId]: browse that source (opened from Sources) instead of the active one.
  * [genre]: opened from a genre on a title screen; the first chip lists the titles with it.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre: String? = null) {
     val container = LocalAppContainer.current
@@ -99,6 +112,32 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
             1 -> vm.ensureLoaded(vm.latest)
         }
     }
+    val searchList = rememberLazyListState()
+    var filtersOpen by rememberSaveable { mutableStateOf(false) }
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+
+    if (filtersOpen) {
+        ModalBottomSheet(
+            onDismissRequest = { filtersOpen = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = AppColors.surface,
+        ) {
+            FilterPanel(
+                initial = vm.filters,
+                defaults = vm.defaultFilters,
+                loading = vm.filtersLoading,
+                sourceId = vm.filtersSourceId,
+                note = stringResource(R.string.filters_no_query).takeIf { vm.filtersNeedEmptyQuery && vm.query.isNotBlank() },
+                onApply = { next ->
+                    filtersOpen = false
+                    keyboard?.hide()
+                    focusManager.clearFocus()
+                    vm.applyFilters(next)
+                },
+            )
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -121,6 +160,22 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
                     modifier = Modifier.weight(1f),
                 )
             }
+        }
+        if (tab != 2 || vm.searchActive) {
+            CatalogSearchRow(vm, onOpenFilters = {
+                vm.prepareFilters()
+                filtersOpen = true
+            })
+        }
+        if (vm.searchActive) {
+            BackHandler { vm.clearSearch() }
+            CatalogFeedList(
+                vm = vm,
+                feed = vm.searchFeed,
+                listState = searchList,
+                onOpen = { id -> nav.navigate(Routes.title(vm.sourceId, id)) },
+            )
+            return@Column
         }
         Row(modifier = Modifier.fillMaxWidth().selectableGroup().padding(horizontal = 4.dp, vertical = 8.dp)) {
             SegmentTab(stringResource(R.string.catalog_tab_popular), selected = tab == 0, modifier = Modifier.weight(1f)) { tab = 0 }
@@ -200,6 +255,48 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
     }
 }
 
+
+/** Search and filters inside the source's own catalogue (not across sources). */
+@Composable
+private fun CatalogSearchRow(vm: CatalogViewModel, onOpenFilters: () -> Unit) {
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        QuickSearchBar(
+            value = vm.query,
+            onValueChange = { vm.query = it },
+            onSubmit = {
+                keyboard?.hide()
+                focusManager.clearFocus()
+                vm.submitSearch()
+            },
+            hint = stringResource(R.string.catalog_search_hint),
+            modifier = Modifier.weight(1f),
+        )
+        if (vm.searchActive || vm.query.isNotEmpty()) {
+            IconButton(onClick = {
+                keyboard?.hide()
+                focusManager.clearFocus()
+                vm.clearSearch()
+            }) {
+                Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.catalog_search_clear), tint = AppColors.textSecondary)
+            }
+        }
+        IconButton(onClick = onOpenFilters) {
+            val filtersOn = stringResource(R.string.cd_filters_active)
+            Box(if (vm.filtersActive) Modifier.semantics { stateDescription = filtersOn } else Modifier) {
+                Icon(
+                    Icons.Outlined.Tune,
+                    contentDescription = stringResource(R.string.filters_title),
+                    tint = if (vm.filtersActive) AppColors.accentText else AppColors.textSecondary,
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun CatalogFeedList(

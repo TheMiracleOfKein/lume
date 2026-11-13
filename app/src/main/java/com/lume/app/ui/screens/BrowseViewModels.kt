@@ -18,6 +18,11 @@ import com.lume.app.domain.PagedResult
 import com.lume.app.domain.TitleSummary
 import com.lume.app.data.db.ProgressEntity
 import com.lume.app.domain.withGenre
+import com.lume.app.domain.FilterList
+import com.lume.app.domain.carryOver
+import com.lume.app.domain.rankSearchResults
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -232,6 +237,108 @@ class CatalogViewModel(
     private suspend fun source(): CatalogSource? =
         if (fixedSourceId != null) app.sources.sourceById(fixedSourceId) else app.sources.activeSource()
 
+    // ---- Search and filters inside this source's catalogue ---------------------------------
+
+    /** The text in the catalogue's search field (not yet submitted). */
+    var query by mutableStateOf("")
+
+    /** The text and filters the shown results were asked for. */
+    private var searchedQuery = ""
+    private var searchedFilters = FilterList()
+
+    /** True while the catalogue shows search results instead of its tabs. */
+    var searchActive by mutableStateOf(false)
+        private set
+
+    /** This source's results for [searchedQuery] and [searchedFilters], name matches first. */
+    val searchFeed = CatalogFeed(app.http) { page ->
+        val result = search(searchedQuery, page, searchedFilters)
+        result.copy(items = rankSearchResults(searchedQuery, result.items))
+    }
+
+    var filters by mutableStateOf(FilterList())
+        private set
+    var defaultFilters by mutableStateOf(FilterList())
+        private set
+    var filtersSourceId by mutableStateOf<String?>(null)
+        private set
+    var filtersLoading by mutableStateOf(false)
+        private set
+    private var filtersComplete = false
+
+    val filtersActive: Boolean get() = !filters.sameAs(defaultFilters)
+
+    /** The source can't combine search text with filters (see [CatalogSource.filtersWithQuery]). */
+    val filtersNeedEmptyQuery: Boolean
+        get() = filtersSourceId?.let { app.sources.sourceById(it) }?.filtersWithQuery == false
+
+    /** Runs the search; empty text and default filters go back to the catalogue. */
+    fun submitSearch() {
+        val q = query.trim()
+        if (q.isEmpty() && !filtersActive) {
+            clearSearch()
+            return
+        }
+        searchedQuery = q
+        searchedFilters = filters
+        searchActive = true
+        ensureLoaded(searchFeed, force = true)
+    }
+
+    fun clearSearch() {
+        query = ""
+        filters = defaultFilters
+        searchActive = false
+        searchFeed.job?.cancel()
+        searchFeed.items = emptyList()
+        searchFeed.loading = false
+        searchFeed.loadingMore = false
+        searchFeed.hasNext = false
+        searchFeed.loadedOnce = false
+    }
+
+    fun applyFilters(next: FilterList) {
+        filters = next
+        submitSearch()
+    }
+
+    /** Loads the source's filters into the panel (kept while the source stays the same). */
+    fun prepareFilters() {
+        viewModelScope.launch {
+            app.sources.awaitLoaded()
+            val source = source() ?: return@launch
+            filtersLoading = true
+            try {
+                ensureFilters(source)
+            } finally {
+                filtersLoading = false
+            }
+        }
+    }
+
+    private suspend fun ensureFilters(source: CatalogSource) {
+        val id = source.manifest.id
+        if (filtersSourceId == id && filtersComplete) return
+        if (filtersSourceId != id) {
+            val static = runCatching { source.getFilters() }.getOrDefault(FilterList())
+            filtersSourceId = id
+            filtersComplete = false
+            defaultFilters = static
+            filters = static
+        }
+        val loaded = try {
+            withTimeoutOrNull(FILTERS_TIMEOUT_MS.milliseconds) { source.loadFilters() }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        } ?: return
+        if (filtersSourceId != id) return
+        filters = loaded.carryOver(filters)
+        defaultFilters = loaded
+        filtersComplete = true
+    }
+
     init {
         viewModelScope.launch {
             app.sources.awaitLoaded()
@@ -241,6 +348,16 @@ class CatalogViewModel(
             val activeChanges = if (fixedSourceId == null) app.prefs.activeSourceId.drop(1) else emptyFlow()
             merge(app.http.networkEpoch.drop(1), activeChanges).collect {
                 sections = source()?.browseSections().orEmpty()
+                // Another source has other filters; a solved check or reconnect repeats the search.
+                if (source()?.manifest?.id != filtersSourceId && filtersSourceId != null) {
+                    clearSearch()
+                    filtersSourceId = null
+                    filtersComplete = false
+                    filters = FilterList()
+                    defaultFilters = FilterList()
+                } else if (searchActive) {
+                    ensureLoaded(searchFeed, force = true)
+                }
                 val stale = sectionFeeds.values.toList() + listOfNotNull(genreFeed)
                 (listOf(popular, latest) + stale).forEach { it.loadedOnce = false }
                 ensureLoaded(popular, force = true)
@@ -294,3 +411,6 @@ class CatalogViewModel(
         viewModelScope.launch { app.http.requestChallenge(uri) }
     }
 }
+
+/** How long the catalogue's filter panel waits for the site's own lists (genres, tags). */
+private const val FILTERS_TIMEOUT_MS = 10_000L

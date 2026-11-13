@@ -81,6 +81,8 @@
     <string name="search_mode_current">Текущий источник</string>
     <string name="search_mode_all">Все источники</string>
     <string name="search_hint_title">Поиск тайтла</string>
+    <string name="catalog_search_hint">Поиск в этом источнике</string>
+    <string name="catalog_search_clear">Очистить поиск</string>
     <string name="search_hint_quick">Быстрый поиск</string>
     <string name="search_empty">Ничего не найдено</string>
 
