@@ -65,6 +65,13 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import kotlin.math.abs
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -102,10 +109,20 @@ fun FilterPanel(
     }
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
+    // The sheet pads its top by the part of the status bar it overlaps. A panel tall enough to reach
+    // the status bar then changes height with the sheet's own position, the sheet re-anchors to the
+    // new height, moves, and bounces up and down without end. Kept below the status bar (and above
+    // the keyboard and navigation bar), that padding stays zero and the sheet stays still.
+    val density = LocalDensity.current
+    val windowHeight = with(density) { LocalWindowInfo.current.containerSize.height.toDp() }
+    val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val bottomInset = WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding()
+    val maxPanelHeight = (windowHeight - topInset - bottomInset - SHEET_TOP_ROOM).coerceAtLeast(200.dp)
 
     Column(
         Modifier
             .fillMaxWidth()
+            .heightIn(max = maxPanelHeight)
             .navigationBarsPadding()
             // A focused "Find" field keeps pulling itself into view while the sheet is dragged
             // and the keyboard resizes it: the sheet then shakes without end. Dragging closes
@@ -413,6 +430,9 @@ private fun filterFieldColors() = TextFieldDefaults.colors(
 
 /** Groups longer than this start folded. */
 private const val FOLD_AT = 12
+
+/** Room left above the panel for the sheet's drag handle and a gap below the status bar. */
+private val SHEET_TOP_ROOM = 72.dp
 
 /** Groups longer than this get a field to find an entry. */
 private const val FIND_AT = 30
