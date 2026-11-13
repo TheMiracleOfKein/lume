@@ -76,6 +76,7 @@ object SettingsCatalog {
         SettingInfo("split_wide", SettingsPage.Reader, R.string.reader_split_wide, R.string.reader_split_wide_hint, R.string.settings_kw_split_wide),
         SettingInfo("spreads", SettingsPage.Reader, R.string.reader_spreads, R.string.settings_reader_paged_only, R.string.settings_kw_spreads),
         SettingInfo("preload", SettingsPage.Reader, R.string.settings_reader_preload, R.string.reader_preload_hint, R.string.settings_kw_preload),
+        SettingInfo("preload_chapters", SettingsPage.Reader, R.string.reader_preload_chapters, R.string.reader_preload_chapters_hint, R.string.settings_kw_preload),
 
         SettingInfo("library_check", SettingsPage.Library, R.string.settings_library_auto_check, R.string.settings_library_auto_check_hint, R.string.settings_kw_library_check),
         SettingInfo("library_interval", SettingsPage.Library, R.string.settings_library_interval, keywordsRes = R.string.settings_kw_interval),

@@ -1145,6 +1145,8 @@
         <item quantity="other">Загружать %d страницы вперёд</item>
     </plurals>
     <string name="reader_preload_hint">Больше страниц вперёд — меньше ожидания, но больше трафика и памяти.</string>
+    <string name="reader_preload_chapters">Главы, загружаемые заранее</string>
+    <string name="reader_preload_chapters_hint">Пока вы читаете, следующие главы загружаются в фоне, по одной странице с паузами, чтобы сайты не блокировали загрузку. Расходует больше трафика.</string>
     <string name="reader_orientation">Ориентация экрана</string>
     <string name="reader_orientation_auto">Авто</string>
     <string name="reader_orientation_portrait">Книжная</string>

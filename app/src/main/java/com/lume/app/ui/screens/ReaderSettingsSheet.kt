@@ -306,6 +306,20 @@ internal fun ReaderSettingsSheet(
             colors = lumeSliderColors(),
         )
         Text(stringResource(R.string.reader_preload_hint), color = AppColors.textSecondary, fontSize = 12.sp)
+        Spacer(Modifier.height(10.dp))
+        Text(stringResource(R.string.reader_preload_chapters), color = AppColors.textSecondary, fontSize = 13.sp)
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            (0..ReaderSettings.MAX_PRELOAD_CHAPTERS).forEach { n ->
+                ChoiceChip(
+                    label = if (n == 0) stringResource(R.string.reader_spreads_off) else n.toString(),
+                    selected = settings.preloadChapters == n,
+                    onClick = { onCommit(settings.copy(preloadChapters = n)) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        Text(stringResource(R.string.reader_preload_chapters_hint), color = AppColors.textSecondary, fontSize = 12.sp)
         Spacer(Modifier.height(8.dp))
         TextButton(
             onClick = { onSaveForTitle(settings) },
