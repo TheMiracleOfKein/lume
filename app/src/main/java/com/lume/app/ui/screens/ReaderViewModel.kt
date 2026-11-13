@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
+import coil3.request.SuccessResult
 import coil3.request.crossfade
 import com.lume.app.AppContainer
 import com.lume.app.R
@@ -24,6 +25,8 @@ import com.lume.app.data.prefs.ReaderSettings
 import com.lume.app.data.title.TitleLoad
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ChapterNeighbours
+import com.lume.app.domain.PreloadPacer
+import com.lume.app.domain.chaptersToPreload
 import com.lume.app.domain.chapterNeighbours
 import com.lume.app.domain.hasChapterBeyond
 import com.lume.app.domain.CloudflareException
@@ -168,6 +171,12 @@ class ReaderViewModel(
     private val markedRead = HashSet<String>()
     private val visited = LinkedHashSet<String>()
     private val prefetchMutex = Mutex()
+
+    /** Page lists fetched for chapters (ahead or opened), so their cached images are found again. */
+    private val aheadPages = HashMap<String, AheadPages>()
+    private var chapterPreloadJob: Job? = null
+    private var chapterPreloadFrom: String? = null
+    private val pacer = PreloadPacer()
     private var loadJob: Job? = null
 
     private val routeHasTarget = routePage != null
@@ -198,7 +207,11 @@ class ReaderViewModel(
 
     fun retry() = reload()
 
-    private fun reload() = load(anchor, explicit = true)
+    private fun reload() {
+        // A retry asks the source again: the stored page list may be the broken one.
+        aheadPages.keys.removeAll { chapterIdsMatch(it, anchor.chapterId) }
+        load(anchor, explicit = true)
+    }
 
     /**
      * Opens [target]'s chapter as a fresh strip. When [explicit] is false the chapter's own saved
@@ -238,6 +251,7 @@ class ReaderViewModel(
                 loading = false
                 warmed.clear()
                 warmAhead()
+                preloadChaptersAhead(force = true)
                 prefetchNextChapter()
             }.onFailure { e ->
                 if (e is kotlinx.coroutines.CancellationException) throw e
@@ -283,11 +297,103 @@ class ReaderViewModel(
      */
     private suspend fun loadPagesFor(ch: Chapter, notice: Boolean = true): List<ComicPage> {
         withContext(Dispatchers.IO) { app.downloads.localPages(sourceId, titleId, ch.id) }?.let { return it }
+        // Fetched ahead: the images are cached under these URLs, so asking again could miss them.
+        aheadPages[ch.id]?.let { ahead ->
+            val fresh = System.currentTimeMillis() - ahead.fetchedAt < PreloadPacer.PAGE_LIST_FRESH_MS
+            if (fresh || ahead.fullyCached) return ahead.pages
+        }
         val served = app.titles.loadPages(sourceId, titleId, ch, allCopies)
         if (served.fallback && notice) {
             fallbackNotice = appString(R.string.reader_loaded_from, served.source.manifest.name)
         }
+        aheadPages[ch.id] = AheadPages(served.pages, System.currentTimeMillis())
         return served.pages
+    }
+
+    // ---- Loading chapters ahead ------------------------------------------------------------
+
+    /** A chapter's page list and when it was fetched; [fullyCached] once every image is on disk. */
+    private class AheadPages(val pages: List<ComicPage>, val fetchedAt: Long, var fullyCached: Boolean = false)
+
+    /**
+     * Loads the images of the [ReaderSettings.preloadChapters] chapters after the current one into
+     * the disk cache, one image at a time with pauses (see [PreloadPacer]). Restarts when the
+     * current chapter changes; images already cached are skipped.
+     */
+    private fun preloadChaptersAhead(force: Boolean = false) {
+        if (!settingsReady) return
+        val count = settings.preloadChapters
+        if (count <= 0 || pacer.gaveUp) {
+            chapterPreloadJob?.cancel()
+            chapterPreloadFrom = null
+            return
+        }
+        val from = currentChapterId
+        if (!force && chapterPreloadFrom == from && chapterPreloadJob?.isActive == true) return
+        chapterPreloadJob?.cancel()
+        chapterPreloadFrom = from
+        chapterPreloadJob = viewModelScope.launch {
+            delay(PreloadPacer.START_DELAY_MS)
+            // Downloaded chapters need nothing and don't count.
+            val targets = ArrayList<Chapter>()
+            for (ch in chaptersToPreload(chapters, from, chapters.size)) {
+                if (targets.size >= count) break
+                val local = withContext(Dispatchers.IO) { app.downloads.localPages(sourceId, titleId, ch.id) }
+                if (local == null) targets += ch
+            }
+            for (ch in targets) {
+                if (pacer.gaveUp) return@launch
+                val pages = runCatching { loadPagesFor(ch, notice = false) }
+                    .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+                    .getOrNull()
+                if (pages == null) {
+                    pacer.onFailure()
+                    delay(pacer.nextImageDelayMs())
+                    continue
+                }
+                if (cacheChapterImages(ch.id, pages)) aheadPages[ch.id]?.fullyCached = true
+                delay(pacer.nextChapterDelayMs())
+            }
+        }
+    }
+
+    /** Caches [pages] one by one; true when every web page ended up in the disk cache. */
+    private suspend fun cacheChapterImages(chapterId: String, pages: List<ComicPage>): Boolean {
+        val loader = app.imageLoader
+        val width = app.app.resources.displayMetrics.widthPixels
+        var all = true
+        for ((index, page) in pages.withIndex()) {
+            if (pacer.gaveUp) return false
+            val url = page.imageUrl
+            if (!url.startsWith("http")) continue
+            val cached = withContext(Dispatchers.IO) {
+                loader.diskCache?.openSnapshot(url)?.use { true } ?: false
+            }
+            if (cached) continue
+            val result = loader.execute(
+                ImageRequest.Builder(app.app)
+                    .data(url)
+                    // Small decode: the point is the bytes on disk (and the page's shape).
+                    .size(width / 2, MAX_DRAW_PX / 2)
+                    .memoryCachePolicy(CachePolicy.DISABLED)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .crossfade(false)
+                    .build(),
+            )
+            val image = result.image
+            if (result is SuccessResult && image != null) {
+                pacer.onSuccess()
+                warmed += url
+                if (image.width > 0 && image.height > 0) {
+                    reportAspect(chapterId, index, image.width.toFloat() / image.height)
+                }
+            } else {
+                pacer.onFailure()
+                all = false
+            }
+            delay(pacer.nextImageDelayMs())
+        }
+        return all
     }
 
     private fun replaceLoaded(list: List<LoadedChapter>) {
@@ -434,7 +540,10 @@ class ReaderViewModel(
         val chapterChanged = !chapterIdsMatch(next.chapterId, anchor.chapterId)
         anchor = next
         dirty = true
-        if (chapterChanged) currentChapterId = next.chapterId
+        if (chapterChanged) {
+            currentChapterId = next.chapterId
+            preloadChaptersAhead()
+        }
         if (currentPageIndex != next.pageIndex) currentPageIndex = next.pageIndex
         pendingSave.value = next
         trackReading(next)
@@ -698,6 +807,7 @@ class ReaderViewModel(
         // The first chapter may have arrived before the settings: lay it out for them.
         rebuildStrip()
         if (settings.seamlessReading && loaded.isNotEmpty()) prefetchNextChapter()
+        if (loaded.isNotEmpty()) preloadChaptersAhead(force = true)
     }
 
     /** Live edit from the sheet (slider drag); [commit] also writes it as the new default. */
@@ -708,6 +818,7 @@ class ReaderViewModel(
         if (layoutChanged(old, next)) rebuildStrip()
         if (commit) viewModelScope.launch { app.prefs.setReaderSettings(next) }
         if (turnedSeamlessOn) viewModelScope.launch { prefetchNextChapter() }
+        if (next.preloadChapters != old.preloadChapters) preloadChaptersAhead(force = true)
     }
 
     private fun layoutChanged(a: ReaderSettings, b: ReaderSettings) =

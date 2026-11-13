@@ -86,6 +86,8 @@
     <string name="search_mode_current">Current source</string>
     <string name="search_mode_all">All sources</string>
     <string name="search_hint_title">Search titles</string>
+    <string name="catalog_search_hint">Search in this source</string>
+    <string name="catalog_search_clear">Clear search</string>
     <string name="search_hint_quick">Quick search</string>
     <string name="search_empty">Nothing found</string>
 
@@ -1102,6 +1104,8 @@
         <item quantity="other">Load %d pages ahead</item>
     </plurals>
     <string name="reader_preload_hint">More pages ahead means less waiting and more data and memory.</string>
+    <string name="reader_preload_chapters">Chapters loaded ahead</string>
+    <string name="reader_preload_chapters_hint">While you read, the next chapters download in the background, one page at a time with pauses so sites don\'t block it. Uses more data.</string>
     <string name="reader_orientation">Screen orientation</string>
     <string name="reader_orientation_auto">Auto</string>
     <string name="reader_orientation_portrait">Portrait</string>

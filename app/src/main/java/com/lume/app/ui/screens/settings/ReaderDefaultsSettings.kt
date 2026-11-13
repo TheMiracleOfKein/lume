@@ -133,6 +133,20 @@ fun ReaderDefaultsSettings(vm: SettingsViewModel) {
             }
             SettingsNote(stringResource(R.string.reader_preload_hint), Modifier.padding(top = 8.dp))
         }
+        SettingItem("preload_chapters") {
+            SettingsLabel(stringResource(R.string.reader_preload_chapters))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                (0..ReaderSettings.MAX_PRELOAD_CHAPTERS).forEach { n ->
+                    ChoiceChip(
+                        label = if (n == 0) stringResource(R.string.reader_spreads_off) else n.toString(),
+                        selected = reader.preloadChapters == n,
+                        modifier = Modifier.weight(1f),
+                        onClick = { vm.updateReader(reader.copy(preloadChapters = n)) },
+                    )
+                }
+            }
+            SettingsNote(stringResource(R.string.reader_preload_chapters_hint), Modifier.padding(top = 8.dp))
+        }
     }
 }
 

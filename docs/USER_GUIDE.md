@@ -74,7 +74,9 @@ Open **Catalog** to browse the active source. The **Source** entry in the menu s
 - The tabs are **Popular**, **Updates** and **Library**. **Library** lists only this source's titles that you already saved.
 - Some sources also show sections such as **New titles**, **Top rated**, **Completed** or **Most viewed**.
 - Open **Filters** to filter by things like **Genres**, **Tags**, **Status**, **Type**, **Content rating** or year, and to change the sort. Tap a genre or tag once to include it and twice to exclude it. Tap **Apply** to use the filters or **Reset** to clear them.
+- The search field at the top searches this source only, together with the filters (the tune button). Results replace the tabs; **X** or **Back** returns to them.
 - Some sites can't filter and search at the same time: Lume tells you to clear the search field.
+- Titles whose name matches what you typed come first; titles that only mention it in the description come after.
 
 **Global search** asks many sources at once:
 
@@ -435,6 +437,7 @@ Defaults for every title. The reader's own settings panel changes the same value
 | **Split double pages** | In portrait, a page wider than tall is shown as two halves. | Off |
 | **Two pages side by side** | **Off**, **Landscape** or **Always**. | Landscape |
 | **Load N pages ahead** | How many pages are loaded ahead: 0, 2, 4, 6, 8 or 10. More means less waiting and more data and memory. | 4 |
+| **Chapters loaded ahead** | **Off**, **1** or **2**. While you read, the next chapters download into the cache in the background, one page at a time with pauses so sites don't block it. Downloaded chapters are skipped. Uses more data. | Off |
 
 #### Reader settings panel
 

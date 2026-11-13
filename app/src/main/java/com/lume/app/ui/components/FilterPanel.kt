@@ -57,6 +57,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import kotlin.math.abs
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -92,11 +100,20 @@ fun FilterPanel(
     fun change(id: String, transform: (SourceFilter) -> SourceFilter) {
         draft = draft.updated(id, transform)
     }
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
 
     Column(
         Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
+            // A focused "Find" field keeps pulling itself into view while the sheet is dragged
+            // and the keyboard resizes it: the sheet then shakes without end. Dragging closes
+            // the keyboard first.
+            .dropFocusOnDrag {
+                focusManager.clearFocus()
+                keyboard?.hide()
+            }
             .padding(horizontal = 16.dp),
     ) {
         Text(
@@ -424,3 +441,24 @@ private fun filterCheckboxColors() = CheckboxDefaults.colors(
     uncheckedColor = AppColors.textSecondary,
     checkmarkColor = AppColors.onAccent,
 )
+
+/**
+ * Calls [onDrag] once per gesture when a finger moves past the touch slop, anywhere inside, without
+ * taking the gesture away from the sheet or the list under it.
+ */
+private fun Modifier.dropFocusOnDrag(onDrag: () -> Unit): Modifier = pointerInput(Unit) {
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+        var moved = 0f
+        while (true) {
+            val event = awaitPointerEvent(PointerEventPass.Initial)
+            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+            if (!change.pressed) break
+            moved += change.positionChange().y
+            if (abs(moved) > viewConfiguration.touchSlop) {
+                onDrag()
+                break
+            }
+        }
+    }
+}

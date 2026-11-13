@@ -75,6 +75,8 @@ data class ReaderSettings(
     val webtoonTapZones: Boolean = false,
     /** Pages loaded ahead of the one on screen, 0 … [MAX_PRELOAD]. */
     val preloadPages: Int = 4,
+    /** Whole chapters after the current one loaded ahead while reading, 0 … [MAX_PRELOAD_CHAPTERS]. */
+    val preloadChapters: Int = 0,
     /** Paged modes: plain white or black borders are cut off, so the drawing fills the screen. */
     val cropBorders: Boolean = false,
     /** Paged modes in portrait: a double page is shown as two halves, one after the other. */
@@ -91,6 +93,7 @@ data class ReaderSettings(
         const val SPREADS_AUTO = 1
         const val SPREADS_ALWAYS = 2
         const val MAX_PRELOAD = 10
+        const val MAX_PRELOAD_CHAPTERS = 2
         const val ORIENTATION_AUTO = 0
         const val ORIENTATION_PORTRAIT = 1
         const val ORIENTATION_LANDSCAPE = 2
@@ -171,6 +174,7 @@ class AppPreferences(
     private val readerAutoScrollKey = intPreferencesKey("reader_auto_scroll_speed")
     private val readerWebtoonTapZonesKey = booleanPreferencesKey("reader_webtoon_tap_zones")
     private val readerPreloadKey = intPreferencesKey("reader_preload_pages")
+    private val readerPreloadChaptersKey = intPreferencesKey("reader_preload_chapters")
     private val readerCropBordersKey = booleanPreferencesKey("reader_crop_borders")
     private val readerSplitWideKey = booleanPreferencesKey("reader_split_wide")
     private val readerSpreadsKey = intPreferencesKey("reader_spreads")
@@ -451,6 +455,7 @@ class AppPreferences(
             autoScrollSpeed = (prefs[readerAutoScrollKey] ?: 3).coerceIn(1, ReaderSettings.MAX_AUTO_SCROLL),
             webtoonTapZones = prefs[readerWebtoonTapZonesKey] ?: false,
             preloadPages = (prefs[readerPreloadKey] ?: 4).coerceIn(0, ReaderSettings.MAX_PRELOAD),
+            preloadChapters = (prefs[readerPreloadChaptersKey] ?: 0).coerceIn(0, ReaderSettings.MAX_PRELOAD_CHAPTERS),
             cropBorders = prefs[readerCropBordersKey] ?: false,
             splitWide = prefs[readerSplitWideKey] ?: false,
             spreads = (prefs[readerSpreadsKey] ?: ReaderSettings.SPREADS_AUTO).coerceIn(0, 2),
@@ -815,6 +820,7 @@ class AppPreferences(
             it[readerAutoScrollKey] = settings.autoScrollSpeed
             it[readerWebtoonTapZonesKey] = settings.webtoonTapZones
             it[readerPreloadKey] = settings.preloadPages
+            it[readerPreloadChaptersKey] = settings.preloadChapters
             it[readerCropBordersKey] = settings.cropBorders
             it[readerSplitWideKey] = settings.splitWide
             it[readerSpreadsKey] = settings.spreads

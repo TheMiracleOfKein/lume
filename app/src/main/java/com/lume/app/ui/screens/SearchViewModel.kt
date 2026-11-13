@@ -15,6 +15,7 @@ import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.FilterList
 import com.lume.app.domain.carryOver
 import com.lume.app.domain.PagedResult
+import com.lume.app.domain.rankSearchResults
 import kotlinx.coroutines.flow.StateFlow
 import com.lume.app.domain.TitleSummary
 import kotlinx.coroutines.CancellationException
@@ -164,7 +165,7 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
             try {
                 val result = withTimeout(CURRENT_TIMEOUT_MS.milliseconds) { source.search(q, currentPage + 1, currentFilters) }
                 val known = done.items.mapTo(HashSet()) { it.id }
-                currentState = SourceState.Done(done.items + result.items.filter { it.id !in known })
+                currentState = SourceState.Done(done.items + rankSearchResults(q, result.items.filter { it.id !in known }))
                 currentPage = result.page
                 // A page with nothing new means the source repeats itself: stop asking.
                 currentHasNext = result.hasNext && result.items.any { it.id !in known }
@@ -300,7 +301,8 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         withTimeout(timeoutMs.milliseconds) {
             val result = source.search(q, 1, filters)
             onPage(result)
-            SourceState.Done(result.items)
+            // Name matches first; a source also finds the words in descriptions and tags.
+            SourceState.Done(rankSearchResults(q, result.items))
         }
     } catch (e: TimeoutCancellationException) {
         SourceState.Failed(appString(R.string.search_source_timeout))
