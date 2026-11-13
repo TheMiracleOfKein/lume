@@ -251,6 +251,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
+**v0.9.15: filter sheet fix** ([notes](releases/v0.9.15.md)): the filter sheet no longer bounces on its own when its content reaches the status bar.
+
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
 - ✅ **Tall pages in pieces** (M). Paged modes decode pages in tiles through Telephoto; webtoon strips keep the slices from v0.7.11.
@@ -846,6 +848,14 @@ Release notes: [docs/releases/v0.9.8.md](releases/v0.9.8.md).
 - ✅ **Transfer**: page by page with a SHA-256 checksum per chapter; each chapter is stored as soon as it's checked, so connecting again continues. Titles go to the library; read marks optional.
 - ⏸️ Wi-Fi Direct and the local-only hotspot; sending from a title's chapter list. (QR code: ✅ in v0.9.13.)
 - 🟡 Not checked on a device: the emulator gate was skipped for this release; JVM tests cover the protocol.
+
+### v0.9.15: filter sheet fix
+
+Release notes: [docs/releases/v0.9.15.md](releases/v0.9.15.md).
+
+- ✅ **Filter sheet bouncing**: the sheet's height followed its own position near the status bar; the panel is now capped below it.
+- 🟡 Not checked on a device: released without the emulator gate or smoke test, at the owner's request.
+- 🟡 **Endless loading on some sources** (reported after v0.9.14): not reproduced yet; waiting for details (which screen, which sources).
 
 ### v0.9.14: search and chapters ahead ✅ released 2026-11-14
 
