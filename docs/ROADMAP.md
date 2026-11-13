@@ -251,7 +251,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
-**v0.9.15: filter sheet fix** ([notes](releases/v0.9.15.md)): the filter sheet no longer bounces on its own when its content reaches the status bar.
+**v0.9.15: filter sheet fix** ✅ released 2026-11-14 ([notes](releases/v0.9.15.md)): the filter sheet no longer bounces on its own when its content reaches the status bar.
 
 **Image pipeline**
 - ✅ **Coil 3** instead of Coil 2 (M). The disk cache starts over once (`image_cache_v3`).
@@ -849,7 +849,7 @@ Release notes: [docs/releases/v0.9.8.md](releases/v0.9.8.md).
 - ⏸️ Wi-Fi Direct and the local-only hotspot; sending from a title's chapter list. (QR code: ✅ in v0.9.13.)
 - 🟡 Not checked on a device: the emulator gate was skipped for this release; JVM tests cover the protocol.
 
-### v0.9.15: filter sheet fix
+### v0.9.15: filter sheet fix ✅ released 2026-11-14
 
 Release notes: [docs/releases/v0.9.15.md](releases/v0.9.15.md).
 
