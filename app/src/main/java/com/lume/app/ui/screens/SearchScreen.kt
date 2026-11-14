@@ -36,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.clip
 import com.lume.app.ui.components.FilterPanel
+import com.lume.app.ui.components.FilterSheetInsets
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -119,6 +120,7 @@ fun SearchScreen(nav: NavHostController, globalQuery: String? = null) {
             onDismissRequest = { filtersOpen = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = AppColors.surface,
+            contentWindowInsets = { FilterSheetInsets },
         ) {
             FilterPanel(
                 initial = vm.filters,

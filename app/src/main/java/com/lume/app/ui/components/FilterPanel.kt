@@ -70,6 +70,8 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.draw.clip
@@ -427,6 +429,15 @@ private fun filterFieldColors() = TextFieldDefaults.colors(
     focusedIndicatorColor = AppColors.accentText,
     unfocusedIndicatorColor = AppColors.divider,
 )
+
+/**
+ * Window insets for the sheet that holds [FilterPanel]: the bottom ones only. By default the sheet
+ * pads its top by the part of the status bar it overlaps. A hard fling makes the sheet spring a
+ * little past its top anchor into the status bar, the padding grows the sheet, the anchor moves,
+ * the sheet springs again and never settles. The panel already keeps itself below the status bar.
+ */
+val FilterSheetInsets: WindowInsets
+    @Composable get() = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
 
 /** Groups longer than this start folded. */
 private const val FOLD_AT = 12
