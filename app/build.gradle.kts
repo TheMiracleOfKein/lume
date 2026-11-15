@@ -1,9 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.baselineprofile)
-    alias(libs.plugins.roborazzi)
 }
 
 android {
@@ -69,63 +67,22 @@ android {
         disable.add("AndroidGradlePluginVersion")
     }
 
-    testOptions {
-        // Engines touch android.webkit / Context only through runCatching fallbacks.
-        unitTests.isReturnDefaultValues = true
-        // Robolectric (screenshot tests) needs the merged assets and resources.
-        unitTests.isIncludeAndroidResources = true
-        unitTests.all { test ->
-            test.testLogging { events("passed", "skipped", "failed"); showStandardStreams = true }
-        }
-    }
-}
-
-// Screenshot tests (Roborazzi): golden images live in the repository under src/test/screenshots.
-// A plain testDebugUnitTest skips the image step; recordRoborazziDebug writes the goldens and
-// verifyRoborazziDebug compares against them (see docs/ARCHITECTURE.md, "Screenshot tests").
-roborazzi {
-    outputDir.set(layout.projectDirectory.dir("src/test/screenshots"))
 }
 
 dependencies {
-    implementation(project(":core:model"))
-    implementation(project(":core:data"))
-    implementation(project(":core:common"))
+    implementation(project(":core:ui"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material.icons)
-    implementation(libs.androidx.navigation.compose)
     // App lock: the system screen-lock prompt (fingerprint, face, PIN).
     implementation(libs.androidx.biometric)
-    implementation(libs.zxing.core)
+    // The manifest declares zxing's CaptureActivity (QR scanner), so lint needs it on this classpath.
     implementation(libs.zxing.embedded)
-    implementation(libs.coil.compose)
-    implementation(libs.coil.network.okhttp)
-    // Paged reader: subsampled decoding and sharp zoom.
-    implementation(libs.telephoto.zoomable.image.coil3)
-    implementation(libs.kotlinx.serialization.json)
     // Installs the baseline profile on sideloaded installs too (Play does it itself).
     implementation(libs.androidx.profileinstaller)
     // Measured profile from :baselineprofile (./gradlew :app:generateBaselineProfile with a device attached).
     baselineProfile(project(":baselineprofile"))
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    testImplementation(libs.junit)
-    testImplementation(libs.robolectric)
-    testImplementation(libs.androidx.test.core)
-    testImplementation(libs.androidx.test.ext.junit)
-    testImplementation(platform(libs.androidx.compose.bom))
-    testImplementation(libs.androidx.compose.ui.test.junit4)
-    testImplementation(libs.roborazzi)
-    testImplementation(libs.roborazzi.compose)
-    testImplementation(libs.roborazzi.junit.rule)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.core)

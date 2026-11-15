@@ -43,7 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
-import com.lume.app.LumeApp
+import com.lume.app.ContainerOwner
 import com.lume.app.R
 import com.lume.app.ui.components.GuardedWebViewClient
 import com.lume.app.data.tracker.AniListTracker
@@ -57,7 +57,7 @@ import kotlinx.coroutines.launch
  * In-app WebView OAuth so redirect URLs (including #access_token) are captured reliably.
  */
 class TrackerAuthActivity : ComponentActivity() {
-    private val container get() = (application as LumeApp).container
+    private val container get() = (application as ContainerOwner).container
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -257,7 +257,7 @@ class TrackerAuthActivity : ComponentActivity() {
         private const val EXTRA_URL = "url"
 
         suspend fun start(context: Context, trackerId: String): String? {
-            val container = (context.applicationContext as LumeApp).container
+            val container = (context.applicationContext as ContainerOwner).container
             val prefs = container.prefs
             val (url, error) = when (trackerId) {
                 "anilist" -> {
