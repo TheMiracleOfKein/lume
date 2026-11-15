@@ -1,7 +1,6 @@
 package com.lume.app
 
 import android.app.Application
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.room.Room
 import coil3.ImageLoader
 import coil3.imageLoader
@@ -30,12 +29,14 @@ import kotlinx.coroutines.launch
 
 /**
  * Everything the app shares, built once per process. Screens get it through [LocalAppContainer],
- * ViewModels through their constructor, workers and activities through [LumeApp.container].
+ * ViewModels through their constructor, workers and activities through [ContainerOwner.container].
  */
 class AppContainer(
     val app: Application,
-    /** Crashes saved on the phone (About → "Share log"); built first by [LumeApp] so it sees start-up crashes. */
-    val crashLog: com.lume.app.data.CrashLog = LumeApp.crashLogFor(app),
+    /** Crashes saved on the phone (About → "Share log"); built first by the Application so it sees start-up crashes. */
+    val crashLog: com.lume.app.data.CrashLog,
+    /** The kinds of content this build serves; their engines plug into [sources]. */
+    val installedModules: List<com.lume.app.data.source.ContentModule>,
 ) {
     /**
      * Lives as long as the process. Used for work that must finish even when the screen that
@@ -63,8 +64,6 @@ class AppContainer(
     /** Full text of recent errors (Sources → Error log), kept only on the phone. */
     val errorLog = com.lume.app.data.ErrorLog(app.filesDir.resolve("error_log.json"), appScope)
 
-    /** The kinds of content this build serves; their engines plug into [sources]. */
-    val installedModules: List<com.lume.app.data.source.ContentModule> = listOf(com.lume.app.data.source.ComicsModule)
     val sources = SourceRegistry(app, http, prefs, dao, libAuth, imageReferers, serverCredentials, scope = appScope, errorLog = errorLog, modules = installedModules)
     val safStorage = com.lume.app.data.downloads.SafStorage(app)
     val downloads = DownloadStore(app, dao, http, prefs, safStorage)
@@ -136,6 +135,3 @@ class AppContainer(
     }
 }
 
-val LocalAppContainer = staticCompositionLocalOf<AppContainer> {
-    error("AppContainer not provided")
-}

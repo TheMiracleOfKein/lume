@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.ksp)
     alias(libs.plugins.baselineprofile)
     alias(libs.plugins.roborazzi)
 }
@@ -73,25 +72,13 @@ android {
     testOptions {
         // Engines touch android.webkit / Context only through runCatching fallbacks.
         unitTests.isReturnDefaultValues = true
-        // Robolectric (Room migration tests) needs the merged assets and resources.
+        // Robolectric (screenshot tests) needs the merged assets and resources.
         unitTests.isIncludeAndroidResources = true
         unitTests.all { test ->
-            // Live catalogue checks hit real sites: ./gradlew :app:testDebugUnitTest -Plume.live
-            test.systemProperty("lume.live", project.hasProperty("lume.live").toString())
-            project.findProperty("lume.live.sources")?.let { test.systemProperty("lume.live.sources", it.toString()) }
-            test.systemProperty("lume.live.record", project.hasProperty("lume.live.record").toString())
             test.testLogging { events("passed", "skipped", "failed"); showStandardStreams = true }
         }
     }
 }
-
-// Tests that run both on the JVM (Robolectric) and on a device live in src/sharedTest.
-// The migration tests read the exported schemas as assets. JVM tests only see the tested
-// variant's assets, so they also go into debug builds; release APKs don't carry them.
-android.sourceSets.getByName("test").kotlin.directories.add("src/sharedTest/java")
-android.sourceSets.getByName("androidTest").kotlin.directories.add("src/sharedTest/java")
-android.sourceSets.getByName("androidTest").assets.directories.add("$projectDir/schemas")
-android.sourceSets.getByName("debug").assets.directories.add("$projectDir/schemas")
 
 // Screenshot tests (Roborazzi): golden images live in the repository under src/test/screenshots.
 // A plain testDebugUnitTest skips the image step; recordRoborazziDebug writes the goldens and
@@ -100,13 +87,9 @@ roborazzi {
     outputDir.set(layout.projectDirectory.dir("src/test/screenshots"))
 }
 
-// Exported Room schemas (app/schemas) make future migrations reviewable and testable.
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
-}
-
 dependencies {
     implementation(project(":core:model"))
+    implementation(project(":core:data"))
     implementation(project(":core:common"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -120,36 +103,21 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.okhttp)
-    implementation(libs.okhttp.doh)
     // App lock: the system screen-lock prompt (fingerprint, face, PIN).
     implementation(libs.androidx.biometric)
-    implementation(libs.jsoup)
     implementation(libs.zxing.core)
     implementation(libs.zxing.embedded)
-    implementation(libs.jspecify)
-    implementation(libs.junrar)
-    implementation(libs.commons.compress)
-    implementation(libs.xz)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     // Paged reader: subsampled decoding and sharp zoom.
     implementation(libs.telephoto.zoomable.image.coil3)
-    implementation(libs.room.runtime)
-    implementation(libs.room.ktx)
-    ksp(libs.room.compiler)
     implementation(libs.kotlinx.serialization.json)
-    // Reads Mihon / Tachiyomi backups (.tachibk is gzipped protobuf).
-    implementation(libs.kotlinx.serialization.protobuf)
-    implementation(libs.datastore.preferences)
-    implementation(libs.androidx.work.runtime.ktx)
     // Installs the baseline profile on sideloaded installs too (Play does it itself).
     implementation(libs.androidx.profileinstaller)
     // Measured profile from :baselineprofile (./gradlew :app:generateBaselineProfile with a device attached).
     baselineProfile(project(":baselineprofile"))
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
-    testImplementation(libs.room.testing)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.test.ext.junit)
@@ -160,7 +128,6 @@ dependencies {
     testImplementation(libs.roborazzi.junit.rule)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(libs.junit)
-    androidTestImplementation(libs.room.testing)
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)

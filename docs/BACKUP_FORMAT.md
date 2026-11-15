@@ -7,7 +7,7 @@ imported local files, sign-ins or tokens.
 This page is the reference for the format and the promise behind it: **every backup an older Lume
 made keeps loading in every newer Lume.** The code is `data/backup/BackupRepository.kt`
 (`BackupPayload` and the `…Dto` classes). The test `BackupFormatTest` pins the field names and
-loads one saved sample file per version from `app/src/test/resources/backups/`.
+loads one saved sample file per version from `core/data/src/test/resources/backups/`.
 
 ## Compatibility rules
 

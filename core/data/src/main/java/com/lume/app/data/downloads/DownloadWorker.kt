@@ -1,5 +1,6 @@
 package com.lume.app.data.downloads
 
+import com.lume.app.ContainerOwner
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -19,7 +20,6 @@ import androidx.work.ForegroundInfo
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.DownloadQueueEntity
 import com.lume.app.ui.nav.AppLinks
@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 class DownloadWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        val app = (applicationContext as? LumeApp)?.container ?: return Result.success()
+        val app = (applicationContext as? ContainerOwner)?.container ?: return Result.success()
         val queue = app.downloadQueue
         ensureChannel(applicationContext)
         // Starting a foreground job from the background is not always allowed (Android 12+);
@@ -59,7 +59,7 @@ class DownloadWorker(appContext: Context, params: WorkerParameters) : CoroutineW
     }
 
     override suspend fun getForegroundInfo(): ForegroundInfo {
-        val items = (applicationContext as? LumeApp)?.container?.downloadQueue?.items?.value.orEmpty()
+        val items = (applicationContext as? ContainerOwner)?.container?.downloadQueue?.items?.value.orEmpty()
         return foregroundInfo(items)
     }
 
@@ -149,7 +149,7 @@ class DownloadWorker(appContext: Context, params: WorkerParameters) : CoroutineW
 /** Buttons of the download notification. */
 class DownloadActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val queue = (context.applicationContext as? LumeApp)?.container?.downloadQueue ?: return
+        val queue = (context.applicationContext as? ContainerOwner)?.container?.downloadQueue ?: return
         when (intent.action) {
             DownloadWorker.ACTION_PAUSE -> queue.pause()
             DownloadWorker.ACTION_CANCEL_ALL -> queue.cancelAll()

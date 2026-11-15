@@ -128,7 +128,7 @@ fun UpdatePrompt() {
                 title = { Text(stringResource(R.string.update_failed_title)) },
                 text = { Text(s.message) },
                 confirmButton = {
-                    TextButton(onClick = { updater.download(s.release) }) { Text(stringResource(R.string.action_retry)) }
+                    TextButton(onClick = { s.release?.let(updater::download) }) { Text(stringResource(R.string.action_retry)) }
                 },
                 dismissButton = {
                     TextButton(onClick = updater::dismiss) { Text(stringResource(R.string.action_close)) }

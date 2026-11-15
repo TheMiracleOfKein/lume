@@ -284,8 +284,9 @@ private fun BookmarkImportCard(status: LibImportStatus, onDismiss: () -> Unit, m
             )
             LibImportStage.Finished -> {
                 val r = status.result
+                val error = status.error
                 val summary = when {
-                    status.error != null -> stringResource(R.string.source_bookmarks_failed, status.error)
+                    error != null -> stringResource(R.string.source_bookmarks_failed, error)
                     r == null || (r.added == 0 && r.alreadyInLibrary == 0) ->
                         stringResource(R.string.source_bookmarks_empty, status.sourceName)
                     else -> stringResource(

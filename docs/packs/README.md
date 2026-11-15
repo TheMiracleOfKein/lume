@@ -28,7 +28,7 @@ Installed apps read the catalogue from `https://raw.githubusercontent.com/TheMir
 
 ## Site manifests (not importable)
 
-Sample manifests for one-site engines that ship only inside the app. They can't be imported; they are kept as a reference in case these sites are bundled again under `app/src/main/assets/sources/`.
+Sample manifests for one-site engines that ship only inside the app. They can't be imported; they are kept as a reference in case these sites are bundled again under `core/data/src/main/assets/sources/`.
 
 - [site/weebcentral.json](site/weebcentral.json)
 - [site/demonicscans.json](site/demonicscans.json)

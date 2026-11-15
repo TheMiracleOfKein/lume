@@ -20,4 +20,5 @@ rootProject.name = "Lume"
 include(":app")
 include(":core:model")
 include(":core:common")
+include(":core:data")
 include(":baselineprofile")

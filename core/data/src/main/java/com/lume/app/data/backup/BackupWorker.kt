@@ -1,5 +1,6 @@
 package com.lume.app.data.backup
 
+import com.lume.app.ContainerOwner
 import android.content.Context
 import android.net.Uri
 import androidx.work.CoroutineWorker
@@ -7,13 +8,12 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.lume.app.LumeApp
 import java.util.concurrent.TimeUnit
 
 /** Automatic backups (Settings → Backups): every few days, keeping the newest few. */
 class BackupWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result {
-        val app = (applicationContext as? LumeApp)?.container ?: return Result.success()
+        val app = (applicationContext as? ContainerOwner)?.container ?: return Result.success()
         app.sources.awaitLoaded()
         return runCatching {
             app.backup.autoBackup(

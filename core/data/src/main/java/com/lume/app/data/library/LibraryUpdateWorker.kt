@@ -1,5 +1,6 @@
 package com.lume.app.data.library
 
+import com.lume.app.ContainerOwner
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -23,7 +24,6 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
-import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.db.TitleMetaEntity
 import com.lume.app.data.db.WATCHED_TITLES_LIMIT
@@ -46,7 +46,7 @@ class LibraryUpdateWorker(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        val app = (applicationContext as? LumeApp)?.container ?: return Result.success()
+        val app = (applicationContext as? ContainerOwner)?.container ?: return Result.success()
         val dao = app.dao
         val results = mutableListOf<LibraryUpdateResult>()
         var checked = 0

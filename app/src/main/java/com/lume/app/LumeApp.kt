@@ -14,16 +14,16 @@ import coil3.request.crossfade
 import okhttp3.OkHttpClient
 import okio.Path.Companion.toOkioPath
 
-class LumeApp : Application(), SingletonImageLoader.Factory {
-    lateinit var container: AppContainer
+class LumeApp : Application(), SingletonImageLoader.Factory, ContainerOwner {
+    override lateinit var container: AppContainer
         private set
 
     override fun onCreate() {
         super.onCreate()
-        instance = this
+        AppContextHolder.context = this
         // First, so a crash while the container is built is saved too.
-        val crashLog = crashLogFor(this).also { it.install() }
-        container = AppContainer(this, crashLog)
+        val crashLog = com.lume.app.data.CrashLog.forApp(this).also { it.install() }
+        container = AppContainer(this, crashLog, listOf(com.lume.app.data.source.ComicsModule))
         // Per-app language: empty list = follow system (see AppLanguage.SYSTEM).
         runCatching {
             com.lume.app.data.locale.AppLocaleController.applyStoredTag(container.prefs.appLanguage.value)
@@ -70,12 +70,5 @@ class LumeApp : Application(), SingletonImageLoader.Factory {
     companion object {
         private const val IMAGE_CACHE = "image_cache_v3"
         private const val LEGACY_IMAGE_CACHE = "image_cache"
-
-        internal fun crashLogFor(app: Context): com.lume.app.data.CrashLog =
-            com.lume.app.data.CrashLog(app.filesDir.resolve("crash_log.json"), BuildConfig.VERSION_NAME)
-
-        /** Only for [com.lume.app.data.locale.appString]; everything else uses [container]. */
-        internal lateinit var instance: LumeApp
-            private set
     }
 }

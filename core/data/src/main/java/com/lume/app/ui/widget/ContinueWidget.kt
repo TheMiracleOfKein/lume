@@ -1,5 +1,6 @@
 package com.lume.app.ui.widget
 
+import com.lume.app.ContainerOwner
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -8,8 +9,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.view.View
 import android.widget.RemoteViews
-import com.lume.app.LumeApp
-import com.lume.app.MainActivity
 import com.lume.app.R
 import com.lume.app.data.continuity.ContinueReading
 
@@ -19,7 +18,7 @@ import com.lume.app.data.continuity.ContinueReading
  */
 class ContinueWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
-        val continueReading = (context.applicationContext as? LumeApp)?.container?.continueReading
+        val continueReading = (context.applicationContext as? ContainerOwner)?.container?.continueReading
         if (continueReading != null) {
             continueReading.refreshWidgets()
         } else {
@@ -35,7 +34,7 @@ class ContinueWidget : AppWidgetProvider() {
 
         private fun openApp(context: Context, route: String?): Intent =
             if (route == null) {
-                Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                Intent().setClassName(context.packageName, "com.lume.app.MainActivity").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             } else {
                 com.lume.app.ui.nav.AppLinks.intentFor(context, route).setAction(Intent.ACTION_VIEW)
             }

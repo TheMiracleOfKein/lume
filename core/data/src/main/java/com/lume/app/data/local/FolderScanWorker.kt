@@ -1,5 +1,6 @@
 package com.lume.app.data.local
 
+import com.lume.app.ContainerOwner
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -17,7 +18,6 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.data.library.LibraryUpdateWorker
 import com.lume.app.ui.nav.AppLinks
@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit
 /** Re-scans the watched folders for new chapters, every few hours or on "Scan now". */
 class FolderScanWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result {
-        val app = (applicationContext as? LumeApp)?.container ?: return Result.success()
+        val app = (applicationContext as? ContainerOwner)?.container ?: return Result.success()
         val summary = runCatching { app.folderScanner.scanAll() }.getOrElse { return Result.retry() }
         if (summary.newChapters > 0) notifyNew(summary.newChapters)
         return Result.success()

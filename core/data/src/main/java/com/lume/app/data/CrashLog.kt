@@ -77,6 +77,10 @@ class CrashLog(
         const val MAX_ENTRIES = 10
         private const val MAX_TRACE = 12_000
 
+        /** The crash log in the app's files dir; built first so start-up crashes are saved too. */
+        fun forApp(app: android.content.Context): CrashLog =
+            CrashLog(app.filesDir.resolve("crash_log.json"), com.lume.app.BuildConfig.VERSION_NAME)
+
         fun format(entry: CrashEntry): String = buildString {
             append(timestamp(entry.at)).append(" · Lume ").append(entry.version)
             append(" · thread ").append(entry.thread).append('\n')
