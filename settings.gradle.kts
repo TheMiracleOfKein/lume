@@ -18,4 +18,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "Lume"
 include(":app")
+include(":core:model")
 include(":baselineprofile")

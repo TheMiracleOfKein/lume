@@ -422,3 +422,17 @@ private fun ModeCard(
         )
     }
 }
+
+private val ReaderMode.labelRes: Int
+    get() = when (this) {
+        ReaderMode.Rtl -> R.string.reader_mode_rtl
+        ReaderMode.Webtoon -> R.string.reader_mode_webtoon
+        ReaderMode.Ltr -> R.string.reader_mode_ltr
+    }
+
+private val ReaderTheme.labelRes: Int
+    get() = when (this) {
+        ReaderTheme.Light -> R.string.reader_theme_light
+        ReaderTheme.Dark -> R.string.reader_theme_dark
+        ReaderTheme.System -> R.string.reader_theme_system
+    }
