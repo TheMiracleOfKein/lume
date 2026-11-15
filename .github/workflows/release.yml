@@ -65,7 +65,7 @@ jobs:
 
       - name: Check the version matches the tag
         run: |
-          name=$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' app/build.gradle.kts)
+          name=$(sed -n 's/^lume\.versionName=\(.*\)$/\1/p' gradle.properties | tr -d '\r')
           if [ "v$name" != "$TAG" ]; then
             echo "::error::versionName is $name but the tag is $TAG"
             exit 1

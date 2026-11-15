@@ -3,6 +3,7 @@
 Lume is being split into Gradle modules so that builds can include only the reading modes they need:
 
 - `:core:model`: plain Kotlin (no Android). Holds `domain/` (models, the source contract, filters, reading logic). Its tests are in `core/model/src/test/`.
+- `:core:common`: Android library with namespace `com.lume.app`. Holds all resources (`res/`), `util/` and `BuildConfig` (version and OAuth ids), so `com.lume.app.R` and `com.lume.app.BuildConfig` resolve unchanged everywhere. The version lives in `gradle.properties` (`lume.versionCode`, `lume.versionName`). `:app` has namespace `com.lume.app.shell` (applicationId stays `com.lume.app`).
 - `:app`: everything else (`ui/`, `data/`), under `app/src/main/java/com/lume/app/`.
 - `:baselineprofile`: records the startup profile.
 

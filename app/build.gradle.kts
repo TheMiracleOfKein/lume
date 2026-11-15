@@ -7,47 +7,17 @@ plugins {
     alias(libs.plugins.roborazzi)
 }
 
-// Must stay outside android { defaultConfig } — nested mapNotNull/return@ confuses the IDE
-// (suspicious receiver: ApplicationDefaultConfig vs Iterable).
-private val oauthProps: Map<String, String> = run {
-    val file = rootProject.file("local.properties")
-    if (!file.exists()) return@run emptyMap()
-    file.readLines().mapNotNull { line ->
-        val trimmed = line.trim()
-        if (trimmed.isEmpty() || trimmed.startsWith("#")) return@mapNotNull null
-        val eq = trimmed.indexOf('=')
-        if (eq <= 0) return@mapNotNull null
-        trimmed.substring(0, eq).trim() to trimmed.substring(eq + 1).trim()
-    }.toMap()
-}
-
-private fun oauthBuildConfig(name: String): String {
-    val raw = oauthProps[name].orEmpty()
-        .replace("\\", "\\\\")
-        .replace("\"", "\\\"")
-    return "\"$raw\""
-}
-
 android {
-    namespace = "com.lume.app"
+    namespace = "com.lume.app.shell"
     compileSdk = 37
 
     defaultConfig {
         applicationId = "com.lume.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 48
-        versionName = "0.9.16"
+        versionCode = providers.gradleProperty("lume.versionCode").get().toInt()
+        versionName = providers.gradleProperty("lume.versionName").get()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // OAuth app credentials for AniList / Shikimori (identify Lume itself).
-        // Put values in root local.properties (gitignored), e.g. LUME_SHIKIMORI_CLIENT_ID=...
-        buildConfigField("String", "ANILIST_CLIENT_ID", oauthBuildConfig("LUME_ANILIST_CLIENT_ID"))
-        buildConfigField("String", "ANILIST_CLIENT_SECRET", oauthBuildConfig("LUME_ANILIST_CLIENT_SECRET"))
-        buildConfigField("String", "SHIKIMORI_CLIENT_ID", oauthBuildConfig("LUME_SHIKIMORI_CLIENT_ID"))
-        buildConfigField("String", "SHIKIMORI_CLIENT_SECRET", oauthBuildConfig("LUME_SHIKIMORI_CLIENT_SECRET"))
-        // MyAnimeList: register an app with redirect URL lume://oauth/myanimelist (no secret needed).
-        buildConfigField("String", "MAL_CLIENT_ID", oauthBuildConfig("LUME_MAL_CLIENT_ID"))
     }
 
     // Release signing from the user's ~/.gradle/gradle.properties (never in the repository).
@@ -85,7 +55,6 @@ android {
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 
     packaging {
@@ -138,6 +107,7 @@ ksp {
 
 dependencies {
     implementation(project(":core:model"))
+    implementation(project(":core:common"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.lifecycle.runtime.ktx)
