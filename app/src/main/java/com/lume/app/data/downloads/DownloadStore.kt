@@ -13,6 +13,7 @@ import com.lume.app.data.offline.OfflineTitleCache
 import com.lume.app.data.source.SourceRegistry
 import com.lume.app.data.ArchiveCache
 import com.lume.app.domain.CatalogSource
+import com.lume.app.domain.requireComic
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.TitleDetails
@@ -651,7 +652,7 @@ class DownloadStore(
         onProgress?.invoke(0f)
 
         try {
-            val (pageSource, pages) = fetchPages?.invoke() ?: (source to source.getPages(chapter))
+            val (pageSource, pages) = fetchPages?.invoke() ?: (source to source.requireComic().getPages(chapter))
             if (pages.isEmpty()) error(context.getString(R.string.error_no_pages_download))
 
             // A picked folder: the chapter is built in app storage, then copied over (see publishToSaf).

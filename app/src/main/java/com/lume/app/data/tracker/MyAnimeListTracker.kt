@@ -6,6 +6,7 @@ import com.lume.app.data.network.AppHttp
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.data.similar.SimilarTitle
 import com.lume.app.data.similar.parseMalRecommendations
+import com.lume.app.domain.MediaKind
 import com.lume.app.util.urlEncode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.withLock
@@ -118,9 +119,9 @@ class MyAnimeListTracker(
         http.okHttp.newCall(request(fresh)).execute().use(read)
     }
 
-    override suspend fun search(query: String): List<TrackerSearchResult> {
+    override suspend fun search(query: String, kind: MediaKind): List<TrackerSearchResult> {
         val q = query.trim().take(64)
-        if (q.isEmpty()) return emptyList()
+        if (q.isEmpty() || kind != MediaKind.Comics) return emptyList()
         val url = "$API/manga?q=${urlEncode(q)}&limit=10&nsfw=true&fields=alternative_titles,main_picture"
         return api({ url(url).get() }) { response ->
             if (!response.isSuccessful) return@api emptyList()
@@ -145,7 +146,8 @@ class MyAnimeListTracker(
 
     override val supportsListImport: Boolean get() = true
 
-    override suspend fun fetchReadingList(): List<TrackerListEntry>? {
+    override suspend fun fetchReadingList(kind: MediaKind): List<TrackerListEntry>? {
+        if (kind != MediaKind.Comics) return null
         val all = mutableListOf<TrackerListEntry>()
         var url: String? = "$API/users/@me/mangalist?status=reading&limit=1000" +
             "&fields=list_status,alternative_titles,authors{first_name,last_name}"
@@ -169,7 +171,8 @@ class MyAnimeListTracker(
             parseMalRecommendations(json, response.body.string())
         }
 
-    override suspend fun link(sourceId: String, titleId: String, remoteId: String, remoteUrl: String?) {
+    override suspend fun link(sourceId: String, titleId: String, remoteId: String, remoteUrl: String?, kind: MediaKind) {
+        if (kind != MediaKind.Comics) return
         dao.upsertTrackerLink(
             TrackerLinkEntity(sourceId, titleId, id, remoteId, remoteUrl ?: "https://myanimelist.net/manga/$remoteId"),
         )

@@ -31,6 +31,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -41,7 +42,7 @@ import androidx.work.WorkManager
 
 class HistoryViewModel(private val app: AppContainer) : ViewModel() {
     val history: StateFlow<List<ProgressEntity>> =
-        app.dao.observeHistory().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        app.prefs.activeMode.flatMapLatest { app.dao.observeHistoryOfKind(it.id) }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     fun clearAll() {
         viewModelScope.launch { app.dao.clearAllProgress() }
@@ -79,7 +80,7 @@ class LibraryViewModel(private val app: AppContainer) : ViewModel() {
 
     /** Every library title with its counts, before category, search, filters and sorting; null until the first database answer. */
     private val items: StateFlow<List<LibraryItem>?> = combine(
-        dao.observeBookmarks(),
+        app.prefs.activeMode.flatMapLatest { dao.observeBookmarksOfKind(it.id) },
         dao.observeLibraryStats(),
         dao.observeTitleMeta(),
         dao.observeTrackedTitles(),

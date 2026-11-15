@@ -20,6 +20,9 @@ data class BookmarkEntity(
     /** JSON array of the title's genre names as the source spells them; filled from title details. */
     @ColumnInfo(defaultValue = "'[]'")
     val genresJson: String = "[]",
+    /** [com.lume.app.domain.MediaKind.id] of the title, so a mode shows only its own titles. */
+    @ColumnInfo(defaultValue = "'comics'")
+    val mediaKind: String = "comics",
 )
 
 @Entity(tableName = "reading_progress", primaryKeys = ["sourceId", "titleId"])
@@ -43,6 +46,9 @@ data class ProgressEntity(
      * you stopped at. Not backed up or synced: page links change, and the card falls back to the cover.
      */
     val pageImageUrl: String? = null,
+    /** [com.lume.app.domain.MediaKind.id] of the title. */
+    @ColumnInfo(defaultValue = "'comics'")
+    val mediaKind: String = "comics",
 )
 
 /**

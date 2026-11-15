@@ -5,9 +5,9 @@ import com.lume.app.data.network.SourceHttpException
 import com.lume.app.R
 import com.lume.app.data.locale.appString
 import com.lume.app.domain.BrowseSection
-import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
+import com.lume.app.domain.ComicSource
 import com.lume.app.domain.FilterList
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
@@ -37,7 +37,7 @@ class LibSocialEngine(
     private val http: AppHttp,
     private val auth: LibAuthStore? = null,
     private val json: Json = Json { ignoreUnknownKeys = true; isLenient = true },
-) : CatalogSource {
+) : ComicSource {
     private val apiBase: URI
         get() = URI(manifest.configString("apiBase") ?: "https://api.cdnlibs.org/api")
 

@@ -189,6 +189,7 @@
     <string name="source_logout_ok">Вы вышли</string>
     <string name="source_auth_on">вход выполнен</string>
     <string name="source_auth_off">гость</string>
+    <string name="mode_comics">Манга</string>
     <string name="engine_kind_family">семейство (паки)</string>
     <string name="engine_kind_local">локальный</string>
     <string name="engine_kind_server">ваш сервер</string>

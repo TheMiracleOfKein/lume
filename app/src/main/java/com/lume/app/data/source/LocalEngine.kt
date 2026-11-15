@@ -6,9 +6,9 @@ import com.lume.app.data.ArchiveCache
 import com.lume.app.data.local.archive.ArchiveReaders
 import com.lume.app.data.local.pdf.PdfPageUrl
 import com.lume.app.data.local.pdf.PdfRendererPool
-import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
+import com.lume.app.domain.ComicSource
 import com.lume.app.domain.FilterList
 import com.lume.app.domain.HomeFeed
 import com.lume.app.domain.PagedResult
@@ -36,7 +36,7 @@ import java.io.ByteArrayOutputStream
  */
 class LocalEngine(
     private val context: Context,
-) : CatalogSource {
+) : ComicSource {
 
     override val manifest: SourceManifest = SourceManifest(
         id = "local",

@@ -99,28 +99,16 @@ object SourceEngines {
         libAuth: LibAuthStore? = null,
         serverCredentials: ServerCredentials? = null,
         cacheDir: java.io.File? = null,
-    ): CatalogSource =
-        when (manifest.engine) {
-            OPDS -> OpdsEngine(manifest, http, serverCredentials, cacheDir)
-            KOMGA -> KomgaEngine(manifest, http)
-            KAVITA -> KavitaEngine(manifest, http, serverCredentials)
-            MADARA -> MadaraEngine(manifest, http)
-            LIBSOCIAL -> LibSocialEngine(manifest, http, libAuth)
-            MANGADEX -> MangaDexEngine(manifest, http)
-            MANGAKATANA -> MangaKatanaEngine(manifest, http)
-            ASURA -> AsuraEngine(manifest, http)
-            WEEBCENTRAL -> WeebCentralEngine(manifest, http)
-            DEMONIC -> DemonicEngine(manifest, http)
-            HIVETOONS -> HiveToonsEngine(manifest, http)
-            REMANGA -> RemangaEngine(manifest, http)
-            MANGABUFF -> MangaBuffEngine(manifest, http)
-            INKSTORY -> InkStoryEngine(manifest, http)
-            else -> error(
+        modules: List<ContentModule> = listOf(ComicsModule),
+    ): CatalogSource {
+        val factory = modules.firstNotNullOfOrNull { it.engines[manifest.engine] }
+            ?: error(
                 if (isKnown(manifest.engine)) {
                     "Engine wiring missing for ${manifest.engine}"
                 } else {
                     "Unknown engine: ${manifest.engine}. New engines ship with app updates."
                 },
             )
-        }
+        return factory(manifest, EngineDeps(http, libAuth, serverCredentials, cacheDir))
+    }
 }

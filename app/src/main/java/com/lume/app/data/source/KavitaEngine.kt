@@ -7,9 +7,9 @@ import com.lume.app.data.network.ServerAccess
 import com.lume.app.data.network.SourceHttpException
 import com.lume.app.data.server.ServerCredentials
 import com.lume.app.domain.BrowseSection
-import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
+import com.lume.app.domain.ComicSource
 import com.lume.app.domain.FilterList
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.ReadProgressSink
@@ -48,7 +48,7 @@ class KavitaEngine(
     private val http: AppHttp,
     private val credentials: ServerCredentials?,
     private val json: Json = Json { ignoreUnknownKeys = true; isLenient = true },
-) : CatalogSource, ReadProgressSink {
+) : ComicSource, ReadProgressSink {
     private val base get() = manifest.baseUrl.trimEnd('/')
     private val libraryId get() = manifest.configString("libraryId")?.trim()?.takeIf { it.isNotEmpty() }
 

@@ -4,6 +4,7 @@ import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.db.TrackerLinkEntity
 import com.lume.app.data.network.AppHttp
 import com.lume.app.data.prefs.AppPreferences
+import com.lume.app.domain.MediaKind
 import com.lume.app.util.urlEncode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -188,9 +189,9 @@ class ShikimoriTracker(
         ) ?: false
     }
 
-    override suspend fun search(query: String): List<TrackerSearchResult> = withContext(Dispatchers.IO) {
+    override suspend fun search(query: String, kind: MediaKind): List<TrackerSearchResult> = withContext(Dispatchers.IO) {
         val q = query.trim()
-        if (q.isEmpty()) return@withContext emptyList()
+        if (q.isEmpty() || kind != MediaKind.Comics) return@withContext emptyList()
         val encoded = urlEncode(q)
         // shikimori.one/api… often 404; Mihon uses shikimori.io
         val result = http.get(
@@ -228,7 +229,9 @@ class ShikimoriTracker(
         titleId: String,
         remoteId: String,
         remoteUrl: String?,
+        kind: MediaKind,
     ) {
+        if (kind != MediaKind.Comics) return
         dao.upsertTrackerLink(
             TrackerLinkEntity(
                 sourceId = sourceId,

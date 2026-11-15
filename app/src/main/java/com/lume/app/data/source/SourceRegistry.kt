@@ -11,6 +11,8 @@ import com.lume.app.data.server.ServerAuth
 import com.lume.app.data.server.ServerCredentialStore
 import com.lume.app.data.server.ServerCredentials
 import com.lume.app.domain.CatalogSource
+import com.lume.app.domain.ComicSource
+import com.lume.app.domain.requireComic
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.FilterList
@@ -44,6 +46,7 @@ class SourceRegistry(
     private val json: Json = Json { ignoreUnknownKeys = true; isLenient = true },
     scope: kotlinx.coroutines.CoroutineScope? = null,
     errorLog: com.lume.app.data.ErrorLog? = null,
+    private val modules: List<ContentModule> = listOf(ComicsModule),
 ) {
     private val bundledIds = mutableSetOf<String>()
 
@@ -296,7 +299,7 @@ class SourceRegistry(
     }
 
     private fun buildEngine(manifest: SourceManifest, sign: ServerCredentials?): CatalogSource =
-        if (manifest.engine == SourceEngines.LOCAL) LocalEngine(context) else SourceEngines.create(manifest, http, libAuth, sign, context.cacheDir)
+        if (manifest.engine == SourceEngines.LOCAL) LocalEngine(context) else SourceEngines.create(manifest, http, libAuth, sign, context.cacheDir, modules)
 }
 
 /**
@@ -306,7 +309,7 @@ class SourceRegistry(
 private class ImageHostTrackingSource(
     private val delegate: CatalogSource,
     private val referers: ImageReferers,
-) : CatalogSource by delegate, WrappingSource {
+) : CatalogSource by delegate, ComicSource, WrappingSource {
     override val inner: CatalogSource get() = delegate
 
     private fun learn(url: String?) = referers.learn(url, delegate.manifest)
@@ -326,7 +329,7 @@ private class ImageHostTrackingSource(
     override suspend fun getTitle(id: String): TitleDetails = delegate.getTitle(id).also { learn(it.coverUrl) }
 
     override suspend fun getPages(chapter: Chapter): List<ComicPage> =
-        delegate.getPages(chapter).also { pages -> pages.firstOrNull()?.let { learn(it.imageUrl) } }
+        delegate.requireComic().getPages(chapter).also { pages -> pages.firstOrNull()?.let { learn(it.imageUrl) } }
 }
 
 /**
@@ -337,7 +340,7 @@ private class ImageHostTrackingSource(
 private class DispatchingSource(
     private val delegate: CatalogSource,
     private val health: SourceHealth,
-) : CatalogSource by delegate, WrappingSource {
+) : CatalogSource by delegate, ComicSource, WrappingSource {
     override val inner: CatalogSource get() = delegate
 
     /** On [Dispatchers.IO], with the outcome recorded for the Sources screen. */
@@ -363,7 +366,7 @@ private class DispatchingSource(
             }
         }
 
-    override suspend fun getPages(chapter: Chapter): List<ComicPage> = io { delegate.getPages(chapter) }
+    override suspend fun getPages(chapter: Chapter): List<ComicPage> = io { delegate.requireComic().getPages(chapter) }
 }
 
 /** A registry wrapper around an engine; [unwrapped] peels them off to reach the engine itself. */

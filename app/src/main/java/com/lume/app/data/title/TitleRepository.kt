@@ -9,6 +9,7 @@ import com.lume.app.data.offline.CachedTitle
 import com.lume.app.data.offline.OfflineTitleCache
 import com.lume.app.data.source.SourceRegistry
 import com.lume.app.domain.CatalogSource
+import com.lume.app.domain.requireComic
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.LinkedChapterId
@@ -72,6 +73,9 @@ class TitleRepository(
     private val libraryChapters: LibraryChapters,
     private val dao: LibraryDao,
 ) {
+    /** The media kind of an installed source, or null when it is not installed. */
+    fun kindOf(sourceId: String): com.lume.app.domain.MediaKind? = sources.sourceById(sourceId)?.manifest?.kind
+
     /** Each source's own copy. */
     private val memory = LruMap<CachedTitle>(CACHE_ENTRIES)
 
@@ -292,7 +296,7 @@ class TitleRepository(
         for ((index, candidate) in candidates.withIndex()) {
             val (source, original) = resolve(sourceId, titleId, candidate) ?: continue
             try {
-                val pages = withContext(Dispatchers.IO) { source.getPages(original) }
+                val pages = withContext(Dispatchers.IO) { source.requireComic().getPages(original) }
                 if (pages.isEmpty()) error(appString(R.string.error_no_pages_offline))
                 return ServedPages(source, candidate, pages, fallback = index > 0)
             } catch (e: CancellationException) {

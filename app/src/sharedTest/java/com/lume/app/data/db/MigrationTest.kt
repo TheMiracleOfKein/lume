@@ -265,6 +265,31 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate15To16AddsMediaKindDefaultingToComics() {
+        helper.createDatabase(dbName, 15).apply {
+            execSQL("INSERT INTO bookmarks (sourceId, titleId, titleName, createdAt, categoryIdsJson, genresJson) VALUES ('s', 't', 'Title', 1, '[]', '[]')")
+            execSQL(
+                "INSERT INTO reading_progress (sourceId, titleId, titleName, chapterId, chapterName, chapterUrl, pageIndex, pageCount, updatedAt, pageOffset) " +
+                    "VALUES ('s', 't', 'Title', 'c1', 'Ch 1', 'u', 3, 20, 5, 0.25)",
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(dbName, 16, true, LumeDatabase.MIGRATION_15_16)
+
+        db.query("SELECT titleName, mediaKind FROM bookmarks").use {
+            it.moveToFirst()
+            assertEquals("Title", it.getString(0))
+            assertEquals("comics", it.getString(1))
+        }
+        db.query("SELECT pageIndex, mediaKind FROM reading_progress").use {
+            it.moveToFirst()
+            assertEquals(3, it.getInt(0))
+            assertEquals("comics", it.getString(1))
+        }
+    }
+
+    @Test
     fun freshDatabaseOpensWithAllMigrations() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         helper.createDatabase(dbName, 7).close()

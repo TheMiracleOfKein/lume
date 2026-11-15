@@ -155,6 +155,7 @@ class AppPreferences(
 ) {
     private val darkThemeKey = booleanPreferencesKey("dark_theme")
     private val activeSourceKey = stringPreferencesKey("active_source_id")
+    private val activeModeKey = stringPreferencesKey("active_mode")
     private val readerModeKey = intPreferencesKey("reader_mode")
     private val readerThemeKey = intPreferencesKey("reader_theme")
     private val readerGapKey = doublePreferencesKey("reader_gap")
@@ -368,6 +369,14 @@ class AppPreferences(
     }
 
     val activeSourceId: StateFlow<String?> = state { it[activeSourceKey] }
+
+    /** The kind of content the library, history and sources show. */
+    val activeMode: StateFlow<com.lume.app.domain.MediaKind> =
+        state { com.lume.app.domain.MediaKind.fromId(it[activeModeKey]) }
+
+    suspend fun setActiveMode(kind: com.lume.app.domain.MediaKind) {
+        context.appDataStore.edit { it[activeModeKey] = kind.id }
+    }
 
     val libraryUpdatesEnabled: StateFlow<Boolean> = state { it[libraryUpdatesKey] ?: false }
 

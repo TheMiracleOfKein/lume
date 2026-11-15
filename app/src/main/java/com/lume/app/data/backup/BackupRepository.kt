@@ -146,6 +146,8 @@ data class BookmarkEntityDto(
     val createdAt: Long = 0L,
     val categoryIdsJson: String = "[]",
     val genresJson: String = "[]",
+    /** [com.lume.app.domain.MediaKind.id]; backups from before v16 have none and mean comics. */
+    val mediaKind: String = "comics",
 )
 
 @Serializable
@@ -162,6 +164,7 @@ data class ProgressEntityDto(
     val pageCount: Int = 0,
     val updatedAt: Long = 0L,
     val pageOffset: Float = 0f,
+    val mediaKind: String = "comics",
 )
 
 @Serializable
@@ -305,6 +308,7 @@ class BackupRepository(
                     createdAt = it.createdAt,
                     categoryIdsJson = it.categoryIdsJson,
                     genresJson = it.genresJson,
+                    mediaKind = it.mediaKind,
                 )
             },
             progress = dao.allProgress().map {
@@ -321,6 +325,7 @@ class BackupRepository(
                     pageCount = it.pageCount,
                     updatedAt = it.updatedAt,
                     pageOffset = it.pageOffset,
+                    mediaKind = it.mediaKind,
                 )
             },
             categories = dao.allCategories().map {
@@ -657,6 +662,7 @@ class BackupRepository(
                     createdAt = b.createdAt,
                     categoryIdsJson = b.categoryIdsJson,
                     genresJson = b.genresJson,
+                    mediaKind = b.mediaKind,
                 ),
             )
         }
@@ -678,6 +684,7 @@ class BackupRepository(
                     pageCount = p.pageCount,
                     updatedAt = p.updatedAt,
                     pageOffset = p.pageOffset,
+                    mediaKind = p.mediaKind,
                 ),
             )
         }

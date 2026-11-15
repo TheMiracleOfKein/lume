@@ -11,6 +11,7 @@ import com.lume.app.domain.SourceFilter
 import com.lume.app.domain.SourceLoginRequiredException
 import com.lume.app.domain.SourceManifest
 import com.lume.app.domain.include
+import com.lume.app.domain.requireComic
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.CookieJar
@@ -166,7 +167,7 @@ class LiveSourcesTest {
             notes += "chapters=${chapters.size}"
             val chapter = chapters.last() // usually the oldest → most likely free
             recorder?.phase("pages")
-            val pages = runCatching { source.getPages(chapter) }.also { recorder?.stop() }.getOrThrow()
+            val pages = runCatching { source.requireComic().getPages(chapter) }.also { recorder?.stop() }.getOrThrow()
             if (pages.isEmpty()) return@runBlocking Report(id, Status.FAIL, notes + "no pages")
             notes += "pages=${pages.size}"
             referers.learn(pages.first().imageUrl, source.manifest)
