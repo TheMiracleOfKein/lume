@@ -10,9 +10,9 @@ import com.lume.app.data.network.AppHttp
 import com.lume.app.data.network.SourceHttpException
 import com.lume.app.data.server.ServerCredentials
 import com.lume.app.domain.BrowseSection
-import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
+import com.lume.app.domain.ComicSource
 import com.lume.app.domain.FilterList
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
@@ -48,7 +48,7 @@ class OpdsEngine(
     private val http: AppHttp,
     @Suppress("unused") private val credentials: ServerCredentials? = null,
     private val cacheDir: File? = null,
-) : CatalogSource {
+) : ComicSource {
     private val root get() = manifest.baseUrl.trimEnd('/')
 
     private val feeds = ConcurrentHashMap<String, Pair<Long, OpdsFeed>>()

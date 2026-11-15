@@ -4,9 +4,9 @@ import com.lume.app.R
 import com.lume.app.data.locale.appString
 import com.lume.app.data.network.AppHttp
 import com.lume.app.data.network.ImageDecrypt
-import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
+import com.lume.app.domain.ComicSource
 import com.lume.app.domain.FilterList
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
@@ -37,7 +37,7 @@ import java.net.URI
 class InkStoryEngine(
     override val manifest: SourceManifest,
     private val http: AppHttp,
-) : CatalogSource {
+) : ComicSource {
     private val siteBase: String
         get() = manifest.baseUrl.trimEnd('/')
 

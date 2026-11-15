@@ -1,6 +1,7 @@
 package com.lume.app.data.tracker
 
 import com.lume.app.domain.Chapter
+import com.lume.app.domain.MediaKind
 
 data class TrackerSearchResult(
     val remoteId: String,
@@ -36,12 +37,14 @@ interface Tracker {
     val id: String
     val displayName: String
     suspend fun isLoggedIn(): Boolean
-    suspend fun search(query: String): List<TrackerSearchResult>
+    /** Titles matching [query] among the tracker's [kind] entries; empty for kinds it does not serve yet. */
+    suspend fun search(query: String, kind: MediaKind = MediaKind.Comics): List<TrackerSearchResult>
     suspend fun link(
         sourceId: String,
         titleId: String,
         remoteId: String,
         remoteUrl: String? = null,
+        kind: MediaKind = MediaKind.Comics,
     )
     suspend fun unlink(sourceId: String, titleId: String)
     suspend fun fetchProgress(remoteId: String): TrackerProgress?
@@ -69,7 +72,7 @@ interface Tracker {
     val supportsListImport: Boolean get() = false
 
     /** The user's "Reading" list; null when unsupported, signed out or on errors. */
-    suspend fun fetchReadingList(): List<TrackerListEntry>? = null
+    suspend fun fetchReadingList(kind: MediaKind = MediaKind.Comics): List<TrackerListEntry>? = null
 
     /** Writes status, score, chapters and dates (adds the title to the list when needed). */
     suspend fun updateEntry(remoteId: String, entry: TrackerEntry): Boolean = updateProgress(remoteId, entry.chaptersRead)

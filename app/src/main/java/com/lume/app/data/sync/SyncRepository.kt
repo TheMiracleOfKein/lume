@@ -58,6 +58,7 @@ data class LibrarySyncDto(
     val typeLabel: String? = null,
     val createdAt: Long = 0L,
     val categories: List<String> = emptyList(),
+    val mediaKind: String = "comics",
 )
 
 @Serializable
@@ -225,6 +226,7 @@ class SyncRepository(
                         typeLabel = it.typeLabel,
                         createdAt = it.createdAt,
                         categories = parseCategoryIds(it.categoryIdsJson).mapNotNull(nameById::get).sortedBy(String::lowercase),
+                        mediaKind = it.mediaKind,
                     ),
                 )
             },
@@ -234,6 +236,7 @@ class SyncRepository(
                     ProgressEntityDto(
                         it.sourceId, it.titleId, it.titleName, it.coverUrl, it.typeLabel, it.chapterId,
                         it.chapterName, it.chapterUrl, it.pageIndex, it.pageCount, it.updatedAt, it.pageOffset,
+                        it.mediaKind,
                     ),
                 )
             },
@@ -333,6 +336,7 @@ class SyncRepository(
                             // Genres don't sync; keep what this phone already knows.
                             genresJson = dao.getBookmark(it.sourceId, it.titleId)?.genresJson ?: "[]",
                             categoryIdsJson = encodeCategoryIds(it.categories.mapNotNull { n -> idByName[n.lowercase()] }.toSet()),
+                            mediaKind = it.mediaKind,
                         ),
                     )
                 }
@@ -344,6 +348,7 @@ class SyncRepository(
                         ProgressEntity(
                             it.sourceId, it.titleId, it.titleName, it.coverUrl, it.typeLabel, it.chapterId,
                             it.chapterName, it.chapterUrl, it.pageIndex, it.pageCount, it.updatedAt, it.pageOffset,
+                            mediaKind = it.mediaKind,
                         ),
                     )
                 }

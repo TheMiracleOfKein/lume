@@ -4,6 +4,7 @@ import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.db.TrackerLinkEntity
 import com.lume.app.data.network.AppHttp
 import com.lume.app.data.prefs.AppPreferences
+import com.lume.app.domain.MediaKind
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -78,9 +79,9 @@ class MangaUpdatesTracker(
             }
         }
 
-    override suspend fun search(query: String): List<TrackerSearchResult> {
+    override suspend fun search(query: String, kind: MediaKind): List<TrackerSearchResult> {
         val q = query.trim()
-        if (q.isEmpty()) return emptyList()
+        if (q.isEmpty() || kind != MediaKind.Comics) return emptyList()
         val body = buildJsonObject {
             put("search", q)
             put("perpage", 10)
@@ -106,7 +107,8 @@ class MangaUpdatesTracker(
 
     private fun stripTags(text: String) = text.replace(Regex("<[^>]+>"), "").trim()
 
-    override suspend fun link(sourceId: String, titleId: String, remoteId: String, remoteUrl: String?) {
+    override suspend fun link(sourceId: String, titleId: String, remoteId: String, remoteUrl: String?, kind: MediaKind) {
+        if (kind != MediaKind.Comics) return
         dao.upsertTrackerLink(
             TrackerLinkEntity(sourceId, titleId, id, remoteId, remoteUrl ?: "https://www.mangaupdates.com/series.html?id=$remoteId"),
         )

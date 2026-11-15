@@ -4,6 +4,7 @@ import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.db.TrackerLinkEntity
 import com.lume.app.data.network.AppHttp
 import com.lume.app.data.prefs.AppPreferences
+import com.lume.app.domain.MediaKind
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -89,7 +90,8 @@ class AniListTracker(
 
     override val supportsListImport: Boolean get() = true
 
-    override suspend fun fetchReadingList(): List<TrackerListEntry>? = withContext(Dispatchers.IO) {
+    override suspend fun fetchReadingList(kind: MediaKind): List<TrackerListEntry>? = withContext(Dispatchers.IO) {
+        if (kind != MediaKind.Comics) return@withContext null
         val token = prefs.anilistAccessToken.first() ?: return@withContext null
         val viewer = rawGraphql("""{"query":"query{Viewer{id}}"}""", token) ?: return@withContext null
         val userId = parseAniListViewerId(json, viewer) ?: return@withContext null
@@ -155,9 +157,9 @@ class AniListTracker(
         return graphql(body, token)?.get("SaveMediaListEntry") != null
     }
 
-    override suspend fun search(query: String): List<TrackerSearchResult> = withContext(Dispatchers.IO) {
+    override suspend fun search(query: String, kind: MediaKind): List<TrackerSearchResult> = withContext(Dispatchers.IO) {
         val q = query.trim()
-        if (q.isEmpty()) return@withContext emptyList()
+        if (q.isEmpty() || kind != MediaKind.Comics) return@withContext emptyList()
         val escaped = json.encodeToString(q)
         val body =
             """{"query":"query (${'$'}search:String){Page(perPage:10){media(search:${'$'}search,type:MANGA){id title{romaji english native} synonyms siteUrl coverImage{large}}}}","variables":{"search":$escaped}}"""
@@ -203,7 +205,9 @@ class AniListTracker(
         titleId: String,
         remoteId: String,
         remoteUrl: String?,
+        kind: MediaKind,
     ) {
+        if (kind != MediaKind.Comics) return
         dao.upsertTrackerLink(
             TrackerLinkEntity(
                 sourceId = sourceId,

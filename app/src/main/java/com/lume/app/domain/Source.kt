@@ -24,6 +24,8 @@ data class SourceManifest(
     val headers: Map<String, String> = emptyMap(),
     val engineConfig: JsonObject = JsonObject(emptyMap()),
 ) {
+    val kind: MediaKind get() = MediaKind.fromId(mediaKind)
+
     val baseUri: URI get() = URI(baseUrl.trimEnd('/') + "/")
 
     fun configString(key: String): String? {
@@ -82,7 +84,6 @@ interface CatalogSource {
 
     suspend fun getTitle(id: String): TitleDetails
     suspend fun getChapters(titleId: String): List<Chapter>
-    suspend fun getPages(chapter: Chapter): List<ComicPage>
 
     /**
      * Public website URL of a title (for "Open in browser" and solving site checks in a WebView).
@@ -107,6 +108,20 @@ interface CatalogSource {
     /** Settings this source offers (Sources → ⋮ → Settings). Values land in [SourceManifest.engineConfig]. */
     fun settings(): List<SourceSetting> = emptyList()
 }
+
+/** A source whose chapters are image pages (manga, comics, local archives). */
+interface ComicSource : CatalogSource {
+    suspend fun getPages(chapter: Chapter): List<ComicPage>
+}
+
+/** A source whose chapters are text (light novels). */
+interface NovelSource : CatalogSource {
+    suspend fun getChapterText(chapter: Chapter): NovelChapter
+}
+
+/** The source as a [ComicSource], or an error when it serves another kind of content. */
+fun CatalogSource.requireComic(): ComicSource =
+    this as? ComicSource ?: throw SourceFetchException("Source ${manifest.id} has no image pages")
 
 /**
  * An engine whose server remembers reading progress (Komga, Kavita). The reader calls it,

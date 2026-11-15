@@ -28,6 +28,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.merge
@@ -67,7 +68,8 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
      * to Home shows the row in the first frame: collecting it in the screen with an empty
      * initial value inserted the row a frame later and slid the list below it down.
      */
-    val history: StateFlow<List<ProgressEntity>> = app.dao.observeHistoryLimit(HISTORY_LIMIT)
+    val history: StateFlow<List<ProgressEntity>> = app.prefs.activeMode
+        .flatMapLatest { app.dao.observeHistoryLimitOfKind(it.id, HISTORY_LIMIT) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private var job: Job? = null

@@ -4,9 +4,9 @@ import com.lume.app.R
 import com.lume.app.data.locale.appString
 import com.lume.app.data.network.AppHttp
 import com.lume.app.domain.BrowseSection
-import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
+import com.lume.app.domain.ComicSource
 import com.lume.app.domain.FilterList
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.ReadProgressSink
@@ -36,7 +36,7 @@ class KomgaEngine(
     override val manifest: SourceManifest,
     private val http: AppHttp,
     private val json: Json = Json { ignoreUnknownKeys = true; isLenient = true },
-) : CatalogSource, ReadProgressSink {
+) : ComicSource, ReadProgressSink {
     private val base get() = manifest.baseUrl.trimEnd('/')
     private val api get() = "$base/api/v1"
     private val libraryId get() = manifest.configString("libraryId")?.trim()?.takeIf { it.isNotEmpty() }

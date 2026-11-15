@@ -4,6 +4,7 @@ import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.db.TrackerLinkEntity
 import com.lume.app.data.network.AppHttp
 import com.lume.app.data.prefs.AppPreferences
+import com.lume.app.domain.MediaKind
 import com.lume.app.util.urlEncode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.withLock
@@ -123,9 +124,9 @@ class KitsuTracker(
         http.okHttp.newCall(request(prefs.trackerValue(id, "access_token"))).execute().use(read)
     }
 
-    override suspend fun search(query: String): List<TrackerSearchResult> {
+    override suspend fun search(query: String, kind: MediaKind): List<TrackerSearchResult> {
         val q = query.trim()
-        if (q.isEmpty()) return emptyList()
+        if (q.isEmpty() || kind != MediaKind.Comics) return emptyList()
         return api({ url("$API/manga?filter[text]=${urlEncode(q)}&page[limit]=10").get() }) { response ->
             if (!response.isSuccessful) return@api emptyList()
             val data = json.parseToJsonElement(response.body.string()).jsonObject["data"] as? JsonArray ?: return@api emptyList()
@@ -146,7 +147,8 @@ class KitsuTracker(
         }.orEmpty()
     }
 
-    override suspend fun link(sourceId: String, titleId: String, remoteId: String, remoteUrl: String?) {
+    override suspend fun link(sourceId: String, titleId: String, remoteId: String, remoteUrl: String?, kind: MediaKind) {
+        if (kind != MediaKind.Comics) return
         dao.upsertTrackerLink(TrackerLinkEntity(sourceId, titleId, id, remoteId, remoteUrl ?: "https://kitsu.app/manga/$remoteId"))
     }
 

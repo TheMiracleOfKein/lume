@@ -11,6 +11,10 @@ interface LibraryDao {
     @Query("SELECT * FROM bookmarks ORDER BY createdAt DESC")
     fun observeBookmarks(): Flow<List<BookmarkEntity>>
 
+    /** Library titles of one [BookmarkEntity.mediaKind] (the active mode). */
+    @Query("SELECT * FROM bookmarks WHERE mediaKind = :mediaKind ORDER BY createdAt DESC")
+    fun observeBookmarksOfKind(mediaKind: String): Flow<List<BookmarkEntity>>
+
     @Query("SELECT * FROM bookmarks ORDER BY createdAt DESC")
     suspend fun allBookmarks(): List<BookmarkEntity>
 
@@ -58,6 +62,10 @@ interface LibraryDao {
 
     @Query("SELECT * FROM reading_progress ORDER BY updatedAt DESC")
     fun observeHistory(): Flow<List<ProgressEntity>>
+
+    /** History of one [ProgressEntity.mediaKind] (the active mode). */
+    @Query("SELECT * FROM reading_progress WHERE mediaKind = :mediaKind ORDER BY updatedAt DESC")
+    fun observeHistoryOfKind(mediaKind: String): Flow<List<ProgressEntity>>
 
     @Query("SELECT * FROM reading_progress ORDER BY updatedAt DESC")
     suspend fun allProgress(): List<ProgressEntity>
@@ -150,6 +158,9 @@ interface LibraryDao {
 
     @Query("SELECT * FROM reading_progress ORDER BY updatedAt DESC LIMIT :limit")
     fun observeHistoryLimit(limit: Int): Flow<List<ProgressEntity>>
+
+    @Query("SELECT * FROM reading_progress WHERE mediaKind = :mediaKind ORDER BY updatedAt DESC LIMIT :limit")
+    fun observeHistoryLimitOfKind(mediaKind: String, limit: Int): Flow<List<ProgressEntity>>
 
     @Query("SELECT * FROM source_packs ORDER BY installedAt ASC")
     suspend fun allSourcePacks(): List<SourcePackEntity>

@@ -62,7 +62,10 @@ class AppContainer(
     val serverCredentials = com.lume.app.data.server.ServerCredentialStore(app)
     /** Full text of recent errors (Sources → Error log), kept only on the phone. */
     val errorLog = com.lume.app.data.ErrorLog(app.filesDir.resolve("error_log.json"), appScope)
-    val sources = SourceRegistry(app, http, prefs, dao, libAuth, imageReferers, serverCredentials, scope = appScope, errorLog = errorLog)
+
+    /** The kinds of content this build serves; their engines plug into [sources]. */
+    val installedModules: List<com.lume.app.data.source.ContentModule> = listOf(com.lume.app.data.source.ComicsModule)
+    val sources = SourceRegistry(app, http, prefs, dao, libAuth, imageReferers, serverCredentials, scope = appScope, errorLog = errorLog, modules = installedModules)
     val safStorage = com.lume.app.data.downloads.SafStorage(app)
     val downloads = DownloadStore(app, dao, http, prefs, safStorage)
     val offlineCache = OfflineTitleCache(dao)

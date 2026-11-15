@@ -69,6 +69,7 @@ class LibraryRepository(
                 typeLabel = typeLabel,
                 categoryIdsJson = encodeCategoryIds(setOfNotNull(defaultCategory)),
                 genresJson = encodeGenres(known?.details?.genres.orEmpty()),
+                mediaKind = (titles.kindOf(sourceId) ?: com.lume.app.domain.MediaKind.Comics).id,
             ),
         )
         // Know the chapters right away: unread counts work and the next check only reports new ones.
