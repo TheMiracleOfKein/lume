@@ -94,10 +94,10 @@ data class HomeFeed(
 )
 
 /** Order matches Flutter: rtl=0, webtoon=1, ltr=2 */
-enum class ReaderMode(val prefsIndex: Int, val labelRes: Int) {
-    Rtl(0, com.lume.app.R.string.reader_mode_rtl),
-    Webtoon(1, com.lume.app.R.string.reader_mode_webtoon),
-    Ltr(2, com.lume.app.R.string.reader_mode_ltr);
+enum class ReaderMode(val prefsIndex: Int) {
+    Rtl(0),
+    Webtoon(1),
+    Ltr(2);
 
     companion object {
         fun fromPrefs(index: Int): ReaderMode =
@@ -105,8 +105,4 @@ enum class ReaderMode(val prefsIndex: Int, val labelRes: Int) {
     }
 }
 
-enum class ReaderTheme(val labelRes: Int) {
-    Light(com.lume.app.R.string.reader_theme_light),
-    Dark(com.lume.app.R.string.reader_theme_dark),
-    System(com.lume.app.R.string.reader_theme_system),
-}
+enum class ReaderTheme { Light, Dark, System }

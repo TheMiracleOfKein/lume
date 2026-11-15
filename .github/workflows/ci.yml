@@ -28,7 +28,7 @@ jobs:
       # Live catalogue tests stay off (no -Plume.live; see live-sources.yml). The Room migration
       # test runs here on Robolectric; on Windows it only runs on a device.
       - name: Build, test and lint
-        run: ./gradlew --no-configuration-cache :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+        run: ./gradlew --no-configuration-cache :core:model:test :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 
       # Screenshot tests: the screens are rendered again and compared with the golden images in
       # app/src/test/screenshots (docs/ARCHITECTURE.md, "Screenshot tests"). Plain unit tests

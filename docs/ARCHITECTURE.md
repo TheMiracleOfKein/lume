@@ -1,6 +1,12 @@
 # Architecture
 
-Lume is a single Android app module (`:app`) plus `:baselineprofile`, which records the startup profile. Everything below is under `app/src/main/java/com/lume/app/`.
+Lume is being split into Gradle modules so that builds can include only the reading modes they need:
+
+- `:core:model`: plain Kotlin (no Android). Holds `domain/` (models, the source contract, filters, reading logic). Its tests are in `core/model/src/test/`.
+- `:app`: everything else (`ui/`, `data/`), under `app/src/main/java/com/lume/app/`.
+- `:baselineprofile`: records the startup profile.
+
+Package names are unchanged (`com.lume.app.domain`), so code doesn't care which module a file lives in.
 
 ## Layers
 
@@ -64,7 +70,7 @@ Nearby sending uses ZXing, with nothing from Google Play services, so F-Droid bu
 
 ## Tests
 
-- JVM unit tests in `app/src/test/`: domain logic, parsing helpers, backups, trackers, reader positions.
+- JVM unit tests in `core/model/src/test/` (domain logic) and `app/src/test/` (parsing helpers, backups, trackers, reader positions, and domain tests that need app classes).
 - `app/src/sharedTest/`: tests that run both on Robolectric and on a device (Room migrations).
 - `LiveSourcesTest`: opt-in checks of every bundled source against the real site (`-Plume.live`); also runs weekly on CI.
 - `:baselineprofile`: profile generation and a startup benchmark (needs a device).
