@@ -50,7 +50,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
-import com.lume.app.LumeApp
+import com.lume.app.ContainerOwner
 import com.lume.app.R
 import com.lume.app.ui.components.GuardedWebViewClient
 import com.lume.app.data.source.LibWebSession
@@ -63,7 +63,7 @@ import kotlinx.coroutines.launch
  * Reads `localStorage.auth` (cdnlibs) after each page load and saves the token.
  */
 class SourceLoginActivity : ComponentActivity() {
-    private val container get() = (application as LumeApp).container
+    private val container get() = (application as ContainerOwner).container
 
     /** The user has touched the page after it first loaded (typed, tapped a button). */
     private var userTouched = false

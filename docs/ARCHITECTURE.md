@@ -5,7 +5,8 @@ Lume is being split into Gradle modules so that builds can include only the read
 - `:core:model`: plain Kotlin (no Android). Holds `domain/` (models, the source contract, filters, reading logic). Its tests are in `core/model/src/test/`.
 - `:core:common`: Android library with namespace `com.lume.app`. Holds all resources (`res/`), `util/` and `BuildConfig` (version and OAuth ids), so `com.lume.app.R` and `com.lume.app.BuildConfig` resolve unchanged everywhere. The version lives in `gradle.properties` (`lume.versionCode`, `lume.versionName`). `:app` has namespace `com.lume.app.shell` (applicationId stays `com.lume.app`).
 - `:core:data`: Android library (namespace `com.lume.app.data`, packages stay `com.lume.app.*`). Holds `data/` (Room, repositories, sources and engines, downloads, trackers, sync, workers), `AppContainer`, `ui/nav/Routes` and `AppLinks` (route strings and notification intents), and the `ContinueWidget` provider. The Application implements `ContainerOwner` so workers reach the container; `AppContainer` takes the installed content modules as a parameter. Its tests are in `core/data/src/test/`, the Room migration tests in `core/data/src/sharedTest/`, and the exported schemas in `core/data/schemas/`.
-- `:app`: everything else (`ui/`, `LumeApp`, `MainActivity`), under `app/src/main/java/com/lume/app/`.
+- `:core:ui`: Android library (namespace `com.lume.app.ui`, packages stay `com.lume.app.*`) with Compose enabled. Holds all of `ui/` (screens, settings, components, theme, shell, navigation helpers, the reader for now, `TrackerAuthActivity`, `SourceLoginActivity`) and `LocalAppContainer`. It depends on `:core:data` (`api`) and gets the container from the Application through `ContainerOwner`. Its tests (view models, theme, Roborazzi screenshots) are in `core/ui/src/test/`, the golden images in `core/ui/src/test/screenshots/`.
+- `:app`: only `LumeApp`, `MainActivity`, the manifest, signing and the baseline profile, under `app/src/main/java/com/lume/app/`. `SmokeTest` stays in `app/src/androidTest/`.
 - `:baselineprofile`: records the startup profile.
 
 Package names are unchanged (`com.lume.app.domain`), so code doesn't care which module a file lives in.
@@ -72,7 +73,7 @@ Nearby sending uses ZXing, with nothing from Google Play services, so F-Droid bu
 
 ## Tests
 
-- JVM unit tests in `core/model/src/test/` (domain logic) , `core/data/src/test/` (parsing helpers, backups, trackers, domain tests that need data classes) and `app/src/test/` (view models, reader positions, theme, screenshots).
+- JVM unit tests in `core/model/src/test/` (domain logic) , `core/data/src/test/` (parsing helpers, backups, trackers, domain tests that need data classes) and `core/ui/src/test/` (view models, reader positions, theme, screenshots).
 - `core/data/src/sharedTest/`: tests that run both on Robolectric and on a device (Room migrations).
 - `LiveSourcesTest`: opt-in checks of every bundled source against the real site (`-Plume.live`); also runs weekly on CI.
 - `:baselineprofile`: profile generation and a startup benchmark (needs a device).
@@ -80,9 +81,9 @@ Nearby sending uses ZXing, with nothing from Google Play services, so F-Droid bu
 
 ### Screenshot tests
 
-Roborazzi (on the Robolectric setup) renders Home, Library (grid, list, empty), Title details, Chapter list, Settings and the Reader bars in light, dark and large font (font scale 2.0), from fixed data with no network. They live in `app/src/test/java/com/lume/app/ui/screenshots/` and use the stateless composables of each screen (`HomeFeedList`, `LibraryContent`, `TitleHeader`, `ChapterRow`, `SettingsSections`, `ReaderTopBar`/`ReaderBottomBar`). The golden images are in `app/src/test/screenshots/`.
+Roborazzi (on the Robolectric setup) renders Home, Library (grid, list, empty), Title details, Chapter list, Settings and the Reader bars in light, dark and large font (font scale 2.0), from fixed data with no network. They live in `core/ui/src/test/java/com/lume/app/ui/screenshots/` and use the stateless composables of each screen (`HomeFeedList`, `LibraryContent`, `TitleHeader`, `ChapterRow`, `SettingsSections`, `ReaderTopBar`/`ReaderBottomBar`). The golden images are in `core/ui/src/test/screenshots/`.
 
 - A plain `testDebugUnitTest` only composes the screens; it does not compare images.
-- `./gradlew :app:verifyRoborazziDebug` compares against the goldens (up to 1% of pixels may differ, to absorb text anti-aliasing between operating systems). CI runs it on Linux; on failure it uploads the images as drawn on CI as an artifact.
-- After a deliberate UI change, re-record and commit the images: `./gradlew :app:recordRoborazziDebug --tests "com.lume.app.ui.screenshots.*"`, then look at the changed PNGs in the diff.
+- `./gradlew :core:ui:verifyRoborazziDebug` compares against the goldens (up to 1% of pixels may differ, to absorb text anti-aliasing between operating systems). CI runs it on Linux; on failure it uploads the images as drawn on CI as an artifact.
+- After a deliberate UI change, re-record and commit the images: `./gradlew :core:ui:recordRoborazziDebug --tests "com.lume.app.ui.screenshots.*"`, then look at the changed PNGs in the diff.
 - New screens: add a test class that extends `ScreenshotTest` and calls `shoot("name", Look.Light) { ... }` for each look.
