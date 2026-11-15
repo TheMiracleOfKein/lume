@@ -30,7 +30,7 @@ internal fun testContainer(online: Boolean = true): AppContainer {
     val caps = ShadowNetworkCapabilities.newInstance()
     if (online) shadowOf(caps).addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     shadowOf(cm).setNetworkCapabilities(cm.activeNetwork, caps)
-    return AppContainer(context)
+    return AppContainer(context, com.lume.app.data.CrashLog.forApp(context), listOf(com.lume.app.data.source.ComicsModule))
 }
 
 /**

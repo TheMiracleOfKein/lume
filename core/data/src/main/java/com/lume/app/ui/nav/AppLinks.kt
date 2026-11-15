@@ -2,13 +2,12 @@ package com.lume.app.ui.nav
 
 import android.content.Context
 import android.content.Intent
-import com.lume.app.MainActivity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Routes requested from outside the UI (a notification tap), handed from [MainActivity] to the
+ * Routes requested from outside the UI (a notification tap), handed from MainActivity to the
  * nav host. The shell navigates and then calls [consumed].
  */
 object AppLinks {
@@ -18,7 +17,7 @@ object AppLinks {
     val pendingRoute: StateFlow<String?> = _pendingRoute.asStateFlow()
 
     fun intentFor(context: Context, route: String): Intent =
-        Intent(context, MainActivity::class.java)
+        Intent().setClassName(context.packageName, "com.lume.app.MainActivity")
             .putExtra(EXTRA_OPEN_ROUTE, route)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
 

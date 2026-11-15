@@ -299,7 +299,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 **Sources**
 - ✅ **InkStory** ([ENGINES.md](ENGINES.md)) (M). In v0.9.3.
 - ⏸️ **Com-X.life** (M): dropped for now. The site checks every visitor with its own browser-fingerprint test, which the app's challenge flow doesn't recognise.
-- ✅ **Offline parser tests** with saved pages for every engine (M), so a parser change is checked without the live sites. Fixtures are in `app/src/test/resources/fixtures` and recorded with `-Plume.live.record` ([ENGINES.md](ENGINES.md#saved-pages-offline-parser-tests)). The MangaDex and MangaBuff fixtures are hand-written until they can be recorded.
+- ✅ **Offline parser tests** with saved pages for every engine (M), so a parser change is checked without the live sites. Fixtures are in `core/data/src/test/resources/fixtures` and recorded with `-Plume.live.record` ([ENGINES.md](ENGINES.md#saved-pages-offline-parser-tests)). The MangaDex and MangaBuff fixtures are hand-written until they can be recorded.
 - ✅ **Source status in the app** (S): the last error per source on the Sources screen, so a broken source is visible before you open a title. In v0.7.13 for the running session; kept across restarts (for a week, in private settings that are not backed up) and shown in global search since v0.9.6.
 
 ## v1.0: stable

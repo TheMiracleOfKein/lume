@@ -1,5 +1,6 @@
 package com.lume.app.data.sync
 
+import com.lume.app.ContainerOwner
 import android.content.Context
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -10,14 +11,13 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.lume.app.LumeApp
 import com.lume.app.data.prefs.SyncSettings
 import java.util.concurrent.TimeUnit
 
 /** Background sync (Settings → Sync): every few hours, and once soon after the app starts. */
 class SyncWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result {
-        val app = (applicationContext as? LumeApp)?.container ?: return Result.success()
+        val app = (applicationContext as? ContainerOwner)?.container ?: return Result.success()
         val status = app.sync.sync() ?: return Result.success()
         return if (status.error == null || runAttemptCount >= 2) Result.success() else Result.retry()
     }

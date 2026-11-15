@@ -1,5 +1,6 @@
 package com.lume.app.data.library
 
+import com.lume.app.ContainerOwner
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -17,7 +18,6 @@ import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
-import com.lume.app.LumeApp
 import com.lume.app.R
 import com.lume.app.ui.nav.AppLinks
 import com.lume.app.ui.nav.Routes
@@ -36,7 +36,7 @@ class LibBookmarkImportWorker(appContext: Context, params: WorkerParameters) : C
     private val sourceName: String get() = inputData.getString(KEY_SOURCE_NAME).orEmpty()
 
     override suspend fun doWork(): Result {
-        val app = (applicationContext as? LumeApp)?.container ?: return Result.success()
+        val app = (applicationContext as? ContainerOwner)?.container ?: return Result.success()
         val sourceId = inputData.getString(KEY_SOURCE_ID) ?: return Result.failure()
         ensureChannel(applicationContext)
         val import = app.libBookmarkImport

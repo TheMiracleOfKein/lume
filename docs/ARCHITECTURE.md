@@ -4,7 +4,8 @@ Lume is being split into Gradle modules so that builds can include only the read
 
 - `:core:model`: plain Kotlin (no Android). Holds `domain/` (models, the source contract, filters, reading logic). Its tests are in `core/model/src/test/`.
 - `:core:common`: Android library with namespace `com.lume.app`. Holds all resources (`res/`), `util/` and `BuildConfig` (version and OAuth ids), so `com.lume.app.R` and `com.lume.app.BuildConfig` resolve unchanged everywhere. The version lives in `gradle.properties` (`lume.versionCode`, `lume.versionName`). `:app` has namespace `com.lume.app.shell` (applicationId stays `com.lume.app`).
-- `:app`: everything else (`ui/`, `data/`), under `app/src/main/java/com/lume/app/`.
+- `:core:data`: Android library (namespace `com.lume.app.data`, packages stay `com.lume.app.*`). Holds `data/` (Room, repositories, sources and engines, downloads, trackers, sync, workers), `AppContainer`, `ui/nav/Routes` and `AppLinks` (route strings and notification intents), and the `ContinueWidget` provider. The Application implements `ContainerOwner` so workers reach the container; `AppContainer` takes the installed content modules as a parameter. Its tests are in `core/data/src/test/`, the Room migration tests in `core/data/src/sharedTest/`, and the exported schemas in `core/data/schemas/`.
+- `:app`: everything else (`ui/`, `LumeApp`, `MainActivity`), under `app/src/main/java/com/lume/app/`.
 - `:baselineprofile`: records the startup profile.
 
 Package names are unchanged (`com.lume.app.domain`), so code doesn't care which module a file lives in.
@@ -42,7 +43,7 @@ domain/     plain Kotlin models and pure logic (no Android): unit-tested on the 
 
 ## Database
 
-Room database `lume.db` (`data/db/Database.kt`), version 9. Schemas are exported to `app/schemas/` and every upgrade is an additive migration in `LumeDatabase.MIGRATIONS`, tested by `MigrationTest`.
+Room database `lume.db` (`data/db/Database.kt`), version 9. Schemas are exported to `core/data/schemas/` and every upgrade is an additive migration in `LumeDatabase.MIGRATIONS`, tested by `MigrationTest`.
 
 Main tables:
 - `bookmarks`: library titles. `categories`, `title_prefs`, `title_meta`.
@@ -71,8 +72,8 @@ Nearby sending uses ZXing, with nothing from Google Play services, so F-Droid bu
 
 ## Tests
 
-- JVM unit tests in `core/model/src/test/` (domain logic) and `app/src/test/` (parsing helpers, backups, trackers, reader positions, and domain tests that need app classes).
-- `app/src/sharedTest/`: tests that run both on Robolectric and on a device (Room migrations).
+- JVM unit tests in `core/model/src/test/` (domain logic) , `core/data/src/test/` (parsing helpers, backups, trackers, domain tests that need data classes) and `app/src/test/` (view models, reader positions, theme, screenshots).
+- `core/data/src/sharedTest/`: tests that run both on Robolectric and on a device (Room migrations).
 - `LiveSourcesTest`: opt-in checks of every bundled source against the real site (`-Plume.live`); also runs weekly on CI.
 - `:baselineprofile`: profile generation and a startup benchmark (needs a device).
 - `app/src/androidTest/`: instrumented tests; `SmokeTest` starts the app and opens Home, Library and Settings. `.github/workflows/emulator.yml` runs it, together with the Room migration test, on an API 34 emulator (`reactivecircus/android-emulator-runner`, KVM, cached AVD snapshot). Locally: `./gradlew :app:connectedDebugAndroidTest` with a device or emulator attached.
