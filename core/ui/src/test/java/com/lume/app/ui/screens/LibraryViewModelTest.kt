@@ -144,6 +144,8 @@ class LibraryViewModelTest {
         val (reading, later) = seed()
         val vm = newViewModel()
         awaitUntil(what = "three titles") { vm.visible.value.size == 3 }
+        // exportName reads the category names, a separate stream from the titles.
+        awaitUntil(what = "category names") { vm.categories.value.size == 2 }
 
         vm.categoryId = reading
         awaitUntil(what = "Reading tab") { vm.titles() == listOf("Alpha", "Beta") }
