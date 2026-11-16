@@ -29,7 +29,7 @@ data class LocalImportResult(
 
 /**
  * Copies a folder picked with the system file picker into Lume's local library
- * (`filesDir/local/<Series>/<Chapter>/…`), where [com.lume.app.data.source.LocalEngine] reads it.
+ * (`filesDir/local/<Series>/<Chapter>/…`), where the local engine of the comics module reads it.
  *
  * The picked folder may be
  * - a library: one folder per series, each with chapter folders or `.cbz` / `.cbr` / `.cb7` / `.zip` / `.rar` / `.7z` / `.pdf` files;

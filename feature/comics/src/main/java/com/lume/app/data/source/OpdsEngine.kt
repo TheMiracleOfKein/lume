@@ -3,6 +3,7 @@ package com.lume.app.data.source
 import com.lume.app.R
 import com.lume.app.data.ArchiveCache
 import com.lume.app.data.local.archive.ArchiveReaders
+import com.lume.app.data.local.archive.ComicArchives
 import com.lume.app.data.local.pdf.PdfPageUrl
 import com.lume.app.data.local.pdf.PdfRendererPool
 import com.lume.app.data.locale.appString
@@ -277,7 +278,7 @@ class OpdsEngine(
             return (0 until count).map { ComicPage(it, PdfPageUrl.build(file.absolutePath, it)) }
         }
         val outDir = File(dir, "opds_zip/${ArchiveCache.dirKey(file)}")
-        val images = ArchiveReaders.open(file).use { reader ->
+        val images = ComicArchives.open(file).use { reader ->
             ArchiveReaders.extractImages(reader, outDir) { i, name -> "%04d_%s".format(i, name.ifBlank { "page_$i" }) }
         }
         ArchiveCache.touch(outDir)

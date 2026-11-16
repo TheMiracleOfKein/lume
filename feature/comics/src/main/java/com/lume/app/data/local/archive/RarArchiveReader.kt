@@ -6,18 +6,10 @@ import com.github.junrar.exception.UnsupportedDictionarySizeException
 import com.github.junrar.exception.UnsupportedRarMethodException
 import com.github.junrar.exception.UnsupportedRarVersionException as JunrarUnsupportedVersion
 import com.github.junrar.rarfile.FileHeader
-import com.lume.app.R
-import com.lume.app.data.locale.appString
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.InputStream
-
-/** A RAR archive the reader can't unpack (a RAR5 variant or method junrar doesn't handle). */
-class UnsupportedRarVersionException : IOException(appString(R.string.error_rar5_unsupported))
-
-/** An archive that is damaged or can't be read. */
-class DamagedArchiveException(cause: Throwable? = null) : IOException(appString(R.string.error_archive_damaged), cause)
 
 class RarArchiveReader(file: File) : ArchiveReader {
     private val archive: Archive = try {

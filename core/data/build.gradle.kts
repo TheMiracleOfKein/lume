@@ -75,9 +75,6 @@ dependencies {
     implementation(libs.jsoup)
     implementation(libs.jspecify)
     implementation(libs.zxing.core)
-    implementation(libs.junrar)
-    implementation(libs.commons.compress)
-    implementation(libs.xz)
     // Reads Mihon / Tachiyomi backups (.tachibk is gzipped protobuf).
     implementation(libs.kotlinx.serialization.protobuf)
     // NearbyQr returns a Compose ImageBitmap.

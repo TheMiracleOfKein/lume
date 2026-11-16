@@ -9,6 +9,9 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 
+/** Opens one archive format; [ArchiveReaders.ZIP_ONLY] here, the comics module adds RAR and 7z (`ComicArchives`). */
+typealias ArchiveOpener = (File) -> ArchiveReader
+
 /** Opens comic archives by their content, and unpacks their pages safely. */
 object ArchiveReaders {
     /** Largest single page taken out of an archive. */
@@ -49,18 +52,18 @@ object ArchiveReaders {
         }
     }
 
-    fun open(file: File): ArchiveReader {
+    /** Zip (CBZ) needs no extra library; it is all that downloads and the shared code read. */
+    val ZIP_ONLY: Map<Format, ArchiveOpener> = mapOf(Format.Zip to ::ZipArchiveReader)
+
+    /** Opens [file] by its content with one of [formats]; other formats fail as unsupported. */
+    fun open(file: File, formats: Map<Format, ArchiveOpener> = ZIP_ONLY): ArchiveReader {
         val header = ByteArray(8)
         val read = file.inputStream().use { it.read(header).coerceAtLeast(0) }
         if (isRar5(header.copyOf(read))) throw UnsupportedRarVersionException()
-        val format = detect(header.copyOf(read), file.name)
+        val opener = detect(header.copyOf(read), file.name)?.let(formats::get)
             ?: throw IOException(appString(R.string.error_archive_unsupported))
         return try {
-            when (format) {
-                Format.Zip -> ZipArchiveReader(file)
-                Format.Rar -> RarArchiveReader(file)
-                Format.SevenZ -> SevenZArchiveReader(file)
-            }
+            opener(file)
         } catch (e: UnsupportedRarVersionException) {
             throw e
         } catch (e: IOException) {

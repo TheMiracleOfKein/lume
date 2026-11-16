@@ -99,7 +99,9 @@ class SourceRegistry(
                     upsert(loaded, createEngine(manifest))
                 }
             }
-            upsert(loaded, DispatchingSource(LocalEngine(context), health))
+            if (modules.any { SourceEngines.LOCAL in it.engines }) {
+                upsert(loaded, DispatchingSource(buildEngine(SourceEngines.localManifest, null), health))
+            }
             _sources.value = loaded
         } finally {
             // Even a broken bundled manifest must not leave background work waiting forever.
@@ -299,7 +301,7 @@ class SourceRegistry(
     }
 
     private fun buildEngine(manifest: SourceManifest, sign: ServerCredentials?): CatalogSource =
-        if (manifest.engine == SourceEngines.LOCAL) LocalEngine(context) else SourceEngines.create(manifest, http, libAuth, sign, context.cacheDir, modules)
+        SourceEngines.create(manifest, http, libAuth, sign, context.cacheDir, context, modules)
 }
 
 /**
