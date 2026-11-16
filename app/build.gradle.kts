@@ -32,6 +32,18 @@ android {
         null
     }
 
+    // Which reading modes a build ships. Same applicationId and signing key in every flavor, so
+    // switching builds keeps the user's data. Each flavor lists its modules in InstalledModules.kt.
+    flavorDimensions += "modes"
+    productFlavors {
+        create("full") {
+            dimension = "modes"
+        }
+        create("manga") {
+            dimension = "modes"
+        }
+    }
+
     buildTypes {
         release {
             releaseSigning?.let { signingConfig = it }
@@ -72,6 +84,7 @@ android {
 dependencies {
     implementation(project(":core:ui"))
     implementation(project(":feature:comics"))
+    "fullImplementation"(project(":feature:novel"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.lifecycle.runtime.ktx)

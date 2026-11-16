@@ -28,7 +28,7 @@ jobs:
       # Live catalogue tests stay off (no -Plume.live; see live-sources.yml). The Room migration
       # test runs here on Robolectric; on Windows it only runs on a device.
       - name: Build, test and lint
-        run: ./gradlew --no-configuration-cache :core:model:test :core:common:testDebugUnitTest :core:common:lintDebug :core:data:testDebugUnitTest :core:data:lintDebug :core:ui:testDebugUnitTest :core:ui:lintDebug :feature:comics:testDebugUnitTest :feature:comics:lintDebug :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+        run: ./gradlew --no-configuration-cache :core:model:test :core:common:testDebugUnitTest :core:common:lintDebug :core:data:testDebugUnitTest :core:data:lintDebug :core:ui:testDebugUnitTest :core:ui:lintDebug :feature:comics:testDebugUnitTest :feature:comics:lintDebug :feature:novel:testDebugUnitTest :feature:novel:lintDebug :app:assembleDebug :app:testFullDebugUnitTest :app:testMangaDebugUnitTest :app:lintFullDebug :app:lintMangaDebug
 
       # Screenshot tests: the screens are rendered again and compared with the golden images in
       # core/ui/src/test/screenshots and feature/comics/src/test/screenshots (docs/ARCHITECTURE.md,
@@ -52,10 +52,19 @@ jobs:
             feature/comics/src/test/screenshots/
           if-no-files-found: ignore
 
-      # The R8-shrunk release build (unsigned here), so a missing keep rule fails the PR rather
-      # than the release.
+      # The R8-shrunk release builds of both flavors (unsigned here), so a missing keep rule fails
+      # the PR rather than the release.
       - name: Release build (R8)
-        run: ./gradlew --no-configuration-cache :app:assembleRelease
+        run: ./gradlew --no-configuration-cache :app:assembleFullRelease :app:assembleMangaRelease
+
+      - name: APK sizes
+        run: |
+          {
+            echo '## Release APK sizes'
+            for apk in app/build/outputs/apk/*/release/*.apk; do
+              echo "- \`$(basename "$apk")\`: $(stat -c %s "$apk") bytes"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload reports
         if: always()
@@ -66,6 +75,9 @@ jobs:
             app/build/reports/tests/
             core/data/build/reports/tests/
             core/ui/build/reports/tests/
-            app/build/reports/lint-results-debug.html
+            feature/comics/build/reports/tests/
+            app/build/reports/lint-results-fullDebug.html
+            app/build/reports/lint-results-mangaDebug.html
             core/ui/build/outputs/roborazzi/
+            feature/comics/build/outputs/roborazzi/
           if-no-files-found: ignore
