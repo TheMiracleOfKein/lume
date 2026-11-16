@@ -1,5 +1,5 @@
-// UI layer: screens, settings, components, theme, shell, navigation helpers, the reader (until it
-// gets its own feature module) and the two auth activities. Packages stay com.lume.app.*; the
+// UI layer: screens, settings, components, theme, shell, navigation helpers and the two auth
+// activities. Readers live in the feature modules and join the graph through ContentScreens. Packages stay com.lume.app.*; the
 // namespace com.lume.app.ui only names this module's own generated classes. Screenshot tests
 // (Roborazzi) and ViewModel tests live here.
 plugins {
@@ -73,8 +73,6 @@ dependencies {
     implementation(libs.zxing.embedded)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
-    // Paged reader: subsampled decoding and sharp zoom.
-    implementation(libs.telephoto.zoomable.image.coil3)
     implementation(libs.kotlinx.serialization.json)
     debugImplementation(libs.androidx.compose.ui.tooling)
 

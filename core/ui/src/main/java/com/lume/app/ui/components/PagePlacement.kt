@@ -11,7 +11,7 @@ import kotlin.math.roundToInt
  * Lays the child out at [placement] (pixels in the parent), or fills the parent when null. The
  * child keeps its full size; the parent clips what lies outside.
  */
-internal fun Modifier.placedAt(placement: PagePlacement?): Modifier = if (placement == null) {
+fun Modifier.placedAt(placement: PagePlacement?): Modifier = if (placement == null) {
     this.fillMaxSize()
 } else {
     layout { measurable, _ ->

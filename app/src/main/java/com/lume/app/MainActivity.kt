@@ -28,6 +28,7 @@ import com.lume.app.data.continuity.ContinueReading
 import com.lume.app.domain.SourceLinks
 import com.lume.app.ui.nav.AppLinks
 import com.lume.app.ui.nav.Routes
+import com.lume.app.ui.screens.ComicsScreens
 import com.lume.app.ui.shell.LumeRoot
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.LumeSystemBars
@@ -81,7 +82,7 @@ class MainActivity : AppCompatActivity() {
                         // read the library behind the lock screen.
                         androidx.compose.foundation.layout.Box(
                             if (locked.value) Modifier.clearAndSetSemantics {} else Modifier,
-                        ) { LumeRoot() }
+                        ) { LumeRoot(listOf(ComicsScreens)) }
                         if (locked.value) LockScreen(onUnlock = ::promptUnlock)
                     }
                 }
