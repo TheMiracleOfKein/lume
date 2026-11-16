@@ -37,7 +37,7 @@ class LibSocialEngine(
     private val http: AppHttp,
     private val auth: LibAuthStore? = null,
     private val json: Json = Json { ignoreUnknownKeys = true; isLenient = true },
-) : ComicSource {
+) : ComicSource, LibBookmarkSource {
     private val apiBase: URI
         get() = URI(manifest.configString("apiBase") ?: "https://api.cdnlibs.org/api")
 
@@ -515,7 +515,7 @@ class LibSocialEngine(
      * the folders are read one by one. Folder names come from `/bookmarks/folder`, with the
      * built-in statuses named locally when that call fails.
      */
-    suspend fun fetchBookmarks(): Pair<List<LibBookmarkFolder>, List<LibBookmark>> {
+    override suspend fun fetchBookmarks(): Pair<List<LibBookmarkFolder>, List<LibBookmark>> {
         val token = auth?.getToken(manifest.id)?.takeIf { it.isValid() }
             ?: throw SourceLoginRequiredException(appString(R.string.error_source_login_required, manifest.name))
         val userId = token.auth?.id?.takeIf { it > 0 }

@@ -36,6 +36,10 @@ android {
         // Robolectric (screenshot and ViewModel tests) needs the merged assets and resources.
         unitTests.isIncludeAndroidResources = true
         unitTests.all { test ->
+            // Live catalogue checks hit real sites: ./gradlew :feature:comics:testDebugUnitTest -Plume.live
+            test.systemProperty("lume.live", project.hasProperty("lume.live").toString())
+            project.findProperty("lume.live.sources")?.let { test.systemProperty("lume.live.sources", it.toString()) }
+            test.systemProperty("lume.live.record", project.hasProperty("lume.live.record").toString())
             test.testLogging { events("passed", "skipped", "failed"); showStandardStreams = true }
         }
     }
@@ -60,6 +64,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.coil.compose)
+    implementation(libs.jsoup)
     // Paged reader: subsampled decoding and sharp zoom.
     implementation(libs.telephoto.zoomable.image.coil3)
 

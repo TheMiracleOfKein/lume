@@ -34,10 +34,6 @@ android {
         // Robolectric (Room migration tests) needs the merged assets and resources.
         unitTests.isIncludeAndroidResources = true
         unitTests.all { test ->
-            // Live catalogue checks hit real sites: ./gradlew :core:data:testDebugUnitTest -Plume.live
-            test.systemProperty("lume.live", project.hasProperty("lume.live").toString())
-            project.findProperty("lume.live.sources")?.let { test.systemProperty("lume.live.sources", it.toString()) }
-            test.systemProperty("lume.live.record", project.hasProperty("lume.live.record").toString())
             test.testLogging { events("passed", "skipped", "failed"); showStandardStreams = true }
         }
     }

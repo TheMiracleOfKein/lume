@@ -52,7 +52,7 @@ Run what CI runs before opening a pull request:
 ```
 
 - On Windows the Room migration test is skipped on the JVM; CI (Linux) runs it. To run it locally, use a device or emulator: `./gradlew :app:connectedDebugAndroidTest`.
-- To check the built-in sources against the live sites: `./gradlew :app:testDebugUnitTest -Plume.live` (add `-Plume.live.sources=mangadex,asura` for a subset). A weekly workflow does the same.
+- To check the built-in sources against the live sites: `./gradlew :feature:comics:testDebugUnitTest -Plume.live` (add `-Plume.live.sources=mangadex,asura` for a subset). A weekly workflow does the same.
 - Lint should report no issues.
 
 ## Commits and pull requests
