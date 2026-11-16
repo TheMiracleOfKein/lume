@@ -80,5 +80,46 @@ class AppUpdaterTest {
         assertNull(parseRelease(json("""{"tag_name":"v0.8.0","draft":true}""")))
     }
 
+    @Test
+    fun picksTheApkOfThisBuildsFlavor() {
+        val names = listOf("lume-v1.0.1-full.apk", "lume-v1.0.1-full.apk.sha256", "lume-v1.0.1-manga.apk", "lume-v1.0.1-manga.apk.sha256")
+        assertEquals(0, pickApk(names, "full"))
+        assertEquals(2, pickApk(names, "manga"))
+        assertEquals(2, pickApk(names, "MANGA"))
+    }
+
+    @Test
+    fun neverOffersAnotherFlavorsApk() {
+        val onlyFull = listOf("lume-v1.0.1-full.apk", "lume-v1.0.1-full.apk.sha256")
+        assertNull(pickApk(onlyFull, "manga"))
+        assertNull(pickApk(onlyFull, "ranobe"))
+    }
+
+    @Test
+    fun aReleaseBeforeFlavorsOffersItsOnlyApk() {
+        val legacy = listOf("lume-v0.9.16.apk.sha256", "lume-v0.9.16.apk")
+        assertEquals(1, pickApk(legacy, "full"))
+        assertEquals(1, pickApk(legacy, "manga"))
+        assertNull(pickApk(listOf("notes.txt"), "full"))
+    }
+
+    @Test
+    fun readsTheFlavoredAssetFromARelease() {
+        val base = "https://github.com/TheMiracleOfKein/lume/releases/download/v1.0.1"
+        val release = """{"tag_name":"v1.0.1","assets":[
+            {"name":"lume-v1.0.1-full.apk","browser_download_url":"$base/lume-v1.0.1-full.apk","size":30},
+            {"name":"lume-v1.0.1-manga.apk","browser_download_url":"$base/lume-v1.0.1-manga.apk","size":20}]}"""
+        assertEquals("$base/lume-v1.0.1-manga.apk", parseRelease(json(release), "manga")!!.apkUrl)
+        assertEquals(30L, parseRelease(json(release), "full")!!.apkSize)
+    }
+
+    @Test
+    fun flavorComesFromTheEndOfTheName() {
+        assertEquals("full", apkFlavor("lume-v1.0.0-full.apk"))
+        assertEquals("manga", apkFlavor("lume-v1.0.0-rc1-manga.apk"))
+        assertNull(apkFlavor("lume-v1.0.0-rc1.apk"))
+        assertNull(apkFlavor("lume-v0.9.16.apk"))
+    }
+
     private fun json(text: String) = Json.parseToJsonElement(text.trimIndent()).jsonObject
 }
