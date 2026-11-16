@@ -1,16 +1,13 @@
 package com.lume.app.ui.screenshots
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.lume.app.R
@@ -33,8 +30,6 @@ import com.lume.app.ui.screens.ChapterRow
 import com.lume.app.ui.screens.FilterChipRow
 import com.lume.app.ui.screens.HomeFeedList
 import com.lume.app.ui.screens.LibraryContent
-import com.lume.app.ui.screens.ReaderBottomBar
-import com.lume.app.ui.screens.ReaderTopBar
 import com.lume.app.ui.screens.TitleHeader
 import com.lume.app.ui.screens.settings.SettingsScaffold
 import com.lume.app.ui.screens.settings.SettingsSections
@@ -199,46 +194,4 @@ class SettingsScreenshotTest : ScreenshotTest() {
     @Test fun light() = settings(Look.Light)
     @Test fun dark() = settings(Look.Dark)
     @Test fun largeFont() = settings(Look.LargeFont)
-}
-
-class ReaderScreenshotTest : ScreenshotTest() {
-    // The reader draws its bars over the pages, always on dark scrims.
-    private fun reader(look: Look) = shoot("reader_menu", look) {
-        Column(Modifier.fillMaxSize().background(Color(0xFF202020))) {
-            ReaderTopBar(
-                titleName = "Tower of the Lantern",
-                chapterTitle = "Chapter 3: Second Floor",
-                inLibrary = true,
-                onBack = {},
-                onOpenTitle = {},
-                onToggleLibrary = {},
-                onSettings = {},
-                onSharePage = {},
-                onSavePage = {},
-                guidedPanels = false,
-            )
-            Box(Modifier.weight(1f).fillMaxWidth())
-            ReaderBottomBar(
-                pageLabel = "Page 8 / 24",
-                pageIndex = 7,
-                pageCount = 24,
-                reversed = false,
-                onSeek = {},
-                autoScroll = null,
-                onToggleAutoScroll = {},
-                hasPrev = true,
-                hasNext = false,
-                onPrev = {},
-                onNext = {},
-                onChapters = {},
-                onBookmark = {},
-                onBookmarkList = {},
-                onSettings = {},
-            )
-        }
-    }
-
-    @Test fun light() = reader(Look.Light)
-    @Test fun dark() = reader(Look.Dark)
-    @Test fun largeFont() = reader(Look.LargeFont)
 }

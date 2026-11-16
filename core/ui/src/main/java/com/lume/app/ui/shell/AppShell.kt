@@ -103,7 +103,6 @@ import com.lume.app.ui.screens.StatsScreen
 import com.lume.app.ui.screens.HistoryScreen
 import com.lume.app.ui.screens.HomeScreen
 import com.lume.app.ui.screens.LibraryScreen
-import com.lume.app.ui.screens.ReaderScreen
 import com.lume.app.ui.screens.ReadingListScreen
 import com.lume.app.ui.screens.SearchScreen
 import com.lume.app.ui.screens.settings.SettingsPageScreen
@@ -123,7 +122,7 @@ private val MainTabRoutes = setOf(
 )
 
 @Composable
-fun LumeRoot() {
+fun LumeRoot(contentScreens: List<ContentScreens> = emptyList()) {
     val nav = rememberNavController()
     var challengeUri by remember { mutableStateOf<URI?>(null) }
     val http = LocalAppContainer.current.http
@@ -133,7 +132,7 @@ fun LumeRoot() {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        AppShell(nav)
+        AppShell(nav, contentScreens)
         com.lume.app.ui.components.UpdatePrompt()
         challengeUri?.let { uri ->
             CloudflareChallengeOverlay(
@@ -146,7 +145,7 @@ fun LumeRoot() {
 }
 
 @Composable
-fun AppShell(nav: NavHostController) {
+fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = emptyList()) {
     var menuOpen by remember { mutableStateOf(false) }
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
@@ -265,26 +264,9 @@ fun AppShell(nav: NavHostController) {
                     titleId = entry.arguments!!.getString("titleId")!!,
                 )
             }
-            lumeComposable(
-                route = Routes.Reader,
-                arguments = listOf(
-                    navArgument("sourceId") { type = NavType.StringType },
-                    navArgument("titleId") { type = NavType.StringType },
-                    navArgument("chapterId") { type = NavType.StringType },
-                    navArgument("page") { type = NavType.IntType; defaultValue = -1 },
-                    navArgument("offset") { type = NavType.FloatType; defaultValue = -1f },
-                ),
-            ) { entry ->
-                val args = entry.arguments!!
-                ReaderScreen(
-                    nav = nav,
-                    sourceId = args.getString("sourceId")!!,
-                    titleId = args.getString("titleId")!!,
-                    chapterId = args.getString("chapterId")!!,
-                    page = args.getInt("page").takeIf { it >= 0 },
-                    offset = args.getFloat("offset").takeIf { it >= 0f },
-                )
-            }
+            // Readers come from the installed content modules.
+            val graph = ShellGraph(this)
+            contentScreens.forEach { it.register(graph, nav) }
         }
 
         val onSelect: (String?) -> Unit = { target ->
@@ -357,7 +339,7 @@ private fun NavHostController.navigateToTab(route: String) {
 private fun AnimatedContentTransitionScope<NavBackStackEntry>.isTabSwitch(): Boolean =
     initialState.destination.route in MainTabRoutes && targetState.destination.route in MainTabRoutes
 
-private fun NavGraphBuilder.lumeComposable(
+internal fun NavGraphBuilder.lumeComposable(
     route: String,
     arguments: List<NamedNavArgument> = emptyList(),
     content: @Composable (NavBackStackEntry) -> Unit,
