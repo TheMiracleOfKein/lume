@@ -46,7 +46,7 @@ class SourceRegistry(
     private val json: Json = Json { ignoreUnknownKeys = true; isLenient = true },
     scope: kotlinx.coroutines.CoroutineScope? = null,
     errorLog: com.lume.app.data.ErrorLog? = null,
-    private val modules: List<ContentModule> = listOf(ComicsModule),
+    private val modules: List<ContentModule>,
 ) {
     private val bundledIds = mutableSetOf<String>()
 

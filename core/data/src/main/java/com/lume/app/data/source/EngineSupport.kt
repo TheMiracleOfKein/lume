@@ -10,25 +10,25 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.TextNode
 import java.net.URI
 
-/* Small helpers shared by the catalogue engines. */
+/* Small helpers shared by the catalogue engines (public: most engines live in the feature modules). */
 
 /** Non-blank primitive content; JSON `null` and the literal string "null" become Kotlin null. */
-internal fun JsonElement?.str(): String? =
+fun JsonElement?.str(): String? =
     (this as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() && it != "null" }
 
-internal fun JsonElement?.obj(): JsonObject? = this as? JsonObject
+fun JsonElement?.obj(): JsonObject? = this as? JsonObject
 
-internal fun JsonElement?.arr(): JsonArray? = this as? JsonArray
+fun JsonElement?.arr(): JsonArray? = this as? JsonArray
 
-internal fun JsonObject?.str(key: String): String? = this?.get(key).str()
+fun JsonObject?.str(key: String): String? = this?.get(key).str()
 
-internal fun JsonElement?.bool(): Boolean? = (this as? JsonPrimitive)?.contentOrNull?.toBooleanStrictOrNull()
+fun JsonElement?.bool(): Boolean? = (this as? JsonPrimitive)?.contentOrNull?.toBooleanStrictOrNull()
 
 /**
  * Converts an HTML fragment (API descriptions are often `<p>…</p>` with entities) into plain text,
  * keeping paragraph and line breaks.
  */
-internal fun htmlToText(html: String?): String? {
+fun htmlToText(html: String?): String? {
     if (html.isNullOrBlank()) return null
     if ('<' !in html && '&' !in html) return html.trim()
     val body = Jsoup.parseBodyFragment(html).body()
@@ -43,11 +43,11 @@ internal fun htmlToText(html: String?): String? {
 }
 
 /** Percent-encode one URL path segment (slugs may contain `<`, `>`, spaces, Cyrillic, …). */
-internal fun pathSegment(value: String): String =
+fun pathSegment(value: String): String =
     java.net.URLEncoder.encode(value, "UTF-8").replace("+", "%20")
 
 /** Resolve [pathOrUrl] against [base]; absolute URLs pass through unchanged. */
-internal fun resolveUrl(base: String, pathOrUrl: String): URI {
+fun resolveUrl(base: String, pathOrUrl: String): URI {
     val trimmed = pathOrUrl.trim()
     if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return URI(trimmed)
     if (trimmed.startsWith("//")) return URI("https:$trimmed")
@@ -55,13 +55,13 @@ internal fun resolveUrl(base: String, pathOrUrl: String): URI {
 }
 
 /** Append a query fragment to a URL that may or may not already have one. */
-internal fun withQuery(url: String, query: String): String {
+fun withQuery(url: String, query: String): String {
     if (query.isBlank()) return url
     val q = query.removePrefix("?").removePrefix("&")
     return if ('?' in url) "$url&$q" else "$url?$q"
 }
 
-internal fun chapterNumberFrom(text: String): String? =
+fun chapterNumberFrom(text: String): String? =
     Regex("""(?:chapter|ch\.?|episode|ep\.?|глава|гл\.?)\s*([0-9]+(?:[.,][0-9]+)?)""", RegexOption.IGNORE_CASE)
         .find(text)?.groupValues?.getOrNull(1)?.replace(',', '.')
 
@@ -69,7 +69,7 @@ internal fun chapterNumberFrom(text: String): String? =
  * Filter lists a site serves (genres, tags), fetched once per engine. A failed fetch is not kept,
  * so the next panel opening tries again; until then the static filters stand in.
  */
-internal class SiteFilters(private val fetch: suspend () -> com.lume.app.domain.FilterList) {
+class SiteFilters(private val fetch: suspend () -> com.lume.app.domain.FilterList) {
     @Volatile
     private var cached: com.lume.app.domain.FilterList? = null
     private val lock = kotlinx.coroutines.sync.Mutex()
@@ -89,5 +89,5 @@ internal class SiteFilters(private val fetch: suspend () -> com.lume.app.domain.
 }
 
 /** Repeated `name[]=value` query parameters, each value encoded; empty when [values] is. */
-internal fun arrayParams(name: String, values: Iterable<String>): String =
+fun arrayParams(name: String, values: Iterable<String>): String =
     values.joinToString("") { "&$name[]=${com.lume.app.util.urlEncode(it)}" }

@@ -12,7 +12,7 @@ import com.lume.app.data.source.LibBookmarkFolder
 import com.lume.app.data.source.LIB_IMPORTED_STATUSES
 import com.lume.app.data.source.LIB_STATUS_COMPLETED
 import com.lume.app.data.source.LibReadChapter
-import com.lume.app.data.source.LibSocialEngine
+import com.lume.app.data.source.LibBookmarkSource
 import com.lume.app.data.source.SourceRegistry
 import com.lume.app.domain.Chapter
 import kotlinx.coroutines.CancellationException
@@ -111,7 +111,7 @@ class LibBookmarkImport(
         onStage(LibImportStage.Fetching)
         sources.awaitLoaded()
         // The registry hands out wrapped sources; the bookmark call lives on the engine itself.
-        val engine = sources.engineById(sourceId) as? LibSocialEngine
+        val engine = sources.engineById(sourceId) as? LibBookmarkSource
             ?: error("Not a Lib source: $sourceId")
         val (folders, bookmarks) = engine.fetchBookmarks()
         val plan = planLibBookmarkImport(folders, bookmarks)
@@ -159,7 +159,7 @@ class LibBookmarkImport(
 
     /** Loads the chapter list of every title read on the site, a few at a time. Returns (done, missed). */
     private suspend fun importProgress(
-        engine: LibSocialEngine,
+        engine: LibBookmarkSource,
         sourceId: String,
         titles: List<LibImportTitle>,
         onStage: (LibImportStage) -> Unit,
@@ -187,7 +187,7 @@ class LibBookmarkImport(
         done to (outcomes.size - done)
     }
 
-    private suspend fun importTitleProgress(engine: LibSocialEngine, sourceId: String, title: LibImportTitle): Boolean {
+    private suspend fun importTitleProgress(engine: LibBookmarkSource, sourceId: String, title: LibImportTitle): Boolean {
         val lastRead = title.lastRead
         if (lastRead == null && !title.completed) return false
         val chapters = try {

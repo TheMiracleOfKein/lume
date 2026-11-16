@@ -116,8 +116,8 @@ JVM tests drive every bundled source against the real site (popular → page 2 �
 search → details → chapters → pages → first image):
 
 ```bash
-./gradlew :core:data:testDebugUnitTest -Plume.live
-./gradlew :core:data:testDebugUnitTest -Plume.live -Plume.live.sources=asura,mangadex
+./gradlew :feature:comics:testDebugUnitTest -Plume.live
+./gradlew :feature:comics:testDebugUnitTest -Plume.live -Plume.live.sources=asura,mangadex
 ```
 
 Sources unreachable from the test machine (geo-blocks, challenges needing a WebView) are
@@ -163,7 +163,7 @@ parsing: a fetch method calls an `internal fun parseXxx(body, …)` (`parseTitle
 `parseDetails`, `parseChapters`, `parsePages`). When one result needs several requests
 (chapter pages, a title page plus an AJAX list), each body is passed separately.
 
-Fixtures live in `core/data/src/test/resources/fixtures/<source id>/<case>.{json,html}` and are read
+Fixtures live in `feature/comics/src/test/resources/fixtures/<source id>/<case>.{json,html}` and are read
 with `Fixtures.text("<source id>/<case>.json")`. The cases are `popular`, `search`, `details`,
 `chapters` and `pages`; a second response of the same case is `<case>-2` (for example
 `details-2.json`, the MangaDex statistics). Large lists are cut to a few dozen entries, and
@@ -172,7 +172,7 @@ scripts and styles are dropped from big HTML pages that the parser does not read
 Record or refresh fixtures from the live sites:
 
 ```bash
-./gradlew :core:data:testDebugUnitTest --tests '*LiveSourcesTest*' -Plume.live -Plume.live.record -Plume.live.sources=asura,mangalib
+./gradlew :feature:comics:testDebugUnitTest --tests '*LiveSourcesTest*' -Plume.live -Plume.live.record -Plume.live.sources=asura,mangalib
 ```
 
 `-Plume.live.record` saves the response bodies of the first title the live check walks
@@ -180,7 +180,7 @@ through. Naming `weebcentral` or `demonicscans` in `-Plume.live.sources` also ru
 samples from `docs/packs/site`. Sources that cannot be reached (geo-block, challenge) write
 nothing; their fixtures are written by hand from the shape the parser reads, and the test's
 comment says so (MangaDex and MangaBuff at the time of writing). After recording, shrink big
-files and run the offline tests: `./gradlew :core:data:testDebugUnitTest`.
+files and run the offline tests: `./gradlew :feature:comics:testDebugUnitTest`.
 
 ### Coverage gaps
 

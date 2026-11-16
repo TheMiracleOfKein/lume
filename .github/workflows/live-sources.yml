@@ -37,7 +37,7 @@ jobs:
         run: |
           args=(-Plume.live)
           if [ -n "$SOURCES" ]; then args+=("-Plume.live.sources=$SOURCES"); fi
-          ./gradlew --no-configuration-cache :core:data:testDebugUnitTest --tests 'com.lume.app.data.source.LiveSourcesTest' "${args[@]}"
+          ./gradlew --no-configuration-cache :feature:comics:testDebugUnitTest --tests 'com.lume.app.data.source.LiveSourcesTest' "${args[@]}"
 
       - name: Report
         if: always()
@@ -45,6 +45,6 @@ jobs:
           {
             echo '## Live source report'
             echo '```'
-            cat core/data/build/live-sources-report.txt 2>/dev/null || echo 'No report: the build failed before the check ran.'
+            cat feature/comics/build/live-sources-report.txt 2>/dev/null || echo 'No report: the build failed before the check ran.'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

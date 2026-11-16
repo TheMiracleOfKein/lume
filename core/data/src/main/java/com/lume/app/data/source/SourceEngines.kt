@@ -99,7 +99,7 @@ object SourceEngines {
         libAuth: LibAuthStore? = null,
         serverCredentials: ServerCredentials? = null,
         cacheDir: java.io.File? = null,
-        modules: List<ContentModule> = listOf(ComicsModule),
+        modules: List<ContentModule>,
     ): CatalogSource {
         val factory = modules.firstNotNullOfOrNull { it.engines[manifest.engine] }
             ?: error(

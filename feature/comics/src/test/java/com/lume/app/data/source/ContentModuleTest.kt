@@ -37,7 +37,7 @@ class ContentModuleTest {
     @Test
     fun unknownEngineIsRejected() {
         val manifest = SourceManifest(id = "x", name = "X", engine = "nope", baseUrl = "https://x.test")
-        val failure = runCatching { SourceEngines.create(manifest, com.lume.app.data.network.AppHttp()) }.exceptionOrNull()
+        val failure = runCatching { SourceEngines.create(manifest, com.lume.app.data.network.AppHttp(), modules = listOf(ComicsModule)) }.exceptionOrNull()
         assertTrue(failure is IllegalStateException)
     }
 }

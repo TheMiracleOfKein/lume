@@ -1,7 +1,17 @@
 package com.lume.app.data.source
 
+import com.lume.app.domain.CatalogSource
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+
+/**
+ * A source that can read the signed-in user's bookmarks of a MangaLib-family site. The Lib
+ * bookmark import (`LibBookmarkImport`) needs only this, not the engine that implements it.
+ */
+interface LibBookmarkSource : CatalogSource {
+    /** Folders and bookmarks; throws `SourceLoginRequiredException` when not signed in. */
+    suspend fun fetchBookmarks(): Pair<List<LibBookmarkFolder>, List<LibBookmark>>
+}
 
 /** A bookmark folder on a MangaLib-family site ("Reading", "Planned", or one the user made). */
 data class LibBookmarkFolder(val id: String, val name: String)
@@ -31,7 +41,7 @@ data class LibBookmarkPage(val items: List<LibBookmark>, val hasNext: Boolean)
 private val bookmarkJson = Json { ignoreUnknownKeys = true; isLenient = true }
 
 /** `/bookmarks/folder/{userId}`: `{ data: [ { id, name, … } ] }`. */
-internal fun parseLibBookmarkFolders(raw: String): List<LibBookmarkFolder> {
+fun parseLibBookmarkFolders(raw: String): List<LibBookmarkFolder> {
     val root = runCatching { bookmarkJson.parseToJsonElement(raw) }.getOrNull() ?: return emptyList()
     val list = root.arr() ?: root.obj()?.get("data").let { it.arr() ?: it.obj()?.get("data").arr() }
     return list.orEmpty().mapNotNull { el ->
@@ -47,7 +57,7 @@ internal fun parseLibBookmarkFolders(raw: String): List<LibBookmarkFolder> {
  * answers put its fields at the top level). Titles of another Lib site are skipped when the
  * entry says which site it belongs to. [folderId] is used when an entry doesn't name its folder.
  */
-internal fun parseLibBookmarksPage(raw: String, siteId: String, folderId: String?): LibBookmarkPage {
+fun parseLibBookmarksPage(raw: String, siteId: String, folderId: String?): LibBookmarkPage {
     val root = runCatching { bookmarkJson.parseToJsonElement(raw) }.getOrNull()
         ?: return LibBookmarkPage(emptyList(), hasNext = false)
     val data = root.obj()?.get("data") ?: root
@@ -112,7 +122,7 @@ private fun parseLibTime(raw: String): Long? = runCatching {
 }.getOrNull()
 
 /** `status` value that asks `/bookmarks` for every bookmark, whatever folder it is in. */
-internal const val LIB_ALL_BOOKMARKS = "0"
+const val LIB_ALL_BOOKMARKS = "0"
 
 /**
  * [siteFolders] plus a name for each built-in status in [usedIds] the site didn't list, so a
@@ -121,7 +131,7 @@ internal const val LIB_ALL_BOOKMARKS = "0"
  * in the app's language. The user's own folders without a name stay unnamed: their titles are
  * imported without that category.
  */
-internal fun withDefaultLibFolders(
+fun withDefaultLibFolders(
     siteFolders: List<LibBookmarkFolder>,
     usedIds: Set<String>,
     defaults: Map<String, String>,
@@ -133,7 +143,7 @@ internal fun withDefaultLibFolders(
 }
 
 /** The statuses an import brings over: reading, planned, dropped and read. Favourites and the user's own folders stay on the site. */
-internal val LIB_IMPORTED_STATUSES = listOf("1", "2", "3", "4")
+val LIB_IMPORTED_STATUSES = listOf("1", "2", "3", "4")
 
 /** "Read": every chapter of a title in it is marked read. */
 internal const val LIB_STATUS_COMPLETED = "4"

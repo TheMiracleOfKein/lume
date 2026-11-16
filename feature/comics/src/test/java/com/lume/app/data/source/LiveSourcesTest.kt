@@ -26,7 +26,7 @@ import org.junit.Assert.fail
  * site, the way the app does:
  * popular → page 2 → latest → search → details → chapters → pages → first image.
  *
- * Opt-in (hits the network):  ./gradlew :app:testDebugUnitTest -Plume.live
+ * Opt-in (hits the network):  ./gradlew :feature:comics:testDebugUnitTest -Plume.live
  * Subset:                     -Plume.live.sources=asura,mangadex  (also runs docs/packs/site samples, e.g. weebcentral,demonic)
  * Save the responses:        -Plume.live.record  (writes src/test/resources/fixtures/<source id>/)
  *
@@ -42,7 +42,7 @@ class LiveSourcesTest {
         val only = System.getProperty("lume.live.sources")?.split(',')?.map { it.trim() }?.toSet()
         val bundled = File("src/main/assets/sources").listFiles { f -> f.extension == "json" }.orEmpty().toList()
         // The importable packs from the catalogue (docs/packs/index.json) are checked too.
-        val packDir = File("../docs/packs")
+        val packDir = File("../../docs/packs")
         val packs = runCatching {
             json.decodeFromString(PackIndex.serializer(), File(packDir, "index.json").readText()).packs
                 .map { File(packDir, it.url) }
@@ -64,7 +64,7 @@ class LiveSourcesTest {
             }
             val recorder = if (record) Recorder(File(fixtureRoot, manifest.id)) else null
             http.responseTap = recorder?.let { r -> { _, body -> r.save(body) } }
-            check(SourceEngines.create(manifest, http), http, referers, recorder)
+            check(SourceEngines.create(manifest, http, modules = listOf(ComicsModule)), http, referers, recorder)
         }
         println("\n=== Live source report ===")
         reports.forEach { println(it) }
