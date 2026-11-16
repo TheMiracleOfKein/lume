@@ -17,7 +17,14 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.selected
+import com.lume.app.domain.MediaKind
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
@@ -147,6 +154,20 @@ fun LumeRoot(contentScreens: List<ContentScreens> = emptyList()) {
 @Composable
 fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = emptyList()) {
     var menuOpen by remember { mutableStateOf(false) }
+    // Reading modes: only builds with more than one module can switch (long press on the logo).
+    val container = LocalAppContainer.current
+    val modules = container.installedModules
+    val activeMode by container.prefs.activeMode.collectAsState()
+    var modesOpen by remember { mutableStateOf(false) }
+    val openModes: (() -> Unit)? = if (canSwitchModes(modules)) ({ modesOpen = true }) else null
+    val scope = rememberCoroutineScope()
+    val switchMode: (MediaKind) -> Unit = { kind ->
+        modesOpen = false
+        if (kind != activeMode) {
+            scope.launch { container.prefs.setActiveMode(kind) }
+            nav.resetToHome()
+        }
+    }
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
     val showBottomBar = route in MainTabRoutes
@@ -173,7 +194,7 @@ fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = empt
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .then(if (menuOpen) Modifier.clearAndSetSemantics {} else Modifier),
+            .then(if (menuOpen || modesOpen) Modifier.clearAndSetSemantics {} else Modifier),
     ) {
         // No shell padding at all: each destination pads itself (see lumeComposable), so the
         // bottom bar sliding in or out never re-lays-out a screen mid-transition.
@@ -190,17 +211,17 @@ fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = empt
             popEnterTransition = { Motion.screenPopEnter },
             popExitTransition = { Motion.screenPopExit },
         ) {
-            lumeComposable(Routes.Home) { HomeScreen(nav) }
-            lumeComposable(Routes.Catalog) { CatalogScreen(nav) }
+            lumeComposable(Routes.Home) { ModeGate { HomeScreen(nav) } }
+            lumeComposable(Routes.Catalog) { ModeGate { CatalogScreen(nav) } }
             lumeComposable(Routes.Library) { LibraryScreen(nav) }
-            lumeComposable(Routes.Updates) { UpdatesScreen(nav) }
+            lumeComposable(Routes.Updates) { ModeGate { UpdatesScreen(nav) } }
             lumeComposable(Routes.History) { HistoryScreen(nav) }
-            lumeComposable(Routes.Search) { SearchScreen(nav) }
+            lumeComposable(Routes.Search) { ModeGate { SearchScreen(nav) } }
             lumeComposable(
                 route = Routes.SearchAll,
                 arguments = listOf(navArgument("q") { type = NavType.StringType; nullable = true; defaultValue = null }),
             ) { entry ->
-                SearchScreen(nav, globalQuery = entry.arguments!!.getString("q"))
+                ModeGate { SearchScreen(nav, globalQuery = entry.arguments!!.getString("q")) }
             }
             lumeComposable(Routes.Sources) { SourcesScreen(nav) }
             lumeComposable(Routes.Settings) { SettingsScreen(nav) }
@@ -282,7 +303,7 @@ fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = empt
             enter = Motion.barEnterFromBottom,
             exit = Motion.barExitToBottom,
         ) {
-            BottomNavBar(currentRoute = route, onSelect = onSelect)
+            BottomNavBar(currentRoute = route, onSelect = onSelect, onHomeLongClick = openModes)
         }
         AnimatedVisibility(
             visible = showBottomBar && useRail,
@@ -290,7 +311,7 @@ fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = empt
             enter = slideInHorizontally(Motion.medium()) { -it } + fadeIn(Motion.medium()),
             exit = slideOutHorizontally(Motion.medium()) { -it } + fadeOut(Motion.short()),
         ) {
-            NavRail(currentRoute = route, onSelect = onSelect)
+            NavRail(currentRoute = route, onSelect = onSelect, onHomeLongClick = openModes)
         }
     }
 
@@ -304,6 +325,15 @@ fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = empt
                     else -> nav.navigate(target) { launchSingleTop = true }
                 }
             },
+            onOpenModes = openModes?.let { open -> { menuOpen = false; open() } },
+        )
+        ModeSwitcher(
+            visible = modesOpen,
+            modules = modules,
+            active = activeMode,
+            useRail = useRail,
+            onSelect = switchMode,
+            onDismiss = { modesOpen = false },
         )
     }
     }
@@ -323,6 +353,14 @@ private fun NavHostController.openLink(route: String) {
             popUpTo(Routes.Reader) { inclusive = true }
         }
         else -> navigate(route) { launchSingleTop = true }
+    }
+}
+
+/** After a mode switch: Home of the new mode, with no screen of the old mode to go back to. */
+private fun NavHostController.resetToHome() {
+    navigate(Routes.Home) {
+        popUpTo(graph.findStartDestination().id) { inclusive = true }
+        launchSingleTop = true
     }
 }
 
@@ -383,6 +421,7 @@ internal fun NavGraphBuilder.lumeComposable(
 private fun BottomNavBar(
     currentRoute: String?,
     onSelect: (String?) -> Unit,
+    onHomeLongClick: (() -> Unit)?,
 ) {
     Column(
         modifier = Modifier
@@ -414,6 +453,7 @@ private fun BottomNavBar(
             HomeSlot(
                 selected = currentRoute == Routes.Home,
                 onClick = { onSelect(Routes.Home) },
+                onLongClick = onHomeLongClick,
                 modifier = Modifier.weight(1f).fillMaxSize(),
             )
             NavSlot(
@@ -436,7 +476,7 @@ private fun BottomNavBar(
 
 /** The bottom bar's destinations, stacked on the left for wide screens. */
 @Composable
-private fun NavRail(currentRoute: String?, onSelect: (String?) -> Unit) {
+private fun NavRail(currentRoute: String?, onSelect: (String?) -> Unit, onHomeLongClick: (() -> Unit)?) {
     Row(Modifier.fillMaxHeight()) {
         BoxWithConstraints(
             modifier = Modifier
@@ -457,7 +497,7 @@ private fun NavRail(currentRoute: String?, onSelect: (String?) -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 val slot = Modifier.fillMaxWidth().height(slotHeight)
-                HomeSlot(currentRoute == Routes.Home, { onSelect(Routes.Home) }, slot)
+                HomeSlot(currentRoute == Routes.Home, { onSelect(Routes.Home) }, slot, onHomeLongClick)
                 NavSlot(currentRoute == Routes.Library, stringResource(R.string.nav_library), Icons.Outlined.Bookmark, { onSelect(Routes.Library) }, slot)
                 NavSlot(currentRoute == Routes.Catalog, stringResource(R.string.nav_catalog), Icons.Outlined.GridView, { onSelect(Routes.Catalog) }, slot)
                 NavSlot(currentRoute == Routes.Updates, stringResource(R.string.nav_updates), Icons.Outlined.NewReleases, { onSelect(Routes.Updates) }, slot)
@@ -506,13 +546,38 @@ private fun NavSlot(
     }
 }
 
-/** The centre Home destination: the app logo, announced as "Home". */
+/**
+ * The centre Home destination: the app logo, announced as "Home". With [onLongClick] (builds with
+ * more than one reading mode) a long press opens the mode switcher, with haptic feedback and a
+ * TalkBack action label.
+ */
 @Composable
-private fun HomeSlot(selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun HomeSlot(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
+) {
     val label = stringResource(R.string.nav_home)
+    val haptics = LocalHapticFeedback.current
+    val press = if (onLongClick == null) {
+        Modifier.selectable(selected = selected, role = Role.Tab, onClick = onClick)
+    } else {
+        Modifier
+            .combinedClickable(
+                role = Role.Tab,
+                onClick = onClick,
+                onLongClickLabel = stringResource(R.string.mode_switch_action),
+                onLongClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLongClick()
+                },
+            )
+            .semantics { this.selected = selected }
+    }
     Box(
         modifier = modifier
-            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+            .then(press)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {

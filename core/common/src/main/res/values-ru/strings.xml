@@ -191,6 +191,12 @@
     <string name="source_auth_off">гость</string>
     <string name="mode_comics">Манга</string>
     <string name="mode_novel">Ранобэ</string>
+    <string name="mode_switcher_title">Режим чтения</string>
+    <string name="mode_preview">Превью</string>
+    <string name="mode_switch_action">Сменить режим чтения</string>
+    <string name="menu_mode">Режим</string>
+    <string name="mode_coming_title">Источники «%1$s» скоро появятся</string>
+    <string name="mode_coming_body">Это предварительная версия режима. Чтобы вернуться, удерживайте логотип.</string>
     <string name="engine_kind_family">семейство (паки)</string>
     <string name="engine_kind_local">локальный</string>
     <string name="engine_kind_server">ваш сервер</string>

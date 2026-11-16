@@ -10,5 +10,6 @@ class NovelModuleTest {
     fun servesNovelsAndHasNoEnginesYet() {
         assertEquals(MediaKind.Novel, NovelModule.kind)
         assertTrue(NovelModule.engines.isEmpty())
+        assertTrue(NovelModule.preview)
     }
 }

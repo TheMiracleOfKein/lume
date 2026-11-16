@@ -29,6 +29,9 @@ interface ContentModule {
     @get:StringRes
     val labelRes: Int
 
+    /** A mode that is shown but not ready yet: the switcher marks it "Preview". */
+    val preview: Boolean get() = false
+
     /** Engine id to factory. */
     val engines: Map<String, EngineFactory>
 }
