@@ -1,6 +1,7 @@
 package com.lume.app.data.local
 
 import com.lume.app.data.local.archive.ArchiveReaders
+import com.lume.app.data.local.archive.ComicArchives
 import com.lume.app.data.local.archive.DamagedArchiveException
 import com.lume.app.data.local.archive.RarArchiveReader
 import com.lume.app.data.local.archive.SevenZArchiveReader
@@ -55,9 +56,21 @@ class ArchiveReadersTest {
     @Test
     fun `open picks the reader by content`() {
         val misnamed = tmp.newFile("book.cbr").also { it.writeBytes(ArchiveFixtures.zip(ArchiveFixtures.samplePages())) }
-        ArchiveReaders.open(misnamed).use { assertTrue(it is ZipArchiveReader) }
-        ArchiveReaders.open(resource("sample.cbr")).use { assertTrue(it is RarArchiveReader) }
-        ArchiveReaders.open(resource("sample.cb7")).use { assertTrue(it is SevenZArchiveReader) }
+        ComicArchives.open(misnamed).use { assertTrue(it is ZipArchiveReader) }
+        ComicArchives.open(resource("sample.cbr")).use { assertTrue(it is RarArchiveReader) }
+        ComicArchives.open(resource("sample.cb7")).use { assertTrue(it is SevenZArchiveReader) }
+    }
+
+    @Test
+    fun `the shared zip-only opener reads cbz and refuses cbr`() {
+        val cbz = tmp.newFile("a.cbz").also { it.writeBytes(ArchiveFixtures.zip(ArchiveFixtures.samplePages())) }
+        ArchiveReaders.open(cbz).use { assertTrue(it is ZipArchiveReader) }
+        try {
+            ArchiveReaders.open(resource("sample.cbr")).close()
+            fail("expected an unsupported-archive error")
+        } catch (e: IOException) {
+            assertFalse(e is DamagedArchiveException)
+        }
     }
 
     @Test
@@ -70,7 +83,7 @@ class ArchiveReadersTest {
     fun `cb7 lists images in natural order`() = checkArchive(resource("sample.cb7"))
 
     private fun checkArchive(file: File) {
-        ArchiveReaders.open(file).use { reader ->
+        ComicArchives.open(file).use { reader ->
             assertEquals(expectedOrder, ArchiveReaders.imageEntries(reader))
             assertTrue(reader.entries().contains("ComicInfo.xml"))
             val info = reader.open("ComicInfo.xml").use { it.readBytes().toString(Charsets.UTF_8) }
@@ -94,12 +107,12 @@ class ArchiveReadersTest {
         val rar = tmp.newFile("evil.cbr").also {
             it.writeBytes(ArchiveFixtures.rar4(listOf("../evil.png" to ArchiveFixtures.png(0), "p1.png" to ArchiveFixtures.png(1))))
         }
-        ArchiveReaders.open(rar).use { assertEquals(listOf("p1.png"), ArchiveReaders.imageEntries(it)) }
+        ComicArchives.open(rar).use { assertEquals(listOf("p1.png"), ArchiveReaders.imageEntries(it)) }
 
         val zip = tmp.newFile("evil.zip").also {
             it.writeBytes(ArchiveFixtures.zip(listOf("../../evil.png" to ArchiveFixtures.png(0), "p1.png" to ArchiveFixtures.png(1))))
         }
-        ArchiveReaders.open(zip).use { reader ->
+        ComicArchives.open(zip).use { reader ->
             val out = tmp.newFolder("out")
             ArchiveReaders.extractImages(reader, out) { i, name -> "%04d_%s".format(i, name) }
             assertEquals(listOf("0000_p1.png"), out.listFiles()!!.map { it.name })
@@ -126,7 +139,7 @@ class ArchiveReadersTest {
             it.writeBytes(byteArrayOf(0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x01, 0x00) + ByteArray(32))
         }
         try {
-            ArchiveReaders.open(rar5).close()
+            ComicArchives.open(rar5).close()
             fail("expected an error")
         } catch (e: IOException) {
             // The reader turns junrar's own exceptions into IOExceptions the source error path shows.
@@ -141,7 +154,7 @@ class ArchiveReadersTest {
             it.writeBytes(byteArrayOf(0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x01, 0x00) + ByteArray(32))
         }
         try {
-            ArchiveReaders.open(rar5)
+            ComicArchives.open(rar5)
             fail("expected UnsupportedRarVersionException")
         } catch (e: UnsupportedRarVersionException) {
             // expected
@@ -152,7 +165,7 @@ class ArchiveReadersTest {
     fun `garbage in a cbz is reported as a damaged archive`() {
         val bad = tmp.newFile("bad.cbz").also { it.writeBytes(ByteArray(64) { 7 }) }
         try {
-            ArchiveReaders.open(bad)
+            ComicArchives.open(bad)
             fail("expected DamagedArchiveException")
         } catch (e: DamagedArchiveException) {
             // expected

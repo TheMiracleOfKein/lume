@@ -9,6 +9,7 @@ object ComicsModule : ContentModule {
     override val labelRes = R.string.mode_comics
 
     override val engines: Map<String, EngineFactory> = mapOf(
+        SourceEngines.LOCAL to { _, d -> LocalEngine(checkNotNull(d.context) { "Local files need a Context" }) },
         SourceEngines.OPDS to { m, d -> OpdsEngine(m, d.http, d.serverCredentials, d.cacheDir) },
         SourceEngines.KOMGA to { m, d -> KomgaEngine(m, d.http) },
         SourceEngines.KAVITA to { m, d -> KavitaEngine(m, d.http, d.serverCredentials) },

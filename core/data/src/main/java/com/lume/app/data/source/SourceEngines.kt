@@ -55,6 +55,17 @@ object SourceEngines {
     /** Compiled one-site adapters; bundled only if present in assets. */
     val siteOnly: Set<String> = setOf(WEEBCENTRAL, DEMONIC)
 
+    /** The built-in local-files source; the registry adds it when a module provides [LOCAL]. */
+    val localManifest = SourceManifest(
+        id = LOCAL,
+        name = "Local",
+        version = "1.0.0",
+        engine = LOCAL,
+        baseUrl = "file://local",
+        mediaKind = "comics",
+        language = "local",
+    )
+
     fun isKnown(engine: String): Boolean = engine in corePlatform || engine in siteOnly || engine in serverEngines
 
     fun isServer(engine: String): Boolean = engine in serverEngines
@@ -92,13 +103,14 @@ object SourceEngines {
     fun importRejectedMessage(context: Context, engine: String): String =
         context.getString(R.string.import_reject_engine, engine)
 
-    /** Build a network engine for [manifest]. [LOCAL] needs a Context and is created by the registry. */
+    /** Build the engine for [manifest] from the installed [modules]. [LOCAL] needs [context]. */
     fun create(
         manifest: SourceManifest,
         http: AppHttp,
         libAuth: LibAuthStore? = null,
         serverCredentials: ServerCredentials? = null,
         cacheDir: java.io.File? = null,
+        context: android.content.Context? = null,
         modules: List<ContentModule>,
     ): CatalogSource {
         val factory = modules.firstNotNullOfOrNull { it.engines[manifest.engine] }
@@ -109,6 +121,6 @@ object SourceEngines {
                     "Unknown engine: ${manifest.engine}. New engines ship with app updates."
                 },
             )
-        return factory(manifest, EngineDeps(http, libAuth, serverCredentials, cacheDir))
+        return factory(manifest, EngineDeps(http, libAuth, serverCredentials, cacheDir, context))
     }
 }

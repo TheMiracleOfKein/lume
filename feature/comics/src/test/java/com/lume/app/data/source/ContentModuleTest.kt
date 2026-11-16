@@ -29,8 +29,8 @@ class ContentModuleTest {
     }
 
     @Test
-    fun everyKnownEngineExceptLocalHasAFactory() {
-        val known = SourceEngines.corePlatform + SourceEngines.siteOnly + SourceEngines.serverEngines - SourceEngines.LOCAL
+    fun everyKnownEngineHasAFactory() {
+        val known = SourceEngines.corePlatform + SourceEngines.siteOnly + SourceEngines.serverEngines
         for (engine in known) assertNotNull("no factory for $engine", ComicsModule.engines[engine])
     }
 

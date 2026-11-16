@@ -65,6 +65,10 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.coil.compose)
     implementation(libs.jsoup)
+    // Local files: CBR (junrar) and CB7 (commons-compress, xz for LZMA).
+    implementation(libs.junrar)
+    implementation(libs.commons.compress)
+    implementation(libs.xz)
     // Paged reader: subsampled decoding and sharp zoom.
     implementation(libs.telephoto.zoomable.image.coil3)
 

@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import com.lume.app.data.ArchiveCache
 import com.lume.app.data.local.archive.ArchiveReaders
+import com.lume.app.data.local.archive.ComicArchives
 import com.lume.app.data.local.pdf.PdfPageUrl
 import com.lume.app.data.local.pdf.PdfRendererPool
 import com.lume.app.domain.Chapter
@@ -38,15 +39,7 @@ class LocalEngine(
     private val context: Context,
 ) : ComicSource {
 
-    override val manifest: SourceManifest = SourceManifest(
-        id = "local",
-        name = "Local",
-        version = "1.0.0",
-        engine = "local",
-        baseUrl = "file://local",
-        mediaKind = "comics",
-        language = "local",
-    )
+    override val manifest: SourceManifest = SourceEngines.localManifest
 
     override val supportsLatest: Boolean = true
     override val supportsPopular: Boolean = true
@@ -113,7 +106,7 @@ class LocalEngine(
             }
             return@runCatching dest
         }
-        ArchiveReaders.open(archive).use { reader ->
+        ComicArchives.open(archive).use { reader ->
             val entry = ArchiveReaders.imageEntries(reader).firstOrNull() ?: return@runCatching null
             out.mkdirs()
             val dest = File(out, "cover." + entry.substringAfterLast('.'))
@@ -154,7 +147,7 @@ class LocalEngine(
         }
         val archive = chapterEntries(series).firstOrNull { it.isFile && isArchive(it) } ?: return null
         return runCatching {
-            ArchiveReaders.open(archive).use { reader ->
+            ComicArchives.open(archive).use { reader ->
                 val entry = reader.entries().firstOrNull {
                     ArchiveReaders.isSafeEntryName(it) && it.substringAfterLast('/').equals("ComicInfo.xml", ignoreCase = true)
                 } ?: return@use null
@@ -273,7 +266,7 @@ class LocalEngine(
 
     private fun pagesFromArchive(archive: File): List<ComicPage> {
         val outDir = File(context.cacheDir, "local_zip/${ArchiveCache.dirKey(archive)}")
-        val files = ArchiveReaders.open(archive).use { reader ->
+        val files = ComicArchives.open(archive).use { reader ->
             ArchiveReaders.extractImages(reader, outDir) { i, name -> "%04d_%s".format(i, name.ifBlank { "page_$i" }) }
         }
         ArchiveCache.touch(outDir)

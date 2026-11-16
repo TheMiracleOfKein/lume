@@ -13,6 +13,8 @@ class EngineDeps(
     val libAuth: LibAuthStore? = null,
     val serverCredentials: ServerCredentials? = null,
     val cacheDir: java.io.File? = null,
+    /** For engines that read the phone itself (local files). */
+    val context: android.content.Context? = null,
 )
 
 typealias EngineFactory = (SourceManifest, EngineDeps) -> CatalogSource
