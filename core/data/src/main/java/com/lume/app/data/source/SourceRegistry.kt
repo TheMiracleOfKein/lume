@@ -11,6 +11,7 @@ import com.lume.app.data.server.ServerAuth
 import com.lume.app.data.server.ServerCredentialStore
 import com.lume.app.data.server.ServerCredentials
 import com.lume.app.domain.CatalogSource
+import com.lume.app.domain.MediaKind
 import com.lume.app.domain.ComicSource
 import com.lume.app.domain.NovelChapter
 import com.lume.app.domain.NovelSource
@@ -114,14 +115,16 @@ class SourceRegistry(
             loadedOnce.complete(Unit)
         }
         val loaded = _sources.value
-        if (prefs.activeSourceId.first() == null && loaded.isNotEmpty()) {
-            val preferred = loaded.firstOrNull { !SourceEngines.isLocal(it.manifest.engine) } ?: loaded.first()
-            setActive(preferred.manifest.id)
+        for (kind in loaded.map { it.manifest.kind }.distinct()) {
+            if (prefs.activeSourceIdOf(kind) == null) {
+                resolveActiveSource(loaded, null, kind)?.let { setActive(it.manifest.id) }
+            }
         }
     }
 
+    /** Makes [id] the active source of its own reading mode. */
     suspend fun setActive(id: String) {
-        prefs.setActiveSourceId(id)
+        prefs.setActiveSourceId(id, sourceById(id)?.manifest?.kind ?: MediaKind.Comics)
     }
 
     fun sourceById(id: String): CatalogSource? =
@@ -133,10 +136,10 @@ class SourceRegistry(
      */
     fun engineById(id: String): CatalogSource? = sourceById(id)?.unwrapped()
 
+    /** The active source of the current reading mode. */
     suspend fun activeSource(): CatalogSource? {
-        val id = prefs.activeSourceId.first()
-        return sourceById(id ?: return _sources.value.firstOrNull())
-            ?: _sources.value.firstOrNull()
+        val mode = prefs.activeMode.value
+        return resolveActiveSource(_sources.value, prefs.activeSourceIdOf(mode), mode)
     }
 
     /**
@@ -164,7 +167,8 @@ class SourceRegistry(
         val next = _sources.value.toMutableList()
         upsert(next, createEngine(manifest))
         _sources.value = next
-        if (prefs.activeSourceId.first() == null) setActive(manifest.id)
+        val kind = sourceById(manifest.id)?.manifest?.kind ?: MediaKind.Comics
+        if (prefs.activeSourceIdOf(kind) == null) setActive(manifest.id)
         return manifest
     }
 
@@ -263,6 +267,7 @@ class SourceRegistry(
 
     suspend fun remove(id: String) {
         if (id in bundledIds) return
+        val removedKind = sourceById(id)?.manifest?.kind
         dao.deleteSourcePack(id)
         baseManifests.remove(id)?.takeIf { SourceEngines.isServer(it.engine) }?.let { server ->
             http.servers.unregister(server.baseUrl)
@@ -270,9 +275,9 @@ class SourceRegistry(
             credentials?.remove(id)
         }
         _sources.value = _sources.value.filterNot { it.manifest.id == id }
-        val active = prefs.activeSourceId.first()
-        if (active == id && _sources.value.isNotEmpty()) {
-            setActive(_sources.value.first().manifest.id)
+        val kind = removedKind ?: MediaKind.Comics
+        if (prefs.activeSourceIdOf(kind) == id) {
+            resolveActiveSource(_sources.value, null, kind)?.let { setActive(it.manifest.id) }
         }
     }
 

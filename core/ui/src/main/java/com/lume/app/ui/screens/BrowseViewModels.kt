@@ -82,6 +82,7 @@ class HomeViewModel(private val app: AppContainer) : ViewModel() {
                 app.http.networkEpoch.drop(1),
                 app.network.online.drop(1).distinctUntilChanged(),
                 app.prefs.activeSourceId.drop(1),
+                app.prefs.activeMode.drop(1),
             ).collect { refresh() }
         }
     }
@@ -348,7 +349,7 @@ class CatalogViewModel(
         }
         viewModelScope.launch {
             val activeChanges = if (fixedSourceId == null) app.prefs.activeSourceId.drop(1) else emptyFlow()
-            merge(app.http.networkEpoch.drop(1), activeChanges).collect {
+            merge(app.http.networkEpoch.drop(1), activeChanges, if (fixedSourceId == null) app.prefs.activeMode.drop(1) else emptyFlow()).collect {
                 sections = source()?.browseSections().orEmpty()
                 // Another source has other filters; a solved check or reconnect repeats the search.
                 if (source()?.manifest?.id != filtersSourceId && filtersSourceId != null) {

@@ -103,10 +103,7 @@ fun MainMenu(
     val sources by container.sources.sources.collectAsState()
     val activeId by container.prefs.activeSourceId.collectAsState()
     val activeMode by container.prefs.activeMode.collectAsState()
-    // Only the sources of the active mode count: comics sources never show in the novel menu.
-    val modeSources = sourcesOfMode(sources, activeMode) { it.manifest.kind }
-    val activeName = modeSources.firstOrNull { it.manifest.id == activeId }?.manifest?.name
-        ?: modeSources.firstOrNull()?.manifest?.name
+    val activeName = com.lume.app.data.source.resolveActiveSource(sources, activeId, activeMode)?.manifest?.name
         ?: stringResource(R.string.none_short)
     val modeName = container.installedModules.firstOrNull { it.kind == activeMode }?.labelRes?.let { stringResource(it) }
 

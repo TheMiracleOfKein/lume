@@ -154,7 +154,10 @@ class AppPreferences(
     private val secrets: SecretSealer = SecretSealer(),
 ) {
     private val darkThemeKey = booleanPreferencesKey("dark_theme")
-    private val activeSourceKey = stringPreferencesKey("active_source_id")
+    private fun activeSourceKey(kind: com.lume.app.domain.MediaKind) = stringPreferencesKey(
+        // The Comics key is the one used before reading modes, so nothing is lost on update.
+        if (kind == com.lume.app.domain.MediaKind.Comics) "active_source_id" else "active_source_id_${kind.id}",
+    )
     private val activeModeKey = stringPreferencesKey("active_mode")
     private val readerModeKey = intPreferencesKey("reader_mode")
     private val readerThemeKey = intPreferencesKey("reader_theme")
@@ -375,11 +378,18 @@ class AppPreferences(
         context.appDataStore.edit { it[translateLabelsKey] = value }
     }
 
-    val activeSourceId: StateFlow<String?> = state { it[activeSourceKey] }
-
     /** The kind of content the library, history and sources show. */
     val activeMode: StateFlow<com.lume.app.domain.MediaKind> =
         state { com.lume.app.domain.MediaKind.fromId(it[activeModeKey]) }
+
+    /** The chosen source of the active mode (each mode keeps its own); null until one is chosen. */
+    val activeSourceId: StateFlow<String?> = state {
+        it[activeSourceKey(com.lume.app.domain.MediaKind.fromId(it[activeModeKey]))]
+    }
+
+    /** The chosen source of [kind], whatever the active mode is. */
+    suspend fun activeSourceIdOf(kind: com.lume.app.domain.MediaKind): String? =
+        context.appDataStore.data.first()[activeSourceKey(kind)]
 
     suspend fun setActiveMode(kind: com.lume.app.domain.MediaKind) {
         context.appDataStore.edit { it[activeModeKey] = kind.id }
@@ -817,8 +827,8 @@ class AppPreferences(
         context.appDataStore.edit { it[darkThemeKey] = value }
     }
 
-    suspend fun setActiveSourceId(id: String) {
-        context.appDataStore.edit { it[activeSourceKey] = id }
+    suspend fun setActiveSourceId(id: String, kind: com.lume.app.domain.MediaKind = com.lume.app.domain.MediaKind.Comics) {
+        context.appDataStore.edit { it[activeSourceKey(kind)] = id }
     }
 
     suspend fun setLibraryUpdatesEnabled(value: Boolean) {
