@@ -46,7 +46,10 @@ class NearbyTransfer(
 
     /** The chosen chapters ("sourceId|titleId" → chapter ids) as an offer. */
     suspend fun buildOffer(selection: Map<String, Set<String>>, readMarks: Boolean): Offer = withContext(Dispatchers.IO) {
-        val rows = dao.allDownloads().groupBy { "${it.sourceId}|${it.titleId}" }
+        // Page images only: text chapters (novels) aren't sent yet.
+        val rows = dao.allDownloads()
+            .filter { sources.sourceById(it.sourceId)?.manifest?.kind != com.lume.app.domain.MediaKind.Novel }
+            .groupBy { "${it.sourceId}|${it.titleId}" }
         val offered = selection.mapNotNull { (key, chapterIds) ->
             val items = rows[key].orEmpty().filter { it.chapterId in chapterIds }
             val first = items.firstOrNull() ?: return@mapNotNull null

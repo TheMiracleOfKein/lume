@@ -14,6 +14,8 @@ import com.lume.app.data.source.SourceRegistry
 import com.lume.app.data.ArchiveCache
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.requireComic
+import com.lume.app.domain.requireNovel
+import com.lume.app.domain.NovelChapter
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.TitleDetails
@@ -410,9 +412,17 @@ class DownloadStore(
                     val existing = dao.getDownload(sourceId, titleId, chapterId)
                         ?: dao.getDownload(sourceDir.name, titleFolder.name, chapterFolder.name)
                     if (existing != null && existing.titleName != existing.titleId && existing.coverUrl != null) continue
-                    val cbz = children.firstOrNull { !it.isDir && it.name == CBZ_NAME && it.size > 0L }
-                    val pages = listPagesInSaf(tree, children) ?: continue
-                    val paths = if (cbz != null) listOf(saf.documentUri(tree, cbz.id).toString()) else pages.map { it.imageUrl }
+                    // A text chapter: its HTML and pictures. Else pages, loose or as one CBZ.
+                    val html = children.firstOrNull { !it.isDir && it.name == TextChapterFiles.HTML_NAME && it.size > 0L }
+                    val (paths, pageCount) = if (html != null) {
+                        val images = children.filter { !it.isDir && TextChapterFiles.isImageName(it.name) }
+                            .map { it.name to saf.documentUri(tree, it.id).toString() }
+                        textChapterPaths(saf.documentUri(tree, html.id).toString(), images) to images.size
+                    } else {
+                        val cbz = children.firstOrNull { !it.isDir && it.name == CBZ_NAME && it.size > 0L }
+                        val pages = listPagesInSaf(tree, children) ?: continue
+                        (if (cbz != null) listOf(saf.documentUri(tree, cbz.id).toString()) else pages.map { it.imageUrl }) to pages.size
+                    }
                     dao.upsertDownload(
                         DownloadEntity(
                             sourceId = sourceId,
@@ -421,7 +431,7 @@ class DownloadStore(
                             titleName = titleName,
                             coverUrl = titleMeta?.coverUrl,
                             chapterName = chapterName,
-                            pageCount = pages.size,
+                            pageCount = pageCount,
                             pagePathsJson = json.encodeToString(paths),
                         ),
                     )
@@ -461,9 +471,18 @@ class DownloadStore(
                     ) {
                         return@forEach
                     }
-                    val cbz = File(chapterFolder, CBZ_NAME).takeIf { it.isFile }
-                    val pages = listPagesIn(chapterFolder) ?: return@forEach
-                    val paths = if (cbz != null) listOf(cbz.absolutePath) else pages.map { it.imageUrl }
+                    // A text chapter: its HTML and pictures. Else pages, loose or as one CBZ.
+                    val html = File(chapterFolder, TextChapterFiles.HTML_NAME).takeIf { it.isFile && it.length() > 0L }
+                    val (paths, pageCount) = if (html != null) {
+                        val images = chapterFolder.listFiles().orEmpty()
+                            .filter { it.isFile && TextChapterFiles.isImageName(it.name) }
+                            .map { it.name to it.absolutePath }
+                        textChapterPaths(html.absolutePath, images) to images.size
+                    } else {
+                        val cbz = File(chapterFolder, CBZ_NAME).takeIf { it.isFile }
+                        val pages = listPagesIn(chapterFolder) ?: return@forEach
+                        (if (cbz != null) listOf(cbz.absolutePath) else pages.map { it.imageUrl }) to pages.size
+                    }
                     dao.upsertDownload(
                         DownloadEntity(
                             sourceId = sourceId,
@@ -472,7 +491,7 @@ class DownloadStore(
                             titleName = titleName,
                             coverUrl = coverUrl,
                             chapterName = chapterName,
-                            pageCount = pages.size,
+                            pageCount = pageCount,
                             pagePathsJson = json.encodeToString(paths),
                         ),
                     )
@@ -647,13 +666,18 @@ class DownloadStore(
         onProgress: ((Float) -> Unit)? = null,
     ) {
         val sourceId = source.manifest.id
-        // Text chapters (novels) are not downloaded yet: nothing to fetch, nothing to fail.
-        if (source.manifest.kind != com.lume.app.domain.MediaKind.Comics) return
+        val kind = source.manifest.kind
+        // Only image and text chapters download (other kinds: nothing to fetch, nothing to fail).
+        if (kind != com.lume.app.domain.MediaKind.Comics && kind != com.lume.app.domain.MediaKind.Novel) return
         val key = keyOf(sourceId, titleId, chapter.id)
         setProgress(key, 0f)
         onProgress?.invoke(0f)
 
         try {
+            if (kind == com.lume.app.domain.MediaKind.Novel) {
+                downloadTextChapter(source, titleId, title, chapter, key, onProgress)
+                return
+            }
             val (pageSource, pages) = fetchPages?.invoke() ?: (source to source.requireComic().getPages(chapter))
             if (pages.isEmpty()) error(context.getString(R.string.error_no_pages_download))
 
@@ -717,8 +741,85 @@ class DownloadStore(
     }
 
     /**
+     * A text chapter (novel): its HTML as `chapter.html`, with every picture it shows saved next to
+     * it. A picture that fails (gone from the site, not an image) keeps its web link, so the text
+     * is still saved; a failure of the text itself fails the download.
+     */
+    private suspend fun downloadTextChapter(
+        source: CatalogSource,
+        titleId: String,
+        title: TitleDetails?,
+        chapter: Chapter,
+        key: String,
+        onProgress: ((Float) -> Unit)?,
+    ) {
+        val sourceId = source.manifest.id
+        val text = source.requireNovel().getChapterText(chapter)
+        val tree = activeTree()
+        withContext(Dispatchers.IO) { writeTitleMeta(sourceId, titleId, title, tree) }
+        val dir = (if (tree != null) stagedPartDir(sourceId, titleId, chapter.id) else partDirPath(sourceId, titleId, chapter.id)).apply {
+            deleteRecursively()
+            mkdirs()
+        }
+        val referer = source.manifest.headers["Referer"] ?: "${source.manifest.baseUrl.trimEnd('/')}/"
+        val remote = TextChapterFiles.remoteImages(text.html)
+        val saved = HashMap<String, String>()
+        val images = mutableListOf<File>()
+        for ((i, url) in remote.withIndex()) {
+            currentCoroutineContext().ensureActive()
+            val bytes = try {
+                http.getBytes(URI(url), source = source.manifest, headers = mapOf("Referer" to referer, "Accept" to "image/*,*/*;q=0.8"))
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+            val ext = bytes?.let(ImageBytes::extension)
+            if (bytes != null && ext != null) {
+                val file = File(dir, TextChapterFiles.imageName(images.size, ext))
+                withContext(Dispatchers.IO) { file.writeBytes(bytes) }
+                images += file
+                saved[url] = file.name
+            }
+            val p = (i + 1f) / (remote.size + 1)
+            setProgress(key, p)
+            onProgress?.invoke(p)
+        }
+        val html = TextChapterFiles.rewriteImages(text.html) { saved[it] }
+        val htmlFile = File(dir, TextChapterFiles.HTML_NAME)
+        withContext(Dispatchers.IO) { htmlFile.writeText(html) }
+        storeChapter(sourceId, titleId, title, chapter, tree, dir, listOf(htmlFile) + images, web = null, text = true)
+        onProgress?.invoke(1f)
+    }
+
+    /**
+     * The text of a downloaded text chapter, its pictures pointing at the saved files; null when it
+     * isn't downloaded or its files are gone (the reader then loads it from the source).
+     */
+    suspend fun localText(sourceId: String, titleId: String, chapterId: String): NovelChapter? = withContext(Dispatchers.IO) {
+        val row = dao.getDownload(sourceId, titleId, chapterId) ?: return@withContext null
+        val paths = decodePaths(row)
+        val htmlPath = paths.firstOrNull() ?: return@withContext null
+        val html = runCatching {
+            if (isContentUri(htmlPath)) {
+                saf.open(Uri.parse(htmlPath))?.use { it.readBytes().toString(Charsets.UTF_8) }
+            } else {
+                File(htmlPath).takeIf(File::isFile)?.readText()
+            }
+        }.getOrNull() ?: return@withContext null
+        // Pictures are stored in the order of their names (img-0000, img-0001, …) after the HTML.
+        val images = paths.drop(1)
+        NovelChapter(chapterId, TextChapterFiles.rewriteImages(html) { src -> TextChapterFiles.imageIndex(src)?.let(images::getOrNull) })
+    }
+
+    /** The paths to record for a text chapter folder: its HTML, then its pictures in order. */
+    private fun textChapterPaths(html: String, images: List<Pair<String, String>>): List<String> =
+        listOf(html) + images.sortedBy { (name, _) -> TextChapterFiles.imageIndex(name) ?: Int.MAX_VALUE }.map { it.second }
+
+    /**
      * Moves the complete pages in [dir] into place (as CBZ when that is the setting, in [tree] when
-     * downloads go to a picked folder) and records the download.
+     * downloads go to a picked folder) and records the download. A [text] chapter is never packed:
+     * [files] are its HTML and pictures, and the row counts the pictures.
      */
     private suspend fun storeChapter(
         sourceId: String,
@@ -729,9 +830,10 @@ class DownloadStore(
         dir: File,
         files: List<File>,
         web: String?,
+        text: Boolean = false,
     ) {
         writeChapterMeta(dir, chapter)
-        val names = if (prefs?.downloadsAsCbz?.value == true) {
+        val names = if (!text && prefs?.downloadsAsCbz?.value == true) {
             listOf(packCbz(dir, files, title, chapter, web).name)
         } else {
             files.map { it.name }
@@ -762,7 +864,7 @@ class DownloadStore(
                 titleName = title?.title ?: titleId,
                 coverUrl = title?.coverUrl,
                 chapterName = chapter.title,
-                pageCount = files.size,
+                pageCount = if (text) files.size - 1 else files.size,
                 pagePathsJson = json.encodeToString(paths),
             ),
         )

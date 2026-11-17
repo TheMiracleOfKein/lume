@@ -66,6 +66,7 @@
     <string name="home_new_releases">New releases</string>
     <string name="chapters_count_short">%d ch.</string>
     <string name="pages_count_short">%d pg.</string>
+    <string name="download_text_chapter">Text</string>
     <string name="catalog_tab_popular">Popular</string>
     <string name="catalog_tab_updates">Updates</string>
     <string name="catalog_tab_library">Library</string>

@@ -61,6 +61,7 @@
     <string name="home_new_releases">Новинки</string>
     <string name="chapters_count_short">%d гл.</string>
     <string name="pages_count_short">%d стр.</string>
+    <string name="download_text_chapter">Текст</string>
     <string name="catalog_tab_popular">Популярное</string>
     <string name="catalog_tab_updates">Обновления</string>
     <string name="catalog_tab_library">Закладки</string>
