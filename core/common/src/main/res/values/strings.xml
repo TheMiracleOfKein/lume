@@ -674,7 +674,8 @@
     <string name="local_importing">Importing…</string>
     <string name="local_open_library">Open local titles</string>
     <string name="local_clean_temp">Clean temporary files</string>
-    <string name="local_folder_hint">Imported titles are copied to %1$s. A folder may hold one series per subfolder, chapter folders, or .cbz, .cbr, .cb7, .zip, .rar, .7z and .pdf files; cover.jpg, ComicInfo.xml and details.json are read too.</string>
+    <string name="local_folder_hint">Imported titles are copied into the app. A folder may hold one series per subfolder, chapter folders, or .cbz, .cbr, .cb7, .zip, .rar, .7z and .pdf files; cover.jpg, ComicInfo.xml and details.json are read too.</string>
+    <string name="local_folder_hint_books">Imported titles are copied into the app. A folder may hold one series per subfolder, chapter folders, .cbz, .cbr, .cb7, .zip, .rar, .7z and .pdf files, or books as .epub and .txt files; cover.jpg, ComicInfo.xml and details.json are read too.</string>
     <string name="local_import_done">Imported. Titles: %1$d · chapters: %2$d</string>
     <string name="local_import_empty">No chapters found in that folder</string>
     <string name="local_import_failed">Import failed: %1$s</string>

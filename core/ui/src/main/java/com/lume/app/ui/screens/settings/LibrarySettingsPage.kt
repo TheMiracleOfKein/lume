@@ -229,7 +229,7 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
         SettingItem("local_import") {
             SettingsLink(
                 if (vm.localBusy) stringResource(R.string.local_importing) else stringResource(R.string.local_import_folder),
-                stringResource(R.string.local_folder_hint, vm.localPath),
+                stringResource(if (vm.canImportBooks) R.string.local_folder_hint_books else R.string.local_folder_hint),
             ) {
                 if (!vm.localBusy) pickLocalFolder.launch(null)
             }

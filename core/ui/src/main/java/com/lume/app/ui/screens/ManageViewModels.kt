@@ -316,7 +316,6 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         viewModelScope.launch { prefs.setDownloadsWifiOnly(value) }
     }
 
-    val localPath: String = app.localImporter.localRoot().absolutePath
     var localBusy by mutableStateOf(false)
         private set
 
