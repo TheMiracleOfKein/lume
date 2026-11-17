@@ -312,7 +312,9 @@ fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = empt
                 val kind by produceState(sourceKind?.let { readerKindFor(it, null) }, readerArgs) {
                     if (sourceKind == null) {
                         val bookmark = container.dao.getBookmark(readerArgs.sourceId, readerArgs.titleId)
-                        value = readerKindFor(null, bookmark?.mediaKind)
+                        // Opened from History at cold start: not in the library, but its progress knows the kind.
+                        val progress = if (bookmark == null) container.dao.getProgress(readerArgs.sourceId, readerArgs.titleId) else null
+                        value = readerKindFor(null, bookmark?.mediaKind, progress?.mediaKind)
                     }
                 }
                 kind?.let { resolved ->

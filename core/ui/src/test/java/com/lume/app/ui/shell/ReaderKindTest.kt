@@ -16,6 +16,13 @@ class ReaderKindTest {
     }
 
     @Test
+    fun progressKindWhenThereIsNoBookmark() {
+        assertEquals(MediaKind.Novel, readerKindFor(null, null, "novel"))
+        assertEquals(MediaKind.Comics, readerKindFor(null, "comics", "novel"))
+        assertEquals(MediaKind.Comics, readerKindFor(null, null, "unknown"))
+    }
+
+    @Test
     fun comicsByDefault() {
         assertEquals(MediaKind.Comics, readerKindFor(null, null))
         assertEquals(MediaKind.Comics, readerKindFor(null, "unknown"))

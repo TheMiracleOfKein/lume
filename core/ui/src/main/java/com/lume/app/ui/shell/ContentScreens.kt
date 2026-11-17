@@ -47,7 +47,8 @@ class ShellGraph internal constructor(private val builder: NavGraphBuilder) {
 
 /**
  * The kind whose reader opens a chapter: the source's kind when it is installed, else the kind
- * the library bookmark remembers, else comics.
+ * the library bookmark remembers, else the kind of the title's saved reading progress (a History
+ * entry that is not in the library), else comics.
  */
-internal fun readerKindFor(sourceKind: MediaKind?, bookmarkKind: String?): MediaKind =
-    sourceKind ?: bookmarkKind?.let { MediaKind.fromId(it) } ?: MediaKind.Comics
+internal fun readerKindFor(sourceKind: MediaKind?, bookmarkKind: String?, progressKind: String? = null): MediaKind =
+    sourceKind ?: bookmarkKind?.let { MediaKind.fromId(it) } ?: progressKind?.let { MediaKind.fromId(it) } ?: MediaKind.Comics
