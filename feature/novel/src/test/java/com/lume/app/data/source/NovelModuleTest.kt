@@ -7,9 +7,9 @@ import org.junit.Test
 
 class NovelModuleTest {
     @Test
-    fun servesNovelsWithLocalBooksAndStaysPreview() {
+    fun servesNovelsWithLocalBooksAndRanobeLib() {
         assertEquals(MediaKind.Novel, NovelModule.kind)
-        assertEquals(setOf(SourceEngines.LOCAL_NOVEL), NovelModule.engines.keys)
+        assertEquals(setOf(SourceEngines.LOCAL_NOVEL, SourceEngines.RANOBELIB), NovelModule.engines.keys)
         assertEquals(setOf("epub", "txt"), NovelModule.localBookExtensions)
         assertTrue(NovelModule.preview)
     }

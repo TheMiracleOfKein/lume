@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "ranobelib",
+  "name": "RanobeLib",
+  "version": "1.0.0",
+  "mediaKind": "novel",
+  "language": "ru",
+  "engine": "ranobelib",
+  "baseUrl": "https://ranobelib.me",
+  "headers": {
+    "Referer": "https://ranobelib.me/"
+  },
+  "engineConfig": {
+    "apiBase": "https://api.cdnlibs.org/api",
+    "siteId": "3",
+    "webPath": "book"
+  }
+}

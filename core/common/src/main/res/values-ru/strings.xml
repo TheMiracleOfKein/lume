@@ -323,6 +323,7 @@
     <string name="error_empty_response">Пустой ответ</string>
     <string name="error_pages_failed">Не удалось получить страницы главы</string>
     <string name="error_pages_failed_named">Не удалось получить страницы главы %s</string>
+    <string name="error_text_failed_named">Не удалось получить текст главы (%s)</string>
     <string name="error_local_title_missing">Локальный тайтл не найден: %s</string>
     <string name="error_rar5_unsupported">Архив RAR5 не поддерживается. Пересоберите его в CBZ.</string>
     <string name="error_archive_damaged">Архив повреждён или имеет неподдерживаемый формат. Попробуйте пересобрать его в CBZ.</string>
