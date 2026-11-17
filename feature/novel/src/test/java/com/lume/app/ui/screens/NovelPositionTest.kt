@@ -22,6 +22,32 @@ class NovelPositionTest {
     }
 
     @Test
+    fun aChapterThatOpensWithItsOwnHeadingHasNoTitleRow() {
+        val heading = listOf(NovelBlock.Heading(1, listOf(Span("TITLE A: the start"))), NovelBlock.Paragraph(listOf(Span("p"))))
+        val withHeading = buildNovelItems(
+            listOf(
+                LoadedNovelChapter(Chapter(id = "a", title = "title a", url = "a"), heading),
+                LoadedNovelChapter(chapter("b"), paragraphs(1)),
+            ),
+        )
+        assertEquals(listOf("b:a:0", "b:a:1", "h:b", "b:b:0"), withHeading.map { it.key })
+        assertEquals(0, novelItemIndex(withHeading, NovelAnchor("a", 0, 0f)))
+        assertEquals(1, novelItemIndex(withHeading, NovelAnchor("a", 1, 0f)))
+        assertEquals(2, novelItemIndex(withHeading, NovelAnchor("b", 0, 0f)))
+        assertEquals(1, chapterEndIndex(withHeading, "a"))
+        assertEquals(3, chapterEndIndex(withHeading, "b"))
+        assertEquals(NovelAnchor("a", 0, 0f), novelAnchorAt(withHeading, 0, 0, 100))
+    }
+
+    @Test
+    fun aDifferentFirstHeadingKeepsTheTitleRow() {
+        val other = listOf(NovelBlock.Heading(2, listOf(Span("Something else"))))
+        assertEquals(listOf("h:a", "b:a:0"), buildNovelItems(listOf(LoadedNovelChapter(chapter("a"), other))).map { it.key })
+        val notFirst = listOf(NovelBlock.Paragraph(listOf(Span("x"))), NovelBlock.Heading(2, listOf(Span("Title a"))))
+        assertEquals(3, buildNovelItems(listOf(LoadedNovelChapter(chapter("a"), notFirst))).size)
+    }
+
+    @Test
     fun topOfAChapterIsItsTitleRow() {
         assertEquals(0, novelItemIndex(items, NovelAnchor("a", 0, 0f)))
         assertEquals(4, novelItemIndex(items, NovelAnchor("b", 0, 0f)))

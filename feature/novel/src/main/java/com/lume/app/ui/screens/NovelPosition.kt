@@ -24,22 +24,42 @@ sealed interface NovelItem {
     }
 }
 
-/** The list rows for the loaded chapters in order: each chapter's title, then its blocks. */
+/**
+ * True when the chapter's own text opens with a heading that is its title (equal, or containing it,
+ * ignoring case), so the reader's title row would show the same words twice.
+ */
+fun startsWithOwnTitle(chapter: Chapter, blocks: List<NovelBlock>): Boolean {
+    val heading = blocks.firstOrNull() as? NovelBlock.Heading ?: return false
+    val title = chapter.title.trim()
+    if (title.isEmpty()) return false
+    val text = heading.spans.joinToString("") { it.text }.trim()
+    return text.contains(title, ignoreCase = true)
+}
+
+/**
+ * The list rows for the loaded chapters in order: each chapter's title, then its blocks. The title
+ * row is left out when the first block is already that heading; block indices stay the book's own.
+ */
 fun buildNovelItems(loaded: List<LoadedNovelChapter>): List<NovelItem> {
     val out = ArrayList<NovelItem>(loaded.sumOf { it.blocks.size + 1 })
     for (lc in loaded) {
-        out += NovelItem.Header(lc.chapter)
+        if (!startsWithOwnTitle(lc.chapter, lc.blocks)) out += NovelItem.Header(lc.chapter)
         lc.blocks.forEachIndexed { i, block -> out += NovelItem.Block(lc.chapter.id, i, block) }
     }
     return out
 }
 
+/** The first row of [chapterId] (its title row, or its heading block without one), or -1. */
+fun chapterStartIndex(items: List<NovelItem>, chapterId: String): Int = items.indexOfFirst {
+    (it is NovelItem.Header && it.chapter.id == chapterId) || (it is NovelItem.Block && it.chapterId == chapterId)
+}
+
 /**
  * The row an [anchor] points to, or -1 when its chapter isn't in [items]. The top of a chapter
- * (block 0, not scrolled) is its title row, so opening a chapter shows the title.
+ * (block 0, not scrolled) is its first row, so opening a chapter shows the title.
  */
 fun novelItemIndex(items: List<NovelItem>, anchor: NovelAnchor): Int {
-    val header = items.indexOfFirst { it is NovelItem.Header && it.chapter.id == anchor.chapterId }
+    val header = chapterStartIndex(items, anchor.chapterId)
     if (header < 0) return -1
     if (anchor.block <= 0 && anchor.fraction <= 0f) return header
     val blockRows = items.indexOfFirst { it is NovelItem.Block && it.chapterId == anchor.chapterId && it.index == anchor.block }
@@ -66,10 +86,10 @@ fun restoreOffsetPx(fraction: Float, sizePx: Int): Int = (fraction.coerceIn(0f, 
 
 /** The last row of [chapterId] in [items], or -1. */
 fun chapterEndIndex(items: List<NovelItem>, chapterId: String): Int {
-    val first = items.indexOfFirst { it is NovelItem.Header && it.chapter.id == chapterId }
+    val first = chapterStartIndex(items, chapterId)
     if (first < 0) return -1
     var end = first
-    while (end + 1 < items.size && items[end + 1] is NovelItem.Block) end++
+    while (end + 1 < items.size && items[end + 1].let { it is NovelItem.Block && it.chapterId == chapterId }) end++
     return end
 }
 
