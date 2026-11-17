@@ -30,6 +30,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +51,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
+import com.lume.app.domain.MediaKind
 import com.lume.app.domain.SearchableSetting
 import com.lume.app.domain.searchSettings
 import com.lume.app.ui.components.LumeInsets
@@ -72,9 +74,11 @@ private val SECTION_GROUPS = listOf(
 @Composable
 fun SettingsScreen(nav: NavHostController) {
     var query by rememberSaveable { mutableStateOf("") }
+    val container = LocalAppContainer.current
+    val mode by container.prefs.activeMode.collectAsState()
     val resources = LocalResources.current
     val configuration = LocalConfiguration.current
-    val searchable = remember(resources, configuration) { SettingsCatalog.searchable(resources) }
+    val searchable = remember(resources, configuration, mode) { SettingsCatalog.searchable(resources, mode) }
     val results = remember(query, searchable) { searchSettings(query, searchable) }
     val focusManager = LocalFocusManager.current
 
@@ -99,7 +103,20 @@ fun SettingsScreen(nav: NavHostController) {
             }
         }
         when {
-            query.isBlank() -> SettingsSections(onOpen = { open(it, null) })
+            query.isBlank() -> {
+                // With more than one mode, say which one these settings are for.
+                val modeLabel = container.installedModules.takeIf { it.size > 1 }
+                    ?.firstOrNull { it.kind == mode }?.labelRes
+                if (modeLabel != null) {
+                    Text(
+                        stringResource(R.string.settings_mode_note, stringResource(modeLabel)),
+                        color = AppColors.textSecondary,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp),
+                    )
+                }
+                SettingsSections(mode, onOpen = { open(it, null) })
+            }
             results.isEmpty() -> Text(
                 stringResource(R.string.settings_search_empty, query.trim()),
                 color = AppColors.textSecondary,
@@ -121,15 +138,17 @@ fun SettingsScreen(nav: NavHostController) {
 
 /** The grouped list of sections on the main settings page. */
 @Composable
-internal fun SettingsSections(onOpen: (SettingsPage) -> Unit) {
-    SECTION_GROUPS.forEach { pages ->
+internal fun SettingsSections(mode: MediaKind, onOpen: (SettingsPage) -> Unit) {
+    SECTION_GROUPS.forEach { group ->
+        val pages = group.filter { it.shownIn(mode) }
+        if (pages.isEmpty()) return@forEach
         Spacer(Modifier.height(12.dp))
         SettingsGroup {
             pages.forEach { page ->
                 SectionRow(
                     icon = page.icon,
                     title = stringResource(page.titleRes),
-                    summary = stringResource(page.summaryRes),
+                    summary = stringResource(page.summaryIn(mode)),
                     onClick = { onOpen(page) },
                 )
             }
@@ -139,10 +158,17 @@ internal fun SettingsSections(onOpen: (SettingsPage) -> Unit) {
 
 /** One section's page; [focus] is the setting a search result opened it for. */
 @Composable
-fun SettingsPageScreen(nav: NavHostController, pageKey: String, focus: String?) {
+fun SettingsPageScreen(
+    nav: NavHostController,
+    pageKey: String,
+    focus: String?,
+    /** Reader defaults of the content modules, by mode; comics use [ReaderDefaultsSettings]. */
+    readerSettings: Map<MediaKind, @Composable () -> Unit> = emptyMap(),
+) {
     val page = SettingsPage.fromKey(pageKey) ?: SettingsPage.Appearance
     val container = LocalAppContainer.current
     val vm: SettingsViewModel = viewModel { SettingsViewModel(container) }
+    val mode by container.prefs.activeMode.collectAsState()
     // Highlight once; coming back from a screen opened here doesn't flash the row again.
     var focusShown by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -151,10 +177,13 @@ fun SettingsPageScreen(nav: NavHostController, pageKey: String, focus: String?) 
     }
 
     SettingsScaffold(title = stringResource(page.titleRes), onBack = { nav.popBackStack() }) {
-        CompositionLocalProvider(LocalSettingsFocus provides focus.takeUnless { focusShown }) {
+        CompositionLocalProvider(
+            LocalSettingsFocus provides focus.takeUnless { focusShown },
+            LocalSettingsMode provides mode,
+        ) {
             when (page) {
                 SettingsPage.Appearance -> AppearanceSettings(vm)
-                SettingsPage.Reader -> ReaderDefaultsSettings(vm)
+                SettingsPage.Reader -> readerSettings[mode]?.invoke() ?: ReaderDefaultsSettings(vm)
                 SettingsPage.Library -> LibrarySettingsPage(nav, vm)
                 SettingsPage.Downloads -> DownloadSettings(nav, vm)
                 SettingsPage.Sources -> SourcesSettings(nav, vm)

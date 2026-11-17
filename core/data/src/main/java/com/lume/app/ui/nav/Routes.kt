@@ -18,7 +18,7 @@ object Routes {
     const val NearbySend = "downloads/send"
     const val NearbyReceive = "downloads/receive"
     const val Categories = "categories"
-    const val Browse = "browse/{sourceId}?genre={genre}"
+    const val Browse = "browse/{sourceId}?genre={genre}&q={q}"
     const val About = "about"
     const val ErrorLog = "error-log"
     const val ReadingList = "reading-list"
@@ -33,9 +33,15 @@ object Routes {
     /** Global search (all sources) for [query], started at once. */
     fun searchAll(query: String) = "search/all?q=${encode(query)}"
 
-    /** Browse a source; with [genre], its catalogue opens filtered by that genre. */
-    fun browse(sourceId: String, genre: String? = null): String =
-        if (genre == null) "browse/${encode(sourceId)}" else "browse/${encode(sourceId)}?genre=${encode(genre)}"
+    /**
+     * Browse a source; with [genre], its catalogue opens filtered by that genre; with [query], it
+     * opens on its search results for that text.
+     */
+    fun browse(sourceId: String, genre: String? = null, query: String? = null): String {
+        val params = listOfNotNull(genre?.let { "genre=${encode(it)}" }, query?.let { "q=${encode(it)}" })
+        val base = "browse/${encode(sourceId)}"
+        return if (params.isEmpty()) base else "$base?${params.joinToString("&")}"
+    }
 
     fun title(sourceId: String, titleId: String) =
         "title/$sourceId/${encode(titleId)}"

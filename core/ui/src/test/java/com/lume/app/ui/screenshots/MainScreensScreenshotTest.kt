@@ -187,7 +187,7 @@ class ChaptersScreenshotTest : ScreenshotTest() {
 class SettingsScreenshotTest : ScreenshotTest() {
     private fun settings(look: Look) = shoot("settings", look) {
         SettingsScaffold(title = stringResource(R.string.settings_title), onBack = {}) {
-            SettingsSections(onOpen = {})
+            SettingsSections(com.lume.app.domain.MediaKind.Comics, onOpen = {})
         }
     }
 

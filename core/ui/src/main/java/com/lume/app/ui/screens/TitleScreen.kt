@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -43,6 +44,7 @@ import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -64,6 +66,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import com.lume.app.ui.components.LumeRefreshIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -425,7 +428,7 @@ private fun TitleDetailsPane(nav: NavHostController, sourceId: String, titleId: 
                             exit = shrinkVertically(Motion.medium()) + fadeOut(Motion.short()),
                         ) {
                             similar?.let { result ->
-                                SimilarTitlesRow(result) { nav.navigate(Routes.searchAll(it.title)) }
+                                SimilarTitlesRow(result, lookingUp = vm.similarLookup, onOpen = vm::openSimilar)
                             }
                         }
                     }
@@ -436,6 +439,43 @@ private fun TitleDetailsPane(nav: NavHostController, sourceId: String, titleId: 
 
     if (showSources) {
         TitleSourcesDialog(vm = vm, titleName = details?.title.orEmpty(), onDismiss = { showSources = false })
+    }
+
+    // "Similar titles": a finished lookup opens the title or the source's search, once.
+    vm.similarRoute?.let { route ->
+        LaunchedEffect(route) {
+            vm.similarRouteTaken()
+            nav.navigate(route)
+        }
+    }
+    // Leaving the screen drops a lookup still running, so it can't navigate from elsewhere.
+    DisposableEffect(vm) { onDispose { vm.cancelSimilar() } }
+    vm.similarNotFound?.let { missing ->
+        AlertDialog(
+            onDismissRequest = vm::dismissSimilarNotFound,
+            title = { Text(stringResource(R.string.similar_not_found_title, missing.sourceName)) },
+            text = {
+                Text(
+                    stringResource(
+                        if (missing.failed) R.string.similar_search_failed_text else R.string.similar_not_found_text,
+                        missing.sourceName,
+                        missing.title,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.dismissSimilarNotFound()
+                    nav.navigate(Routes.searchAll(missing.title))
+                }) { Text(stringResource(R.string.similar_search_everywhere), color = AppColors.accentText) }
+            },
+            dismissButton = {
+                TextButton(onClick = vm::dismissSimilarNotFound) {
+                    Text(stringResource(R.string.action_cancel), color = AppColors.textSecondary)
+                }
+            },
+            containerColor = AppColors.surface,
+        )
     }
 
     if (showTrackers) {
@@ -520,9 +560,12 @@ private fun AlsoOnCard(
     }
 }
 
-/** "Similar titles": covers in a row; a tap searches every source for that title. */
+/**
+ * "Similar titles": covers in a row; a tap looks the title up on this title's source. The cover
+ * named [lookingUp] shows a spinner while that search runs.
+ */
 @Composable
-private fun SimilarTitlesRow(result: SimilarResult, onOpen: (SimilarTitle) -> Unit) {
+private fun SimilarTitlesRow(result: SimilarResult, lookingUp: String?, onOpen: (SimilarTitle) -> Unit) {
     Column(modifier = Modifier.padding(top = 16.dp)) {
         Text(
             stringResource(R.string.title_similar),
@@ -544,7 +587,18 @@ private fun SimilarTitlesRow(result: SimilarResult, onOpen: (SimilarTitle) -> Un
                         .clip(RoundedCornerShape(8.dp))
                         .clickable(onClickLabel = stringResource(R.string.cd_similar_search)) { onOpen(item) },
                 ) {
-                    CoverImage(url = item.coverUrl, width = 96.dp, height = 136.dp, radius = 8.dp)
+                    Box(contentAlignment = Alignment.Center) {
+                        CoverImage(url = item.coverUrl, width = 96.dp, height = 136.dp, radius = 8.dp)
+                        if (lookingUp == item.title) {
+                            Box(
+                                Modifier
+                                    .matchParentSize()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.Black.copy(alpha = 0.45f)),
+                            )
+                            CircularProgressIndicator(color = AppColors.accent, strokeWidth = 3.dp, modifier = Modifier.size(28.dp))
+                        }
+                    }
                     Text(
                         item.title,
                         color = AppColors.textSecondary,

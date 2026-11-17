@@ -200,6 +200,8 @@ class CatalogViewModel(
     private val fixedSourceId: String? = null,
     /** A genre tapped on a title screen: [genreFeed] lists the source's titles with it. */
     val genre: String? = null,
+    /** Text to search the source for as soon as the screen opens. */
+    private val initialQuery: String? = null,
 ) : ViewModel() {
 
     val popular = CatalogFeed(app.http) { getPopular(it) }
@@ -412,6 +414,14 @@ class CatalogViewModel(
     fun solveChallenge(feed: CatalogFeed) {
         val uri = feed.cloudflareUri ?: return
         viewModelScope.launch { app.http.requestChallenge(uri) }
+    }
+
+    init {
+        // Opened for a title name ("Similar titles" with no exact match): start on the results.
+        initialQuery?.trim()?.takeIf { it.isNotEmpty() }?.let {
+            query = it
+            submitSearch()
+        }
     }
 }
 

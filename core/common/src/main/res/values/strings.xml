@@ -844,8 +844,12 @@
     <string name="title_duplicate_linked_done">Linked to “%1$s”</string>
     <string name="title_also_on_hint">Link them to fill gaps in the chapter list and to read a chapter from another source when one fails</string>
     <string name="title_similar">Similar titles</string>
-    <string name="title_similar_from">Recommended on %1$s. Tap one to search your sources for it</string>
-    <string name="cd_similar_search">Search your sources</string>
+    <string name="title_similar_from">Recommended on %1$s. Tap one to find it on this source</string>
+    <string name="cd_similar_search">Find on this source</string>
+    <string name="similar_not_found_title">Not found on %1$s</string>
+    <string name="similar_not_found_text">%1$s has nothing named “%2$s”. Search all your sources for it?</string>
+    <string name="similar_search_failed_text">Couldn’t search %1$s for “%2$s”. Search all your sources instead?</string>
+    <string name="similar_search_everywhere">Search all sources</string>
     <string name="action_link">Link</string>
     <string name="action_not_now">Not now</string>
     <string name="dialog_sources">Sources</string>
@@ -888,6 +892,8 @@
     <string name="settings_section_backup">Backup and restore</string>
     <string name="settings_summary_appearance">Theme, colours, language</string>
     <string name="settings_summary_reader">Fullscreen, page turning, zoom</string>
+    <string name="settings_summary_reader_novel">Text size, spacing, font, theme</string>
+    <string name="settings_mode_note">Settings for the %1$s mode. The reader and mode-only sections change with the reading mode; everything else is shared.</string>
     <string name="settings_summary_library">New chapter checks, categories, local files</string>
     <string name="settings_summary_downloads">Wi-Fi, automatic downloads, storage</string>
     <string name="settings_summary_sources">Sources, 18+ in global search</string>
@@ -943,6 +949,8 @@
     <string name="settings_kw_language">english, russian, locale, translation</string>
     <string name="settings_kw_translate_labels">volume, chapter, russian</string>
     <string name="settings_kw_immersive">fullscreen, status bar, navigation bar, hide</string>
+    <string name="settings_kw_novel_text">novel, ranobe, book, text, font, size, letters, spacing, margins, paragraphs, justify</string>
+    <string name="settings_kw_novel_theme">novel, ranobe, book, theme, sepia, dark, black, light, colours</string>
     <string name="settings_kw_keep_screen_on">sleep, lock, dim, timeout</string>
     <string name="settings_kw_seamless">continuous, next chapter, scroll</string>
     <string name="settings_kw_tap_zones">tap, touch, edge, page turn</string>

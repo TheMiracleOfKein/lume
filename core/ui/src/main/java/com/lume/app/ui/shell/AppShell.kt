@@ -225,6 +225,9 @@ fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = empt
                 ModeGate { SearchScreen(nav, globalQuery = entry.arguments!!.getString("q")) }
             }
             lumeComposable(Routes.Sources) { SourcesScreen(nav) }
+            // Readers and reader settings come from the installed content modules.
+            val graph = ShellGraph(this)
+            contentScreens.forEach { it.register(graph, nav) }
             lumeComposable(Routes.Settings) { SettingsScreen(nav) }
             lumeComposable(
                 route = Routes.SettingsPage,
@@ -237,6 +240,7 @@ fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = empt
                     nav = nav,
                     pageKey = entry.arguments!!.getString("page")!!,
                     focus = entry.arguments!!.getString("focus"),
+                    readerSettings = graph.readerSettings,
                 )
             }
             lumeComposable(Routes.Downloads) { DownloadsScreen(nav) }
@@ -252,12 +256,14 @@ fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = empt
                 arguments = listOf(
                     navArgument("sourceId") { type = NavType.StringType },
                     navArgument("genre") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("q") { type = NavType.StringType; nullable = true; defaultValue = null },
                 ),
             ) { entry ->
                 CatalogScreen(
                     nav,
                     browseSourceId = entry.arguments!!.getString("sourceId")!!,
                     genre = entry.arguments!!.getString("genre"),
+                    query = entry.arguments!!.getString("q"),
                 )
             }
             lumeComposable(
@@ -286,9 +292,6 @@ fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = empt
                     titleId = entry.arguments!!.getString("titleId")!!,
                 )
             }
-            // Readers come from the installed content modules.
-            val graph = ShellGraph(this)
-            contentScreens.forEach { it.register(graph, nav) }
             // One reader route; the reader of the source's kind opens (comics when unknown).
             lumeComposable(
                 route = Routes.Reader,

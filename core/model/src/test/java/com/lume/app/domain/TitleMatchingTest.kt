@@ -83,4 +83,32 @@ class TitleMatchingTest {
         )
         assertEquals(TitleMatch.Same, matchTitle(dex, t("Поднятие уровня в одиночку", "Solo Leveling")))
     }
+
+    private fun r(id: String, title: String, subtitle: String? = null) = TitleSummary(id = id, title = title, subtitle = subtitle)
+
+    @Test
+    fun pickOpensTheOneExactResult() {
+        val results = listOf(r("1", "Solo Leveling: Ragnarok"), r("2", "Solo Leveling!"), r("3", "Leveling Up"))
+        assertEquals(SearchPick.Open("2"), pickSearchResult("Solo Leveling", results))
+    }
+
+    @Test
+    fun pickMatchesAnAlternativeNameInTheSubtitle() {
+        val results = listOf(r("7", "Поднятие уровня в одиночку", "Solo Leveling / Na Honjaman Level Up"))
+        assertEquals(SearchPick.Open("7"), pickSearchResult("Solo Leveling", results))
+    }
+
+    @Test
+    fun pickLetsTheReaderChooseWhenNothingOrTwoAreExact() {
+        assertEquals(SearchPick.Choose, pickSearchResult("Solo Leveling", listOf(r("1", "Solo Leveling: Ragnarok"))))
+        val twins = listOf(r("1", "Solo Leveling"), r("2", "Solo Leveling"))
+        assertEquals(SearchPick.Choose, pickSearchResult("Solo Leveling", twins))
+        // The same result twice (two pages, say) is still one title.
+        assertEquals(SearchPick.Open("1"), pickSearchResult("Solo Leveling", listOf(r("1", "Solo Leveling"), r("1", "Solo Leveling"))))
+    }
+
+    @Test
+    fun pickFindsNothingWithoutResults() {
+        assertEquals(SearchPick.None, pickSearchResult("Solo Leveling", emptyList()))
+    }
 }

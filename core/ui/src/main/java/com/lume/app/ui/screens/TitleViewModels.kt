@@ -16,6 +16,8 @@ import com.lume.app.data.db.TitleSourceEntity
 import com.lume.app.data.db.TrackerLinkEntity
 import com.lume.app.data.db.WATCHED_TITLES_LIMIT
 import com.lume.app.data.similar.SimilarResult
+import com.lume.app.data.similar.SimilarTitle
+import com.lume.app.data.source.SourceEngines
 import com.lume.app.data.title.SourceCandidate
 import com.lume.app.data.title.SourceLookup
 import com.lume.app.data.locale.appString
@@ -30,6 +32,12 @@ import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.allNames
 import com.lume.app.domain.sameNamed
+import com.lume.app.domain.SearchPick
+import com.lume.app.domain.pickSearchResult
+import com.lume.app.ui.nav.Routes
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
@@ -249,6 +257,73 @@ class TitleViewModel(app: AppContainer, sourceId: String, titleId: String) : Tit
                     similar = if (on) app.similarTitles.find(sourceId, titleId, d, adult) else null
                 }
         }
+    }
+
+    /** The name of the recommended title being looked up on this source, or null. */
+    var similarLookup by mutableStateOf<String?>(null)
+        private set
+
+    /** Where a finished lookup leads (a title or this source's search); the screen navigates once. */
+    var similarRoute by mutableStateOf<String?>(null)
+        private set
+
+    /** A recommended title this source had nothing for: the screen offers a global search. */
+    var similarNotFound by mutableStateOf<SimilarNotFound?>(null)
+        private set
+
+    private var similarJob: Job? = null
+
+    /**
+     * A tap on a recommended title: searches this title's source for it. One result with exactly
+     * its name opens; other results open as this source's search; no results (or a failed search)
+     * offer a search of every source. A local source has nothing to search, so that goes global.
+     */
+    fun openSimilar(item: SimilarTitle) {
+        if (similarLookup == item.title) return
+        similarJob?.cancel()
+        similarNotFound = null
+        val source = app.sources.sourceById(sourceId)
+        if (source == null || SourceEngines.isLocal(source.manifest.engine)) {
+            similarRoute = Routes.searchAll(item.title)
+            return
+        }
+        similarLookup = item.title
+        similarJob = viewModelScope.launch {
+            val results = try {
+                withTimeout(SIMILAR_LOOKUP_TIMEOUT_MS) { source.search(item.title, 1).items }
+            } catch (e: TimeoutCancellationException) {
+                null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            } finally {
+                similarLookup = null
+            }
+            when (val pick = results?.let { pickSearchResult(item.title, it) }) {
+                is SearchPick.Open -> similarRoute = Routes.title(sourceId, pick.titleId)
+                SearchPick.Choose -> similarRoute = Routes.browse(sourceId, query = item.title)
+                SearchPick.None, null -> similarNotFound = SimilarNotFound(
+                    title = item.title,
+                    sourceName = source.manifest.name,
+                    failed = results == null,
+                )
+            }
+        }
+    }
+
+    /** The screen left, or navigated: a lookup still running is dropped. */
+    fun cancelSimilar() {
+        similarJob?.cancel()
+        similarLookup = null
+    }
+
+    fun similarRouteTaken() {
+        similarRoute = null
+    }
+
+    fun dismissSimilarNotFound() {
+        similarNotFound = null
     }
 
     /** The bell: update checks look at this title (and download its new chapters for subscribed titles). */
@@ -485,3 +560,13 @@ data class LibraryDuplicate(
     val sourceName: String,
     val linked: Boolean,
 )
+
+/** A recommended [title] that [sourceName] had no results for; [failed]: the search itself failed. */
+data class SimilarNotFound(
+    val title: String,
+    val sourceName: String,
+    val failed: Boolean,
+)
+
+/** How long a tap on a recommended title waits for the source's search. */
+private const val SIMILAR_LOOKUP_TIMEOUT_MS = 20_000L

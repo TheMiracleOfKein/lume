@@ -252,6 +252,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
+**v1.1.1: settings per mode** 🟡 in progress ([notes](releases/v1.1.1.md), [device check](releases/v1.1.1-check.md)): settings follow the reading mode, with the text reader's defaults in Ranobe; similar titles open on the source you read; 18+ sources off in global search by default.
+
 **v1.1.0: novel reader and local books** ✅ released 2026-11-17 ([notes](releases/v1.1.0.md), [device check](releases/v1.1.0-check.md)): EPUB and TXT books from files and folders, and a scrolling text reader with themes and your place kept to the paragraph.
 
 **v1.0.0: reading modes** ✅ released 2026-11-17 ([notes](releases/v1.0.0.md), [device check](releases/v1.0.0-check.md)): the app split into modules, a long press on the logo switches between Manga and a Ranobe preview, and two builds (full and manga only).
@@ -343,7 +345,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **Goal:** read light novels in the same app, with the same library, history, downloads, sync and trackers.
 
-- 🟡 **Text reader** (L): font, size, line height, margins and theme; scroll mode first, paged later; position kept as block and offset; next chapter without a break. Scroll mode in v1.1.0; paged mode still open.
+- 🟡 **Text reader** (L): font, size, line height, margins and theme; scroll mode first, paged later; position kept as block and offset; next chapter without a break. Scroll mode in v1.1.0, its defaults in Settings → Reader in v1.1.1; paged mode still open.
 - **RanobeLib** (M): the MangaLib engine with the ranobe site and its chapter text.
 - **English novel sites** (M): one engine driven by CSS selectors, one JSON pack per site (NovelBin, Royal Road, …).
 - ✅ **Local EPUB and TXT** (M): through "Import books…", the folder import and watched folders. In v1.1.0.
@@ -873,6 +875,14 @@ Release notes: [docs/releases/v0.9.8.md](releases/v0.9.8.md).
 - ✅ **Transfer**: page by page with a SHA-256 checksum per chapter; each chapter is stored as soon as it's checked, so connecting again continues. Titles go to the library; read marks optional.
 - ⏸️ Wi-Fi Direct and the local-only hotspot; sending from a title's chapter list. (QR code: ✅ in v0.9.13.)
 - 🟡 Not checked on a device: the emulator gate was skipped for this release; JVM tests cover the protocol.
+
+### v1.1.1: settings per mode 🟡 in progress
+
+Release notes: [docs/releases/v1.1.1.md](releases/v1.1.1.md). Device check: [docs/releases/v1.1.1-check.md](releases/v1.1.1-check.md).
+
+- ✅ **Settings per mode**: sections and settings carry the modes they apply to; Ranobe hides downloads, trackers, similar titles and finding other sources, and its Reader page holds the text reader's defaults. Settings search follows the mode.
+- ✅ **Similar titles on the open source**: one exact name match opens, other results open as that source's search, nothing found offers global search.
+- ✅ **18+ off by default** in global search.
 
 ### v1.1.0: novel reader and local books ✅ released 2026-11-17
 

@@ -523,7 +523,7 @@ class AppPreferences(
         it[libraryNotifyMutedKey].orEmpty().mapNotNull(String::toLongOrNull).toSet()
     }
     val downloadsWifiOnly: StateFlow<Boolean> = state { it[downloadsWifiOnlyKey] ?: false }
-    val globalSearchNsfw: StateFlow<Boolean> = state { it[globalSearchNsfwKey] ?: true }
+    val globalSearchNsfw: StateFlow<Boolean> = state { it[globalSearchNsfwKey] ?: false }
 
     val librarySettings: StateFlow<LibrarySettings> = state { prefs ->
         LibrarySettings(

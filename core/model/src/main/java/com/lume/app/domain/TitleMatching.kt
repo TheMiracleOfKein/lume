@@ -112,4 +112,29 @@ fun matchTitle(wanted: TitleDetails, candidate: TitleDetails): TitleMatch {
 fun worthComparing(wantedNames: List<String>, result: TitleSummary): Boolean =
     bestNameSimilarity(wantedNames, listOfNotNull(result.title, result.subtitle)) >= MAYBE_NAMES
 
+/** What a search of one source for a recommended title came to. */
+sealed interface SearchPick {
+    /** One result is named exactly like the title: open it. */
+    data class Open(val titleId: String) : SearchPick
+
+    /** Results, but none (or more than one) named exactly like it: let the reader choose. */
+    data object Choose : SearchPick
+
+    /** No results at all. */
+    data object None : SearchPick
+}
+
+/**
+ * Picks the result that is [name] from one source's search [results]. A result counts when its
+ * title, or one of the alternative names in its subtitle, equals [name] after normalising; two
+ * such results (a manga and its novel, say) can't be told apart, so the reader chooses.
+ */
+fun pickSearchResult(name: String, results: List<TitleSummary>): SearchPick {
+    if (results.isEmpty()) return SearchPick.None
+    val exact = results
+        .filter { bestNameSimilarity(listOf(name), titleNames(it.title, it.subtitle)) >= 1.0 }
+        .distinctBy { it.id }
+    return if (exact.size == 1) SearchPick.Open(exact.single().id) else SearchPick.Choose
+}
+
 private const val MAYBE_NAMES = 0.5

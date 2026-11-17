@@ -865,8 +865,12 @@
     <string name="title_duplicate_linked_done">Привязано к «%1$s»</string>
     <string name="title_also_on_hint">Привяжите их: они заполнят пропуски в списке глав, а главу, которая не открылась, можно будет прочитать с другого источника</string>
     <string name="title_similar">Похожие тайтлы</string>
-    <string name="title_similar_from">Рекомендации %1$s. Нажмите на тайтл, чтобы найти его на ваших источниках</string>
-    <string name="cd_similar_search">Искать на ваших источниках</string>
+    <string name="title_similar_from">Рекомендации %1$s. Нажмите на тайтл, чтобы найти его на этом источнике</string>
+    <string name="cd_similar_search">Найти на этом источнике</string>
+    <string name="similar_not_found_title">Не найдено на %1$s</string>
+    <string name="similar_not_found_text">На %1$s нет тайтла «%2$s». Поискать на всех ваших источниках?</string>
+    <string name="similar_search_failed_text">Не удалось выполнить поиск «%2$s» на %1$s. Поискать на всех ваших источниках?</string>
+    <string name="similar_search_everywhere">Искать везде</string>
     <string name="action_link">Привязать</string>
     <string name="action_not_now">Не сейчас</string>
     <string name="dialog_sources">Источники</string>
@@ -909,6 +913,8 @@
     <string name="settings_section_backup">Резервные копии</string>
     <string name="settings_summary_appearance">Тема, цвета, язык</string>
     <string name="settings_summary_reader">Полный экран, листание, увеличение</string>
+    <string name="settings_summary_reader_novel">Размер текста, интервалы, шрифт, тема</string>
+    <string name="settings_mode_note">Настройки режима «%1$s». Читалка и разделы отдельного режима меняются вместе с режимом чтения, остальное общее.</string>
     <string name="settings_summary_library">Проверка новых глав, категории, локальные файлы</string>
     <string name="settings_summary_downloads">Wi-Fi, автозагрузка, хранилище</string>
     <string name="settings_summary_sources">Источники, 18+ в общем поиске</string>
@@ -964,6 +970,8 @@
     <string name="settings_kw_language">английский, русский, перевод, language</string>
     <string name="settings_kw_translate_labels">том, глава, русский</string>
     <string name="settings_kw_immersive">полноэкранный, строка состояния, панель навигации, скрыть</string>
+    <string name="settings_kw_novel_text">ранобэ, новелла, книга, текст, шрифт, размер, буквы, интервал, поля, абзацы, выравнивание</string>
+    <string name="settings_kw_novel_theme">ранобэ, новелла, книга, тема, сепия, тёмная, чёрная, светлая, цвета</string>
     <string name="settings_kw_keep_screen_on">сон, блокировка, гаснет, тайм-аут</string>
     <string name="settings_kw_seamless">непрерывное, следующая глава, прокрутка</string>
     <string name="settings_kw_tap_zones">касание, нажатие, край, перелистывание</string>
