@@ -274,7 +274,11 @@ class LibSocialEngine(
             val name = (stringOrNull(item["name"])
                 ?: stringOrNull(item["chapter_name"])
                 ?: "").trim()
-            val branches = (item["branches"] as? JsonArray).orEmpty()
+            val allBranches = (item["branches"] as? JsonArray).orEmpty()
+            // Paid early access: a translation that can't be read yet is left out, and a chapter
+            // with no readable translation is left out entirely (it shows up once it opens).
+            val branches = allBranches.filterNot { isLocked(it as? JsonObject) }
+            if (allBranches.isNotEmpty() && branches.isEmpty()) return@flatMap emptyList()
             // One entry per translation team (branch). Do NOT use branches[].id — that is the
             // chapter row id, not a branch.
             val branchIds: List<Pair<String?, String?>> = branches.mapNotNull { branchEl ->
@@ -308,6 +312,15 @@ class LibSocialEngine(
         }
         // API returns oldest → newest; reverse for UI (newest first), reader re-sorts.
         return chapters.asReversed()
+    }
+
+    /**
+     * A translation behind the site's paywall: `restricted_view.is_open` is false until it opens
+     * for everyone (`expired_at`) or the signed-in reader has bought it.
+     */
+    private fun isLocked(branch: JsonObject?): Boolean {
+        val restricted = branch?.get("restricted_view") as? JsonObject ?: return false
+        return (restricted["is_open"] as? kotlinx.serialization.json.JsonPrimitive)?.content == "false"
     }
 
     override suspend fun getPages(chapter: Chapter): List<ComicPage> {
