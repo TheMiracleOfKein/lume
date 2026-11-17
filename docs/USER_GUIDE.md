@@ -10,16 +10,17 @@ Contents:
 4. [Sources and packs](#sources-and-packs)
 5. [Title screen](#title-screen)
 6. [Reading](#reading)
-7. [Library](#library)
-8. [Downloads](#downloads)
-9. [Sync](#sync)
-10. [Backups](#backups)
-11. [Trackers](#trackers)
-12. [Privacy and security](#privacy-and-security)
-13. [Crash log and reporting bugs](#crash-log-and-reporting-bugs)
-14. [Troubleshooting](#troubleshooting)
-15. [FAQ](#faq)
-16. [Settings reference](#settings-reference)
+7. [Reading novels (Ranobe mode)](#reading-novels-ranobe-mode)
+8. [Library](#library)
+9. [Downloads](#downloads)
+10. [Sync](#sync)
+11. [Backups](#backups)
+12. [Trackers](#trackers)
+13. [Privacy and security](#privacy-and-security)
+14. [Crash log and reporting bugs](#crash-log-and-reporting-bugs)
+15. [Troubleshooting](#troubleshooting)
+16. [FAQ](#faq)
+17. [Settings reference](#settings-reference)
 
 ## Getting started
 
@@ -138,6 +139,7 @@ Reading progress is sent back to Komga and Kavita. To change a server later, use
 The **Local files** source holds comics from your phone.
 
 - **Settings → Library and updates → Import a folder from the device** copies a folder into Lume. A folder can hold one series per subfolder, chapter folders, or `.cbz`, `.cbr`, `.cb7`, `.zip`, `.rar`, `.7z` and `.pdf` files. `cover.jpg`, `ComicInfo.xml` and `details.json` are read too.
+- **Import books…** (full build) copies picked `.epub` and `.txt` files as novels; see [Reading novels](#reading-novels-ranobe-mode).
 - **Open local titles** takes you to them.
 - **Watched folders** are re-scanned for new files and changed files, and new chapters are copied in with a notification. Add one with **Add a watched folder**, scan at once with **Scan now**, and choose how often with **Scan every**. If Android takes back access to a folder, tap **Reconnect**.
 - **Clean temporary files** frees space used by unpacked archives.
@@ -220,6 +222,41 @@ Tap **Bookmark this spot** to pin a page (in webtoon mode, the exact spot). **Ad
 ### Looks and comfort
 
 The reader settings panel (the tune icon) also has **Reader theme**, **Dim pages**, **Own brightness while reading**, **Colour filter**, **E-ink mode**, **Screen orientation**, **Keep screen on** and more. All are described in the [Settings reference](#reader-settings-panel).
+
+## Reading novels (Ranobe mode)
+
+The full build can read novels from files on your phone. The manga build has no novel reader.
+
+### Switching mode
+
+Press and hold the logo in the bottom bar (or the side rail), or open the main menu and tap **Mode**, then choose **Ranobe**. Lume then shows novels instead of comics. Choose **Manga** to go back. Your library, history and progress for both modes are kept.
+
+### Importing books
+
+- **Settings → Library and updates → Import books…** opens the file picker. Pick one or more `.epub` or `.txt` files; each becomes a book. You see how many were imported, or **Nothing to import** if no file could be used. Picking the same file again doesn't copy it twice.
+- **Import a folder from the device** and **watched folders** also copy `.epub` and `.txt` files found in the folder or a few levels below it. A text file lying beside comic pages or comic archives is treated as a note, not a book.
+- **Open local titles** shows the books.
+
+EPUB 2 and EPUB 3 are read, with the cover and the chapter names from the book. For a TXT file Lume guesses the text encoding (UTF-8, windows-1251 and others) and splits it into chapters at heading lines such as "Chapter 12", "Глава 12" or "Prologue". A file with no such headings is cut into parts of about the same length, named "Part 1", "Part 2" and so on.
+
+### The reader
+
+The text scrolls vertically.
+
+- Tap the middle to show or hide the bars.
+- Tap the top or bottom of the screen to scroll up or down by about a screen.
+- The next chapter follows right after the end of the current one.
+- The bottom bar has the chapter list and the reader settings.
+
+The settings panel has **Text size**, **Line spacing**, **Side margins**, **Paragraph spacing**, **Font** (serif or sans-serif), **Justify text** (long words are hyphenated so lines don't get wide gaps) and **Reader theme** (**App**, **Light**, **Sepia**, **Dark**, **Black**). Changes show at once.
+
+### Progress and history
+
+Lume remembers the paragraph you stopped at, also after rotating the phone or when Android closes the app. **Continue reading** on the title and in History opens the book at that place. A book in History opens in the text reader straight after a start of the app.
+
+### Not there yet
+
+Online novel sources, downloads of novel chapters and trackers for novels are planned. For now Ranobe mode reads local books only.
 
 ## Library
 
@@ -492,6 +529,7 @@ The Settings screen sets the defaults. A change in the panel becomes the new def
 | Setting | What it does | Default |
 | --- | --- | --- |
 | **Import a folder from the device** | Copies comics from a folder into Lume. | n/a |
+| **Import books…** | Copies picked EPUB and TXT files into Lume as novels. Full build only. | n/a |
 | **Open local titles** | Opens the Local files source. | n/a |
 | **Watched folders** / **Add a watched folder** | A library folder, or one series: Lume looks for new and changed files in it. Each folder shows its last scan, **Reconnect** and **Remove**. | None |
 | **Scan now** | Scans the watched folders now. | n/a |
