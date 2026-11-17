@@ -48,6 +48,7 @@ import com.lume.app.ui.components.BackButton
 import com.lume.app.ui.components.EmptyBox
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.nav.Routes
+import com.lume.app.ui.shell.belongsToMode
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
 import kotlinx.coroutines.flow.SharingStarted
@@ -61,10 +62,15 @@ class StatsViewModel(app: AppContainer) : ViewModel() {
     val stats: StateFlow<ReadingStats?> = combine(
         app.dao.observeSessions(),
         app.dao.observeChapterReadTimes(),
-    ) { sessions, reads ->
+        app.sources.sources,
+        app.prefs.activeMode,
+    ) { sessions, reads, sources, mode ->
+        val kinds = sources.associate { it.manifest.id to it.manifest.kind }
         computeReadingStats(
-            sessions = sessions.map { StatSession(it.sourceId, it.titleId, it.titleName, it.startedAt, it.durationMs, it.pagesRead) },
-            chapterReads = reads.map { StatChapterRead(it.sourceId, it.titleId, it.readAt) },
+            sessions = sessions.filter { belongsToMode(it.sourceId, kinds, mode) }
+                .map { StatSession(it.sourceId, it.titleId, it.titleName, it.startedAt, it.durationMs, it.pagesRead) },
+            chapterReads = reads.filter { belongsToMode(it.sourceId, kinds, mode) }
+                .map { StatChapterRead(it.sourceId, it.titleId, it.readAt) },
             now = System.currentTimeMillis(),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)

@@ -37,6 +37,25 @@ class ModeSwitcherTest {
     }
 
     @Test
+    fun sourcesAreFilteredByTheActiveKind() {
+        val all = listOf("a" to MediaKind.Comics, "b" to MediaKind.Novel, "c" to MediaKind.Comics)
+        assertTrue(sourcesOfMode(all, MediaKind.Novel) { it.second }.map { it.first } == listOf("b"))
+        assertTrue(sourcesOfMode(all, MediaKind.Comics) { it.second }.map { it.first } == listOf("a", "c"))
+        assertTrue(sourcesOfMode(all, MediaKind.Video) { it.second }.isEmpty())
+    }
+
+    @Test
+    fun savedItemsFollowTheirSourceKind() {
+        val kinds = mapOf("a" to MediaKind.Comics, "b" to MediaKind.Novel)
+        assertTrue(belongsToMode("b", kinds, MediaKind.Novel))
+        assertFalse(belongsToMode("b", kinds, MediaKind.Comics))
+        assertFalse(belongsToMode("a", kinds, MediaKind.Novel))
+        // A removed source counts as comics.
+        assertTrue(belongsToMode("gone", kinds, MediaKind.Comics))
+        assertFalse(belongsToMode("gone", kinds, MediaKind.Novel))
+    }
+
+    @Test
     fun aRegularModeIsNeverComingSoon() {
         // Before sources load the list is empty; the comics mode must not flash the empty state.
         assertFalse(showsComingSoon(listOf(comics, novel), MediaKind.Comics, emptyList()))

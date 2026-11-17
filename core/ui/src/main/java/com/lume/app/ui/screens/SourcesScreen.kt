@@ -176,6 +176,18 @@ fun SourcesScreen(nav: NavHostController) {
             }
             item(key = "import") { ImportSection(vm) }
             item(key = "packs") { PackCatalogue(vm) }
+            if (grouped.isEmpty()) {
+                item(key = "mode-empty") {
+                    val activeMode by container.prefs.activeMode.collectAsState()
+                    val label = container.installedModules.firstOrNull { it.kind == activeMode }?.labelRes
+                    Text(
+                        stringResource(R.string.mode_coming_title, label?.let { stringResource(it) }.orEmpty()),
+                        color = AppColors.textSecondary,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(vertical = 16.dp),
+                    )
+                }
+            }
             grouped.forEach { (langKey, list) ->
                 item(key = "lang-$langKey") {
                     SectionLabel(

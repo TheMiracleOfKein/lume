@@ -79,6 +79,17 @@ fun showsComingSoon(modules: List<ContentModule>, active: MediaKind, sourceKinds
     return module.preview && active !in sourceKinds
 }
 
+/** The sources that serve [mode]. */
+fun <T> sourcesOfMode(sources: List<T>, mode: MediaKind, kindOf: (T) -> MediaKind): List<T> =
+    sources.filter { kindOf(it) == mode }
+
+/**
+ * True when an item saved from [sourceId] belongs to [mode]. A source that is no longer loaded
+ * (removed pack) counts as comics, the only kind that could have been removed before modes existed.
+ */
+fun belongsToMode(sourceId: String, kinds: Map<String, MediaKind>, mode: MediaKind): Boolean =
+    (kinds[sourceId] ?: MediaKind.Comics) == mode
+
 /**
  * The reading-mode popup, opened by a long press on the logo or from the menu. It sits above the
  * bottom bar (next to the rail on wide screens); a tap outside or Back closes it.
