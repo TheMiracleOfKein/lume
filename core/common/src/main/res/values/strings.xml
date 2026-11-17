@@ -200,6 +200,7 @@
     <string name="source_auth_off">guest</string>
     <string name="mode_comics">Manga</string>
     <string name="mode_novel">Ranobe</string>
+    <string name="novel_reader_soon">The text reader comes in the next update</string>
     <string name="mode_switcher_title">Reading mode</string>
     <string name="mode_preview">Preview</string>
     <string name="mode_switch_action">Switch reading mode</string>

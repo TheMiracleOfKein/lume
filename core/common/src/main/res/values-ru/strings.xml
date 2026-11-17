@@ -191,6 +191,7 @@
     <string name="source_auth_off">гость</string>
     <string name="mode_comics">Манга</string>
     <string name="mode_novel">Ранобэ</string>
+    <string name="novel_reader_soon">Читалка текста появится в следующем обновлении</string>
     <string name="mode_switcher_title">Режим чтения</string>
     <string name="mode_preview">Превью</string>
     <string name="mode_switch_action">Сменить режим чтения</string>

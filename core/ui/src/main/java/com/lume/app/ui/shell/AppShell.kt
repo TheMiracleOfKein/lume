@@ -69,6 +69,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -288,6 +289,37 @@ fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = empt
             // Readers come from the installed content modules.
             val graph = ShellGraph(this)
             contentScreens.forEach { it.register(graph, nav) }
+            // One reader route; the reader of the source's kind opens (comics when unknown).
+            lumeComposable(
+                route = Routes.Reader,
+                arguments = listOf(
+                    navArgument("sourceId") { type = NavType.StringType },
+                    navArgument("titleId") { type = NavType.StringType },
+                    navArgument("chapterId") { type = NavType.StringType },
+                    navArgument("page") { type = NavType.IntType; defaultValue = -1 },
+                    navArgument("offset") { type = NavType.FloatType; defaultValue = -1f },
+                ),
+            ) { entry ->
+                val args = entry.arguments!!
+                val readerArgs = ReaderArgs(
+                    sourceId = args.getString("sourceId")!!,
+                    titleId = args.getString("titleId")!!,
+                    chapterId = args.getString("chapterId")!!,
+                    page = args.getInt("page").takeIf { it >= 0 },
+                    offset = args.getFloat("offset").takeIf { it >= 0f },
+                )
+                val sourceKind = container.titles.kindOf(readerArgs.sourceId)
+                val kind by produceState(sourceKind?.let { readerKindFor(it, null) }, readerArgs) {
+                    if (sourceKind == null) {
+                        val bookmark = container.dao.getBookmark(readerArgs.sourceId, readerArgs.titleId)
+                        value = readerKindFor(null, bookmark?.mediaKind)
+                    }
+                }
+                kind?.let { resolved ->
+                    val reader = graph.readers[resolved] ?: graph.readers[MediaKind.Comics]
+                    reader?.invoke(nav, readerArgs)
+                }
+            }
         }
 
         val onSelect: (String?) -> Unit = { target ->
