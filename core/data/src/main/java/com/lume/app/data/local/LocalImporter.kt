@@ -3,6 +3,7 @@ package com.lume.app.data.local
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import com.lume.app.data.db.ImportedFileEntity
 import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.local.archive.ArchiveReaders
@@ -121,6 +122,47 @@ class LocalImporter(
         }
         if (depth >= BookFiles.MAX_DEPTH) return
         for (dir in children.filter { it.isDir }) findBooks(tree, dir.id, list(tree, dir.id), depth + 1, out)
+    }
+
+    /**
+     * Copies single book files picked with the file picker to `local-novel/<name>/<name.ext>`.
+     * Files whose extension is not a book's are skipped; an identical file (same size) is not copied again.
+     */
+    suspend fun importBooks(uris: List<Uri>): LocalImportResult = withContext(Dispatchers.IO) {
+        var titles = 0
+        var skipped = 0
+        for (uri in uris) {
+            coroutineContext.ensureActive()
+            val name = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                if (c.moveToFirst()) c.getString(0) else null
+            }
+            if (name == null || !BookFiles.isBook(name, bookExtensions)) {
+                skipped++
+                continue
+            }
+            val dest = BookFiles.destination(booksRoot(), name)
+            dest.parentFile?.mkdirs()
+            val size = resolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
+                if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else 0L
+            } ?: 0L
+            if (BookFiles.needsCopy(dest.isFile, dest.length(), size)) {
+                val partial = File(dest.parentFile, dest.name + ".part")
+                val opened = resolver.openInputStream(uri)?.use { input -> partial.outputStream().use { input.copyTo(it) } }
+                if (opened == null) {
+                    partial.delete()
+                    skipped++
+                    continue
+                }
+                if (dest.exists()) dest.delete()
+                if (!partial.renameTo(dest)) {
+                    partial.delete()
+                    skipped++
+                    continue
+                }
+            }
+            titles++
+        }
+        LocalImportResult(titles, titles, skipped)
     }
 
     private enum class Layout { Library, Series, Chapter, Empty }

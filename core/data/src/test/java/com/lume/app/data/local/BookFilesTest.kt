@@ -31,6 +31,21 @@ class BookFilesTest {
     }
 
     @Test
+    fun aPickedFileIsCopiedOnlyWhenNewOrChanged() {
+        assertTrue(BookFiles.needsCopy(destExists = false, destSize = 0, pickedSize = 100))
+        assertTrue(BookFiles.needsCopy(destExists = true, destSize = 50, pickedSize = 100))
+        assertTrue(BookFiles.needsCopy(destExists = true, destSize = 0, pickedSize = 100))
+        assertFalse(BookFiles.needsCopy(destExists = true, destSize = 100, pickedSize = 100))
+        assertFalse(BookFiles.needsCopy(destExists = true, destSize = 100, pickedSize = 0))
+    }
+
+    @Test
+    fun sameNameWithDifferentExtensionsSharesAFolder() {
+        val root = File("local-novel")
+        assertEquals(BookFiles.destination(root, "A.epub").parentFile, BookFiles.destination(root, "A.txt").parentFile)
+    }
+
+    @Test
     fun unsafeCharactersAreReplaced() {
         assertEquals("a_b_c", BookFiles.folderName("a:b?c.epub"))
         assertEquals("_", BookFiles.folderName(".epub"))

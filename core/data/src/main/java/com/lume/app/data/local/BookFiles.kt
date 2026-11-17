@@ -24,4 +24,8 @@ internal object BookFiles {
     fun destination(root: File, fileName: String): File = File(File(root, folderName(fileName)), safeName(fileName))
 
     fun safeName(name: String): String = name.replace(Regex("""[<>:"/\|?*]"""), "_").trim().ifEmpty { "_" }
+
+    /** A single picked file is copied when it is not there yet or its size differs. */
+    fun needsCopy(destExists: Boolean, destSize: Long, pickedSize: Long): Boolean =
+        !destExists || destSize <= 0 || (pickedSize > 0 && destSize != pickedSize)
 }

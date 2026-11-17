@@ -678,6 +678,14 @@
     <string name="local_import_done">Imported. Titles: %1$d · chapters: %2$d</string>
     <string name="local_import_empty">No chapters found in that folder</string>
     <string name="local_import_failed">Import failed: %1$s</string>
+    <string name="local_import_books">Import books…</string>
+    <string name="local_import_books_hint">Pick EPUB or TXT files; each becomes a book in the local novel library.</string>
+    <string name="local_import_books_empty">Nothing to import</string>
+    <plurals name="local_import_books_done">
+        <item quantity="one">Imported %d book</item>
+        <item quantity="other">Imported %d books</item>
+    </plurals>
+    <string name="settings_kw_local_books">import, books, novels, epub, txt, files</string>
     <string name="local_clean_done">Freed %1$s</string>
     <string name="error_backup_write">Couldn’t write the backup file</string>
     <string name="backup_save_to">Save a backup to…</string>

@@ -91,6 +91,7 @@ object SettingsCatalog {
         SettingInfo("reading_stats", SettingsPage.Library, R.string.stats_title, R.string.settings_stats_hint, R.string.settings_kw_stats),
         SettingInfo("categories", SettingsPage.Library, R.string.categories_title, R.string.settings_categories_hint, R.string.settings_kw_categories),
         SettingInfo("local_import", SettingsPage.Library, R.string.local_import_folder, keywordsRes = R.string.settings_kw_local),
+        SettingInfo("local_import_books", SettingsPage.Library, R.string.local_import_books, R.string.local_import_books_hint, R.string.settings_kw_local_books),
         SettingInfo("local_open", SettingsPage.Library, R.string.local_open_library, keywordsRes = R.string.settings_kw_local),
         SettingInfo("local_clean", SettingsPage.Library, R.string.local_clean_temp, R.string.local_clean_temp_hint),
         SettingInfo("watched_add", SettingsPage.Library, R.string.watched_add, R.string.watched_add_hint, R.string.settings_kw_watched),

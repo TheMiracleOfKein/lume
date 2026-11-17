@@ -64,6 +64,10 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
         if (uri != null) vm.importLocalFolder(uri)
     }
 
+    val pickBooks = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        vm.importBookFiles(uris)
+    }
+
     val watchedFolders by vm.watchedFolders.collectAsState()
     val folderScanHours by prefs.folderScanHours.collectAsState()
     var reconnecting by remember { mutableStateOf<WatchedFolderEntity?>(null) }
@@ -227,6 +231,14 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
                 stringResource(R.string.local_folder_hint, vm.localPath),
             ) {
                 if (!vm.localBusy) pickLocalFolder.launch(null)
+            }
+        }
+        if (vm.canImportBooks) SettingItem("local_import_books") {
+            SettingsLink(
+                if (vm.localBusy) stringResource(R.string.local_importing) else stringResource(R.string.local_import_books),
+                stringResource(R.string.local_import_books_hint),
+            ) {
+                if (!vm.localBusy) pickBooks.launch(arrayOf("application/epub+zip", "text/plain", "application/octet-stream"))
             }
         }
         SettingItem("local_open") {
