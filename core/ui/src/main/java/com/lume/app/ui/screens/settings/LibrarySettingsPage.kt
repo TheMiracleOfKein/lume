@@ -47,6 +47,7 @@ import com.lume.app.ui.theme.Motion
 fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
     val prefs = vm.prefs
     val context = LocalContext.current
+    val activeMode by prefs.activeMode.collectAsState()
     val libraryUpdates by prefs.libraryUpdatesEnabled.collectAsState()
     val libraryInterval by prefs.libraryUpdateIntervalHours.collectAsState()
     val libraryWifiOnly by prefs.libraryUpdateWifiOnly.collectAsState()
@@ -242,7 +243,7 @@ fun LibrarySettingsPage(nav: NavHostController, vm: SettingsViewModel) {
             }
         }
         SettingItem("local_open") {
-            SettingsLink(stringResource(R.string.local_open_library)) { nav.navigate(Routes.browse("local")) }
+            SettingsLink(stringResource(R.string.local_open_library)) { nav.navigate(Routes.browse(if (activeMode == com.lume.app.domain.MediaKind.Novel) "local-novel" else "local")) }
         }
         SettingItem("watched_add") {
             SettingsLabel(stringResource(R.string.watched_title))
