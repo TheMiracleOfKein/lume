@@ -20,6 +20,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,6 +49,9 @@ internal fun NovelTextList(
         fontSize = settings.fontSize.sp,
         lineHeight = (settings.fontSize * settings.lineHeight).sp,
         textAlign = if (settings.justify) TextAlign.Justify else TextAlign.Start,
+        // Justified lines break with hyphens, so words are not spread into huge gaps.
+        hyphens = if (settings.justify) Hyphens.Auto else Hyphens.None,
+        lineBreak = if (settings.justify) LineBreak.Paragraph else LineBreak.Simple,
     )
     LazyColumn(
         state = listState,
