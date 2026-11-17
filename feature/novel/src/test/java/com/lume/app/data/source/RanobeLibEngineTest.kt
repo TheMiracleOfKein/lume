@@ -45,6 +45,24 @@ class RanobeLibEngineTest {
     }
 
     @Test
+    fun htmlChapterWithImagesKeepsTheImageLinks() {
+        // Trimmed from a real web novel answer: `content` is an HTML string, and the attachment
+        // URLs differ from the <img> ones (a trailing "-" in the slug) and answer 500, while the
+        // <img> links work. The <img> links must be the ones kept, without extra copies.
+        val img = "https://ranobelib.me/uploads/ranobe/death-is-the-only-ending-for-the-villain-novel/chapters/595365/1_FX1o.png"
+        val body = """
+            {"data":{"id":595365,"volume":"1","number":"0","type":"chapter",
+            "content":"<p data-paragraph-index=\"1\">☆Пенелопа Эккарт☆ (ГГ)</p><p data-paragraph-index=\"2\">• 17-18 лет.</p><p><img loading=\"lazy\" src=\"$img\" /></p>",
+            "attachments":[{"id":null,"filename":"1_FX1o.png","name":"1_FX1o","extension":"png",
+              "url":"/uploads/ranobe/death-is-the-only-ending-for-the-villain-novel-/chapters/595365/1_FX1o.png","width":0,"height":0}]}}
+        """.trimIndent()
+        val blocks = com.lume.app.data.novel.NovelBlocks.parse(engine.parseChapterText(body))
+        assertEquals(3, blocks.size)
+        assertTrue(blocks[0] is com.lume.app.data.novel.NovelBlock.Paragraph)
+        assertEquals(img, (blocks[2] as com.lume.app.data.novel.NovelBlock.Image).src)
+    }
+
+    @Test
     fun toastIsAnError() {
         try {
             engine.parseChapterText("""{"data":{"toast":{"type":"error","message":"Глава недоступна"}}}""")
