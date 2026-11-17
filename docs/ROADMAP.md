@@ -28,7 +28,8 @@ These hold for every release:
 | **0.7** | Sync and everyday reading 🟡 | Sync between devices; page slider, orientation lock, auto-scroll, colour filters | L |
 | **0.8** | Reader 2.0 🟡 | Tall pages without memory problems, sharp zoom, crop and spreads, guided panel view, Coil 3 | L |
 | **0.9** | Library and sources | Self-hosted servers (OPDS, Komga, Kavita), CBR and PDF, watched folders, smarter updates, statistics | L |
-| **1.0** | Stable | Distribution, update check, crash log, accessibility, encrypted sign-ins, test coverage, user guide | M–L |
+| **1.0** | Stable 🟡 | Reading modes and two builds (1.0.0); distribution, update check, crash log, accessibility, encrypted sign-ins, test coverage, user guide | M–L |
+| **1.x** | Ranobe | Text reader, RanobeLib, English novel sites, local EPUB/TXT, novel trackers | L |
 
 Order can change when a source breaks or a bug needs a patch release first.
 
@@ -251,6 +252,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
+**v1.0.0: reading modes** ([notes](releases/v1.0.0.md), [device check](releases/v1.0.0-check.md)): the app split into modules, a long press on the logo switches between Manga and a Ranobe preview, and two builds (full and manga only).
+
 **v0.9.16: filter sheet fling** ✅ released 2026-11-14 ([notes](releases/v0.9.16.md)): the filter sheet no longer springs up and down after a hard swipe.
 
 **v0.9.15: filter sheet fix** ✅ released 2026-11-14 ([notes](releases/v0.9.15.md)): the filter sheet no longer bounces on its own when its content reaches the status bar.
@@ -328,12 +331,30 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - ✅ Optional release workflow that builds and signs from a tag with repository secrets (S), so a release no longer depends on one computer. In v0.9.10 ([RELEASING.md](RELEASING.md)); secrets set and checked with a test run on v0.9.10 (same signing certificate), and every pushed `v*` tag now starts it.
 - Done when: the device checklist passes on three phones and one tablet, no open crash reports, and the user guide covers every setting.
 
+**Reading modes** (L)
+- ✅ **Modules** (L): `:core:model`, `:core:common`, `:core:data`, `:core:ui`, `:feature:comics`, `:feature:novel`, with `:app` only assembling them ([ARCHITECTURE.md](ARCHITECTURE.md)). In v1.0.0.
+- ✅ **Media kinds and content modules** (M): each feature module brings its engines and screens; titles and reading positions carry their kind (database version 16, in backups and sync too). In v1.0.0.
+- ✅ **Two builds** (M): `full` (every mode) and `manga` (manga only), same app ID and signature; the in-app updater stays on its build. In v1.0.0.
+- ✅ **Mode switcher** (S): long press on the logo in the bottom bar or rail, or "Mode" in the menu; hidden when a build has one mode. In v1.0.0.
+
+## v1.x: ranobe
+
+**Goal:** read light novels in the same app, with the same library, history, downloads, sync and trackers.
+
+- **Text reader** (L): font, size, line height, margins and theme; scroll mode first, paged later; position kept as block and offset; next chapter without a break.
+- **RanobeLib** (M): the MangaLib engine with the ranobe site and its chapter text.
+- **English novel sites** (M): one engine driven by CSS selectors, one JSON pack per site (NovelBin, Royal Road, …).
+- **Local EPUB and TXT** (M), through the folder import.
+- **Downloads** (S): chapters saved as cleaned-up HTML.
+- **Trackers** (S): the novel lists of AniList, MyAnimeList and Shikimori.
+- A `ranobe` build (novel mode only) once the mode is real.
+
 ## Every release
 
 - Source fixes from the weekly live check; new packs in the [catalogue](packs/README.md).
 - The device checklist for what changed.
 - Dependabot updates; lint stays at zero issues; the baseline profile is recorded again when screens change.
-- Release notes in `docs/releases/`, roadmap marks, and the version in `app/build.gradle.kts`.
+- Release notes in `docs/releases/`, roadmap marks, and the version in `gradle.properties`.
 
 ## Known problems and technical debt
 
@@ -850,6 +871,16 @@ Release notes: [docs/releases/v0.9.8.md](releases/v0.9.8.md).
 - ✅ **Transfer**: page by page with a SHA-256 checksum per chapter; each chapter is stored as soon as it's checked, so connecting again continues. Titles go to the library; read marks optional.
 - ⏸️ Wi-Fi Direct and the local-only hotspot; sending from a title's chapter list. (QR code: ✅ in v0.9.13.)
 - 🟡 Not checked on a device: the emulator gate was skipped for this release; JVM tests cover the protocol.
+
+### v1.0.0: reading modes
+
+Release notes: [docs/releases/v1.0.0.md](releases/v1.0.0.md). Device check: [docs/releases/v1.0.0-check.md](releases/v1.0.0-check.md).
+
+- ✅ **Modules**: the single app module split into core and feature modules; package names unchanged.
+- ✅ **Media kinds**: `MediaKind`, `ContentModule`, `ComicSource`; database migration 15→16 marks existing rows as comics; backups and sync carry the kind.
+- ✅ **Builds**: `full` and `manga` flavors, two release APKs with checksums, the updater picks its own flavor.
+- ✅ **Mode switcher**: long press on the logo (bar and rail) with haptics and a TalkBack label, "Mode" in the menu, Ranobe as a preview with a coming-soon screen.
+- ⏸️ **Ranobe reading**: no novel sources or text reader yet; planned for [1.x](#v1x-ranobe).
 
 ### v0.9.16: filter sheet fling ✅ released 2026-11-14
 

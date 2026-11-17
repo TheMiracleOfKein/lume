@@ -269,6 +269,17 @@ Two phones on the same Wi-Fi, one with a few downloaded titles (one stored as CB
 - [ ] Filter sheet: type in a genre group's Find field, then swipe the sheet down. The keyboard closes and the sheet closes or settles without shaking.
 - [ ] Release build (R8): chapters ahead and catalogue search work as in the debug build.
 
+## v1.0.0: reading modes and two builds
+
+- [ ] Update from v0.9.16 (release build with a library, history and progress) to the 1.0 full build: library, history, progress, page bookmarks and downloads are intact.
+- [ ] Full build: a long press on the logo in the bottom bar opens the mode switcher with a haptic tick; Ranobe has a Preview badge. Switching to Ranobe shows "Ranobe sources are coming" on Home, Catalog, Updates and Search; switching back to Manga returns to Home with the library as before.
+- [ ] Main menu > Mode opens the same switcher. On a tablet or in landscape, a long press on the rail logo does too.
+- [ ] TalkBack reads the long-press action on the logo.
+- [ ] Manga build: no long press on the logo, no Mode entry in the menu; install it over the full build and back: data kept.
+- [ ] Sources lists the Local source in both builds; CBZ, CBR, CB7 and PDF chapters open from the folder import.
+- [ ] Settings > About > check for updates offers the APK of the installed build only.
+- [ ] Release builds (R8) of both flavors: Home loads and an old chapter reads.
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.
