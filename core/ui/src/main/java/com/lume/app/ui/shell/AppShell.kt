@@ -213,7 +213,7 @@ fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = empt
         ) {
             lumeComposable(Routes.Home) { ModeGate { HomeScreen(nav) } }
             lumeComposable(Routes.Catalog) { ModeGate { CatalogScreen(nav) } }
-            lumeComposable(Routes.Library) { LibraryScreen(nav) }
+            lumeComposable(Routes.Library) { ModeGate { LibraryScreen(nav) } }
             lumeComposable(Routes.Updates) { ModeGate { UpdatesScreen(nav) } }
             lumeComposable(Routes.History) { HistoryScreen(nav) }
             lumeComposable(Routes.Search) { ModeGate { SearchScreen(nav) } }

@@ -18,6 +18,8 @@ import com.lume.app.data.source.LibAuthToken
 import com.lume.app.data.source.LibWebSession
 import com.lume.app.domain.AutoDownloadMode
 import com.lume.app.domain.UpdateRules
+import com.lume.app.ui.shell.belongsToMode
+import com.lume.app.ui.shell.sourcesOfMode
 import com.lume.app.domain.isContentUri
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.PackEntry
@@ -29,6 +31,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -44,7 +47,14 @@ data class DownloadTitleGroup(
 )
 
 class DownloadsViewModel(private val app: AppContainer) : ViewModel() {
-    val groups: StateFlow<List<DownloadTitleGroup>> = app.dao.observeDownloads()
+    val groups: StateFlow<List<DownloadTitleGroup>> = combine(
+        app.dao.observeDownloads(),
+        app.sources.sources,
+        app.prefs.activeMode,
+    ) { downloads, sources, mode ->
+        val kinds = sources.associate { it.manifest.id to it.manifest.kind }
+        downloads.filter { belongsToMode(it.sourceId, kinds, mode) }
+    }
         .map { downloads ->
             downloads
                 .groupBy { it.sourceId to it.titleId }
@@ -63,7 +73,16 @@ class DownloadsViewModel(private val app: AppContainer) : ViewModel() {
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val activeQueue: StateFlow<List<DownloadQueueEntity>> = app.downloadQueue.items
+    private val modeQueue: Flow<List<DownloadQueueEntity>> = combine(
+        app.downloadQueue.items,
+        app.sources.sources,
+        app.prefs.activeMode,
+    ) { queue, sources, mode ->
+        val kinds = sources.associate { it.manifest.id to it.manifest.kind }
+        queue.filter { belongsToMode(it.sourceId, kinds, mode) }
+    }
+
+    val activeQueue: StateFlow<List<DownloadQueueEntity>> = modeQueue
         .map { queue ->
             queue.filter {
                 it.status == DownloadQueueEntity.STATUS_PENDING || it.status == DownloadQueueEntity.STATUS_RUNNING
@@ -71,7 +90,7 @@ class DownloadsViewModel(private val app: AppContainer) : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    val failedQueue: StateFlow<List<DownloadQueueEntity>> = app.downloadQueue.items
+    val failedQueue: StateFlow<List<DownloadQueueEntity>> = modeQueue
         .map { queue -> queue.filter { it.status == DownloadQueueEntity.STATUS_ERROR } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -642,7 +661,10 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
 }
 
 class SourcesViewModel(private val app: AppContainer) : ViewModel() {
-    val sources: StateFlow<List<CatalogSource>> = app.sources.sources
+    /** The sources of the active reading mode. */
+    val sources: StateFlow<List<CatalogSource>> = combine(app.sources.sources, app.prefs.activeMode) { all, mode ->
+        sourcesOfMode(all, mode) { it.manifest.kind }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val activeId: StateFlow<String?> = app.sources.activeSourceId
     val disabled: StateFlow<Set<String>> = app.prefs.disabledSources
     val pinned: StateFlow<Set<String>> = app.prefs.pinnedSources
