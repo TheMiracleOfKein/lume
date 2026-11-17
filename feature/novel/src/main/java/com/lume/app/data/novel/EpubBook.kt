@@ -117,10 +117,27 @@ class EpubBook private constructor(
                 .mapNotNull { manifest[it.attr("idref")] }
                 .filter { it.mediaType.contains("html") }
             val tocTitles = tocTitles(opf, manifest, ::text)
+            val taken = tocTitles.values.toMutableSet()
             val chapters = spine.mapIndexed { i, item ->
-                EpubChapter(i, tocTitles[item.entry] ?: "Chapter ${i + 1}", item.entry)
+                val name = tocTitles[item.entry]
+                    ?: pageTitle(item.entry, title, taken, ::text)?.also { taken += it }
+                    ?: "Section ${i + 1}"
+                EpubChapter(i, name, item.entry)
             }
             EpubBook(file, title, author, description, language, cover?.entry, chapters)
+        }
+
+        /**
+         * A name for a spine item the table of contents does not list: the page's `<title>` (unless it
+         * is the book's own title), else its first `<h1>`/`<h2>`. Null when there is none, or when
+         * the name is already used by another chapter.
+         */
+        private fun pageTitle(entry: String, bookTitle: String?, taken: Set<String>, text: (String) -> String?): String? {
+            val doc = text(entry)?.let { Jsoup.parse(it) } ?: return null
+            val fromTitle = doc.head().selectFirst("title")?.text()?.clean()
+                ?.takeIf { it.isNotEmpty() && !it.equals(bookTitle, ignoreCase = true) }
+            val name = fromTitle ?: doc.body().selectFirst("h1, h2")?.text()?.clean()?.takeIf { it.isNotEmpty() }
+            return name?.takeIf { it !in taken }
         }
 
         private class ManifestItem(val entry: String, val mediaType: String, val properties: List<String>)

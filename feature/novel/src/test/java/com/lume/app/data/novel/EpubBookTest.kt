@@ -36,8 +36,8 @@ class EpubBookTest {
           <rootfiles><rootfile full-path="$opf" media-type="application/oebps-package+xml"/></rootfiles>
         </container>""".toByteArray()
 
-    private fun xhtml(body: String) =
-        """<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>t</title></head><body>$body</body></html>""".toByteArray()
+    private fun xhtml(body: String, title: String? = null) =
+        """<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml"><head>${title?.let { "<title>$it</title>" }.orEmpty()}</head><body>$body</body></html>""".toByteArray()
 
     private val png = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 1, 2, 3)
 
@@ -122,9 +122,34 @@ class EpubBookTest {
     }
 
     @Test
-    fun epub3TocNamesWithAChapterNFallback() {
+    fun epub3TocNamesWithASectionNFallback() {
         val book = EpubBook.open(epub3())
-        assertEquals(listOf("The Beginning", "The Middle", "Chapter 3"), book.chapters.map { it.title })
+        assertEquals(listOf("The Beginning", "The Middle", "Section 3"), book.chapters.map { it.title })
+    }
+
+    @Test
+    fun untitledSpineItemsAreNamedFromTheirTitleOrHeading() {
+        val file = zip(
+            "front.epub",
+            mapOf(
+                "META-INF/container.xml" to container("book.opf"),
+                "book.opf" to """<package xmlns="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/">
+                    <metadata><dc:title>The Book</dc:title></metadata>
+                    <manifest><item id="a" href="a.html" media-type="text/html"/><item id="b" href="b.html" media-type="text/html"/>
+                    <item id="c" href="c.html" media-type="text/html"/><item id="d" href="d.html" media-type="text/html"/>
+                    <item id="e" href="e.html" media-type="text/html"/></manifest>
+                    <spine><itemref idref="a"/><itemref idref="b"/><itemref idref="c"/><itemref idref="d"/><itemref idref="e"/></spine></package>""".toByteArray(),
+                "a.html" to xhtml("<p>c</p>", title = "Copyright"),
+                "b.html" to xhtml("<h2>Dedication</h2><p>d</p>", title = "The Book"),
+                "c.html" to xhtml("<p>no name</p>"),
+                "d.html" to xhtml("<p>copy</p>", title = "Copyright"),
+                "e.html" to xhtml("<p>x</p>", title = "The Book"),
+            ),
+        )
+        assertEquals(
+            listOf("Copyright", "Dedication", "Section 3", "Section 4", "Section 5"),
+            EpubBook.open(file).chapters.map { it.title },
+        )
     }
 
     @Test
@@ -155,7 +180,7 @@ class EpubBookTest {
         assertNull(book.title)
         assertNull(book.coverEntry)
         assertNull(book.extractCover(tmp.newFolder("nocover")))
-        assertEquals(listOf("Chapter 1", "Chapter 2"), book.chapters.map { it.title })
+        assertEquals(listOf("Section 1", "Section 2"), book.chapters.map { it.title })
     }
 
     @Test
