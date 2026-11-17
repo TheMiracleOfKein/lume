@@ -159,7 +159,7 @@ class EpubBook private constructor(
             return emptyMap()
         }
 
-        private fun xml(raw: String): Document = Jsoup.parse(raw.removePrefix("﻿"), "", Parser.xmlParser())
+        private fun xml(raw: String): Document = Jsoup.parse(raw.trimStart(Char(0xFEFF)), "", Parser.xmlParser())
 
         /** Elements by local name, whatever the namespace prefix (`dc:title`, `opf:item`). */
         private fun Element.local(name: String): List<Element> =
