@@ -15,6 +15,7 @@ import com.lume.app.data.db.SourcePackEntity
 import com.lume.app.data.db.TitlePrefsEntity
 import com.lume.app.data.db.TitleSourceEntity
 import com.lume.app.data.db.TrackerLinkEntity
+import com.lume.app.data.source.SourceEngines
 import com.lume.app.data.source.SourceRegistry
 import com.lume.app.data.library.LibraryChapters
 import com.lume.app.data.prefs.AppPreferences
@@ -454,7 +455,7 @@ class BackupRepository(
     suspend fun importMihon(backup: MihonBackup, onProgress: (Int, Int) -> Unit = { _, _ -> }): MihonImportResult {
         sources.awaitLoaded()
         val sourceNames = backup.backupSources.associate { it.sourceId to it.name }
-        val lumeSources = sources.sources.value.filter { it.manifest.id != "local" }.map { it.manifest.id to it.manifest.name }
+        val lumeSources = sources.sources.value.filter { !SourceEngines.isLocal(it.manifest.engine) }.map { it.manifest.id to it.manifest.name }
 
         // Categories by name; Mihon titles point at categories by their order value.
         val existing = dao.allCategories().toMutableList()
@@ -551,7 +552,7 @@ class BackupRepository(
      */
     suspend fun importKotatsu(backup: KotatsuBackup): MihonImportResult {
         sources.awaitLoaded()
-        val lumeSources = sources.sources.value.filter { it.manifest.id != "local" }.map { it.manifest.id to it.manifest.name }
+        val lumeSources = sources.sources.value.filter { !SourceEngines.isLocal(it.manifest.engine) }.map { it.manifest.id to it.manifest.name }
         val existing = dao.allCategories().toMutableList()
         val unmatched = mutableListOf<String>()
         var added = 0

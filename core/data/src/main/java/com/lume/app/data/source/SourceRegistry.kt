@@ -12,7 +12,10 @@ import com.lume.app.data.server.ServerCredentialStore
 import com.lume.app.data.server.ServerCredentials
 import com.lume.app.domain.CatalogSource
 import com.lume.app.domain.ComicSource
+import com.lume.app.domain.NovelChapter
+import com.lume.app.domain.NovelSource
 import com.lume.app.domain.requireComic
+import com.lume.app.domain.requireNovel
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.FilterList
@@ -74,7 +77,7 @@ class SourceRegistry(
      */
     suspend fun awaitLoaded() = loadedOnce.await()
 
-    fun isBundled(id: String): Boolean = id in bundledIds || id == "local"
+    fun isBundled(id: String): Boolean = id in bundledIds || id == SourceEngines.LOCAL || id == SourceEngines.LOCAL_NOVEL
 
     suspend fun load() {
         try {
@@ -88,7 +91,8 @@ class SourceRegistry(
                 bundledIds += manifest.id
                 upsert(loaded, createEngine(manifest))
             }
-            bundledIds += "local"
+            bundledIds += SourceEngines.LOCAL
+            bundledIds += SourceEngines.LOCAL_NOVEL
             runCatching { credentials?.load() }
             for (pack in dao.allSourcePacks()) {
                 runCatching {
@@ -99,8 +103,10 @@ class SourceRegistry(
                     upsert(loaded, createEngine(manifest))
                 }
             }
-            if (modules.any { SourceEngines.LOCAL in it.engines }) {
-                upsert(loaded, DispatchingSource(buildEngine(SourceEngines.localManifest, null), health))
+            for (manifest in listOf(SourceEngines.localManifest, SourceEngines.localNovelManifest)) {
+                if (modules.any { manifest.engine in it.engines }) {
+                    upsert(loaded, DispatchingSource(buildEngine(manifest, null), health))
+                }
             }
             _sources.value = loaded
         } finally {
@@ -109,7 +115,7 @@ class SourceRegistry(
         }
         val loaded = _sources.value
         if (prefs.activeSourceId.first() == null && loaded.isNotEmpty()) {
-            val preferred = loaded.firstOrNull { it.manifest.id != "local" } ?: loaded.first()
+            val preferred = loaded.firstOrNull { !SourceEngines.isLocal(it.manifest.engine) } ?: loaded.first()
             setActive(preferred.manifest.id)
         }
     }
@@ -142,7 +148,7 @@ class SourceRegistry(
         if (!SourceEngines.isPackImportable(manifest.engine)) {
             error(SourceEngines.importRejectedMessage(context, manifest.engine))
         }
-        if (manifest.id == "local") {
+        if (SourceEngines.isLocal(manifest.id)) {
             error(context.getString(R.string.import_reject_local))
         }
         if (isBundled(manifest.id) || !isValidPackId(manifest.id)) {
@@ -248,7 +254,7 @@ class SourceRegistry(
     fun resolveLink(url: String): Pair<String, String>? {
         val ordered = _sources.value.sortedBy { !isBundled(it.manifest.id) }
         for (source in ordered) {
-            if (source.manifest.id == "local") continue
+            if (SourceEngines.isLocal(source.manifest.engine)) continue
             val titleId = runCatching { source.titleIdFromUrl(url) }.getOrNull() ?: continue
             return source.manifest.id to titleId
         }
@@ -308,10 +314,10 @@ class SourceRegistry(
  * Wraps an engine and records which hosts its covers and pages come from, so the shared image
  * loader can attach the right `Referer` (see [ImageReferers]).
  */
-private class ImageHostTrackingSource(
+internal class ImageHostTrackingSource(
     private val delegate: CatalogSource,
     private val referers: ImageReferers,
-) : CatalogSource by delegate, ComicSource, WrappingSource {
+) : CatalogSource by delegate, ComicSource, NovelSource, WrappingSource {
     override val inner: CatalogSource get() = delegate
 
     private fun learn(url: String?) = referers.learn(url, delegate.manifest)
@@ -332,6 +338,8 @@ private class ImageHostTrackingSource(
 
     override suspend fun getPages(chapter: Chapter): List<ComicPage> =
         delegate.requireComic().getPages(chapter).also { pages -> pages.firstOrNull()?.let { learn(it.imageUrl) } }
+
+    override suspend fun getChapterText(chapter: Chapter): NovelChapter = delegate.requireNovel().getChapterText(chapter)
 }
 
 /**
@@ -339,10 +347,10 @@ private class ImageHostTrackingSource(
  * and then parse JSON / HTML in the caller's context, which for screens was the main thread —
  * right in the middle of screen transitions. One wrapper covers every engine.
  */
-private class DispatchingSource(
+internal class DispatchingSource(
     private val delegate: CatalogSource,
     private val health: SourceHealth,
-) : CatalogSource by delegate, ComicSource, WrappingSource {
+) : CatalogSource by delegate, ComicSource, NovelSource, WrappingSource {
     override val inner: CatalogSource get() = delegate
 
     /** On [Dispatchers.IO], with the outcome recorded for the Sources screen. */
@@ -369,6 +377,8 @@ private class DispatchingSource(
         }
 
     override suspend fun getPages(chapter: Chapter): List<ComicPage> = io { delegate.requireComic().getPages(chapter) }
+
+    override suspend fun getChapterText(chapter: Chapter): NovelChapter = io { delegate.requireNovel().getChapterText(chapter) }
 }
 
 /** A registry wrapper around an engine; [unwrapped] peels them off to reach the engine itself. */
