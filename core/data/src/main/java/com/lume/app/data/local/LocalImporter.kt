@@ -231,6 +231,7 @@ class LocalImporter(
             return Copy.Unchanged
         }
         val uri = DocumentsContract.buildDocumentUriUsingTree(run.tree, doc.id)
+        dest.parentFile?.mkdirs()
         val partial = File(dest.parentFile, dest.name + ".part")
         resolver.openInputStream(uri)?.use { input -> partial.outputStream().use { input.copyTo(it) } } ?: return Copy.Unchanged
         if (dest.exists()) dest.delete()
