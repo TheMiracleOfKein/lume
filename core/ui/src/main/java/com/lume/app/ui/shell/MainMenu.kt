@@ -92,6 +92,8 @@ fun MainMenu(
     visible: Boolean,
     onClose: () -> Unit,
     onNavigate: (String) -> Unit,
+    /** Opens the reading-mode switcher; null hides the "Mode" entry (one-mode builds). */
+    onOpenModes: (() -> Unit)? = null,
 ) {
     // Read up here, before the panel exists, so its labels are right on its first frame.
     val container = LocalAppContainer.current
@@ -103,6 +105,8 @@ fun MainMenu(
     val activeName = sources.firstOrNull { it.manifest.id == activeId }?.manifest?.name
         ?: sources.firstOrNull()?.manifest?.name
         ?: stringResource(R.string.none_short)
+    val activeMode by container.prefs.activeMode.collectAsState()
+    val modeName = container.installedModules.firstOrNull { it.kind == activeMode }?.labelRes?.let { stringResource(it) }
 
     val state = remember { AnchoredDraggableState(DrawerValue.Closed) }
     var panelWidth by remember { mutableFloatStateOf(0f) }
@@ -147,8 +151,10 @@ fun MainMenu(
             darkTheme = darkTheme,
             incognito = incognito,
             activeName = activeName,
+            modeName = modeName,
             onClose = onClose,
             onNavigate = onNavigate,
+            onOpenModes = onOpenModes,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .semantics { paneTitle = menuTitle }
@@ -187,12 +193,15 @@ private fun MenuPanel(
     darkTheme: Boolean,
     incognito: Boolean,
     activeName: String,
+    modeName: String?,
     onClose: () -> Unit,
     onNavigate: (String) -> Unit,
+    onOpenModes: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
     val prefs = LocalAppContainer.current.prefs
+    val activeMode by prefs.activeMode.collectAsState()
     Column(
         modifier = modifier
             .fillMaxHeight()
@@ -238,6 +247,14 @@ private fun MenuPanel(
                 .clip(RoundedCornerShape(14.dp))
                 .background(AppColors.card),
         ) {
+            if (onOpenModes != null) {
+                MenuTile(
+                    icon = activeMode.icon(),
+                    title = stringResource(R.string.menu_mode),
+                    trailingText = modeName,
+                    onClick = onOpenModes,
+                )
+            }
             MenuTile(
                 icon = Icons.Outlined.Public,
                 title = stringResource(R.string.menu_source),

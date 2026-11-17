@@ -22,6 +22,10 @@ Lume is being split into Gradle modules so that builds can include only the read
 
 Each flavor's source set has its own `InstalledModules.kt` (`app/src/<flavor>/java/com/lume/app/`): the flavor name, the `ContentModule`s for `AppContainer` and the `ContentScreens` for `LumeRoot`. It is a plain list (no reflection), so R8 keeps exactly what the flavor ships. The in-app updater downloads only the APK named for its own flavor (`AppUpdater.pickApk`). At start, an active mode whose module the build lacks falls back to the first installed one; that mode's rows stay in the database. Tasks are per flavor: `assembleFullDebug`, `testMangaDebugUnitTest`, `lintFullDebug`, and so on.
 
+### Reading modes
+
+`AppPreferences.activeMode` is the mode the shared screens show; Library and History filter by it. When a build ships more than one mode (`canSwitchModes`), a long press on the logo in the bottom bar or the rail opens `ModeSwitcher` (`ui/shell/ModeSwitcher.kt`), with haptic feedback and a TalkBack action label; the menu has a "Mode" entry too. Picking a mode stores it and resets navigation to Home. A module marked `preview` (the novel module in 1.0) shows `ModeComingSoon` on Home, Catalog, Updates and Search while no loaded source serves its kind (`ModeGate`). The manga build has one mode, so it has no long press, switcher or menu entry.
+
 Package names are unchanged (`com.lume.app.domain`), so code doesn't care which module a file lives in.
 
 ## Layers

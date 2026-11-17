@@ -200,6 +200,12 @@
     <string name="source_auth_off">guest</string>
     <string name="mode_comics">Manga</string>
     <string name="mode_novel">Ranobe</string>
+    <string name="mode_switcher_title">Reading mode</string>
+    <string name="mode_preview">Preview</string>
+    <string name="mode_switch_action">Switch reading mode</string>
+    <string name="menu_mode">Mode</string>
+    <string name="mode_coming_title">%1$s sources are coming</string>
+    <string name="mode_coming_body">This mode is a preview. Long-press the logo to switch back.</string>
     <string name="engine_kind_family">family (packs)</string>
     <string name="engine_kind_local">local</string>
     <string name="engine_kind_server">your server</string>
