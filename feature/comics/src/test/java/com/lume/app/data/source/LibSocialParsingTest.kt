@@ -61,6 +61,30 @@ class LibSocialParsingTest {
     }
 
     @Test
+    fun paidChaptersAreLeftOut() {
+        // Shapes from the live API: a free chapter, a paid one (no branch id, as on MangaLib),
+        // and one with a paid and a free translation.
+        val body = """
+            {"data": [
+              {"id": 1, "volume": "3", "number": "259", "name": "",
+               "branches": [{"id": 1, "branch_id": null, "restricted_view": {"is_open": true, "expired_at": null, "price": null}}]},
+              {"id": 2, "volume": "3", "number": "260", "name": "",
+               "branches": [{"id": 2, "branch_id": null, "expired_type": 1,
+                 "restricted_view": {"is_open": false, "expired_at": "2026-12-26T17:33:00.000000Z", "price": null}}]},
+              {"id": 3, "volume": "3", "number": "261", "name": "",
+               "branches": [
+                 {"id": 3, "branch_id": 11, "teams": [{"name": "Paid team"}], "restricted_view": {"is_open": false}},
+                 {"id": 4, "branch_id": 12, "teams": [{"name": "Free team"}]}
+               ]}
+            ]}
+        """.trimIndent()
+        val chapters = engine.parseChapters(body, titleId)
+        assertEquals(listOf("261", "259"), chapters.map { it.number })
+        assertEquals("12", chapters.first().branchId)
+        assertEquals("Free team", chapters.first().branchName)
+    }
+
+    @Test
     fun pagesGetTheChosenImageServer() {
         val raw = engine.parseRawPages(Fixtures.text("mangalib/pages.json"))
         assertEquals(7, raw.urls.size)

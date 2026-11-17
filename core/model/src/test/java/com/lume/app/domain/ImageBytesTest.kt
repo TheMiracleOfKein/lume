@@ -41,4 +41,27 @@ class ImageBytesTest {
         assertEquals("Ongoing", parsed.status)
         assertNull(parseComicInfo("<ComicInfo></ComicInfo>"))
     }
+
+    /** An AVIF header like MangaLib's: ftyp, then an `av1C` box with the given settings bytes. */
+    private fun avif(profileAndLevel: Int, depthAndChroma: Int): ByteArray =
+        "0000001c66747970617669660000000061766966".hexBytes() +
+            "6d6966316d696166".hexBytes() +
+            List(40) { 0.toByte() }.toByteArray() +
+            "61763143".hexBytes() + byteArrayOf(0x81.toByte(), profileAndLevel.toByte(), depthAndChroma.toByte(), 0) +
+            List(16) { 0.toByte() }.toByteArray()
+
+    private fun String.hexBytes(): ByteArray = chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+
+    @Test
+    fun flagsAvifThatAndroidCannotDraw() {
+        // Professional profile, 12-bit 4:4:4 (One Punch Man on MangaLib): av1C 81 4c 60.
+        org.junit.Assert.assertTrue(ImageBytes.isUnsupportedAvif(avif(0x4C, 0x60)))
+        // High profile (4:4:4, 8-bit).
+        org.junit.Assert.assertTrue(ImageBytes.isUnsupportedAvif(avif(0x28, 0x00)))
+        // Main profile, 10-bit 4:2:0: fine.
+        org.junit.Assert.assertFalse(ImageBytes.isUnsupportedAvif(avif(0x08, 0x4C)))
+        // Not AVIF, or no av1C in the bytes read.
+        org.junit.Assert.assertFalse(ImageBytes.isUnsupportedAvif(bytes(0xFF, 0xD8, 0xFF)))
+        org.junit.Assert.assertFalse(ImageBytes.isUnsupportedAvif(avif(0x4C, 0x60).copyOf(60)))
+    }
 }

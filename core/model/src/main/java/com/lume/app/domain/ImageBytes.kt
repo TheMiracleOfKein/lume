@@ -24,6 +24,25 @@ object ImageBytes {
         }
     }
 
+    /**
+     * True when [head] (the first bytes of a file, 1 KB is plenty) is an AVIF that Android can't be
+     * trusted to draw: its AV1 stream is not the Main profile (8/10-bit 4:2:0), e.g. 12-bit 4:4:4
+     * pages on MangaLib, which come out covered in green stripes. False for anything else, and
+     * when the AV1 settings aren't in [head].
+     */
+    fun isUnsupportedAvif(head: ByteArray): Boolean {
+        if (extension(head) != "avif") return false
+        val box = "av1C".map { it.code.toByte() }
+        for (i in 0..head.size - box.size - 3) {
+            if ((0 until 4).all { head[i + it] == box[it] }) {
+                val profile = (head[i + 5].toInt() and 0xFF) ushr 5
+                val twelveBit = (head[i + 6].toInt() and 0x20) != 0
+                return profile != 0 || twelveBit
+            }
+        }
+        return false
+    }
+
     fun isImageName(name: String): Boolean =
         name.substringAfterLast('.', "").lowercase() in setOf("jpg", "jpeg", "png", "webp", "gif", "avif", "heic", "bmp", "jxl")
 }

@@ -252,6 +252,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
+**v1.1.2: Lib chapter fixes** 🟡 in progress ([notes](releases/v1.1.2.md), [device check](releases/v1.1.2-check.md)): paid early-access chapters on the Lib sites are no longer listed; 12-bit AVIF pages (green stripes) load as JPEG from the site's mirror.
+
 **v1.1.1: settings per mode** ✅ released 2026-11-17 ([notes](releases/v1.1.1.md), [device check](releases/v1.1.1-check.md)): settings follow the reading mode, with the text reader's defaults in Ranobe; similar titles open on the source you read; 18+ sources off in global search by default.
 
 **v1.1.0: novel reader and local books** ✅ released 2026-11-17 ([notes](releases/v1.1.0.md), [device check](releases/v1.1.0-check.md)): EPUB and TXT books from files and folders, and a scrolling text reader with themes and your place kept to the paragraph.
@@ -875,6 +877,13 @@ Release notes: [docs/releases/v0.9.8.md](releases/v0.9.8.md).
 - ✅ **Transfer**: page by page with a SHA-256 checksum per chapter; each chapter is stored as soon as it's checked, so connecting again continues. Titles go to the library; read marks optional.
 - ⏸️ Wi-Fi Direct and the local-only hotspot; sending from a title's chapter list. (QR code: ✅ in v0.9.13.)
 - 🟡 Not checked on a device: the emulator gate was skipped for this release; JVM tests cover the protocol.
+
+### v1.1.2: Lib chapter fixes 🟡 in progress
+
+Release notes: [docs/releases/v1.1.2.md](releases/v1.1.2.md). Device check: [docs/releases/v1.1.2-check.md](releases/v1.1.2-check.md).
+
+- ✅ **Paid chapters**: translations with `restricted_view.is_open` false are skipped, and chapters with none open are left out of the list and updates.
+- ✅ **12-bit AVIF pages**: the first page's `av1C` box is read; anything but the AV1 Main profile loads that chapter from the JPEG mirror.
 
 ### v1.1.1: settings per mode ✅ released 2026-11-17
 
