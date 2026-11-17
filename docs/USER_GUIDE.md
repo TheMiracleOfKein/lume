@@ -225,11 +225,25 @@ The reader settings panel (the tune icon) also has **Reader theme**, **Dim pages
 
 ## Reading novels (Ranobe mode)
 
-The full build can read novels from files on your phone. The manga build has no novel reader.
+The full build reads novels from RanobeLib and from files on your phone. The manga build has no novel reader.
 
 ### Switching mode
 
 Press and hold the logo in the bottom bar (or the side rail), or open the main menu and tap **Mode**, then choose **Ranobe**. Lume then shows novels instead of comics. Choose **Manga** to go back. Your library, history and progress for both modes are kept.
+
+### RanobeLib
+
+RanobeLib is a source in Ranobe mode, like MangaLib in Manga mode: Catalog, search, the site's genres, tags and other filters, title details and chapters with their translation teams. Ranobe, light novels and web novels all open in the text reader, with the chapter's pictures.
+
+- **Sign in** under Sources (the key icon on the RanobeLib row) to read chapters that need an account. **⋮ → Import bookmarks** then brings your RanobeLib bookmarks into the Ranobe library, folders as categories, as it does for MangaLib.
+- Paid early-access chapters aren't listed until they open for everyone.
+- RanobeLib links opened from the browser or shared to Lume open the title.
+
+### Downloading chapters
+
+Novel chapters download like manga chapters: from the chapter list (select chapters, or **Download next N / all unread**), with **Download new chapters** for titles with the bell, and with **Delete after reading**. A chapter is saved as its text with its pictures, in the download storage you chose; the Downloads screen marks it **Text**. The reader opens a downloaded chapter without the internet. If a picture can't be downloaded, the text is still saved and the picture loads from the site when you're online.
+
+Sending downloads to a nearby phone covers manga chapters only for now.
 
 ### Importing books
 
@@ -256,7 +270,7 @@ Lume remembers the paragraph you stopped at, also after rotating the phone or wh
 
 ### Not there yet
 
-Online novel sources, downloads of novel chapters and trackers for novels are planned. For now Ranobe mode reads local books only.
+Trackers for novels, English novel sites and a page-by-page mode in the text reader are planned.
 
 ## Library
 

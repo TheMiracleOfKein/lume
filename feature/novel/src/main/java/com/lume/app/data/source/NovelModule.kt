@@ -7,7 +7,6 @@ import com.lume.app.domain.MediaKind
 object NovelModule : ContentModule {
     override val kind = MediaKind.Novel
     override val labelRes = R.string.mode_novel
-    override val preview = true
 
     override val localBookExtensions: Set<String> = setOf("epub", "txt")
 

@@ -32,7 +32,7 @@ import java.net.URI
 /**
  * The MangaLib-family API (`api.cdnlibs.org`) shared by every Lib site, whatever it serves:
  * catalogue, search and filters, title details, chapters with their teams, bookmarks and links.
- * The sites differ by `engineConfig.siteId` (1 MangaLib, 2 HentaiLib, 3 RanobeLib, 4 YaoiLib)
+ * The sites differ by `engineConfig.siteId` (1 MangaLib, 2 YaoiLib, 3 RanobeLib, 4 HentaiLib)
  * and `engineConfig.webPath` (`manga`, or `book` on RanobeLib). Subclasses add the chapter
  * content: image pages ([LibSocialEngine] in the comics module) or text (RanobeLib).
  */
