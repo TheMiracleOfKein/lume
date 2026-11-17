@@ -170,7 +170,8 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
             })
         }
         if (vm.searchActive) {
-            BackHandler { vm.clearSearch() }
+            // Opened straight on a search (a similar title): Back goes back to where it came from.
+            BackHandler(enabled = query == null) { vm.clearSearch() }
             CatalogFeedList(
                 vm = vm,
                 feed = vm.searchFeed,
