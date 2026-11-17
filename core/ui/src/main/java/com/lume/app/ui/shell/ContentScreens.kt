@@ -43,6 +43,16 @@ class ShellGraph internal constructor(private val builder: NavGraphBuilder) {
     fun reader(kind: MediaKind, content: @Composable (NavHostController, ReaderArgs) -> Unit) {
         readers[kind] = content
     }
+
+    internal val readerSettings = mutableMapOf<MediaKind, @Composable () -> Unit>()
+
+    /**
+     * The reader defaults that Settings → Reader shows while the app is in the [kind] mode. Without
+     * one, the page shows the comics reader's defaults.
+     */
+    fun readerSettings(kind: MediaKind, content: @Composable () -> Unit) {
+        readerSettings[kind] = content
+    }
 }
 
 /**

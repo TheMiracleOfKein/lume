@@ -892,6 +892,8 @@
     <string name="settings_section_backup">Backup and restore</string>
     <string name="settings_summary_appearance">Theme, colours, language</string>
     <string name="settings_summary_reader">Fullscreen, page turning, zoom</string>
+    <string name="settings_summary_reader_novel">Text size, spacing, font, theme</string>
+    <string name="settings_mode_note">Settings for the %1$s mode. The reader and mode-only sections change with the reading mode; everything else is shared.</string>
     <string name="settings_summary_library">New chapter checks, categories, local files</string>
     <string name="settings_summary_downloads">Wi-Fi, automatic downloads, storage</string>
     <string name="settings_summary_sources">Sources, 18+ in global search</string>
@@ -947,6 +949,8 @@
     <string name="settings_kw_language">english, russian, locale, translation</string>
     <string name="settings_kw_translate_labels">volume, chapter, russian</string>
     <string name="settings_kw_immersive">fullscreen, status bar, navigation bar, hide</string>
+    <string name="settings_kw_novel_text">novel, ranobe, book, text, font, size, letters, spacing, margins, paragraphs, justify</string>
+    <string name="settings_kw_novel_theme">novel, ranobe, book, theme, sepia, dark, black, light, colours</string>
     <string name="settings_kw_keep_screen_on">sleep, lock, dim, timeout</string>
     <string name="settings_kw_seamless">continuous, next chapter, scroll</string>
     <string name="settings_kw_tap_zones">tap, touch, edge, page turn</string>

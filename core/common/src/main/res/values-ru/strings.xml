@@ -913,6 +913,8 @@
     <string name="settings_section_backup">Резервные копии</string>
     <string name="settings_summary_appearance">Тема, цвета, язык</string>
     <string name="settings_summary_reader">Полный экран, листание, увеличение</string>
+    <string name="settings_summary_reader_novel">Размер текста, интервалы, шрифт, тема</string>
+    <string name="settings_mode_note">Настройки режима «%1$s». Читалка и разделы отдельного режима меняются вместе с режимом чтения, остальное общее.</string>
     <string name="settings_summary_library">Проверка новых глав, категории, локальные файлы</string>
     <string name="settings_summary_downloads">Wi-Fi, автозагрузка, хранилище</string>
     <string name="settings_summary_sources">Источники, 18+ в общем поиске</string>
@@ -968,6 +970,8 @@
     <string name="settings_kw_language">английский, русский, перевод, language</string>
     <string name="settings_kw_translate_labels">том, глава, русский</string>
     <string name="settings_kw_immersive">полноэкранный, строка состояния, панель навигации, скрыть</string>
+    <string name="settings_kw_novel_text">ранобэ, новелла, книга, текст, шрифт, размер, буквы, интервал, поля, абзацы, выравнивание</string>
+    <string name="settings_kw_novel_theme">ранобэ, новелла, книга, тема, сепия, тёмная, чёрная, светлая, цвета</string>
     <string name="settings_kw_keep_screen_on">сон, блокировка, гаснет, тайм-аут</string>
     <string name="settings_kw_seamless">непрерывное, следующая глава, прокрутка</string>
     <string name="settings_kw_tap_zones">касание, нажатие, край, перелистывание</string>

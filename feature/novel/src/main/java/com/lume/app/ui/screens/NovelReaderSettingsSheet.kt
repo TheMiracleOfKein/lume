@@ -40,7 +40,6 @@ import kotlin.math.roundToInt
 
 // Reader settings sheet: text layout and theme, with a live preview in the reader's own colours.
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun NovelReaderSettingsSheet(
     settings: NovelReaderSettings,
@@ -50,13 +49,6 @@ internal fun NovelReaderSettingsSheet(
     /** A finished edit: becomes the new default. */
     onCommit: (NovelReaderSettings) -> Unit,
 ) {
-    // A tap on a slider fires "change" and "finished" in the same frame, before [settings]
-    // catches up; "finished" saves the latest edit kept here, not the value from before it.
-    val latest = remember { arrayOf(settings) }
-    latest[0] = settings
-    val change: (NovelReaderSettings) -> Unit = { latest[0] = it; onChange(it) }
-    val commitLatest: () -> Unit = { onCommit(latest[0]) }
-    val palette = novelPalette(settings.theme)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -65,6 +57,31 @@ internal fun NovelReaderSettingsSheet(
     ) {
         SheetHeader(stringResource(R.string.settings_title), onClose = onClose)
         Spacer(Modifier.height(8.dp))
+        NovelReaderSettingsControls(settings, onChange, onCommit)
+    }
+}
+
+/**
+ * The preview and every control of the text reader's settings: the reader's sheet and
+ * Settings → Reader (Ranobe mode) both show these. [item] wraps each control; Settings uses it
+ * to scroll to and highlight the one a search opened the page for.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun NovelReaderSettingsControls(
+    settings: NovelReaderSettings,
+    onChange: (NovelReaderSettings) -> Unit,
+    onCommit: (NovelReaderSettings) -> Unit,
+    item: @Composable (id: String, content: @Composable () -> Unit) -> Unit = { _, content -> content() },
+) {
+    // A tap on a slider fires "change" and "finished" in the same frame, before [settings]
+    // catches up; "finished" saves the latest edit kept here, not the value from before it.
+    val latest = remember { arrayOf(settings) }
+    latest[0] = settings
+    val change: (NovelReaderSettings) -> Unit = { latest[0] = it; onChange(it) }
+    val commitLatest: () -> Unit = { onCommit(latest[0]) }
+    val palette = novelPalette(settings.theme)
+    Column(Modifier.fillMaxWidth()) {
         // Preview: the same text style the reader uses.
         Text(
             text = stringResource(R.string.novel_preview_text),
@@ -83,81 +100,95 @@ internal fun NovelReaderSettingsSheet(
         )
         Spacer(Modifier.height(14.dp))
 
-        SliderRow(
-            label = stringResource(R.string.novel_font_size),
-            valueText = "${settings.fontSize} sp",
-            value = settings.fontSize.toFloat(),
-            range = NovelReaderSettings.FONT_SIZE_RANGE.first.toFloat()..NovelReaderSettings.FONT_SIZE_RANGE.last.toFloat(),
-            steps = NovelReaderSettings.FONT_SIZE_RANGE.last - NovelReaderSettings.FONT_SIZE_RANGE.first - 1,
-            onChange = { change(latest[0].copy(fontSize = it.roundToInt())) },
-            onFinished = commitLatest,
-        )
-        SliderRow(
-            label = stringResource(R.string.novel_line_height),
-            valueText = "%.2f".format(settings.lineHeight),
-            value = settings.lineHeight,
-            range = NovelReaderSettings.LINE_HEIGHT_RANGE,
-            steps = 15,
-            onChange = { change(latest[0].copy(lineHeight = it)) },
-            onFinished = commitLatest,
-        )
-        SliderRow(
-            label = stringResource(R.string.novel_side_margin),
-            valueText = "${settings.sideMargin} dp",
-            value = settings.sideMargin.toFloat(),
-            range = NovelReaderSettings.SIDE_MARGIN_RANGE.first.toFloat()..NovelReaderSettings.SIDE_MARGIN_RANGE.last.toFloat(),
-            steps = (NovelReaderSettings.SIDE_MARGIN_RANGE.last - NovelReaderSettings.SIDE_MARGIN_RANGE.first) / 4 - 1,
-            onChange = { change(latest[0].copy(sideMargin = it.roundToInt())) },
-            onFinished = commitLatest,
-        )
-        SliderRow(
-            label = stringResource(R.string.novel_paragraph_spacing),
-            valueText = "${settings.paragraphSpacing} dp",
-            value = settings.paragraphSpacing.toFloat(),
-            range = NovelReaderSettings.PARAGRAPH_SPACING_RANGE.first.toFloat()..NovelReaderSettings.PARAGRAPH_SPACING_RANGE.last.toFloat(),
-            steps = NovelReaderSettings.PARAGRAPH_SPACING_RANGE.last / 2 - 1,
-            onChange = { change(latest[0].copy(paragraphSpacing = it.roundToInt())) },
-            onFinished = commitLatest,
-        )
-
-        Spacer(Modifier.height(6.dp))
-        Text(stringResource(R.string.novel_font), color = AppColors.textSecondary, fontSize = 13.sp)
-        Spacer(Modifier.height(10.dp))
-        Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ChoiceChip(
-                label = stringResource(R.string.novel_font_serif),
-                selected = settings.font == NovelFont.Serif,
-                onClick = { onCommit(settings.copy(font = NovelFont.Serif)) },
-                modifier = Modifier.weight(1f),
-            )
-            ChoiceChip(
-                label = stringResource(R.string.novel_font_sans),
-                selected = settings.font == NovelFont.Sans,
-                onClick = { onCommit(settings.copy(font = NovelFont.Sans)) },
-                modifier = Modifier.weight(1f),
+        item("novel_font_size") {
+            SliderRow(
+                label = stringResource(R.string.novel_font_size),
+                valueText = "${settings.fontSize} sp",
+                value = settings.fontSize.toFloat(),
+                range = NovelReaderSettings.FONT_SIZE_RANGE.first.toFloat()..NovelReaderSettings.FONT_SIZE_RANGE.last.toFloat(),
+                steps = NovelReaderSettings.FONT_SIZE_RANGE.last - NovelReaderSettings.FONT_SIZE_RANGE.first - 1,
+                onChange = { change(latest[0].copy(fontSize = it.roundToInt())) },
+                onFinished = commitLatest,
             )
         }
+        item("novel_line_height") {
+            SliderRow(
+                label = stringResource(R.string.novel_line_height),
+                valueText = "%.2f".format(settings.lineHeight),
+                value = settings.lineHeight,
+                range = NovelReaderSettings.LINE_HEIGHT_RANGE,
+                steps = 15,
+                onChange = { change(latest[0].copy(lineHeight = it)) },
+                onFinished = commitLatest,
+            )
+        }
+        item("novel_side_margin") {
+            SliderRow(
+                label = stringResource(R.string.novel_side_margin),
+                valueText = "${settings.sideMargin} dp",
+                value = settings.sideMargin.toFloat(),
+                range = NovelReaderSettings.SIDE_MARGIN_RANGE.first.toFloat()..NovelReaderSettings.SIDE_MARGIN_RANGE.last.toFloat(),
+                steps = (NovelReaderSettings.SIDE_MARGIN_RANGE.last - NovelReaderSettings.SIDE_MARGIN_RANGE.first) / 4 - 1,
+                onChange = { change(latest[0].copy(sideMargin = it.roundToInt())) },
+                onFinished = commitLatest,
+            )
+        }
+        item("novel_paragraph_spacing") {
+            SliderRow(
+                label = stringResource(R.string.novel_paragraph_spacing),
+                valueText = "${settings.paragraphSpacing} dp",
+                value = settings.paragraphSpacing.toFloat(),
+                range = NovelReaderSettings.PARAGRAPH_SPACING_RANGE.first.toFloat()..NovelReaderSettings.PARAGRAPH_SPACING_RANGE.last.toFloat(),
+                steps = NovelReaderSettings.PARAGRAPH_SPACING_RANGE.last / 2 - 1,
+                onChange = { change(latest[0].copy(paragraphSpacing = it.roundToInt())) },
+                onFinished = commitLatest,
+            )
+        }
+
+        Spacer(Modifier.height(6.dp))
+        item("novel_font") {
+            Text(stringResource(R.string.novel_font), color = AppColors.textSecondary, fontSize = 13.sp)
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ChoiceChip(
+                    label = stringResource(R.string.novel_font_serif),
+                    selected = settings.font == NovelFont.Serif,
+                    onClick = { onCommit(settings.copy(font = NovelFont.Serif)) },
+                    modifier = Modifier.weight(1f),
+                )
+                ChoiceChip(
+                    label = stringResource(R.string.novel_font_sans),
+                    selected = settings.font == NovelFont.Sans,
+                    onClick = { onCommit(settings.copy(font = NovelFont.Sans)) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
         Spacer(Modifier.height(8.dp))
-        SwitchRow(
-            label = stringResource(R.string.novel_justify),
-            checked = settings.justify,
-            onCheckedChange = { onCommit(settings.copy(justify = it)) },
-        )
+        item("novel_justify") {
+            SwitchRow(
+                label = stringResource(R.string.novel_justify),
+                checked = settings.justify,
+                onCheckedChange = { onCommit(settings.copy(justify = it)) },
+            )
+        }
 
         Spacer(Modifier.height(10.dp))
-        Text(stringResource(R.string.novel_theme), color = AppColors.textSecondary, fontSize = 13.sp)
-        Spacer(Modifier.height(10.dp))
-        FlowRow(
-            modifier = Modifier.selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            for (theme in NovelTheme.entries) {
-                ChoiceChip(
-                    label = stringResource(themeLabel(theme)),
-                    selected = settings.theme == theme,
-                    onClick = { onCommit(settings.copy(theme = theme)) },
-                )
+        item("novel_theme") {
+            Text(stringResource(R.string.novel_theme), color = AppColors.textSecondary, fontSize = 13.sp)
+            Spacer(Modifier.height(10.dp))
+            FlowRow(
+                modifier = Modifier.selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                for (theme in NovelTheme.entries) {
+                    ChoiceChip(
+                        label = stringResource(themeLabel(theme)),
+                        selected = settings.theme == theme,
+                        onClick = { onCommit(settings.copy(theme = theme)) },
+                    )
+                }
             }
         }
     }

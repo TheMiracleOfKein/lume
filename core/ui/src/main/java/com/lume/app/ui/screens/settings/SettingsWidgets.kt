@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lume.app.domain.MediaKind
 import com.lume.app.ui.components.SettingsSection
 import com.lume.app.ui.theme.AppColors
 import com.lume.app.ui.theme.Motion
@@ -46,6 +47,12 @@ import kotlinx.coroutines.delay
 
 /** The setting a search result opened this page for; its row is scrolled to and highlighted. */
 val LocalSettingsFocus = staticCompositionLocalOf<String?> { null }
+
+/**
+ * The app mode the settings pages are shown for; a [SettingItem] that doesn't apply to it is left
+ * out. Null (outside the settings pages, e.g. the reader's own panel) shows every item.
+ */
+val LocalSettingsMode = staticCompositionLocalOf<MediaKind?> { null }
 
 /** Rounded surface that groups related settings rows. */
 @Composable
@@ -65,6 +72,8 @@ fun SettingsGroup(content: @Composable () -> Unit) {
  */
 @Composable
 fun SettingItem(id: String, content: @Composable () -> Unit) {
+    val mode = LocalSettingsMode.current
+    if (mode != null && SettingsCatalog.byId(id)?.shownIn(mode) == false) return
     val focused = LocalSettingsFocus.current == id
     val requester = remember { BringIntoViewRequester() }
     val glow = remember { Animatable(Color.Transparent) }
