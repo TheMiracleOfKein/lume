@@ -37,8 +37,15 @@ data class LocalImportResult(
  * - one chapter: images directly inside (the series is named after the folder).
  *
  * `cover.*`, `ComicInfo.xml` and `details.json` next to the chapters are copied too.
+ *
+ * When [bookExtensions] is not empty (a build with the novel module), book files found in the folder or
+ * a few levels below it are copied to `filesDir/local-novel/<file name>/<file name>` (see [BookFiles]).
  */
-class LocalImporter(private val context: Context) {
+class LocalImporter(
+    private val context: Context,
+    /** Extensions of book files to copy too (the installed modules'); empty: comics only. */
+    private val bookExtensions: Set<String> = emptySet(),
+) {
     private data class Doc(val id: String, val name: String, val isDir: Boolean, val size: Long = 0, val lastModified: Long = 0)
 
     private enum class Copy { New, Updated, Unchanged }
@@ -54,6 +61,8 @@ class LocalImporter(private val context: Context) {
 
     fun localRoot(): File = File(context.filesDir, "local").also { it.mkdirs() }
 
+    private fun booksRoot(): File = File(context.filesDir, BookFiles.FOLDER).also { it.mkdirs() }
+
     /**
      * Copies what is new or changed since the last import of [tree]. [ledger] remembers every copied
      * document (size, modified time, destination), so unchanged files are not read again.
@@ -67,10 +76,14 @@ class LocalImporter(private val context: Context) {
         var titles = 0
         var chapters = 0
         var skipped = 0
+        // Books (`.epub`, `.txt`) anywhere in the folder; each is one title. Comics are untouched.
+        val books = mutableListOf<Pair<String, Doc>>()
+        if (bookExtensions.isNotEmpty()) findBooks(tree, rootId, children, 0, books)
+        val bookParents = books.map { it.first }.toSet()
         when (layoutOf(tree, children)) {
             Layout.Library -> for (series in children.filter { it.isDir }) {
                 val copied = copySeries(run, series.id, series.name)
-                if (copied > 0) titles++ else skipped++
+                if (copied > 0) titles++ else if (series.id !in bookParents) skipped++
                 chapters += copied
             }
             Layout.Series -> {
@@ -84,9 +97,30 @@ class LocalImporter(private val context: Context) {
                     chapters++
                 }
             }
-            Layout.Empty -> skipped++
+            Layout.Empty -> if (books.isEmpty()) skipped++
+        }
+        for ((_, book) in books) {
+            coroutineContext.ensureActive()
+            val copy = copyFile(run, book, BookFiles.destination(booksRoot(), book.name))
+            // The book's chapters are not counted here: a book is one title and one new item.
+            titles++
+            chapters++
+            if (copy == Copy.New) run.addNew(book.name.substringBeforeLast('.'))
         }
         LocalImportResult(titles, chapters, skipped, run.newChapters.toMap())
+    }
+
+    /** Collects book files in [children] and the folders below (a few levels), with their parent folder id. */
+    private fun findBooks(tree: Uri, parentId: String, children: List<Doc>, depth: Int, out: MutableList<Pair<String, Doc>>) {
+        // A text file beside comic pages or archives is a note ("info.txt"), not a book.
+        val comicFolder = children.any { !it.isDir && (ImageBytes.isImageName(it.name) || ArchiveReaders.isChapterFile(it.name)) }
+        for (child in children) {
+            if (child.isDir || !BookFiles.isBook(child.name, bookExtensions)) continue
+            if (comicFolder && child.name.substringAfterLast('.').equals(BookFiles.PLAIN_TEXT, ignoreCase = true)) continue
+            out += parentId to child
+        }
+        if (depth >= BookFiles.MAX_DEPTH) return
+        for (dir in children.filter { it.isDir }) findBooks(tree, dir.id, list(tree, dir.id), depth + 1, out)
     }
 
     private enum class Layout { Library, Series, Chapter, Empty }
@@ -209,7 +243,7 @@ class LocalImporter(private val context: Context) {
             (lower.substringBeforeLast('.') == "cover" && ImageBytes.isImageName(lower))
     }
 
-    private fun safeName(name: String): String = name.replace(Regex("""[<>:"/\\|?*]"""), "_").trim().ifEmpty { "_" }
+    private fun safeName(name: String): String = BookFiles.safeName(name)
 
     /**
      * Removes files Lume can rebuild: unpacked archives of local titles and CBZ downloads, and
@@ -217,11 +251,11 @@ class LocalImporter(private val context: Context) {
      */
     fun cleanTemporaryFiles(): Long {
         var freed = 0L
-        for (dir in listOf(File(context.cacheDir, "local_zip"), File(context.cacheDir, "cbz"), File(context.cacheDir, "local_covers"))) {
+        for (dir in listOf(File(context.cacheDir, "local_zip"), File(context.cacheDir, "cbz"), File(context.cacheDir, "local_covers"), File(context.cacheDir, "novel_img"))) {
             freed += sizeOf(dir)
             dir.deleteRecursively()
         }
-        localRoot().walkTopDown().filter { it.isFile && it.name.endsWith(".part") }.forEach {
+        (localRoot().walkTopDown() + booksRoot().walkTopDown()).filter { it.isFile && it.name.endsWith(".part") }.forEach {
             freed += it.length()
             it.delete()
         }

@@ -70,7 +70,7 @@ class AppContainer(
     val safStorage = com.lume.app.data.downloads.SafStorage(app)
     val downloads = DownloadStore(app, dao, http, prefs, safStorage)
     val offlineCache = OfflineTitleCache(dao)
-    val localImporter = com.lume.app.data.local.LocalImporter(app)
+    val localImporter = com.lume.app.data.local.LocalImporter(app, installedModules.flatMapTo(mutableSetOf()) { it.localBookExtensions })
     val folderScanner = com.lume.app.data.local.FolderScanner(app, dao, localImporter)
     val libraryChapters =LibraryChapters(database, dao)
     val titles = TitleRepository(sources, offlineCache, libraryChapters, dao)
