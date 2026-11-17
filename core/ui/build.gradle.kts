@@ -1,3 +1,5 @@
+import java.time.Duration
+
 // UI layer: screens, settings, components, theme, shell, navigation helpers and the two auth
 // activities. Readers live in the feature modules and join the graph through ContentScreens. Packages stay com.lume.app.*; the
 // namespace com.lume.app.ui only names this module's own generated classes. Screenshot tests
@@ -39,7 +41,9 @@ android {
         // Robolectric (screenshot tests) needs the merged assets and resources.
         unitTests.isIncludeAndroidResources = true
         unitTests.all { test ->
-            test.testLogging { events("passed", "skipped", "failed"); showStandardStreams = true }
+            test.testLogging { events("started", "passed", "skipped", "failed"); showStandardStreams = true }
+            // A hung test (e.g. a looper that never goes idle) fails the build instead of waiting for CI to kill it.
+            test.timeout.set(Duration.ofMinutes(10))
         }
     }
 }

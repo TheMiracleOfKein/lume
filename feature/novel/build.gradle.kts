@@ -1,3 +1,5 @@
+import java.time.Duration
+
 // Novel (ranobe) mode: the text model, local EPUB and TXT books, and the text reader. It adds the
 // reader to the app's navigation graph through NovelScreens. Packages stay com.lume.app.*; the
 // namespace com.lume.app.novel only names generated classes.
@@ -35,6 +37,11 @@ android {
         unitTests.isReturnDefaultValues = true
         // Robolectric (screenshot and ViewModel tests) needs the merged assets and resources.
         unitTests.isIncludeAndroidResources = true
+        unitTests.all { test ->
+            test.testLogging { events("started", "passed", "skipped", "failed"); showStandardStreams = true }
+            // A hung test (e.g. a looper that never goes idle) fails the build instead of waiting for CI to kill it.
+            test.timeout.set(Duration.ofMinutes(10))
+        }
     }
 }
 
