@@ -29,7 +29,7 @@ These hold for every release:
 | **0.8** | Reader 2.0 🟡 | Tall pages without memory problems, sharp zoom, crop and spreads, guided panel view, Coil 3 | L |
 | **0.9** | Library and sources | Self-hosted servers (OPDS, Komga, Kavita), CBR and PDF, watched folders, smarter updates, statistics | L |
 | **1.0** | Stable 🟡 | Reading modes and two builds (1.0.0); distribution, update check, crash log, accessibility, encrypted sign-ins, test coverage, user guide | M–L |
-| **1.x** | Ranobe 🟡 | Text reader and local EPUB/TXT (1.1.0); RanobeLib, English novel sites, novel downloads and trackers | L |
+| **1.x** | Ranobe 🟡 | Text reader and local EPUB/TXT (1.1.0); RanobeLib and novel downloads (1.2.0); English novel sites and trackers | L |
 
 Order can change when a source breaks or a bug needs a patch release first.
 
@@ -252,6 +252,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
+**v1.2.0: RanobeLib and novel downloads** ([notes](releases/v1.2.0.md), [device check](releases/v1.2.0-check.md)): RanobeLib in Ranobe mode on the shared Lib client, novel chapters downloaded as text with their pictures, Ranobe out of preview.
+
 **v1.1.2: Lib chapter fixes** ✅ released 2026-11-17 ([notes](releases/v1.1.2.md), [device check](releases/v1.1.2-check.md)): paid early-access chapters on the Lib sites are no longer listed; 12-bit AVIF pages (green stripes) load as JPEG from the site's mirror.
 
 **v1.1.1: settings per mode** ✅ released 2026-11-17 ([notes](releases/v1.1.1.md), [device check](releases/v1.1.1-check.md)): settings follow the reading mode, with the text reader's defaults in Ranobe; similar titles open on the source you read; 18+ sources off in global search by default.
@@ -348,10 +350,10 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 **Goal:** read light novels in the same app, with the same library, history, downloads, sync and trackers.
 
 - 🟡 **Text reader** (L): font, size, line height, margins and theme; scroll mode first, paged later; position kept as block and offset; next chapter without a break. Scroll mode in v1.1.0, its defaults in Settings → Reader in v1.1.1; paged mode still open.
-- **RanobeLib** (M): the MangaLib engine with the ranobe site and its chapter text.
+- ✅ **RanobeLib** (M): the MangaLib API client shared in `core/data`, with chapter text (rich-text documents and HTML, pictures included), sign-in and bookmark import. In v1.2.0.
 - **English novel sites** (M): one engine driven by CSS selectors, one JSON pack per site (NovelBin, Royal Road, …).
 - ✅ **Local EPUB and TXT** (M): through "Import books…", the folder import and watched folders. In v1.1.0.
-- **Downloads** (S): chapters saved as cleaned-up HTML.
+- 🟡 **Downloads** (S): chapters saved as `chapter.html` with their pictures, read offline, in every storage. In v1.2.0. Sending them to a nearby phone is still open.
 - **Trackers** (S): the novel lists of AniList, MyAnimeList and Shikimori.
 - A `ranobe` build (novel mode only) once the mode is real.
 
@@ -370,6 +372,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 | MyAnimeList, Kitsu and MangaUpdates never tried with real accounts | v0.6.x |
 | MangaRead and ToonGod often show Cloudflare checks; ReManga and MangaBuff block some regions | The in-app browser handles checks; region blocks can't be fixed in the app |
 | HentaiLib needs a signed-in account to read | Works as designed since v0.6.1; the reader says so |
+| YaoiLib title pages answer 404 ("Not Found") without a sign-in, while its catalogue and chapter lists still load (found 2026-11-17, same on v1.1.2) | Likely an account is now needed, as on HentaiLib; check with a signed-in account and then say so on the title page (`pagesNeedLogin`-style) |
+| ✅ The weekly live source check failed for every source since early November (OkHttp's public-suffix list missing in JVM tests) | Fixed in v1.2.0: unit tests use OkHttp's JVM build |
 | Room 6→7 migration can't be tested (no v6 schema was exported) | Accepted; every later migration is tested |
 | ✅ The Room migration test was skipped on Windows JVM runs | Fixed in v0.9.13: the test names its open helper by full path, so Room's path check passes on Windows too; the emulator job on CI runs it on a device |
 | ✅ Coil 2 is in maintenance | Coil 3 since v0.8.0 |
