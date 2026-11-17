@@ -375,10 +375,7 @@ internal class DispatchingSource(
     override suspend fun getChapters(titleId: String): List<Chapter> =
         io {
             // Russian-only labels in the app language (Settings → General).
-            delegate.getChapters(titleId).map { ch ->
-                val label = com.lume.app.domain.ChapterLabels.localize(ch.title)
-                if (label == ch.title) ch else ch.copy(title = label)
-            }
+            localizedChapters(delegate.manifest.kind, delegate.getChapters(titleId))
         }
 
     override suspend fun getPages(chapter: Chapter): List<ComicPage> = io { delegate.requireComic().getPages(chapter) }
@@ -405,3 +402,15 @@ internal fun isValidPackId(id: String): Boolean = id.length in 1..64 && id.all {
 
 /** Requests per second to the shared MangaLib-family API: one every half second. */
 internal const val LIB_API_RATE_LIMIT = 2.0
+
+/**
+ * Comics chapters get the app language's "Ch. N" for Russian labels. A book's own headings
+ * ("Глава 1", "Part 3") are shown as written, so novels are left alone.
+ */
+internal fun localizedChapters(kind: MediaKind, chapters: List<Chapter>): List<Chapter> {
+    if (kind != MediaKind.Comics) return chapters
+    return chapters.map { ch ->
+        val label = com.lume.app.domain.ChapterLabels.localize(ch.title)
+        if (label == ch.title) ch else ch.copy(title = label)
+    }
+}
