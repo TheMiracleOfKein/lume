@@ -57,6 +57,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
+import com.lume.app.data.downloads.DownloadQueue
 import com.lume.app.data.db.UpdateRow
 import com.lume.app.domain.LinkedChapterId
 import com.lume.app.ui.components.CoverImage
@@ -205,6 +206,7 @@ fun UpdatesScreen(nav: NavHostController) {
                                 queued = key in queued,
                                 onOpen = { nav.openReader(row.sourceId, row.titleId, row.chapterId) },
                                 onOpenTitle = { nav.navigate(Routes.title(row.sourceId, row.titleId)) },
+                                canDownload = DownloadQueue.canDownload(row.sourceId, container.titles.kindOf(row.sourceId)),
                                 onDownload = { vm.download(row) },
                                 onSetRead = { vm.setRead(row, it) },
                                 modifier = animatedItem(),
@@ -226,6 +228,7 @@ private fun UpdateRowItem(
     queued: Boolean,
     onOpen: () -> Unit,
     onOpenTitle: () -> Unit,
+    canDownload: Boolean,
     onDownload: () -> Unit,
     onSetRead: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -275,6 +278,7 @@ private fun UpdateRowItem(
                         tint = AppColors.accentText,
                     )
                     queued -> CircularProgressIndicator(color = AppColors.accent, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
+                    !canDownload -> Unit
                     else -> IconButton(onClick = onDownload) {
                         Icon(Icons.Outlined.Download, stringResource(R.string.action_download), tint = AppColors.textSecondary)
                     }
