@@ -295,6 +295,8 @@ class TitleRepository(
         var firstError: Throwable? = null
         for ((index, candidate) in candidates.withIndex()) {
             val (source, original) = resolve(sourceId, titleId, candidate) ?: continue
+            // Text sources have no image pages to preview.
+            if (source.manifest.kind != com.lume.app.domain.MediaKind.Comics) continue
             try {
                 val pages = withContext(Dispatchers.IO) { source.requireComic().getPages(original) }
                 if (pages.isEmpty()) error(appString(R.string.error_no_pages_offline))

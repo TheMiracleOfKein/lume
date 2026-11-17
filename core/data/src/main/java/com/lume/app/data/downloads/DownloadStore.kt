@@ -647,6 +647,8 @@ class DownloadStore(
         onProgress: ((Float) -> Unit)? = null,
     ) {
         val sourceId = source.manifest.id
+        // Text chapters (novels) are not downloaded yet: nothing to fetch, nothing to fail.
+        if (source.manifest.kind != com.lume.app.domain.MediaKind.Comics) return
         val key = keyOf(sourceId, titleId, chapter.id)
         setProgress(key, 0f)
         onProgress?.invoke(0f)

@@ -1,8 +1,12 @@
-// Novel (ranobe) mode. For now only NovelModule with no engines: it lets the full build switch
-// to the novel mode and show its empty state. The text reader and novel sources come after 1.0.
-// Packages stay com.lume.app.*; the namespace com.lume.app.novel only names generated classes.
+import java.time.Duration
+
+// Novel (ranobe) mode: the text model, local EPUB and TXT books, and the text reader. It adds the
+// reader to the app's navigation graph through NovelScreens. Packages stay com.lume.app.*; the
+// namespace com.lume.app.novel only names generated classes.
 plugins {
     alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.roborazzi)
 }
 
 android {
@@ -19,15 +23,57 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    buildFeatures {
+        compose = true
+    }
+
     lint {
         disable.add("EditedTargetSdkVersion")
         // AGP is pinned to what the installed Android Studio can sync (see .github/dependabot.yml).
         disable.add("AndroidGradlePluginVersion")
     }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+        // Robolectric (screenshot and ViewModel tests) needs the merged assets and resources.
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all { test ->
+            test.testLogging { events("started", "passed", "skipped", "failed"); showStandardStreams = true }
+            // A hung test (e.g. a looper that never goes idle) fails the build instead of waiting for CI to kill it.
+            test.timeout.set(Duration.ofMinutes(10))
+        }
+    }
+}
+
+// Screenshot tests (Roborazzi), as in :core:ui: goldens live under src/test/screenshots.
+roborazzi {
+    outputDir.set(layout.projectDirectory.dir("src/test/screenshots"))
 }
 
 dependencies {
-    implementation(project(":core:data"))
+    implementation(project(":core:ui"))
+
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.coil.compose)
+    implementation(libs.jsoup)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

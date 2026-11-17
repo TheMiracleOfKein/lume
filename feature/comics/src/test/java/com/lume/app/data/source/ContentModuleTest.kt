@@ -30,7 +30,8 @@ class ContentModuleTest {
 
     @Test
     fun everyKnownEngineHasAFactory() {
-        val known = SourceEngines.corePlatform + SourceEngines.siteOnly + SourceEngines.serverEngines
+        // The local-novel engine comes from the novel module.
+        val known = SourceEngines.corePlatform + SourceEngines.siteOnly + SourceEngines.serverEngines - SourceEngines.LOCAL_NOVEL
         for (engine in known) assertNotNull("no factory for $engine", ComicsModule.engines[engine])
     }
 

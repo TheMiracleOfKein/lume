@@ -25,6 +25,7 @@ object SourceEngines {
     const val WEEBCENTRAL = "weebcentral"
     const val DEMONIC = "demonic"
     const val LOCAL = "local"
+    const val LOCAL_NOVEL = "local-novel"
     const val OPDS = "opds"
     const val KOMGA = "komga"
     const val KAVITA = "kavita"
@@ -44,6 +45,7 @@ object SourceEngines {
         MANGABUFF,
         INKSTORY,
         LOCAL,
+        LOCAL_NOVEL,
     )
 
     /**
@@ -66,6 +68,20 @@ object SourceEngines {
         language = "local",
     )
 
+    /** The built-in local-books source; the registry adds it when a module provides [LOCAL_NOVEL]. */
+    val localNovelManifest = SourceManifest(
+        id = LOCAL_NOVEL,
+        name = "Local books",
+        version = "1.0.0",
+        engine = LOCAL_NOVEL,
+        baseUrl = "file://local-novel",
+        mediaKind = "novel",
+        language = "local",
+    )
+
+    /** Engines that read files on the phone (comics and books). */
+    fun isLocal(engine: String): Boolean = engine == LOCAL || engine == LOCAL_NOVEL
+
     fun isKnown(engine: String): Boolean = engine in corePlatform || engine in siteOnly || engine in serverEngines
 
     fun isServer(engine: String): Boolean = engine in serverEngines
@@ -85,6 +101,7 @@ object SourceEngines {
         WEEBCENTRAL -> "Weeb Central"
         DEMONIC -> "Demonic Scans"
         LOCAL -> "Local"
+        LOCAL_NOVEL -> "Local books"
         OPDS -> "OPDS"
         KOMGA -> "Komga"
         KAVITA -> "Kavita"
@@ -94,7 +111,7 @@ object SourceEngines {
     /** Short UI tag: platform engine vs family pack vs one-site. */
     fun kindLabel(context: Context, engine: String): String = when (engine) {
         in packImportable -> context.getString(R.string.engine_kind_family)
-        LOCAL -> context.getString(R.string.engine_kind_local)
+        LOCAL, LOCAL_NOVEL -> context.getString(R.string.engine_kind_local)
         in serverEngines -> context.getString(R.string.engine_kind_server)
         in siteOnly -> context.getString(R.string.engine_kind_site)
         else -> context.getString(R.string.engine_kind_platform)

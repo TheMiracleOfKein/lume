@@ -316,7 +316,6 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         viewModelScope.launch { prefs.setDownloadsWifiOnly(value) }
     }
 
-    val localPath: String = app.localImporter.localRoot().absolutePath
     var localBusy by mutableStateOf(false)
         private set
 
@@ -328,6 +327,24 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
                 .onSuccess { r ->
                     statusMessage = if (r.titles == 0) string(R.string.local_import_empty)
                     else string(R.string.local_import_done, r.titles, r.chapters)
+                }
+                .onFailure { statusMessage = string(R.string.local_import_failed, it.message ?: it.toString()) }
+            localBusy = false
+        }
+    }
+
+    /** Whether an installed module reads book files (the full build): shows "Import books…". */
+    val canImportBooks: Boolean = app.installedModules.any { it.localBookExtensions.isNotEmpty() }
+
+    /** Copies book files picked in the system file picker into the local novel library. */
+    fun importBookFiles(uris: List<android.net.Uri>) {
+        if (uris.isEmpty()) return
+        viewModelScope.launch {
+            localBusy = true
+            runCatching { app.localImporter.importBooks(uris) }
+                .onSuccess { r ->
+                    statusMessage = if (r.titles == 0) string(R.string.local_import_books_empty)
+                    else app.app.resources.getQuantityString(R.plurals.local_import_books_done, r.titles, r.titles)
                 }
                 .onFailure { statusMessage = string(R.string.local_import_failed, it.message ?: it.toString()) }
             localBusy = false

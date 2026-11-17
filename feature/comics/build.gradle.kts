@@ -1,3 +1,5 @@
+import java.time.Duration
+
 // Comics mode: the image reader (paged and webtoon strip, tall-page tiles, zoom). It adds its
 // screens to the app's navigation graph through ComicsScreens. Packages stay com.lume.app.*; the
 // namespace com.lume.app.comics only names this module's own generated classes.
@@ -40,7 +42,9 @@ android {
             test.systemProperty("lume.live", project.hasProperty("lume.live").toString())
             project.findProperty("lume.live.sources")?.let { test.systemProperty("lume.live.sources", it.toString()) }
             test.systemProperty("lume.live.record", project.hasProperty("lume.live.record").toString())
-            test.testLogging { events("passed", "skipped", "failed"); showStandardStreams = true }
+            test.testLogging { events("started", "passed", "skipped", "failed"); showStandardStreams = true }
+            // A hung test (e.g. a looper that never goes idle) fails the build instead of waiting for CI to kill it.
+            test.timeout.set(Duration.ofMinutes(10))
         }
     }
 }

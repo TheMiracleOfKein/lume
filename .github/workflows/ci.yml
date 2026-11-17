@@ -34,13 +34,13 @@ jobs:
       # core/ui/src/test/screenshots and feature/comics/src/test/screenshots (docs/ARCHITECTURE.md,
       # "Screenshot tests"). Plain unit tests above skip the comparison.
       - name: Verify screenshots
-        run: ./gradlew --no-configuration-cache :core:ui:verifyRoborazziDebug :feature:comics:verifyRoborazziDebug --tests "com.lume.app.ui.screenshots.*"
+        run: ./gradlew --no-configuration-cache :core:ui:verifyRoborazziDebug :feature:comics:verifyRoborazziDebug :feature:novel:verifyRoborazziDebug --tests "com.lume.app.ui.screenshots.*"
 
       # If the comparison failed because the screens really changed (or Linux draws text slightly
       # differently), the images as drawn on CI can be downloaded and committed as the new goldens.
       - name: Record screenshots as drawn on CI
         if: failure()
-        run: ./gradlew --no-configuration-cache :core:ui:recordRoborazziDebug :feature:comics:recordRoborazziDebug --tests "com.lume.app.ui.screenshots.*"
+        run: ./gradlew --no-configuration-cache :core:ui:recordRoborazziDebug :feature:comics:recordRoborazziDebug :feature:novel:recordRoborazziDebug --tests "com.lume.app.ui.screenshots.*"
 
       - name: Upload recorded screenshots
         if: failure()
@@ -76,8 +76,10 @@ jobs:
             core/data/build/reports/tests/
             core/ui/build/reports/tests/
             feature/comics/build/reports/tests/
+            feature/novel/build/reports/tests/
             app/build/reports/lint-results-fullDebug.html
             app/build/reports/lint-results-mangaDebug.html
             core/ui/build/outputs/roborazzi/
             feature/comics/build/outputs/roborazzi/
+            feature/novel/build/outputs/roborazzi/
           if-no-files-found: ignore

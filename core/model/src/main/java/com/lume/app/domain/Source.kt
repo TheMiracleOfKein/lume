@@ -123,6 +123,10 @@ interface NovelSource : CatalogSource {
 fun CatalogSource.requireComic(): ComicSource =
     this as? ComicSource ?: throw SourceFetchException("Source ${manifest.id} has no image pages")
 
+/** The source as a [NovelSource], or an error when it serves another kind of content. */
+fun CatalogSource.requireNovel(): NovelSource =
+    this as? NovelSource ?: throw SourceFetchException("Source ${manifest.id} has no text chapters")
+
 /**
  * An engine whose server remembers reading progress (Komga, Kavita). The reader calls it,
  * debounced and without waiting, whenever it saves the position.

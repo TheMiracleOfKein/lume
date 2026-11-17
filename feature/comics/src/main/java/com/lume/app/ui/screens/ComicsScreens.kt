@@ -1,30 +1,18 @@
 package com.lume.app.ui.screens
 
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
-import com.lume.app.ui.nav.Routes
+import com.lume.app.domain.MediaKind
 import com.lume.app.ui.shell.ContentScreens
 
-/** The comics reader, added to the app's navigation graph. */
-val ComicsScreens = ContentScreens { graph, nav ->
-    graph.screen(
-        route = Routes.Reader,
-        arguments = listOf(
-            navArgument("sourceId") { type = NavType.StringType },
-            navArgument("titleId") { type = NavType.StringType },
-            navArgument("chapterId") { type = NavType.StringType },
-            navArgument("page") { type = NavType.IntType; defaultValue = -1 },
-            navArgument("offset") { type = NavType.FloatType; defaultValue = -1f },
-        ),
-    ) { entry ->
-        val args = entry.arguments!!
+/** The comics reader; the shell opens it for titles of comics sources. */
+val ComicsScreens = ContentScreens { graph, _ ->
+    graph.reader(MediaKind.Comics) { nav, args ->
         ReaderScreen(
             nav = nav,
-            sourceId = args.getString("sourceId")!!,
-            titleId = args.getString("titleId")!!,
-            chapterId = args.getString("chapterId")!!,
-            page = args.getInt("page").takeIf { it >= 0 },
-            offset = args.getFloat("offset").takeIf { it >= 0f },
+            sourceId = args.sourceId,
+            titleId = args.titleId,
+            chapterId = args.chapterId,
+            page = args.page,
+            offset = args.offset,
         )
     }
 }

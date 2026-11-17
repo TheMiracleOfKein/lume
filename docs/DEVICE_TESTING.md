@@ -280,6 +280,19 @@ Two phones on the same Wi-Fi, one with a few downloaded titles (one stored as CB
 - [ ] Settings > About > check for updates offers the APK of the installed build only.
 - [ ] Release builds (R8) of both flavors: Home loads and an old chapter reads.
 
+## v1.1.0: novel reader and local books
+
+- [ ] Full build, Ranobe mode: Settings > Library > "Import books…" opens the picker; pick an EPUB 3, an EPUB 2 and a Russian windows-1251 TXT at once: "Imported 3 books", all three list under "Open local titles". Picking them again copies nothing new. Picking an unsupported file only shows "Nothing to import".
+- [ ] Import the same three files through "Import a folder from the device" (and a watched folder): they appear as books as well.
+- [ ] Covers show; EPUB chapter names come from the book; the TXT splits at "Глава N" / "Chapter N" headings, and a TXT without headings shows "Part N"; Russian text is readable (no mojibake).
+- [ ] Open a book, read, leave mid-chapter; "Continue reading" resumes at the same paragraph.
+- [ ] Scrolling to the end of a chapter brings the next one in; tap the middle for the bars, tap the top and bottom to scroll; the chapter list jumps to a chapter.
+- [ ] Settings change the text at once: size, line spacing, margins, paragraph spacing, font, themes (App, Light, Sepia, Dark, Black); with "Justify text" on, lines have no huge gaps (words are hyphenated).
+- [ ] Rotate the phone and kill the app from recents: the reader returns to the same spot.
+- [ ] History: a novel opens in the text reader straight after a cold start.
+- [ ] Manga mode and the manga build are unaffected; the manga build shows no "Import books…" and no Mode entry.
+- [ ] Release build (R8): an EPUB and a TXT read as in the debug build.
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.

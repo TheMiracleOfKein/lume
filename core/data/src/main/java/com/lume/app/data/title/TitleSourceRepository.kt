@@ -77,7 +77,7 @@ class TitleSourceRepository(
         val mainNsfw = sources.sourceById(mainSourceId)?.manifest?.nsfw == true
         val includeNsfw = mainNsfw || prefs.globalSearchNsfw.value
         return sources.sources.value
-            .filter { it.manifest.id != mainSourceId && it.manifest.engine != SourceEngines.LOCAL }
+            .filter { it.manifest.id != mainSourceId && !SourceEngines.isLocal(it.manifest.engine) }
             .filter { it.manifest.id !in disabled }
             .filter { includeNsfw || !it.manifest.nsfw }
             .sortedBy { it.manifest.name.lowercase() }

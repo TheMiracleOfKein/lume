@@ -272,7 +272,7 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
                 compareBy<CatalogSource>(
                     { it.manifest.id != activeId },
                     { it.manifest.id !in pinned },
-                    { it.manifest.engine == SourceEngines.LOCAL },
+                    { SourceEngines.isLocal(it.manifest.engine) },
                     { it.manifest.name.lowercase() },
                 ),
             )

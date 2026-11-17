@@ -124,7 +124,7 @@ fun ChaptersScreen(
 ) {
     val container = LocalAppContainer.current
     val vm: ChaptersViewModel = viewModel { ChaptersViewModel(container, sourceId, titleId) }
-    val canDownload = DownloadQueue.canDownload(sourceId)
+    val canDownload = DownloadQueue.canDownload(sourceId, container.titles.kindOf(sourceId))
     val chapters = vm.chapters
     val readIds by vm.readIds.collectAsState()
     val downloadedIds by vm.downloadedIds.collectAsState()

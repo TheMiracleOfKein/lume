@@ -32,6 +32,12 @@ interface ContentModule {
     /** A mode that is shown but not ready yet: the switcher marks it "Preview". */
     val preview: Boolean get() = false
 
+    /**
+     * File extensions (lower case, no dot) of books this module reads. A folder import copies such
+     * files into the module's own library, besides the comics it already handles.
+     */
+    val localBookExtensions: Set<String> get() = emptySet()
+
     /** Engine id to factory. */
     val engines: Map<String, EngineFactory>
 }

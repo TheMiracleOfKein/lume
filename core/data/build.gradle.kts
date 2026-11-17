@@ -1,3 +1,5 @@
+import java.time.Duration
+
 // Data layer: Room database, repositories, sources and engines, downloads, trackers, sync,
 // backups, workers, and AppContainer (the manual DI root). Packages stay com.lume.app.*; the
 // namespace com.lume.app.data only names this module's own generated classes. com.lume.app.R
@@ -34,7 +36,9 @@ android {
         // Robolectric (Room migration tests) needs the merged assets and resources.
         unitTests.isIncludeAndroidResources = true
         unitTests.all { test ->
-            test.testLogging { events("passed", "skipped", "failed"); showStandardStreams = true }
+            test.testLogging { events("started", "passed", "skipped", "failed"); showStandardStreams = true }
+            // A hung test (e.g. a looper that never goes idle) fails the build instead of waiting for CI to kill it.
+            test.timeout.set(Duration.ofMinutes(10))
         }
     }
 }

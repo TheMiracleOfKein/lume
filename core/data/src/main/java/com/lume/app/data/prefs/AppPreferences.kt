@@ -154,7 +154,10 @@ class AppPreferences(
     private val secrets: SecretSealer = SecretSealer(),
 ) {
     private val darkThemeKey = booleanPreferencesKey("dark_theme")
-    private val activeSourceKey = stringPreferencesKey("active_source_id")
+    private fun activeSourceKey(kind: com.lume.app.domain.MediaKind) = stringPreferencesKey(
+        // The Comics key is the one used before reading modes, so nothing is lost on update.
+        if (kind == com.lume.app.domain.MediaKind.Comics) "active_source_id" else "active_source_id_${kind.id}",
+    )
     private val activeModeKey = stringPreferencesKey("active_mode")
     private val readerModeKey = intPreferencesKey("reader_mode")
     private val readerThemeKey = intPreferencesKey("reader_theme")
@@ -181,6 +184,13 @@ class AppPreferences(
     private val readerSpreadsKey = intPreferencesKey("reader_spreads")
     private val readerSpreadCoverKey = booleanPreferencesKey("reader_spread_cover_alone")
     private val readerGuidedPanelsKey = booleanPreferencesKey("reader_guided_panels")
+    private val novelFontSizeKey = intPreferencesKey("novel_font_size")
+    private val novelLineHeightKey = doublePreferencesKey("novel_line_height")
+    private val novelFontKey = intPreferencesKey("novel_font")
+    private val novelSideMarginKey = intPreferencesKey("novel_side_margin")
+    private val novelParagraphSpacingKey = intPreferencesKey("novel_paragraph_spacing")
+    private val novelJustifyKey = booleanPreferencesKey("novel_justify")
+    private val novelThemeKey = intPreferencesKey("novel_theme")
     private val libraryIntervalKey = intPreferencesKey("library_update_interval_hours")
     private val libraryWifiOnlyKey = booleanPreferencesKey("library_update_wifi_only")
     private val librarySkipCompletedKey = booleanPreferencesKey("library_update_skip_completed")
@@ -368,11 +378,18 @@ class AppPreferences(
         context.appDataStore.edit { it[translateLabelsKey] = value }
     }
 
-    val activeSourceId: StateFlow<String?> = state { it[activeSourceKey] }
-
     /** The kind of content the library, history and sources show. */
     val activeMode: StateFlow<com.lume.app.domain.MediaKind> =
         state { com.lume.app.domain.MediaKind.fromId(it[activeModeKey]) }
+
+    /** The chosen source of the active mode (each mode keeps its own); null until one is chosen. */
+    val activeSourceId: StateFlow<String?> = state {
+        it[activeSourceKey(com.lume.app.domain.MediaKind.fromId(it[activeModeKey]))]
+    }
+
+    /** The chosen source of [kind], whatever the active mode is. */
+    suspend fun activeSourceIdOf(kind: com.lume.app.domain.MediaKind): String? =
+        context.appDataStore.data.first()[activeSourceKey(kind)]
 
     suspend fun setActiveMode(kind: com.lume.app.domain.MediaKind) {
         context.appDataStore.edit { it[activeModeKey] = kind.id }
@@ -439,6 +456,20 @@ class AppPreferences(
     val shikimoriUserId: StateFlow<String?> = privateState { it[shikiUserIdKey] }
     val shikimoriClientId: StateFlow<String?> = privateState { it[shikiClientIdKey] }
     val shikimoriClientSecret: StateFlow<String?> = privateState { it.secret(shikiClientSecretKey) }
+
+    /** Text layout and colours of the novel reader. */
+    val novelReaderSettings: StateFlow<NovelReaderSettings> = state { prefs ->
+        val defaults = NovelReaderSettings()
+        NovelReaderSettings(
+            fontSize = prefs[novelFontSizeKey] ?: defaults.fontSize,
+            lineHeight = (prefs[novelLineHeightKey] ?: defaults.lineHeight.toDouble()).toFloat(),
+            font = NovelFont.entries.getOrElse(prefs[novelFontKey] ?: -1) { defaults.font },
+            sideMargin = prefs[novelSideMarginKey] ?: defaults.sideMargin,
+            paragraphSpacing = prefs[novelParagraphSpacingKey] ?: defaults.paragraphSpacing,
+            justify = prefs[novelJustifyKey] ?: defaults.justify,
+            theme = NovelTheme.entries.getOrElse(prefs[novelThemeKey] ?: -1) { defaults.theme },
+        ).clamped()
+    }
 
     val readerSettings: StateFlow<ReaderSettings> = state { prefs ->
         val modeIndex = prefs[readerModeKey] ?: ReaderMode.Webtoon.prefsIndex
@@ -796,8 +827,8 @@ class AppPreferences(
         context.appDataStore.edit { it[darkThemeKey] = value }
     }
 
-    suspend fun setActiveSourceId(id: String) {
-        context.appDataStore.edit { it[activeSourceKey] = id }
+    suspend fun setActiveSourceId(id: String, kind: com.lume.app.domain.MediaKind = com.lume.app.domain.MediaKind.Comics) {
+        context.appDataStore.edit { it[activeSourceKey(kind)] = id }
     }
 
     suspend fun setLibraryUpdatesEnabled(value: Boolean) {
@@ -806,6 +837,19 @@ class AppPreferences(
 
     suspend fun setAppLanguage(tag: String) {
         context.appDataStore.edit { it[appLanguageKey] = tag }
+    }
+
+    suspend fun setNovelReaderSettings(settings: NovelReaderSettings) {
+        val s = settings.clamped()
+        context.appDataStore.edit {
+            it[novelFontSizeKey] = s.fontSize
+            it[novelLineHeightKey] = s.lineHeight.toDouble()
+            it[novelFontKey] = s.font.ordinal
+            it[novelSideMarginKey] = s.sideMargin
+            it[novelParagraphSpacingKey] = s.paragraphSpacing
+            it[novelJustifyKey] = s.justify
+            it[novelThemeKey] = s.theme.ordinal
+        }
     }
 
     suspend fun setReaderSettings(settings: ReaderSettings) {
