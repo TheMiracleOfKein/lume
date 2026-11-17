@@ -10,6 +10,8 @@ android {
     defaultConfig {
         minSdk = 28
         targetSdk = 37
+        // The app has a "modes" flavor dimension; the profile is recorded on the full build.
+        missingDimensionStrategy("modes", "full")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

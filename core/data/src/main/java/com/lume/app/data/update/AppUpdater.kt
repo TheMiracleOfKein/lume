@@ -63,6 +63,8 @@ class AppUpdater(
     private val app: Application,
     private val http: AppHttp,
     private val scope: CoroutineScope,
+    /** This build's flavor (`full`, `manga`, …): only that flavor's APK is offered. */
+    private val flavor: String = "full",
 ) {
     private val prefs = app.getSharedPreferences("app_updates", Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
@@ -165,7 +167,7 @@ class AppUpdater(
         http.okHttp.newCall(request).execute().use { response ->
             if (response.code == 404) return null
             if (!response.isSuccessful) throw IOException("GitHub: HTTP ${response.code}")
-            return parseRelease(json.parseToJsonElement(response.body.string()).jsonObject)
+            return parseRelease(json.parseToJsonElement(response.body.string()).jsonObject, flavor)
         }
     }
 
@@ -229,15 +231,32 @@ class AppUpdater(
     }
 }
 
-/** Reads a GitHub `releases/latest` answer. Null for drafts and pre-releases. */
-internal fun parseRelease(obj: JsonObject): AppRelease? {
+/** Builds Lume is published as; each release asset is `lume-v<version>-<flavor>.apk`. */
+internal val APP_FLAVORS = setOf("full", "manga", "ranobe")
+
+/** The flavor an asset name is for, or null for a plain `lume-v<version>.apk` (releases before 1.0). */
+internal fun apkFlavor(name: String): String? =
+    name.substringBeforeLast('.').substringAfterLast('-').lowercase().takeIf { it in APP_FLAVORS }
+
+/**
+ * The APK for [flavor] among the asset [names]: the one named for that flavor. A release from
+ * before the flavors (no flavored APK at all) offers its first APK. Never an APK of another
+ * flavor, so a manga build can't update itself into a full one or the other way round.
+ */
+internal fun pickApk(names: List<String>, flavor: String): Int? {
+    val apks = names.withIndex().filter { it.value.endsWith(".apk", ignoreCase = true) }
+    apks.firstOrNull { apkFlavor(it.value) == flavor.lowercase() }?.let { return it.index }
+    return apks.takeIf { list -> list.none { apkFlavor(it.value) != null } }?.firstOrNull()?.index
+}
+
+/** Reads a GitHub `releases/latest` answer for this build's [flavor]. Null for drafts and pre-releases. */
+internal fun parseRelease(obj: JsonObject, flavor: String = "full"): AppRelease? {
     fun JsonObject.str(key: String) = (this[key] as? JsonPrimitive)?.contentOrNull
     if ((obj["draft"] as? JsonPrimitive)?.booleanOrNull == true) return null
     if ((obj["prerelease"] as? JsonPrimitive)?.booleanOrNull == true) return null
     val tag = obj.str("tag_name") ?: return null
-    val apk = (obj["assets"] as? JsonArray)
-        ?.mapNotNull { it as? JsonObject }
-        ?.firstOrNull { it.str("name")?.endsWith(".apk", ignoreCase = true) == true }
+    val assets = (obj["assets"] as? JsonArray)?.mapNotNull { it as? JsonObject }.orEmpty()
+    val apk = pickApk(assets.map { it.str("name").orEmpty() }, flavor)?.let(assets::get)
     return AppRelease(
         version = tag.removePrefix("v").removePrefix("V"),
         notes = obj.str("body").orEmpty(),

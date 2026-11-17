@@ -18,6 +18,7 @@ Lume is an Android reader for manga, manhwa and webtoons, written in Kotlin and 
 
 Get the APK from the [latest release](https://github.com/TheMiracleOfKein/lume/releases/latest). Lume needs Android 8.0 or newer.
 
+- From 1.0 each release has two APKs: `lume-vX.Y.Z-full.apk` with every reading mode, and `lume-vX.Y.Z-manga.apk` with manga only. Both install over each other and keep your data; the in-app updater stays on the build you installed.
 - Installing a new version over the old one keeps your library, progress and downloads.
 - If Android blocks the install, allow installs from your browser or file manager.
 
@@ -28,7 +29,7 @@ b1594cec70301bfd0f66d73d82e9bdcea6355b8df8d2abe50e1fc022629bd565
 ```
 
 ```bash
-apksigner verify --print-certs lume-vX.Y.Z.apk
+apksigner verify --print-certs lume-vX.Y.Z-full.apk
 ```
 
 ## Features
@@ -114,11 +115,11 @@ You need JDK 17 or newer (CI uses 21) and the Android SDK with API 37.
    ./gradlew :app:assembleDebug
    ```
 
-   On Windows, use `gradlew.bat`. The APK is in `app/build/outputs/apk/debug/`.
+   On Windows, use `gradlew.bat`. The APKs are in `app/build/outputs/apk/full/debug/` and `app/build/outputs/apk/manga/debug/`.
 3. Run the same checks as CI:
 
    ```bash
-   ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+   ./gradlew :core:model:test :core:data:testDebugUnitTest :core:ui:testDebugUnitTest :feature:comics:testDebugUnitTest :feature:novel:testDebugUnitTest :app:assembleDebug :app:testFullDebugUnitTest :app:testMangaDebugUnitTest :app:lintFullDebug :app:lintMangaDebug
    ```
 
    Add `-Plume.live` to check the built-in sources against the live sites ([details](docs/ENGINES.md#live-source-checks)).

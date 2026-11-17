@@ -100,50 +100,59 @@ jobs:
             echo "::warning::Some tracker app ids are missing; their sign-in won't work in this build"
           fi
 
-      - name: Build the signed release APK
+      - name: Build the signed release APKs
         env:
           ORG_GRADLE_PROJECT_LUME_STORE_FILE: ${{ runner.temp }}/lume-release.jks
           ORG_GRADLE_PROJECT_LUME_STORE_PASSWORD: ${{ secrets.LUME_STORE_PASSWORD }}
           ORG_GRADLE_PROJECT_LUME_KEY_ALIAS: ${{ secrets.LUME_KEY_ALIAS }}
           ORG_GRADLE_PROJECT_LUME_KEY_PASSWORD: ${{ secrets.LUME_KEY_PASSWORD }}
-        run: ./gradlew --no-configuration-cache :app:clean :app:assembleRelease
+        run: ./gradlew --no-configuration-cache :app:clean :app:assembleFullRelease :app:assembleMangaRelease
 
       - name: Remove the keystore and app keys
         if: always()
         run: rm -f "$RUNNER_TEMP/lume-release.jks" local.properties
 
+      # One APK per flavor: lume-vX.Y.Z-<flavor>.apk, each with its .sha256. The in-app updater
+      # picks the asset of its own flavor (AppUpdater.pickApk).
       - name: Check the signature, version and profile
         run: |
-          apk=app/build/outputs/apk/release/app-release.apk
-          if [ ! -f "$apk" ]; then
-            echo "::error::No signed APK (only an unsigned one?)"
-            exit 1
-          fi
           bt=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
-          certs=$("$bt/apksigner" verify --print-certs -v "$apk")
-          echo "$certs" | grep -q "^Verifies" || { echo "::error::apksigner does not verify the APK"; exit 1; }
-          echo "$certs" | grep -qi "SHA-256 digest: $CERT_SHA256" || { echo "::error::The APK is signed with another certificate"; exit 1; }
-          "$bt/aapt2" dump badging "$apk" | grep -q "versionName='${TAG#v}'" || { echo "::error::The APK has another version"; exit 1; }
-          unzip -l "$apk" | grep -q "baseline.prof" || echo "::warning::No baseline profile in the APK"
           mkdir -p dist
-          cp "$apk" "dist/lume-$TAG.apk"
-          (cd dist && sha256sum "lume-$TAG.apk" > "lume-$TAG.apk.sha256")
-          cat "dist/lume-$TAG.apk.sha256"
+          for flavor in full manga; do
+            apk="app/build/outputs/apk/$flavor/release/app-$flavor-release.apk"
+            if [ ! -f "$apk" ]; then
+              echo "::error::No signed $flavor APK (only an unsigned one?)"
+              exit 1
+            fi
+            certs=$("$bt/apksigner" verify --print-certs -v "$apk")
+            echo "$certs" | grep -q "^Verifies" || { echo "::error::apksigner does not verify the $flavor APK"; exit 1; }
+            echo "$certs" | grep -qi "SHA-256 digest: $CERT_SHA256" || { echo "::error::The $flavor APK is signed with another certificate"; exit 1; }
+            "$bt/aapt2" dump badging "$apk" | grep -q "versionName='${TAG#v}'" || { echo "::error::The $flavor APK has another version"; exit 1; }
+            unzip -l "$apk" | grep -q "baseline.prof" || echo "::warning::No baseline profile in the $flavor APK"
+            name="lume-$TAG-$flavor.apk"
+            cp "$apk" "dist/$name"
+            (cd dist && sha256sum "$name" > "$name.sha256")
+            cat "dist/$name.sha256"
+            echo "$name: $(stat -c %s "dist/$name") bytes"
+          done
 
       - uses: actions/upload-artifact@v7
         with:
           name: lume-${{ env.TAG }}
           path: dist/
 
+      # The full APK is uploaded first and the manga one after it: updaters from before 1.0 take
+      # the first APK of a release, so they move to the full build (a superset of what they had).
       - name: Publish the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$TAG" > /dev/null 2>&1; then
-            echo "::notice::Release $TAG already exists; left as it is. The APK is in the workflow artifact."
+            echo "::notice::Release $TAG already exists; left as it is. The APKs are in the workflow artifact."
             exit 0
           fi
           notes="docs/releases/$TAG.md"
           [ -f "$notes" ] || { echo "::error::No release notes at $notes"; exit 1; }
-          gh release create "$TAG" "dist/lume-$TAG.apk" "dist/lume-$TAG.apk.sha256" \
+          gh release create "$TAG" "dist/lume-$TAG-full.apk" "dist/lume-$TAG-full.apk.sha256" \
             --title "Lume ${TAG#v}" --notes-file "$notes" --verify-tag --latest
+          gh release upload "$TAG" "dist/lume-$TAG-manga.apk" "dist/lume-$TAG-manga.apk.sha256"

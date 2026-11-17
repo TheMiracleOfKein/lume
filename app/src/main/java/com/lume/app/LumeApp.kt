@@ -23,7 +23,7 @@ class LumeApp : Application(), SingletonImageLoader.Factory, ContainerOwner {
         AppContextHolder.context = this
         // First, so a crash while the container is built is saved too.
         val crashLog = com.lume.app.data.CrashLog.forApp(this).also { it.install() }
-        container = AppContainer(this, crashLog, listOf(com.lume.app.data.source.ComicsModule))
+        container = AppContainer(this, crashLog, InstalledModules.modules, InstalledModules.FLAVOR)
         // Per-app language: empty list = follow system (see AppLanguage.SYSTEM).
         runCatching {
             com.lume.app.data.locale.AppLocaleController.applyStoredTag(container.prefs.appLanguage.value)

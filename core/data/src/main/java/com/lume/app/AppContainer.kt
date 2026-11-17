@@ -37,6 +37,8 @@ class AppContainer(
     val crashLog: com.lume.app.data.CrashLog,
     /** The kinds of content this build serves; their engines plug into [sources]. */
     val installedModules: List<com.lume.app.data.source.ContentModule>,
+    /** The build flavor (`full`, `manga`, …); the updater offers only that flavor's APK. */
+    val buildFlavor: String = "full",
 ) {
     /**
      * Lives as long as the process. Used for work that must finish even when the screen that
@@ -82,7 +84,7 @@ class AppContainer(
     val readingLists = com.lume.app.data.library.ReadingLists(app, dao, sources, library)
     val libBookmarkImport = com.lume.app.data.library.LibBookmarkImport(app, database, dao, sources, libraryChapters)
     val trackerListImport = com.lume.app.data.tracker.TrackerListImport(dao, sources, trackers, titleSources, titles, library, appScope)
-    val updates = com.lume.app.data.update.AppUpdater(app, http, appScope)
+    val updates = com.lume.app.data.update.AppUpdater(app, http, appScope, buildFlavor)
     val sync = com.lume.app.data.sync.SyncRepository(app, database, dao, prefs, library, sources, http)
     val nearby = com.lume.app.data.nearby.NearbyTransfer(app, dao, downloads, offlineCache, titles, library, sources)
 
@@ -100,6 +102,13 @@ class AppContainer(
         com.lume.app.domain.ChapterLabels.chapter = { com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_number, it) }
         appScope.launch { prefs.translateChapterLabels.collect { com.lume.app.domain.ChapterLabels.enabled = it } }
         continueReading.start()
+        // A mode whose module this build lacks (a backup or sync from a fuller build) falls
+        // back to the first installed one; its rows stay in the database, only hidden.
+        appScope.launch {
+            val installed = installedModules.map { it.kind }
+            val active = prefs.activeMode.value
+            if (installed.isNotEmpty() && active !in installed) prefs.setActiveMode(installed.first())
+        }
         updates.checkOnStart()
         appScope.launch(Dispatchers.IO) {
             prefs.dnsOverHttps.collect { id -> http.dns.use(com.lume.app.data.network.DohProvider.byId(id)) }

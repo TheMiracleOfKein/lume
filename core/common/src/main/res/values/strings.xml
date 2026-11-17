@@ -199,6 +199,7 @@
     <string name="source_auth_on">signed in</string>
     <string name="source_auth_off">guest</string>
     <string name="mode_comics">Manga</string>
+    <string name="mode_novel">Ranobe</string>
     <string name="engine_kind_family">family (packs)</string>
     <string name="engine_kind_local">local</string>
     <string name="engine_kind_server">your server</string>

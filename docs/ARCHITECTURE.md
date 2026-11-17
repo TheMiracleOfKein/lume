@@ -7,8 +7,20 @@ Lume is being split into Gradle modules so that builds can include only the read
 - `:core:data`: Android library (namespace `com.lume.app.data`, packages stay `com.lume.app.*`). Holds `data/` (Room, repositories, the source registry, downloads (CBZ through the zip-only `ArchiveReaders`), the folder import, trackers, sync, workers), `AppContainer`, `ui/nav/Routes` and `AppLinks` (route strings and notification intents), and the `ContinueWidget` provider. The Application implements `ContainerOwner` so workers reach the container; `AppContainer` takes the installed content modules as a parameter. Its tests are in `core/data/src/test/`, the Room migration tests in `core/data/src/sharedTest/`, and the exported schemas in `core/data/schemas/`.
 - `:core:ui`: Android library (namespace `com.lume.app.ui`, packages stay `com.lume.app.*`) with Compose enabled. Holds all of `ui/` (screens, settings, components, theme, shell, navigation helpers, `TrackerAuthActivity`, `SourceLoginActivity`) and `LocalAppContainer`. Feature modules add their screens to the navigation graph through `ContentScreens` (in `ui/shell/`), which `MainActivity` passes to `LumeRoot`. It depends on `:core:data` (`api`) and gets the container from the Application through `ContainerOwner`. Its tests (view models, theme, Roborazzi screenshots) are in `core/ui/src/test/`, the golden images in `core/ui/src/test/screenshots/`.
 - `:feature:comics`: Android library (namespace `com.lume.app.comics`, packages stay `com.lume.app.*`). Holds the image reader (`ui/screens/Reader*`, `TallPageTiles`), `ComicsScreens`, which registers the reader route, and `ComicsModule` with the site and server engines (`data/source/*Engine.kt`, `OpdsFeed`) and the bundled source manifests (`src/main/assets/sources/`), plus local files: `LocalEngine`, the CBR and CB7 readers (`ComicArchives`) and the PDF renderer (`data/local/pdf/`). Telephoto, junrar, Commons Compress and xz are only on its classpath. It depends on `:core:ui`. Its tests (engine parsing on saved fixtures in `src/test/resources/fixtures/`, archives and PDF, the opt-in `LiveSourcesTest`, reader view model, positions, tiles, the reader bars screenshots) are in `feature/comics/src/test/`, the golden images in `feature/comics/src/test/screenshots/`.
+- `:feature:novel`: Android library (namespace `com.lume.app.novel`). For now only `NovelModule` (the ranobe mode, no engines yet); the text reader and novel sources come after 1.0. It depends on `:core:data`.
 - `:app`: only `LumeApp`, `MainActivity`, the manifest, signing and the baseline profile, under `app/src/main/java/com/lume/app/`. `SmokeTest` stays in `app/src/androidTest/`.
-- `:baselineprofile`: records the startup profile.
+- `:baselineprofile`: records the startup profile (on the `full` flavor).
+
+### Build flavors
+
+`:app` has one flavor dimension, `modes`. Every flavor has the same `applicationId` and signing key, so switching builds keeps the user's data.
+
+| Flavor | Modules | Release asset |
+| --- | --- | --- |
+| `full` | `:feature:comics`, `:feature:novel` | `lume-vX.Y.Z-full.apk` |
+| `manga` | `:feature:comics` | `lume-vX.Y.Z-manga.apk` |
+
+Each flavor's source set has its own `InstalledModules.kt` (`app/src/<flavor>/java/com/lume/app/`): the flavor name, the `ContentModule`s for `AppContainer` and the `ContentScreens` for `LumeRoot`. It is a plain list (no reflection), so R8 keeps exactly what the flavor ships. The in-app updater downloads only the APK named for its own flavor (`AppUpdater.pickApk`). At start, an active mode whose module the build lacks falls back to the first installed one; that mode's rows stay in the database. Tasks are per flavor: `assembleFullDebug`, `testMangaDebugUnitTest`, `lintFullDebug`, and so on.
 
 Package names are unchanged (`com.lume.app.domain`), so code doesn't care which module a file lives in.
 
