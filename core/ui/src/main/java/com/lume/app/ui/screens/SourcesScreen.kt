@@ -196,7 +196,7 @@ fun SourcesScreen(nav: NavHostController) {
                 }
                 items(list, key = { "$langKey-${it.manifest.id}" }) { source ->
                     val id = source.manifest.id
-                    val isLib = source.manifest.engine == SourceEngines.LIBSOCIAL
+                    val isLib = SourceEngines.isLib(source.manifest.engine)
                     val token by vm.loginToken(id).collectAsState(initial = null)
                     SourceRow(
                         source = source,

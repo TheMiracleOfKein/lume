@@ -296,7 +296,7 @@ class SourceRegistry(
         // engineConfig.rateLimit = requests/second for the API host (or the site when no apiBase).
         // The Lib sites share one API that refuses bursts, so they get a limit even without one.
         val rateLimit = manifest.configString("rateLimit")?.toDoubleOrNull()
-            ?: LIB_API_RATE_LIMIT.takeIf { manifest.engine == SourceEngines.LIBSOCIAL }
+            ?: LIB_API_RATE_LIMIT.takeIf { SourceEngines.isLib(manifest.engine) }
         rateLimit?.let { perSecond ->
             val host = runCatching { URI(manifest.configString("apiBase") ?: manifest.baseUrl).host }.getOrNull()
             if (host != null) http.setRateLimit(host, perSecond)
