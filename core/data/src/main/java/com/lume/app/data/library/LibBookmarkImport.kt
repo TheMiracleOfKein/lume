@@ -116,12 +116,13 @@ class LibBookmarkImport(
         val (folders, bookmarks) = engine.fetchBookmarks()
         val plan = planLibBookmarkImport(folders, bookmarks)
         onStage(LibImportStage.Adding(plan.titles.size))
-        val result = apply(sourceId, plan)
+        // RanobeLib bookmarks belong in the Ranobe library, the manga sites' in the Manga one.
+        val result = apply(sourceId, plan, engine.manifest.kind)
         val (progress, missed) = importProgress(engine, sourceId, plan.titles, onStage)
         result.copy(progress = progress, progressMissed = missed)
     }
 
-    private suspend fun apply(sourceId: String, plan: LibImportPlan): LibBookmarkImportResult = db.withTransaction {
+    private suspend fun apply(sourceId: String, plan: LibImportPlan, kind: com.lume.app.domain.MediaKind): LibBookmarkImportResult = db.withTransaction {
         val existing = dao.allCategories().toMutableList()
         val categoryByFolder = HashMap<String, Long>()
         for (folder in plan.folders) {
@@ -150,6 +151,7 @@ class LibBookmarkImport(
                         coverUrl = title.coverUrl,
                         typeLabel = title.typeLabel,
                         categoryIdsJson = encodeCategoryIds(categories),
+                        mediaKind = kind.id,
                     ),
                 )
             }
@@ -222,6 +224,8 @@ class LibBookmarkImport(
                         chapterName = target.last.title,
                         chapterUrl = target.last.url,
                         updatedAt = readAt,
+                        // The continue point opens the reader of the title's kind (text for RanobeLib).
+                        mediaKind = engine.manifest.kind.id,
                     ),
                 )
             }
