@@ -40,6 +40,7 @@ internal object DownloadLocations {
         "bmp" -> "image/bmp"
         "jxl" -> "image/jxl"
         "json" -> "application/json"
+        "html" -> "text/html"
         else -> "application/octet-stream"
     }
 }

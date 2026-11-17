@@ -293,6 +293,20 @@ Two phones on the same Wi-Fi, one with a few downloaded titles (one stored as CB
 - [ ] Manga mode and the manga build are unaffected; the manga build shows no "Import books…" and no Mode entry.
 - [ ] Release build (R8): an EPUB and a TXT read as in the debug build.
 
+## v1.2.0: RanobeLib and novel downloads
+
+- [ ] Full build, Ranobe mode: Sources lists RanobeLib; Catalog shows Popular and Latest with covers, search finds a title, the filter sheet loads the site's genres and a genre filter changes the list.
+- [ ] A title shows its details and chapters (with team chips when a chapter has several translations); paid early-access chapters are not listed.
+- [ ] A rich-text chapter and an HTML chapter with pictures (a web novel) both read in the text reader; pictures show. Continue reading, read marks and History work as for local books.
+- [ ] Sign in to RanobeLib (key icon), then ⋮ > Import bookmarks: the titles land in the Ranobe library (not the Manga one), folders as categories, Continue opens the text reader. Sign out works.
+- [ ] Download a few chapters (one with pictures) from the chapter list: the Downloads screen marks them "Text"; in airplane mode they open and the pictures show. Delete one; with "Delete after reading" on, a finished chapter loses its download.
+- [ ] Downloads to a picked folder: a text chapter is saved there and reads back. Clearing app data and starting again recovers it from the folder.
+- [ ] "Send to a nearby device" lists manga downloads only.
+- [ ] A ranobelib.me link shared to Lume opens the title (full build); the manga build has no RanobeLib and doesn't offer to open those links.
+- [ ] MangaLib, YaoiLib and HentaiLib still list, open and read (the Lib code is now shared); MangaLib bookmark import still lands in the Manga library.
+- [ ] The mode switcher shows Ranobe without the Preview badge.
+- [ ] Release build (R8): RanobeLib catalogue, a chapter, and a downloaded chapter read as in the debug build.
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.

@@ -26,6 +26,7 @@ object SourceEngines {
     const val DEMONIC = "demonic"
     const val LOCAL = "local"
     const val LOCAL_NOVEL = "local-novel"
+    const val RANOBELIB = "ranobelib"
     const val OPDS = "opds"
     const val KOMGA = "komga"
     const val KAVITA = "kavita"
@@ -46,6 +47,7 @@ object SourceEngines {
         INKSTORY,
         LOCAL,
         LOCAL_NOVEL,
+        RANOBELIB,
     )
 
     /**
@@ -86,6 +88,9 @@ object SourceEngines {
 
     fun isServer(engine: String): Boolean = engine in serverEngines
 
+    /** The MangaLib family on the shared cdnlibs API: one sign-in per site, bookmark import, one request limit. */
+    fun isLib(engine: String): Boolean = engine == LIBSOCIAL || engine == RANOBELIB
+
     fun isPackImportable(engine: String): Boolean = engine in packImportable
 
     fun displayName(engine: String): String = when (engine) {
@@ -102,6 +107,7 @@ object SourceEngines {
         DEMONIC -> "Demonic Scans"
         LOCAL -> "Local"
         LOCAL_NOVEL -> "Local books"
+        RANOBELIB -> "RanobeLib (cdnlibs)"
         OPDS -> "OPDS"
         KOMGA -> "Komga"
         KAVITA -> "Kavita"

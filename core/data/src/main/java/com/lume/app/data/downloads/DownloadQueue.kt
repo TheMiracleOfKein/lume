@@ -323,11 +323,12 @@ class DownloadQueue(
         const val MAX_SOURCES_AT_ONCE = 3
 
         /**
-         * Local chapters are already on the phone, so nothing is queued for the local source.
-         * Only image chapters download: text chapters (novels) have no downloads yet.
+         * Local chapters and books are already on the phone, so nothing is queued for them.
+         * Image chapters (comics) and text chapters (novels) download.
          * An unknown [kind] (source not installed) is not blocked.
          */
         fun canDownload(sourceId: String, kind: com.lume.app.domain.MediaKind? = null): Boolean =
-            sourceId != com.lume.app.data.source.SourceEngines.LOCAL && (kind == null || kind == com.lume.app.domain.MediaKind.Comics)
+            !com.lume.app.data.source.SourceEngines.isLocal(sourceId) &&
+                (kind == null || kind == com.lume.app.domain.MediaKind.Comics || kind == com.lume.app.domain.MediaKind.Novel)
     }
 }

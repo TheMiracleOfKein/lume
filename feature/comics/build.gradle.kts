@@ -87,3 +87,13 @@ dependencies {
     testImplementation(libs.roborazzi.junit.rule)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
+
+// Plain JVM unit tests have no Android assets, where OkHttp's Android build looks for its
+// public-suffix list (every request through AppHttp failed in the live checks). Tests use the
+// JVM build of the same version, which carries the list as a resource.
+configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configureEach {
+    resolutionStrategy.dependencySubstitution {
+        substitute(module("com.squareup.okhttp3:okhttp-android"))
+            .using(module("com.squareup.okhttp3:okhttp-jvm:${libs.versions.okhttp.get()}"))
+    }
+}

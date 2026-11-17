@@ -41,6 +41,8 @@ android {
             test.testLogging { events("started", "passed", "skipped", "failed"); showStandardStreams = true }
             // A hung test (e.g. a looper that never goes idle) fails the build instead of waiting for CI to kill it.
             test.timeout.set(Duration.ofMinutes(10))
+            // Live check of RanobeLib against the real site: ./gradlew :feature:novel:testDebugUnitTest -Plume.live
+            test.systemProperty("lume.live", project.hasProperty("lume.live").toString())
         }
     }
 }
@@ -76,4 +78,14 @@ dependencies {
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.roborazzi.junit.rule)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+// Plain JVM unit tests have no Android assets, where OkHttp's Android build looks for its
+// public-suffix list (every request through AppHttp failed in the live checks). Tests use the
+// JVM build of the same version, which carries the list as a resource.
+configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configureEach {
+    resolutionStrategy.dependencySubstitution {
+        substitute(module("com.squareup.okhttp3:okhttp-android"))
+            .using(module("com.squareup.okhttp3:okhttp-jvm:${libs.versions.okhttp.get()}"))
+    }
 }

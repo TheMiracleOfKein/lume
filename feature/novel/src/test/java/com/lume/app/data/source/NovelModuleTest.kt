@@ -2,16 +2,18 @@ package com.lume.app.data.source
 
 import com.lume.app.domain.MediaKind
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NovelModuleTest {
     @Test
-    fun servesNovelsWithLocalBooksAndStaysPreview() {
+    fun servesNovelsWithLocalBooksAndRanobeLib() {
         assertEquals(MediaKind.Novel, NovelModule.kind)
-        assertEquals(setOf(SourceEngines.LOCAL_NOVEL), NovelModule.engines.keys)
+        assertEquals(setOf(SourceEngines.LOCAL_NOVEL, SourceEngines.RANOBELIB), NovelModule.engines.keys)
         assertEquals(setOf("epub", "txt"), NovelModule.localBookExtensions)
-        assertTrue(NovelModule.preview)
+        // Out of preview since RanobeLib and novel downloads (v1.2.0).
+        assertFalse(NovelModule.preview)
     }
 
     @Test

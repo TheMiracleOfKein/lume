@@ -231,9 +231,12 @@ class NovelReaderViewModel(
         }
     }
 
-    /** The chapter's text from its source, parsed into blocks away from the main thread. */
+    /**
+     * The chapter's text, from its download when there is one (offline, no request), else from its
+     * source; parsed into blocks away from the main thread.
+     */
     private suspend fun loadChapter(ch: Chapter): LoadedNovelChapter {
-        val text = withContext(Dispatchers.IO) {
+        val text = app.downloads.localText(sourceId, titleId, ch.id) ?: withContext(Dispatchers.IO) {
             val source = app.sources.sourceById(sourceId) ?: error(appString(R.string.error_source_not_found))
             source.requireNovel().getChapterText(ch)
         }
@@ -414,6 +417,13 @@ class NovelReaderViewModel(
 
     override fun onCleared() {
         flush()
+        // "Delete after reading": chapters finished in this session lose their download.
+        if (app.prefs.deleteAfterRead.value && markedRead.isNotEmpty()) {
+            val finished = markedRead.toList()
+            app.appScope.launch(Dispatchers.IO) {
+                finished.forEach { id -> runCatching { app.downloads.delete(sourceId, titleId, id) } }
+            }
+        }
     }
 
     private companion object {

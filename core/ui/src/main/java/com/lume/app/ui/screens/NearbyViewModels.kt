@@ -66,7 +66,9 @@ sealed interface SendPhase {
 class NearbySendViewModel(private val app: AppContainer) : ViewModel() {
     val groups: StateFlow<List<DownloadTitleGroup>> = app.dao.observeDownloads()
         .map { downloads ->
-            downloads.groupBy { it.sourceId to it.titleId }
+            // The transfer carries page images; text chapters (novels) aren't sent yet.
+            downloads.filter { app.titles.kindOf(it.sourceId) != com.lume.app.domain.MediaKind.Novel }
+                .groupBy { it.sourceId to it.titleId }
                 .map { (_, items) ->
                     val first = items.first()
                     DownloadTitleGroup(first.sourceId, first.titleId, first.titleName, first.coverUrl, items.sortedBy { it.chapterName })

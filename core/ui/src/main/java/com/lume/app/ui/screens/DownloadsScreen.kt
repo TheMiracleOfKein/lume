@@ -334,7 +334,11 @@ fun DownloadsScreen(nav: NavHostController) {
                                             Column(modifier = Modifier.weight(1f)) {
                                                 Text(item.chapterName, color = AppColors.textPrimary, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                                 Text(
-                                                    stringResource(R.string.pages_count_short, item.pageCount),
+                                                    if (container.titles.kindOf(item.sourceId) == com.lume.app.domain.MediaKind.Novel) {
+                                                        stringResource(R.string.download_text_chapter)
+                                                    } else {
+                                                        stringResource(R.string.pages_count_short, item.pageCount)
+                                                    },
                                                     color = AppColors.textTertiary,
                                                     fontSize = 11.sp,
                                                 )

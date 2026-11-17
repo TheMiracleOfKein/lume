@@ -17,9 +17,9 @@ class DownloadQueueGuardTest {
     }
 
     @Test
-    fun `only comics download`() {
+    fun `comics and novels download, local books don't`() {
         assertTrue(DownloadQueue.canDownload("mangadex", com.lume.app.domain.MediaKind.Comics))
-        assertFalse(DownloadQueue.canDownload("ranobe", com.lume.app.domain.MediaKind.Novel))
+        assertTrue(DownloadQueue.canDownload("ranobelib", com.lume.app.domain.MediaKind.Novel))
         assertFalse(DownloadQueue.canDownload("local-novel", com.lume.app.domain.MediaKind.Novel))
     }
 }

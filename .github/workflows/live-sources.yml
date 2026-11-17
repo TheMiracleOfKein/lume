@@ -39,6 +39,10 @@ jobs:
           if [ -n "$SOURCES" ]; then args+=("-Plume.live.sources=$SOURCES"); fi
           ./gradlew --no-configuration-cache :feature:comics:testDebugUnitTest --tests 'com.lume.app.data.source.LiveSourcesTest' "${args[@]}"
 
+      - name: Check RanobeLib
+        if: always() && (github.event.inputs.sources == '' || contains(github.event.inputs.sources, 'ranobelib'))
+        run: ./gradlew --no-configuration-cache :feature:novel:testDebugUnitTest --tests 'com.lume.app.data.source.LiveRanobeLibTest' -Plume.live
+
       - name: Report
         if: always()
         run: |

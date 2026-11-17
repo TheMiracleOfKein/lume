@@ -24,7 +24,8 @@ JSON pack ──► SourceRegistry ──► known engine id ──► Kotlin cl
 | Engine id | Role | Packs? |
 | --- | --- | --- |
 | `mangadex` | MangaDex API | no (identity manifest only) |
-| `libsocial` | cdnlibs (MangaLib family) | yes (`siteId`, `apiBase`) |
+| `libsocial` | cdnlibs (MangaLib family), image pages | yes (`siteId`, `apiBase`) |
+| `ranobelib` | cdnlibs (RanobeLib), chapter text; novel module only | no |
 | `madara` | WordPress Madara theme | yes (`baseUrl`, paths, ajax) |
 | `hivetoons` | Iken API (catalogue, details, chapters) + reader HTML | yes (`baseUrl`, `apiBase`) |
 | `mangakatana` | MangaKatana HTML | no |
@@ -42,6 +43,7 @@ JSON pack ──► SourceRegistry ──► known engine id ──► Kotlin cl
 | `mangakatana` | `mangakatana` | Core HTML |
 | `asura` | `asura` | Core API |
 | `mangalib` / `yaoilib` / `hentailib` | `libsocial` | Family packs (`siteId`) |
+| `ranobelib` | `ranobelib` | Novels, `siteId` 3; in `feature/novel` assets, so the full build only |
 | `mangaread` | `madara` | Family pack example |
 | `hivetoons` / `vortexscans` | `hivetoons` | Family packs |
 | `remanga` | `remanga` | Russian API |
@@ -51,7 +53,16 @@ JSON pack ──► SourceRegistry ──► known engine id ──► Kotlin cl
 
 Optional Madara mirrors (Cloudflare-prone) live under [`packs/madara`](packs/madara/likemanga.json) — import via Sources UI if needed.
 
-LibSocial sources support **in-app login** (WebView → `localStorage.auth`) from the Sources screen.
+LibSocial sources and RanobeLib support **in-app login** (WebView → `localStorage.auth`) and bookmark import from the Sources screen.
+
+### RanobeLib
+
+RanobeLib uses the same API as MangaLib (`LibSocialBase` in `core/data`: catalogue, filters, details, chapters with teams, paid chapters left out, bookmarks), with `Site-Id: 3` and title pages under `/ru/book/`. The chapter answer (`/manga/<slug>/chapter?number&volume&branch_id`) has `content` and `attachments` instead of `pages`. `content` comes in two shapes, the same for ranobe, light novels and web novels:
+
+- a rich-text document (`{"type":"doc","content":[…]}`): paragraphs of text nodes with bold / italic marks and `textAlign`; `LibChapterText` turns it into HTML (headings, lists, breaks, rules and images by attachment name too; unknown nodes keep their text);
+- an HTML string (`<p data-paragraph-index>…</p>` and `<img src="https://ranobelib.me/uploads/…">`, sometimes bare between paragraphs).
+
+Pictures need the `ranobelib.me` Referer (403 without). In HTML chapters the `<img>` links are kept: `attachments` URLs sometimes differ (a trailing `-` in the slug) and answer 500. A rich-text chapter with an image node hasn't been seen yet; it maps through `attachments`. `api.cdnrulib.link` serves the same answers as `api.cdnlibs.org`.
 
 One-site engines (`weebcentral`, `demonic`) remain in the binary for compatibility but are **not** in default assets and **cannot** be imported as JSON. Sample manifests: [`packs/site`](packs/site/weebcentral.json).
 
@@ -89,7 +100,8 @@ See historical notes in [MIHON_EXTENSIONS.md](MIHON_EXTENSIONS.md).
 | Key | Engines | Meaning |
 | --- | --- | --- |
 | `apiBase` | most API engines | API root (e.g. `https://api.cdnlibs.org/api`) |
-| `siteId` | `libsocial` | cdnlibs site id (`1` MangaLib, `2` YaoiLib, `4` HentaiLib) |
+| `siteId` | `libsocial`, `ranobelib` | cdnlibs site id (`1` MangaLib, `2` YaoiLib, `3` RanobeLib, `4` HentaiLib) |
+| `webPath` | `libsocial`, `ranobelib` | title page path on the site: `manga` (default) or `book` (RanobeLib) |
 | `mangaPath`, `useAjaxLoadMore`, `chapterUrlSuffix` | `madara` | catalogue path, `admin-ajax` list loading, reader query |
 | `languages` | `mangadex` | comma-separated chapter languages |
 | `dataSaver` | `mangadex` | `true` serves compressed pages |
@@ -122,6 +134,11 @@ search → details → chapters → pages → first image):
 
 Sources unreachable from the test machine (geo-blocks, challenges needing a WebView) are
 reported as `SKIP`, not failures. Plain `testDebugUnitTest` runs only offline unit tests.
+
+RanobeLib has its own check in the novel module (popular → search → details → chapters →
+chapter text): `./gradlew :feature:novel:testDebugUnitTest -Plume.live`. The weekly workflow runs both.
+Unit tests run on OkHttp's JVM build (the Android one reads its public-suffix list from
+Android assets, which JVM tests don't have).
 
 ## Self-hosted servers (OPDS, Komga, Kavita)
 
