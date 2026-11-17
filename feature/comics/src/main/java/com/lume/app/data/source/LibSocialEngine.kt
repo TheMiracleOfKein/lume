@@ -9,6 +9,7 @@ import com.lume.app.domain.Chapter
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.ComicSource
 import com.lume.app.domain.FilterList
+import com.lume.app.domain.ImageBytes
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
 import com.lume.app.domain.SourceFilter
@@ -391,13 +392,20 @@ class LibSocialEngine(
             ?: (chapterData["servers"] as? JsonObject)?.let { stringOrNull(it["main"]) }
         val candidates = orderedImageServers(imageServerCache, fromChapter, siteImageServers(), siteId.toIntOrNull() ?: 1)
         if (firstPage.trim().startsWith("http")) return candidates.first()
+        // A server that serves the page as an AVIF Android draws with green stripes (12-bit
+        // 4:4:4 uploads): its mirrors serve the same page as JPEG, so this chapter uses one of
+        // them. It stays a per-chapter choice: other chapters on the main server are fine.
+        var unsupportedOnly: String? = null
         for (server in candidates) {
-            if (servesImage(absolutizePageUrl(firstPage, server))) {
-                imageServerCache = server
-                return server
+            val head = imageHead(absolutizePageUrl(firstPage, server)) ?: continue
+            if (ImageBytes.isUnsupportedAvif(head)) {
+                if (unsupportedOnly == null) unsupportedOnly = server
+                continue
             }
+            if (unsupportedOnly == null) imageServerCache = server
+            return server
         }
-        return candidates.first()
+        return unsupportedOnly ?: candidates.first()
     }
 
     private suspend fun siteImageServers(): List<String> {
@@ -418,16 +426,26 @@ class LibSocialEngine(
         return servers
     }
 
-    /** A one-byte request for [url], with the headers the image loader sends. */
-    private suspend fun servesImage(url: String): Boolean = withContext(Dispatchers.IO) {
+    /**
+     * The first [IMAGE_HEAD_BYTES] of [url], asked for with the headers the image loader sends;
+     * null when the server refuses it. Enough to tell the image's format and AV1 settings.
+     */
+    private suspend fun imageHead(url: String): ByteArray? = withContext(Dispatchers.IO) {
         runCatching {
             val request = Request.Builder().url(url)
                 .header("User-Agent", http.userAgent)
                 .header("Referer", manifest.headers["Referer"] ?: (manifest.baseUrl.trimEnd('/') + "/"))
-                .header("Range", "bytes=0-0")
+                .header("Range", "bytes=0-${IMAGE_HEAD_BYTES - 1}")
                 .build()
-            http.okHttp.newCall(request).execute().use { it.isSuccessful }
-        }.getOrDefault(false)
+            http.okHttp.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@use null
+                // A server that ignores Range sends the whole page; read only the start.
+                val source = response.body.source()
+                source.request(IMAGE_HEAD_BYTES.toLong())
+                val buffer = source.buffer
+                buffer.readByteArray(minOf(buffer.size, IMAGE_HEAD_BYTES.toLong()))
+            }
+        }.getOrNull()
     }
 
     private fun absolutizePageUrl(raw: String, server: String): String {
@@ -585,6 +603,9 @@ class LibSocialEngine(
 
 /** Image server ids from `/constants`, best first: full quality before compressed copies. */
 private val SERVER_PREFERENCE = listOf("main", "secondary", "compress", "download")
+
+/** How much of a page [LibSocialEngine] reads to check the image server's format. */
+private const val IMAGE_HEAD_BYTES = 1024
 
 /**
  * Image servers to try for a LibSocial chapter, best first and without duplicates: the server
