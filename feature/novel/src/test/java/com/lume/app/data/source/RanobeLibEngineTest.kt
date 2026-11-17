@@ -63,6 +63,22 @@ class RanobeLibEngineTest {
     }
 
     @Test
+    fun htmlChapterWithLooseImagesBetweenParagraphs() {
+        // Trimmed from a real answer: art pages as bare <img> tags outside any paragraph.
+        val base = "https://ranobelib.me/uploads/ranobe/xolod-vsegda-mne-byl-po-duse/chapters/1845268"
+        val body = """
+            {"data":{"id":1845268,"volume":"2","number":"11.2","type":"chapter",
+            "content":"<img loading=\"lazy\" src=\"$base/a_U3rs.jpg\" /><p data-paragraph-index=\"1\">Лавини, момент 7 главы</p><img loading=\"lazy\" src=\"$base/b_DL5N.jpg\" /><img loading=\"lazy\" src=\"$base/c_PaFX.png\" />",
+            "attachments":[{"id":null,"filename":"a_U3rs.jpg","name":"a_U3rs","extension":"jpg","url":"/uploads/ranobe/xolod-vsegda-mne-byl-po-duse/chapters/1845268/a_U3rs.jpg"}]}}
+        """.trimIndent()
+        val blocks = com.lume.app.data.novel.NovelBlocks.parse(engine.parseChapterText(body))
+        assertEquals(
+            listOf("$base/a_U3rs.jpg", null, "$base/b_DL5N.jpg", "$base/c_PaFX.png"),
+            blocks.map { (it as? com.lume.app.data.novel.NovelBlock.Image)?.src },
+        )
+    }
+
+    @Test
     fun toastIsAnError() {
         try {
             engine.parseChapterText("""{"data":{"toast":{"type":"error","message":"Глава недоступна"}}}""")
