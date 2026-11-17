@@ -80,9 +80,9 @@ import com.lume.app.ui.theme.animatedItem
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre: String? = null) {
+fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre: String? = null, query: String? = null) {
     val container = LocalAppContainer.current
-    val vm: CatalogViewModel = viewModel { CatalogViewModel(container, browseSourceId, genre) }
+    val vm: CatalogViewModel = viewModel { CatalogViewModel(container, browseSourceId, genre, query) }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val browseName = remember(browseSourceId) {
         browseSourceId?.let { id -> container.sources.sourceById(id)?.manifest?.name ?: id }

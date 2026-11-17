@@ -252,12 +252,14 @@ fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = empt
                 arguments = listOf(
                     navArgument("sourceId") { type = NavType.StringType },
                     navArgument("genre") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("q") { type = NavType.StringType; nullable = true; defaultValue = null },
                 ),
             ) { entry ->
                 CatalogScreen(
                     nav,
                     browseSourceId = entry.arguments!!.getString("sourceId")!!,
                     genre = entry.arguments!!.getString("genre"),
+                    query = entry.arguments!!.getString("q"),
                 )
             }
             lumeComposable(

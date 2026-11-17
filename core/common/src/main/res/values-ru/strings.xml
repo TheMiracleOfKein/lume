@@ -865,8 +865,12 @@
     <string name="title_duplicate_linked_done">Привязано к «%1$s»</string>
     <string name="title_also_on_hint">Привяжите их: они заполнят пропуски в списке глав, а главу, которая не открылась, можно будет прочитать с другого источника</string>
     <string name="title_similar">Похожие тайтлы</string>
-    <string name="title_similar_from">Рекомендации %1$s. Нажмите на тайтл, чтобы найти его на ваших источниках</string>
-    <string name="cd_similar_search">Искать на ваших источниках</string>
+    <string name="title_similar_from">Рекомендации %1$s. Нажмите на тайтл, чтобы найти его на этом источнике</string>
+    <string name="cd_similar_search">Найти на этом источнике</string>
+    <string name="similar_not_found_title">Не найдено на %1$s</string>
+    <string name="similar_not_found_text">На %1$s нет тайтла «%2$s». Поискать на всех ваших источниках?</string>
+    <string name="similar_search_failed_text">Не удалось выполнить поиск «%2$s» на %1$s. Поискать на всех ваших источниках?</string>
+    <string name="similar_search_everywhere">Искать везде</string>
     <string name="action_link">Привязать</string>
     <string name="action_not_now">Не сейчас</string>
     <string name="dialog_sources">Источники</string>
