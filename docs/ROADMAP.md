@@ -252,7 +252,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
-**v1.2.0: RanobeLib and novel downloads** ([notes](releases/v1.2.0.md), [device check](releases/v1.2.0-check.md)): RanobeLib in Ranobe mode on the shared Lib client, novel chapters downloaded as text with their pictures, Ranobe out of preview.
+**v1.2.0: RanobeLib and novel downloads** ✅ released 2026-11-17 ([notes](releases/v1.2.0.md), [device check](releases/v1.2.0-check.md)): RanobeLib in Ranobe mode on the shared Lib client, novel chapters downloaded as text with their pictures, Ranobe out of preview.
 
 **v1.1.2: Lib chapter fixes** ✅ released 2026-11-17 ([notes](releases/v1.1.2.md), [device check](releases/v1.1.2-check.md)): paid early-access chapters on the Lib sites are no longer listed; 12-bit AVIF pages (green stripes) load as JPEG from the site's mirror.
 
