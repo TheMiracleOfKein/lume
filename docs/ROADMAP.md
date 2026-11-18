@@ -29,7 +29,7 @@ These hold for every release:
 | **0.8** | Reader 2.0 🟡 | Tall pages without memory problems, sharp zoom, crop and spreads, guided panel view, Coil 3 | L |
 | **0.9** | Library and sources | Self-hosted servers (OPDS, Komga, Kavita), CBR and PDF, watched folders, smarter updates, statistics | L |
 | **1.0** | Stable 🟡 | Reading modes and two builds (1.0.0); distribution, update check, crash log, accessibility, encrypted sign-ins, test coverage, user guide | M–L |
-| **1.x** | Ranobe 🟡 | Text reader and local EPUB/TXT (1.1.0); RanobeLib and novel downloads (1.2.0); English novel sites and trackers | L |
+| **1.x** | Ranobe 🟡 | Text reader and local EPUB/TXT (1.1.0); RanobeLib and novel downloads (1.2.0); paged reader and ranobe build (1.3.0); Royal Road and Scribble Hub (1.4.0); trackers | L |
 
 Order can change when a source breaks or a bug needs a patch release first.
 
@@ -252,6 +252,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
+**v1.4.0: English novel sources** ([notes](releases/v1.4.0.md); no device check yet): Royal Road and Scribble Hub in Ranobe mode, with chapter text, downloads and links.
+
 **v1.3.0: paged reader and ranobe build** ✅ released 2026-11-19 ([notes](releases/v1.3.0.md), [device check](releases/v1.3.0-check.md)): a page-by-page mode in the text reader, novel downloads sent to a nearby phone, and a third build with the novel mode only.
 
 **v1.2.0: RanobeLib and novel downloads** ✅ released 2026-11-17 ([notes](releases/v1.2.0.md), [device check](releases/v1.2.0-check.md)): RanobeLib in Ranobe mode on the shared Lib client, novel chapters downloaded as text with their pictures, Ranobe out of preview.
@@ -353,7 +355,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 - ✅ **Text reader** (L): font, size, line height, margins and theme; scroll mode first, paged later; position kept as block and offset; next chapter without a break. Scroll mode in v1.1.0, its defaults in Settings → Reader in v1.1.1; page-by-page mode (lines split across pages, each chapter on a new page) in v1.3.0.
 - ✅ **RanobeLib** (M): the MangaLib API client shared in `core/data`, with chapter text (rich-text documents and HTML, pictures included), sign-in and bookmark import. In v1.2.0.
-- **English novel sites** (M): one engine driven by CSS selectors, one JSON pack per site (NovelBin, Royal Road, …).
+- 🟡 **English novel sites** (M): Royal Road and Scribble Hub as their own engines in v1.4.0 (catalogue, search, details, chapters, text, downloads). Still open: their filters, and translated-novel sites such as NovelBin, which refused plain requests when checked; a selector-driven engine with one JSON pack per site can come with those.
 - ✅ **Local EPUB and TXT** (M): through "Import books…", the folder import and watched folders. In v1.1.0.
 - ✅ **Downloads** (S): chapters saved as `chapter.html` with their pictures, read offline, in every storage. In v1.2.0. Sending them to a nearby phone (older receivers get only the manga chapters) in v1.3.0.
 - **Trackers** (S): the novel lists of AniList, MyAnimeList and Shikimori.
