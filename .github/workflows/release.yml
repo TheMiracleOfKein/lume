@@ -106,7 +106,7 @@ jobs:
           ORG_GRADLE_PROJECT_LUME_STORE_PASSWORD: ${{ secrets.LUME_STORE_PASSWORD }}
           ORG_GRADLE_PROJECT_LUME_KEY_ALIAS: ${{ secrets.LUME_KEY_ALIAS }}
           ORG_GRADLE_PROJECT_LUME_KEY_PASSWORD: ${{ secrets.LUME_KEY_PASSWORD }}
-        run: ./gradlew --no-configuration-cache :app:clean :app:assembleFullRelease :app:assembleMangaRelease
+        run: ./gradlew --no-configuration-cache :app:clean :app:assembleFullRelease :app:assembleMangaRelease :app:assembleRanobeRelease
 
       - name: Remove the keystore and app keys
         if: always()
@@ -118,7 +118,7 @@ jobs:
         run: |
           bt=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
           mkdir -p dist
-          for flavor in full manga; do
+          for flavor in full manga ranobe; do
             apk="app/build/outputs/apk/$flavor/release/app-$flavor-release.apk"
             if [ ! -f "$apk" ]; then
               echo "::error::No signed $flavor APK (only an unsigned one?)"
@@ -141,8 +141,8 @@ jobs:
           name: lume-${{ env.TAG }}
           path: dist/
 
-      # The full APK is uploaded first and the manga one after it: updaters from before 1.0 take
-      # the first APK of a release, so they move to the full build (a superset of what they had).
+      # The full APK is uploaded first and the manga and ranobe ones after it: updaters from before
+      # 1.0 take the first APK of a release, so they move to the full build (a superset of what they had).
       - name: Publish the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -155,4 +155,5 @@ jobs:
           [ -f "$notes" ] || { echo "::error::No release notes at $notes"; exit 1; }
           gh release create "$TAG" "dist/lume-$TAG-full.apk" "dist/lume-$TAG-full.apk.sha256" \
             --title "Lume ${TAG#v}" --notes-file "$notes" --verify-tag --latest
-          gh release upload "$TAG" "dist/lume-$TAG-manga.apk" "dist/lume-$TAG-manga.apk.sha256"
+          gh release upload "$TAG" "dist/lume-$TAG-manga.apk" "dist/lume-$TAG-manga.apk.sha256" \
+            "dist/lume-$TAG-ranobe.apk" "dist/lume-$TAG-ranobe.apk.sha256"
