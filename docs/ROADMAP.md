@@ -252,7 +252,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
-**v1.4.0: English novel sources** ([notes](releases/v1.4.0.md); no device check yet): Royal Road and Scribble Hub in Ranobe mode, with chapter text, downloads and links.
+**v1.4.0: English novel sources** ✅ released 2026-11-19 ([notes](releases/v1.4.0.md); no device check yet): Royal Road and Scribble Hub in Ranobe mode, with chapter text, downloads and links.
 
 **v1.3.0: paged reader and ranobe build** ✅ released 2026-11-19 ([notes](releases/v1.3.0.md), [device check](releases/v1.3.0-check.md)): a page-by-page mode in the text reader, novel downloads sent to a nearby phone, and a third build with the novel mode only.
 
