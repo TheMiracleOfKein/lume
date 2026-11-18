@@ -4,6 +4,13 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class NovelPagesTest {
+    @Test
+    fun restoredPageIsNotReportedUntilMoved() {
+        assertEquals(false, shouldReportPage(moved = false, restoredPage = 5, page = 5))
+        assertEquals(true, shouldReportPage(moved = false, restoredPage = 5, page = 6))
+        assertEquals(true, shouldReportPage(moved = true, restoredPage = 5, page = 5))
+    }
+
     /** [lines] lines of 10 px each, [bottom] px below. */
     private fun text(lines: Int, top: Int = 0, bottom: Int = 0, breakBefore: Boolean = false) = PageMeasure.Lines(
         top = top,

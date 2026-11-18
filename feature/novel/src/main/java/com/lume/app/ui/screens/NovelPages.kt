@@ -96,6 +96,9 @@ fun pageOf(pages: List<NovelPage>, item: Int, line: Int): Int {
     return best
 }
 
+/** After a restore the restored page is not reported; every page is once the reader has moved off it. */
+fun shouldReportPage(moved: Boolean, restoredPage: Int, page: Int): Boolean = moved || page != restoredPage
+
 /** The line of [m] that sits [fraction] (0..1) of the way down its text. */
 fun lineAtFraction(m: PageMeasure.Lines, fraction: Float): Int {
     val y = fraction.coerceIn(0f, 1f) * m.height
