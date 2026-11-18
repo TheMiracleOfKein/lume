@@ -209,6 +209,8 @@
     <string name="novel_side_margin">Side margins</string>
     <string name="novel_paragraph_spacing">Paragraph spacing</string>
     <string name="novel_justify">Justify text</string>
+    <string name="novel_paged">Page by page</string>
+    <string name="novel_paged_summary">Turn pages sideways instead of scrolling</string>
     <string name="novel_theme">Reader theme</string>
     <string name="novel_theme_app">App</string>
     <string name="novel_theme_light">Light</string>
@@ -952,6 +954,7 @@
     <string name="settings_kw_translate_labels">volume, chapter, russian</string>
     <string name="settings_kw_immersive">fullscreen, status bar, navigation bar, hide</string>
     <string name="settings_kw_novel_text">novel, ranobe, book, text, font, size, letters, spacing, margins, paragraphs, justify</string>
+    <string name="settings_kw_novel_paged">novel, ranobe, book, pages, page by page, turn, flip, swipe, scroll</string>
     <string name="settings_kw_novel_theme">novel, ranobe, book, theme, sepia, dark, black, light, colours</string>
     <string name="settings_kw_keep_screen_on">sleep, lock, dim, timeout</string>
     <string name="settings_kw_seamless">continuous, next chapter, scroll</string>

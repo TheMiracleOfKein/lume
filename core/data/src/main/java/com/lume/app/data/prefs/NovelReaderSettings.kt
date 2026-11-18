@@ -22,6 +22,8 @@ data class NovelReaderSettings(
     val paragraphSpacing: Int = 12,
     val justify: Boolean = false,
     val theme: NovelTheme = NovelTheme.App,
+    /** Page by page (turned sideways) instead of one long scroll. */
+    val paged: Boolean = false,
 ) {
     fun clamped(): NovelReaderSettings = copy(
         fontSize = fontSize.coerceIn(FONT_SIZE_RANGE),

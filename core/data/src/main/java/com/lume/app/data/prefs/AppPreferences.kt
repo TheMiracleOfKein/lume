@@ -191,6 +191,7 @@ class AppPreferences(
     private val novelParagraphSpacingKey = intPreferencesKey("novel_paragraph_spacing")
     private val novelJustifyKey = booleanPreferencesKey("novel_justify")
     private val novelThemeKey = intPreferencesKey("novel_theme")
+    private val novelPagedKey = booleanPreferencesKey("novel_paged")
     private val libraryIntervalKey = intPreferencesKey("library_update_interval_hours")
     private val libraryWifiOnlyKey = booleanPreferencesKey("library_update_wifi_only")
     private val librarySkipCompletedKey = booleanPreferencesKey("library_update_skip_completed")
@@ -468,6 +469,7 @@ class AppPreferences(
             paragraphSpacing = prefs[novelParagraphSpacingKey] ?: defaults.paragraphSpacing,
             justify = prefs[novelJustifyKey] ?: defaults.justify,
             theme = NovelTheme.entries.getOrElse(prefs[novelThemeKey] ?: -1) { defaults.theme },
+            paged = prefs[novelPagedKey] ?: defaults.paged,
         ).clamped()
     }
 
@@ -849,6 +851,7 @@ class AppPreferences(
             it[novelParagraphSpacingKey] = s.paragraphSpacing
             it[novelJustifyKey] = s.justify
             it[novelThemeKey] = s.theme.ordinal
+            it[novelPagedKey] = s.paged
         }
     }
 
