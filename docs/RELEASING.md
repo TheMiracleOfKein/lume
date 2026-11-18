@@ -4,7 +4,8 @@ Releases are signed with one key, so every APK installs over the previous one. S
 release is published by the **Release** workflow ([release.yml](../.github/workflows/release.yml))
 when its tag is pushed, with the key kept in repository secrets. A release can still be built on
 the maintainer's computer. Both paths make the same thing: one APK per build flavor,
-`lume-vX.Y.Z-full.apk` (every mode) and `lume-vX.Y.Z-manga.apk` (manga only), each with a
+`lume-vX.Y.Z-full.apk` (every mode), `lume-vX.Y.Z-manga.apk` (manga only) and
+`lume-vX.Y.Z-ranobe.apk` (novels only), each with a
 `.sha256` checksum (the `sha256sum` format), on a GitHub release titled `Lume X.Y.Z`, with the
 notes from `docs/releases/vX.Y.Z.md`. Obtainium and other installers can check the APK
 against the checksum file. The in-app updater downloads the APK of its own flavor; the full APK is
@@ -25,9 +26,10 @@ Signing reads `LUME_STORE_FILE`, `LUME_STORE_PASSWORD`, `LUME_KEY_ALIAS` and
 build stays unsigned, as on CI.
 
 ```bash
-./gradlew :app:clean :app:assembleFullRelease :app:assembleMangaRelease
+./gradlew :app:clean :app:assembleFullRelease :app:assembleMangaRelease :app:assembleRanobeRelease
 apksigner verify --print-certs -v app/build/outputs/apk/full/release/app-full-release.apk
 apksigner verify --print-certs -v app/build/outputs/apk/manga/release/app-manga-release.apk
+apksigner verify --print-certs -v app/build/outputs/apk/ranobe/release/app-ranobe-release.apk
 ```
 
 The signer must be `CN=Lume App` with SHA-256
@@ -36,13 +38,14 @@ The signer must be `CN=Lume App` with SHA-256
 A release published from a local build attaches the checksum files too, the full APK first:
 
 ```bash
-for f in full manga; do
+for f in full manga ranobe; do
   cp app/build/outputs/apk/$f/release/app-$f-release.apk lume-vX.Y.Z-$f.apk
   sha256sum lume-vX.Y.Z-$f.apk > lume-vX.Y.Z-$f.apk.sha256
 done
 gh release create vX.Y.Z lume-vX.Y.Z-full.apk lume-vX.Y.Z-full.apk.sha256 --title "Lume X.Y.Z" \
   --notes-file docs/releases/vX.Y.Z.md --verify-tag --latest
-gh release upload vX.Y.Z lume-vX.Y.Z-manga.apk lume-vX.Y.Z-manga.apk.sha256
+gh release upload vX.Y.Z lume-vX.Y.Z-manga.apk lume-vX.Y.Z-manga.apk.sha256 \
+  lume-vX.Y.Z-ranobe.apk lume-vX.Y.Z-ranobe.apk.sha256
 ```
 
 ## Release workflow (optional)
@@ -76,11 +79,11 @@ workflow warns about it.
 
 The workflow:
 1. checks the tag (`vX.Y.Z`), the secrets, and that `versionName` matches the tag;
-2. builds `:app:assembleFullRelease` and `:app:assembleMangaRelease` with the key from the
-   secrets, then deletes the keystore file;
-3. checks the signature and certificate, the version and the baseline profile of both APKs;
-4. keeps both APKs and their `.sha256` files as a workflow artifact;
-5. creates the GitHub release with the full APK and the notes, then adds the manga APK, **only if
+2. builds `:app:assembleFullRelease`, `:app:assembleMangaRelease` and `:app:assembleRanobeRelease`
+   with the key from the secrets, then deletes the keystore file;
+3. checks the signature and certificate, the version and the baseline profile of every APK;
+4. keeps the APKs and their `.sha256` files as a workflow artifact;
+5. creates the GitHub release with the full APK and the notes, then adds the manga and ranobe APKs, **only if
    the tag has no release yet**. An existing release (for example one published from the local build) is never changed.
 
 A manual run for an older tag marks that release as the latest; edit the releases afterwards if

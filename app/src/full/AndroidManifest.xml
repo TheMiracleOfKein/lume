@@ -1,9 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The full build only: title links of the novel sources (the manga build has no novel mode). -->
+<!-- The full build: title links of the manga and novel sources, opened from the browser or another
+     app. Not App Links: Lume doesn't own these domains, so Android asks which app opens them.
+     The manga and ranobe builds each list their own half. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application>
         <activity android:name="com.lume.app.MainActivity" android:exported="true">
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="mangadex.org" />
+                <data android:host="mangalib.me" />
+                <data android:host="hentailib.me" />
+                <data android:host="yaoilib.me" />
+                <data android:host="remanga.org" />
+                <data android:host="mangabuff.ru" />
+                <data android:host="inkstory.net" />
+                <data android:host="asurascans.com" />
+                <data android:host="hivetoons.org" />
+                <data android:host="vortexscans.org" />
+                <data android:host="mangakatana.com" />
+                <data android:host="www.mangaread.org" />
+                <data android:host="mangaread.org" />
+            </intent-filter>
             <intent-filter android:autoVerify="false">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

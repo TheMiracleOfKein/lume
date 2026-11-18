@@ -355,7 +355,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - ✅ **Local EPUB and TXT** (M): through "Import books…", the folder import and watched folders. In v1.1.0.
 - ✅ **Downloads** (S): chapters saved as `chapter.html` with their pictures, read offline, in every storage. In v1.2.0. Sending them to a nearby phone (older receivers get only the manga chapters) is in the next release.
 - **Trackers** (S): the novel lists of AniList, MyAnimeList and Shikimori.
-- A `ranobe` build (novel mode only) once the mode is real.
+- ✅ **Ranobe build** (S): `ranobe` flavor, novel mode only, without the comics code; `lume-vX.Y.Z-ranobe.apk` on every release. In the next release.
 
 ## Every release
 

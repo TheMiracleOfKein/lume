@@ -225,7 +225,7 @@ The reader settings panel (the tune icon) also has **Reader theme**, **Dim pages
 
 ## Reading novels (Ranobe mode)
 
-The full build reads novels from RanobeLib and from files on your phone. The manga build has no novel reader.
+The full build reads novels from RanobeLib and from files on your phone. The ranobe build does the same with novels only (no manga mode). The manga build has no novel reader.
 
 ### Switching mode
 
