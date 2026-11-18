@@ -307,6 +307,15 @@ Two phones on the same Wi-Fi, one with a few downloaded titles (one stored as CB
 - [ ] The mode switcher shows Ranobe without the Preview badge.
 - [ ] Release build (R8): RanobeLib catalogue, a chapter, and a downloaded chapter read as in the debug build.
 
+## v1.4.0: Royal Road and Scribble Hub
+
+- [ ] Full and ranobe builds, Ranobe mode: Sources lists Royal Road and Scribble Hub; the manga build and Manga mode don't.
+- [ ] Royal Road: Popular (and page 2), Latest and search load with covers; a title shows author, status, tags, description and every chapter; a chapter reads without the hidden "not approved" line; a fiction with paid early-access chapters doesn't list them.
+- [ ] Scribble Hub: Popular (and page 2), Latest and search load; a long series lists all its chapters (not only the 15 on the site's title page) in reading order; a chapter reads, pictures show.
+- [ ] A Cloudflare check on either site opens the in-app browser and the source loads after it passes.
+- [ ] Chapters of both download, show as "Text" in Downloads and read in airplane mode.
+- [ ] A Royal Road or Scribble Hub title or chapter link opened from the browser or shared to Lume opens the title (full and ranobe builds).
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.

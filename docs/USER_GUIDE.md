@@ -225,7 +225,7 @@ The reader settings panel (the tune icon) also has **Reader theme**, **Dim pages
 
 ## Reading novels (Ranobe mode)
 
-The full build reads novels from RanobeLib and from files on your phone. The ranobe build does the same with novels only (no manga mode). The manga build has no novel reader.
+The full build reads novels from RanobeLib, Royal Road, Scribble Hub and from files on your phone. The ranobe build does the same with novels only (no manga mode). The manga build has no novel reader.
 
 ### Switching mode
 
@@ -238,6 +238,16 @@ RanobeLib is a source in Ranobe mode, like MangaLib in Manga mode: Catalog, sear
 - **Sign in** under Sources (the key icon on the RanobeLib row) to read chapters that need an account. **⋮ → Import bookmarks** then brings your RanobeLib bookmarks into the Ranobe library, folders as categories, as it does for MangaLib.
 - Paid early-access chapters aren't listed until they open for everyone.
 - RanobeLib links opened from the browser or shared to Lume open the title.
+
+### Royal Road and Scribble Hub
+
+Two English sources for original web fiction, in Ranobe mode: Catalog (popular and latest), search, title details and the chapter list, read in the text reader and downloadable like RanobeLib chapters.
+
+- Both sites sometimes show a Cloudflare check. Lume opens it in its browser; once it passes, the source loads (see [Cloudflare or DDoS-Guard checks](#cloudflare-or-ddos-guard-checks)).
+- Royal Road chapters you have to pay for (early access through the author's Patreon) aren't listed.
+- Author's notes before or after a chapter aren't shown, only the story.
+- Links to a title or a chapter, opened from the browser or shared to Lume, open the title.
+- Site filters (tags, genres, sorting) aren't there yet.
 
 ### Downloading chapters
 
@@ -270,7 +280,7 @@ Lume remembers the paragraph you stopped at, also after rotating the phone or wh
 
 ### Not there yet
 
-Trackers for novels and English novel sites are planned.
+Trackers for novels and filters for the English sources are planned.
 
 ## Library
 

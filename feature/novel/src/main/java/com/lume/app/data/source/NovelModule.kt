@@ -3,7 +3,7 @@ package com.lume.app.data.source
 import com.lume.app.R
 import com.lume.app.domain.MediaKind
 
-/** Ranobe and web novels: local EPUB and TXT books and RanobeLib. */
+/** Ranobe and web novels: local EPUB and TXT books, RanobeLib, Royal Road and Scribble Hub. */
 object NovelModule : ContentModule {
     override val kind = MediaKind.Novel
     override val labelRes = R.string.mode_novel
@@ -16,5 +16,7 @@ object NovelModule : ContentModule {
             LocalNovelEngine(context.filesDir, context.cacheDir)
         },
         SourceEngines.RANOBELIB to { m, d -> RanobeLibEngine(m, d.http, d.libAuth) },
+        SourceEngines.ROYALROAD to { m, d -> RoyalRoadEngine(m, d.http) },
+        SourceEngines.SCRIBBLEHUB to { m, d -> ScribbleHubEngine(m, d.http) },
     )
 }

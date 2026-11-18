@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "scribblehub",
+  "name": "Scribble Hub",
+  "version": "1.0.0",
+  "mediaKind": "novel",
+  "language": "en",
+  "engine": "scribblehub",
+  "baseUrl": "https://www.scribblehub.com",
+  "headers": {
+    "Referer": "https://www.scribblehub.com/"
+  },
+  "engineConfig": {}
+}
