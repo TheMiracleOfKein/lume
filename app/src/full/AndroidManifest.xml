@@ -31,6 +31,10 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" />
                 <data android:host="ranobelib.me" />
+                <data android:host="www.royalroad.com" />
+                <data android:host="royalroad.com" />
+                <data android:host="www.scribblehub.com" />
+                <data android:host="scribblehub.com" />
             </intent-filter>
         </activity>
     </application>
