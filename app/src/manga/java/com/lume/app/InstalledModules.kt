@@ -1,5 +1,8 @@
 package com.lume.app
 
+import coil3.ComponentRegistry
+import com.lume.app.data.local.pdf.PdfPageFetcher
+import com.lume.app.data.local.pdf.PdfPageKeyer
 import com.lume.app.data.source.ComicsModule
 import com.lume.app.data.source.ContentModule
 import com.lume.app.ui.screens.ComicsScreens
@@ -12,4 +15,10 @@ object InstalledModules {
 
     val modules: List<ContentModule> = listOf(ComicsModule)
     val screens: List<ContentScreens> = listOf(ComicsScreens)
+
+    /** Image loading the modules bring: PDF pages (comics). */
+    fun addImageComponents(builder: ComponentRegistry.Builder) {
+        builder.add(PdfPageKeyer())
+        builder.add(PdfPageFetcher.Factory())
+    }
 }

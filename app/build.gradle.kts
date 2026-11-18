@@ -42,6 +42,9 @@ android {
         create("manga") {
             dimension = "modes"
         }
+        create("ranobe") {
+            dimension = "modes"
+        }
     }
 
     buildTypes {
@@ -83,8 +86,11 @@ android {
 
 dependencies {
     implementation(project(":core:ui"))
-    implementation(project(":feature:comics"))
+    // Each build ships only the code of its own modes.
+    "fullImplementation"(project(":feature:comics"))
+    "mangaImplementation"(project(":feature:comics"))
     "fullImplementation"(project(":feature:novel"))
+    "ranobeImplementation"(project(":feature:novel"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.lifecycle.runtime.ktx)
