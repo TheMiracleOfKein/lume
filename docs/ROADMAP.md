@@ -349,7 +349,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **Goal:** read light novels in the same app, with the same library, history, downloads, sync and trackers.
 
-- 🟡 **Text reader** (L): font, size, line height, margins and theme; scroll mode first, paged later; position kept as block and offset; next chapter without a break. Scroll mode in v1.1.0, its defaults in Settings → Reader in v1.1.1; paged mode still open.
+- ✅ **Text reader** (L): font, size, line height, margins and theme; scroll mode first, paged later; position kept as block and offset; next chapter without a break. Scroll mode in v1.1.0, its defaults in Settings → Reader in v1.1.1; page-by-page mode (lines split across pages, each chapter on a new page) in the next release.
 - ✅ **RanobeLib** (M): the MangaLib API client shared in `core/data`, with chapter text (rich-text documents and HTML, pictures included), sign-in and bookmark import. In v1.2.0.
 - **English novel sites** (M): one engine driven by CSS selectors, one JSON pack per site (NovelBin, Royal Road, …).
 - ✅ **Local EPUB and TXT** (M): through "Import books…", the folder import and watched folders. In v1.1.0.
