@@ -262,7 +262,7 @@ The text scrolls vertically.
 - The next chapter follows right after the end of the current one.
 - The bottom bar has the chapter list and the reader settings.
 
-The settings panel has **Text size**, **Line spacing**, **Side margins**, **Paragraph spacing**, **Font** (serif or sans-serif), **Justify text** (long words are hyphenated so lines don't get wide gaps) and **Reader theme** (**App**, **Light**, **Sepia**, **Dark**, **Black**). Changes show at once.
+The settings panel has **Text size**, **Line spacing**, **Side margins**, **Paragraph spacing**, **Font** (serif or sans-serif), **Justify text** (long words are hyphenated so lines don't get wide gaps) and **Reader theme** (**App**, **Light**, **Sepia**, **Dark**, **Black**). **Page by page** turns the text into pages: swipe sideways, or tap the right or left edge, to turn them; a paragraph goes on over the next page, and each chapter starts on a new one. Changes show at once.
 
 ### Progress and history
 
@@ -270,7 +270,7 @@ Lume remembers the paragraph you stopped at, also after rotating the phone or wh
 
 ### Not there yet
 
-Trackers for novels, English novel sites and a page-by-page mode in the text reader are planned.
+Trackers for novels and English novel sites are planned.
 
 ## Library
 
