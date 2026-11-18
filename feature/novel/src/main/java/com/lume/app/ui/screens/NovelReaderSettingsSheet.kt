@@ -172,6 +172,14 @@ internal fun NovelReaderSettingsControls(
                 onCheckedChange = { onCommit(settings.copy(justify = it)) },
             )
         }
+        item("novel_paged") {
+            SwitchRow(
+                label = stringResource(R.string.novel_paged),
+                hint = stringResource(R.string.novel_paged_summary),
+                checked = settings.paged,
+                onCheckedChange = { onCommit(settings.copy(paged = it)) },
+            )
+        }
 
         Spacer(Modifier.height(10.dp))
         item("novel_theme") {

@@ -43,16 +43,7 @@ internal fun NovelTextList(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
-    val body = TextStyle(
-        color = palette.text,
-        fontFamily = settings.font.family(),
-        fontSize = settings.fontSize.sp,
-        lineHeight = (settings.fontSize * settings.lineHeight).sp,
-        textAlign = if (settings.justify) TextAlign.Justify else TextAlign.Start,
-        // Justified lines break with hyphens, so words are not spread into huge gaps.
-        hyphens = if (settings.justify) Hyphens.Auto else Hyphens.None,
-        lineBreak = if (settings.justify) LineBreak.Paragraph else LineBreak.Simple,
-    )
+    val body = novelBodyStyle(settings, palette)
     LazyColumn(
         state = listState,
         contentPadding = contentPadding,
@@ -78,6 +69,18 @@ internal fun NovelTextList(
         }
     }
 }
+
+/** The body text style of both reading modes. */
+internal fun novelBodyStyle(settings: NovelReaderSettings, palette: NovelPalette) = TextStyle(
+    color = palette.text,
+    fontFamily = settings.font.family(),
+    fontSize = settings.fontSize.sp,
+    lineHeight = (settings.fontSize * settings.lineHeight).sp,
+    textAlign = if (settings.justify) TextAlign.Justify else TextAlign.Start,
+    // Justified lines break with hyphens, so words are not spread into huge gaps.
+    hyphens = if (settings.justify) Hyphens.Auto else Hyphens.None,
+    lineBreak = if (settings.justify) LineBreak.Paragraph else LineBreak.Simple,
+)
 
 @Composable
 private fun NovelBlockView(block: NovelBlock, settings: NovelReaderSettings, palette: NovelPalette, body: TextStyle) {

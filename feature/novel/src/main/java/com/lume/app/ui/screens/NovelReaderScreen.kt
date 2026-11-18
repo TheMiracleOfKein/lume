@@ -196,8 +196,8 @@ fun NovelReaderScreen(
 }
 
 /**
- * The scrolling text with tap zones: the middle toggles the bars, the top and bottom thirds scroll
- * by a screen. Restores the saved position once per [NovelReaderViewModel.session], then reports
+ * The text, as pages when that is the setting ([NovelPagedText]), else scrolling with tap zones:
+ * the middle toggles the bars, the top and bottom thirds scroll by a screen. Restores the saved position once per [NovelReaderViewModel.session], then reports
  * the position of the first visible row and how far it is scrolled.
  */
 @Composable
@@ -208,12 +208,16 @@ private fun NovelReaderContent(
     onTapCentre: () -> Unit,
     onScrolled: () -> Unit,
 ) {
+    val topPad = WindowInsets.statusBarsIgnoringVisibility.let { with(LocalDensity.current) { it.getTop(this).toDp() } }
+    val bottomPad = WindowInsets.navigationBarsIgnoringVisibility.let { with(LocalDensity.current) { it.getBottom(this).toDp() } }
+    if (vm.settings.paged) {
+        NovelPagedText(vm, palette, topPad, bottomPad, onTapCentre = onTapCentre, onTurned = onScrolled)
+        return
+    }
     val session = vm.session
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var restored by remember(session) { mutableStateOf(false) }
-    val topPad = WindowInsets.statusBarsIgnoringVisibility.let { with(LocalDensity.current) { it.getTop(this).toDp() } }
-    val bottomPad = WindowInsets.navigationBarsIgnoringVisibility.let { with(LocalDensity.current) { it.getBottom(this).toDp() } }
 
     LaunchedEffect(session, listState) {
         // Restore: the row first, then (once its height is known) the offset inside it.

@@ -200,6 +200,8 @@
     <string name="novel_side_margin">Поля по бокам</string>
     <string name="novel_paragraph_spacing">Расстояние между абзацами</string>
     <string name="novel_justify">Выравнивание по ширине</string>
+    <string name="novel_paged">Постранично</string>
+    <string name="novel_paged_summary">Листать страницы вбок вместо прокрутки</string>
     <string name="novel_theme">Тема читалки</string>
     <string name="novel_theme_app">Как в приложении</string>
     <string name="novel_theme_light">Светлая</string>
@@ -973,6 +975,7 @@
     <string name="settings_kw_translate_labels">том, глава, русский</string>
     <string name="settings_kw_immersive">полноэкранный, строка состояния, панель навигации, скрыть</string>
     <string name="settings_kw_novel_text">ранобэ, новелла, книга, текст, шрифт, размер, буквы, интервал, поля, абзацы, выравнивание</string>
+    <string name="settings_kw_novel_paged">ранобэ, новелла, книга, страницы, постранично, листать, перелистывание, прокрутка</string>
     <string name="settings_kw_novel_theme">ранобэ, новелла, книга, тема, сепия, тёмная, чёрная, светлая, цвета</string>
     <string name="settings_kw_keep_screen_on">сон, блокировка, гаснет, тайм-аут</string>
     <string name="settings_kw_seamless">непрерывное, следующая глава, прокрутка</string>

@@ -105,6 +105,7 @@ object SettingsCatalog {
         SettingInfo("novel_paragraph_spacing", SettingsPage.Reader, R.string.novel_paragraph_spacing, keywordsRes = R.string.settings_kw_novel_text, modes = NOVEL_ONLY),
         SettingInfo("novel_font", SettingsPage.Reader, R.string.novel_font, keywordsRes = R.string.settings_kw_novel_text, modes = NOVEL_ONLY),
         SettingInfo("novel_justify", SettingsPage.Reader, R.string.novel_justify, keywordsRes = R.string.settings_kw_novel_text, modes = NOVEL_ONLY),
+        SettingInfo("novel_paged", SettingsPage.Reader, R.string.novel_paged, keywordsRes = R.string.settings_kw_novel_paged, modes = NOVEL_ONLY),
         SettingInfo("novel_theme", SettingsPage.Reader, R.string.novel_theme, keywordsRes = R.string.settings_kw_novel_theme, modes = NOVEL_ONLY),
 
         SettingInfo("library_check", SettingsPage.Library, R.string.settings_library_auto_check, R.string.settings_library_auto_check_hint, R.string.settings_kw_library_check),
