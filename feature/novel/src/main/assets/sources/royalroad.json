@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "royalroad",
+  "name": "Royal Road",
+  "version": "1.0.0",
+  "mediaKind": "novel",
+  "language": "en",
+  "engine": "royalroad",
+  "baseUrl": "https://www.royalroad.com",
+  "headers": {
+    "Referer": "https://www.royalroad.com/"
+  },
+  "engineConfig": {}
+}

@@ -10,7 +10,10 @@ class NovelModuleTest {
     @Test
     fun servesNovelsWithLocalBooksAndRanobeLib() {
         assertEquals(MediaKind.Novel, NovelModule.kind)
-        assertEquals(setOf(SourceEngines.LOCAL_NOVEL, SourceEngines.RANOBELIB), NovelModule.engines.keys)
+        assertEquals(
+            setOf(SourceEngines.LOCAL_NOVEL, SourceEngines.RANOBELIB, SourceEngines.ROYALROAD, SourceEngines.SCRIBBLEHUB),
+            NovelModule.engines.keys,
+        )
         assertEquals(setOf("epub", "txt"), NovelModule.localBookExtensions)
         // Out of preview since RanobeLib and novel downloads (v1.2.0).
         assertFalse(NovelModule.preview)
