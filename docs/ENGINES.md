@@ -34,6 +34,8 @@ JSON pack ──► SourceRegistry ──► known engine id ──► Kotlin cl
 | `mangabuff` | MangaBuff HTML | no |
 | `inkstory` | InkStory pages (data script) | no |
 | `local` | Offline folders/CBZ | no |
+| `royalroad` | Royal Road HTML, chapter text; novel module only | no |
+| `scribblehub` | Scribble Hub HTML + `admin-ajax.php` chapter list, chapter text; novel module only | no |
 
 ## Bundled sources (assets)
 
@@ -43,7 +45,9 @@ JSON pack ──► SourceRegistry ──► known engine id ──► Kotlin cl
 | `mangakatana` | `mangakatana` | Core HTML |
 | `asura` | `asura` | Core API |
 | `mangalib` / `yaoilib` / `hentailib` | `libsocial` | Family packs (`siteId`) |
-| `ranobelib` | `ranobelib` | Novels, `siteId` 3; in `feature/novel` assets, so the full build only |
+| `ranobelib` | `ranobelib` | Novels, `siteId` 3; in `feature/novel` assets, so the full and ranobe builds only |
+| `royalroad` | `royalroad` | English novels; `feature/novel` assets |
+| `scribblehub` | `scribblehub` | English novels; `feature/novel` assets |
 | `mangaread` | `madara` | Family pack example |
 | `hivetoons` / `vortexscans` | `hivetoons` | Family packs |
 | `remanga` | `remanga` | Russian API |
@@ -63,6 +67,13 @@ RanobeLib uses the same API as MangaLib (`LibSocialBase` in `core/data`: catalog
 - an HTML string (`<p data-paragraph-index>…</p>` and `<img src="https://ranobelib.me/uploads/…">`, sometimes bare between paragraphs).
 
 Pictures need the `ranobelib.me` Referer (403 without). In HTML chapters the `<img>` links are kept: `attachments` URLs sometimes differ (a trailing `-` in the slug) and answer 500. A rich-text chapter with an image node hasn't been seen yet; it maps through `attachments`. `api.cdnrulib.link` serves the same answers as `api.cdnlibs.org`.
+
+### Royal Road and Scribble Hub
+
+Both are plain HTML sites behind Cloudflare; the app's challenge WebView solves the check, then requests carry its cookies and User-Agent. Title ids are paths (`/fiction/<id>/<slug>`, `/series/<id>/<slug>/`), chapter ids are chapter paths. `NovelHtml` in `feature/novel` cleans the chapter element (scripts, ads, forms and attributes dropped, `data-src` images made absolute, links reduced to their text).
+
+- **Royal Road:** lists are `.fiction-list-item` (`/fictions/weekly-popular`, `/fictions/latest-updates`, `/fictions/search?title=`, `?page=N`). The title page has every chapter in `window.chapters = [...]`, with `order` (the chapter number is `order + 1`) and `isUnlocked`; locked (paid) chapters are left out. The text is `.chapter-inner.chapter-content`. Each chapter hides an anti-copy line through a class that the page's `<style>` sets to `display: none`; `NovelHtml.hiddenClasses` reads those rules and the elements are removed. Author's notes are left out.
+- **Scribble Hub:** lists are `.search_main_box` (`/series-ranking/?sort=1&order=1`, `/latest-series/`, `/series-finder/?sf=1&sh=<query>&order=desc&sort=ratings`, `pg=N`); the page count is only in the pagination script (`items: N`). The title page shows the newest 15 chapters; the whole list is a POST to `/wp-admin/admin-ajax.php` (`action=wi_getreleases_pagination`, `pagenum=-1`, `mypostid=<id>`) answering the same `li.toc_w` rows, whose `order` attribute is the chapter number. The text is `#chp_raw` without `.wi_authornotes`.
 
 One-site engines (`weebcentral`, `demonic`) remain in the binary for compatibility but are **not** in default assets and **cannot** be imported as JSON. Sample manifests: [`packs/site`](packs/site/weebcentral.json).
 
@@ -136,7 +147,9 @@ Sources unreachable from the test machine (geo-blocks, challenges needing a WebV
 reported as `SKIP`, not failures. Plain `testDebugUnitTest` runs only offline unit tests.
 
 RanobeLib has its own check in the novel module (popular → search → details → chapters →
-chapter text): `./gradlew :feature:novel:testDebugUnitTest -Plume.live`. The weekly workflow runs both.
+chapter text): `./gradlew :feature:novel:testDebugUnitTest -Plume.live`. The same command runs
+`LiveEnglishNovelsTest` for Royal Road and Scribble Hub; a Cloudflare check is reported as
+skipped. The weekly workflow runs all of them.
 Unit tests run on OkHttp's JVM build (the Android one reads its public-suffix list from
 Android assets, which JVM tests don't have).
 
@@ -213,6 +226,8 @@ reads that engine's chapter list from its title page, or the case is simply not 
 | `likemanga` | popular, search, details, pages | chapters are read from `details.html`; no `chapters` file |
 | `mangabuff` | popular, search, details, pages, `chapters-2` | no base `chapters` file; `chapters-2` is a second response |
 | `mangadex` | popular, search, details, chapters, pages | none; `details-2` is the statistics response (fixtures hand-written, see above) |
+| `royalroad` (novel) | popular, popular-page2, latest, search, details, chapter | chapters are read from `details.html` (the page script); saved in a browser, chapter text cut to a few paragraphs |
+| `scribblehub` (novel) | popular, latest, search, details, chapter | chapters are read from the 15 rows of `details.html` (the `admin-ajax.php` answer has the same markup but wasn't saved); `search` is the finder without a query; the chapter's text was replaced by neutral sample paragraphs |
 | `mangakatana` | popular, search, details, pages | chapters are read from `details.html`; no `chapters` file |
 | `mangalib` | popular, search, details, chapters, pages | none |
 | `remanga` | popular, search, details, pages, `chapters-page1`, `chapters-last` | chapters split into pages; no single `chapters` file |
