@@ -252,6 +252,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
+**v1.3.0: paged reader and ranobe build** ([notes](releases/v1.3.0.md), [device check](releases/v1.3.0-check.md)): a page-by-page mode in the text reader, novel downloads sent to a nearby phone, and a third build with the novel mode only.
+
 **v1.2.0: RanobeLib and novel downloads** ✅ released 2026-11-17 ([notes](releases/v1.2.0.md), [device check](releases/v1.2.0-check.md)): RanobeLib in Ranobe mode on the shared Lib client, novel chapters downloaded as text with their pictures, Ranobe out of preview.
 
 **v1.1.2: Lib chapter fixes** ✅ released 2026-11-17 ([notes](releases/v1.1.2.md), [device check](releases/v1.1.2-check.md)): paid early-access chapters on the Lib sites are no longer listed; 12-bit AVIF pages (green stripes) load as JPEG from the site's mirror.
@@ -349,13 +351,13 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **Goal:** read light novels in the same app, with the same library, history, downloads, sync and trackers.
 
-- ✅ **Text reader** (L): font, size, line height, margins and theme; scroll mode first, paged later; position kept as block and offset; next chapter without a break. Scroll mode in v1.1.0, its defaults in Settings → Reader in v1.1.1; page-by-page mode (lines split across pages, each chapter on a new page) in the next release.
+- ✅ **Text reader** (L): font, size, line height, margins and theme; scroll mode first, paged later; position kept as block and offset; next chapter without a break. Scroll mode in v1.1.0, its defaults in Settings → Reader in v1.1.1; page-by-page mode (lines split across pages, each chapter on a new page) in v1.3.0.
 - ✅ **RanobeLib** (M): the MangaLib API client shared in `core/data`, with chapter text (rich-text documents and HTML, pictures included), sign-in and bookmark import. In v1.2.0.
 - **English novel sites** (M): one engine driven by CSS selectors, one JSON pack per site (NovelBin, Royal Road, …).
 - ✅ **Local EPUB and TXT** (M): through "Import books…", the folder import and watched folders. In v1.1.0.
-- ✅ **Downloads** (S): chapters saved as `chapter.html` with their pictures, read offline, in every storage. In v1.2.0. Sending them to a nearby phone (older receivers get only the manga chapters) is in the next release.
+- ✅ **Downloads** (S): chapters saved as `chapter.html` with their pictures, read offline, in every storage. In v1.2.0. Sending them to a nearby phone (older receivers get only the manga chapters) in v1.3.0.
 - **Trackers** (S): the novel lists of AniList, MyAnimeList and Shikimori.
-- ✅ **Ranobe build** (S): `ranobe` flavor, novel mode only, without the comics code; `lume-vX.Y.Z-ranobe.apk` on every release. In the next release.
+- ✅ **Ranobe build** (S): `ranobe` flavor, novel mode only, without the comics code; `lume-vX.Y.Z-ranobe.apk` on every release. In v1.3.0.
 
 ## Every release
 
