@@ -173,9 +173,16 @@ internal fun NovelPagedText(
             val target = anchorPage(currentItems, currentMeasures, currentPages, vm.anchor)
             if (target in 0 until pagerState.pageCount) pagerState.scrollToPage(target)
             restored = true
+            // The restored page is not reported: its first slice sits at or before the real anchor,
+            // so saving it would snap the position back at every relayout (e.g. on rotation).
+            // Only report once the user has moved to another page.
+            val restoredPage = pagerState.currentPage
+            var moved = false
             snapshotFlow { pagerState.currentPage }
                 .distinctUntilChanged()
                 .collect { page ->
+                    if (!shouldReportPage(moved, restoredPage, page)) return@collect
+                    moved = true
                     val ps = currentPages
                     val slices = ps.getOrNull(page)?.slices ?: return@collect
                     val first = slices.first()

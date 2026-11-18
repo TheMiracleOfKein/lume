@@ -18,7 +18,7 @@ Lume is an Android reader for manga, manhwa and webtoons, written in Kotlin and 
 
 Get the APK from the [latest release](https://github.com/TheMiracleOfKein/lume/releases/latest). Lume needs Android 8.0 or newer.
 
-- Each release has one APK per build: `lume-vX.Y.Z-full.apk` with every reading mode, `lume-vX.Y.Z-manga.apk` with manga only, and (after 1.2) `lume-vX.Y.Z-ranobe.apk` with novels only. They install over each other and keep your data; the in-app updater stays on the build you installed.
+- Each release has one APK per build: `lume-vX.Y.Z-full.apk` with every reading mode, `lume-vX.Y.Z-manga.apk` with manga only, and (from 1.3) `lume-vX.Y.Z-ranobe.apk` with novels only. They install over each other and keep your data; the in-app updater stays on the build you installed.
 - Installing a new version over the old one keeps your library, progress and downloads.
 - If Android blocks the install, allow installs from your browser or file manager.
 
