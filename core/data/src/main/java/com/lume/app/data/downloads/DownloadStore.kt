@@ -900,6 +900,45 @@ class DownloadStore(
     }
 
     /**
+     * The stored files of a downloaded text chapter, its HTML first and then its pictures in order
+     * (file paths or picked-folder URIs); null when it isn't downloaded or a file is gone.
+     */
+    suspend fun textChapterFiles(sourceId: String, titleId: String, chapterId: String): List<String>? = withContext(Dispatchers.IO) {
+        val row = dao.getDownload(sourceId, titleId, chapterId) ?: return@withContext null
+        decodePaths(row).takeIf { paths -> paths.isNotEmpty() && paths.all { pageSize(it) > 0 } }
+    }
+
+    /**
+     * Stores a text chapter that came from another phone: [files] are its HTML, then its pictures
+     * in order (any names). Each picture must be an image; the HTML's pictures are pointed at the
+     * saved files and any other local link is dropped. [files] are left where they are.
+     */
+    suspend fun saveReceivedTextChapter(sourceId: String, titleId: String, title: TitleDetails, chapter: Chapter, files: List<File>) {
+        if (files.isEmpty()) error(context.getString(R.string.error_no_pages_download))
+        try {
+            val tree = activeTree()
+            withContext(Dispatchers.IO) {
+                if (dao.downloadsForTitle(sourceId, titleId).isEmpty()) writeTitleMeta(sourceId, titleId, title, tree)
+                val dir = (if (tree != null) stagedPartDir(sourceId, titleId, chapter.id) else partDirPath(sourceId, titleId, chapter.id)).apply {
+                    deleteRecursively()
+                    mkdirs()
+                }
+                val images = files.drop(1).mapIndexed { i, file ->
+                    val ext = ImageBytes.extension(readHead(file, 32))
+                        ?: throw SourceFetchException(context.getString(R.string.error_page_not_image, i + 1))
+                    File(dir, TextChapterFiles.imageName(i, ext)).also { file.copyTo(it, overwrite = true) }
+                }
+                val html = TextChapterFiles.receivedHtml(files.first().readText(), images.map { it.name })
+                val htmlFile = File(dir, TextChapterFiles.HTML_NAME).apply { writeText(html) }
+                storeChapter(sourceId, titleId, title, chapter, tree, dir, listOf(htmlFile) + images, web = null, text = true)
+            }
+        } catch (e: Throwable) {
+            withContext(NonCancellable) { abortPartial(sourceId, titleId, chapter.id) }
+            throw e
+        }
+    }
+
+    /**
      * Copies a finished chapter from [dir] (app storage) into `Lume/<source>/<title>/<chapter>` of
      * [tree]. It goes into a `.lume-part` folder first, renamed when every file is there, so a cut-off
      * copy is never taken for a chapter. Returns the document URIs of [names], in order.

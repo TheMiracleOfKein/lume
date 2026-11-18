@@ -46,10 +46,7 @@ class NearbyTransfer(
 
     /** The chosen chapters ("sourceId|titleId" → chapter ids) as an offer. */
     suspend fun buildOffer(selection: Map<String, Set<String>>, readMarks: Boolean): Offer = withContext(Dispatchers.IO) {
-        // Page images only: text chapters (novels) aren't sent yet.
-        val rows = dao.allDownloads()
-            .filter { sources.sourceById(it.sourceId)?.manifest?.kind != com.lume.app.domain.MediaKind.Novel }
-            .groupBy { "${it.sourceId}|${it.titleId}" }
+        val rows = dao.allDownloads().groupBy { "${it.sourceId}|${it.titleId}" }
         val offered = selection.mapNotNull { (key, chapterIds) ->
             val items = rows[key].orEmpty().filter { it.chapterId in chapterIds }
             val first = items.firstOrNull() ?: return@mapNotNull null
@@ -70,15 +67,22 @@ class NearbyTransfer(
                 chapters = chapters,
                 allChapters = known,
                 readChapterIds = if (readMarks) dao.readChapterIds(first.sourceId, first.titleId) else emptyList(),
+                text = isText(first.sourceId),
             )
         }.sortedBy { it.details.title.lowercase() }
         Offer(offered, readMarks)
     }
 
-    /** The pages of an offered chapter, read from this phone's downloads. */
+    private fun isText(sourceId: String) = sources.sourceById(sourceId)?.manifest?.kind == com.lume.app.domain.MediaKind.Novel
+
+    /** The files of an offered chapter, read from this phone's downloads: its pages, or a text chapter's HTML and pictures. */
     suspend fun pagesOf(title: OfferTitle, chapter: OfferChapter): List<OutgoingPage> = withContext(Dispatchers.IO) {
-        val pages = downloads.localPages(title.sourceId, title.titleId, chapter.chapter.id).orEmpty()
-        val outgoing = pages.map { page -> OutgoingPage(downloads.pageSize(page.imageUrl)) { downloads.openPage(page.imageUrl) } }
+        val paths = if (title.text) {
+            downloads.textChapterFiles(title.sourceId, title.titleId, chapter.chapter.id).orEmpty()
+        } else {
+            downloads.localPages(title.sourceId, title.titleId, chapter.chapter.id).orEmpty().map { it.imageUrl }
+        }
+        val outgoing = paths.map { path -> OutgoingPage(downloads.pageSize(path)) { downloads.openPage(path) } }
         // A missing or empty page means the chapter can't be sent whole: the sender skips it.
         if (outgoing.any { it.size <= 0 }) emptyList() else outgoing
     }
@@ -101,7 +105,8 @@ class NearbyTransfer(
         val noSource = mutableSetOf<String>()
         val unsupported = mutableListOf<String>()
         offer.titles.forEachIndexed { ti, title ->
-            val known = sources.sourceById(title.sourceId) != null
+            // The source must be here and be the same kind (a text title can't become page images).
+            val known = sources.sourceById(title.sourceId) != null && isText(title.sourceId) == title.text
             if (!known) unsupported += title.details.title
             title.chapters.forEachIndexed { ci, chapter ->
                 val key = Offer.chapterKey(ti, ci)
@@ -118,7 +123,13 @@ class NearbyTransfer(
     suspend fun saveReceived(offer: Offer, title: OfferTitle, chapter: OfferChapter, pages: List<File>, prepared: MutableSet<String>) {
         val key = "${title.sourceId}|${title.titleId}"
         if (prepared.add(key)) prepareTitle(offer, title)
-        downloads.saveReceivedChapter(title.sourceId, title.titleId, cleaned(title.details), cleaned(title.sourceId, chapter.chapter), pages)
+        val details = cleaned(title.details)
+        val cleanChapter = cleaned(title.sourceId, chapter.chapter)
+        if (title.text) {
+            downloads.saveReceivedTextChapter(title.sourceId, title.titleId, details, cleanChapter, pages)
+        } else {
+            downloads.saveReceivedChapter(title.sourceId, title.titleId, details, cleanChapter, pages)
+        }
     }
 
     /**

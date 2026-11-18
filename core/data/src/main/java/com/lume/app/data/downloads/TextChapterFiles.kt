@@ -37,6 +37,26 @@ internal object TextChapterFiles {
         return doc.body().html()
     }
 
+    /**
+     * A chapter's HTML from another phone, made safe to keep: a picture named like [imageName] points
+     * at the matching file of [images] (by index), a web picture stays, and any other `src` (a local
+     * path, a `content:` or `data:` link, a missing index) is removed.
+     */
+    fun receivedHtml(html: String, images: List<String>): String {
+        val doc = parse(html)
+        doc.select("img[src]").forEach { img ->
+            val src = img.attr("src").trim()
+            val local = imageIndex(src)?.let(images::getOrNull)
+            when {
+                local != null -> img.attr("src", local)
+                src.startsWith("http://", ignoreCase = true) || src.startsWith("https://", ignoreCase = true) -> Unit
+                else -> img.removeAttr("src")
+            }
+        }
+        doc.select("[srcset]").forEach { it.removeAttr("srcset") }
+        return doc.body().html()
+    }
+
     private fun parse(html: String): Document = Jsoup.parseBodyFragment(html).apply {
         outputSettings().prettyPrint(false)
     }
