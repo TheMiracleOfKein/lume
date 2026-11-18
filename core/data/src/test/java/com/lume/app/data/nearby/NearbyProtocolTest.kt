@@ -204,6 +204,45 @@ class NearbyProtocolTest {
         }
     }
 
+    /** [offer] with its second title a text one (HTML plus three pictures). */
+    private val mixed = offer.copy(titles = listOf(offer.titles[0], offer.titles[1].copy(text = true)))
+
+    @Test
+    fun textChaptersArriveWithTheirFiles() {
+        val received = mutableMapOf<String, List<ByteArray>>()
+        val result = pair({ hs -> runBlocking { NearbySender(hs).send(mixed, { t, c -> outgoing(t.copy(text = false), c) }) } }) { hs ->
+            val receiver = NearbyReceiver(hs)
+            val got = receiver.readOffer()
+            assertTrue(got.titles[1].text)
+            runBlocking { receiver.receive(got, emptySet(), temp.newFolder(), save = { t, c, files -> received[keyOf(t.copy(text = false), c)] = files.map { it.readBytes() } }) }
+        }
+        assertEquals(SendResult.Sent(3), result)
+        assertEquals(3, received.getValue("1/0").size)
+    }
+
+    @Test
+    fun anOlderReceiverGetsNoTextChapters() {
+        var heads = 0
+        val result = pair({ hs -> runBlocking { NearbySender(hs).send(mixed, { t, c -> outgoing(t.copy(text = false), c) }) } }) { hs ->
+            val channel = hs.channel
+            channel.read() // the offer
+            // What a version without text support answers: no "text" field.
+            channel.write(1, """{"kind":"answer","accept":true,"skip":[]}""".toByteArray())
+            while (true) {
+                val frame = channel.read()
+                if (frame.type != 1) continue
+                val body = frame.body.toString(Charsets.UTF_8)
+                when {
+                    "\"head\"" in body -> heads++
+                    "\"tail\"" in body -> channel.write(1, """{"kind":"ack","key":"0/${heads - 1}"}""".toByteArray())
+                    "\"done\"" in body -> break
+                }
+            }
+        }
+        assertEquals(SendResult.Sent(2), result)
+        assertEquals(2, heads)
+    }
+
     @Test
     fun offerKeysLocateChapters() {
         assertEquals(listOf("0/0", "0/1", "1/0"), offer.keys())

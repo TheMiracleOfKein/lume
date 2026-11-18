@@ -243,7 +243,7 @@ RanobeLib is a source in Ranobe mode, like MangaLib in Manga mode: Catalog, sear
 
 Novel chapters download like manga chapters: from the chapter list (select chapters, or **Download next N / all unread**), with **Download new chapters** for titles with the bell, and with **Delete after reading**. A chapter is saved as its text with its pictures, in the download storage you chose; the Downloads screen marks it **Text**. The reader opens a downloaded chapter without the internet. If a picture can't be downloaded, the text is still saved and the picture loads from the site when you're online.
 
-Sending downloads to a nearby phone covers manga chapters only for now.
+Downloaded novel chapters can be sent to a nearby phone like manga chapters, with their pictures. The other phone needs a Lume version newer than 1.2.0 and the full build; an older version or the manga build receives only the manga chapters.
 
 ### Importing books
 

@@ -25,6 +25,8 @@ data class OfferTitle(
     val allChapters: List<Chapter> = emptyList(),
     /** Read chapters; sent only when read marks come along. */
     val readChapterIds: List<String> = emptyList(),
+    /** A text title (novel): each chapter is its HTML, then its pictures. */
+    val text: Boolean = false,
 )
 
 @Serializable
@@ -57,9 +59,12 @@ internal sealed class Control {
     @Serializable @SerialName("offer")
     data class OfferMsg(val offer: Offer) : Control()
 
-    /** [skip]: chapters the receiver already has, or can't keep (its source isn't on that phone). */
+    /**
+     * [skip]: chapters the receiver already has, or can't keep (its source isn't on that phone).
+     * [text]: the receiver keeps text chapters; older versions don't say so and get none.
+     */
     @Serializable @SerialName("answer")
-    data class Answer(val accept: Boolean, val skip: List<String> = emptyList()) : Control()
+    data class Answer(val accept: Boolean, val skip: List<String> = emptyList(), val text: Boolean = false) : Control()
 
     @Serializable @SerialName("head")
     data class Head(val key: String, val pageSizes: List<Long>) : Control()
@@ -122,7 +127,9 @@ class NearbySender(private val handshake: NearbyChannel.Handshake) {
         val answer = channel.expect<Control.Answer>()
         if (!answer.accept) return SendResult.Declined
         val skip = answer.skip.toSet()
-        val wanted = offer.keys().filter { it !in skip }
+        val wanted = offer.keys().filter { key ->
+            key !in skip && (answer.text || offer.locate(key)?.let { (ti, _) -> offer.titles[ti].text } != true)
+        }
         var total = wanted.sumOf(offer::bytesOf)
         var sent = 0L
         var count = 0
@@ -184,7 +191,7 @@ class NearbyReceiver(private val handshake: NearbyChannel.Handshake) {
         save: suspend (OfferTitle, OfferChapter, List<File>) -> Unit,
         onProgress: (received: Long, total: Long) -> Unit = { _, _ -> },
     ): Int {
-        channel.send(Control.Answer(accept = true, skip = skip.toList()))
+        channel.send(Control.Answer(accept = true, skip = skip.toList(), text = true))
         val total = offer.keys().filter { it !in skip }.sumOf(offer::bytesOf)
         var received = 0L
         var count = 0

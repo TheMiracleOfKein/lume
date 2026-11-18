@@ -26,6 +26,17 @@ class TextChapterFilesTest {
     }
 
     @Test
+    fun receivedHtmlKeepsItsOwnPicturesAndWebLinksOnly() {
+        val sent = "<img src=\"img-0001.png\"><img src=\"img-0007.jpg\"><img src=\"https://site.test/a.jpg\">" +
+            "<img src=\"/data/data/other/secret.png\"><img src=\"content://x/y\"><img src=\"img-0000.jpg\" srcset=\"file:///z 2x\">"
+        val out = TextChapterFiles.receivedHtml(sent, listOf("img-0000.webp", "img-0001.png"))
+        assertEquals(
+            "<img src=\"img-0001.png\"><img><img src=\"https://site.test/a.jpg\"><img><img><img src=\"img-0000.webp\">",
+            out,
+        )
+    }
+
+    @Test
     fun imageNames() {
         assertEquals("img-0003.png", TextChapterFiles.imageName(3, "png"))
         assertEquals(3, TextChapterFiles.imageIndex("img-0003.png"))
