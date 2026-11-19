@@ -6,6 +6,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.lume.app.AppContainer
 import com.lume.app.data.db.ChapterProgressEntity
 import com.lume.app.data.db.DownloadEntity
+import com.lume.app.data.db.TitlePrefsEntity
+import com.lume.app.domain.ReaderMode
+import com.lume.app.domain.ReaderTheme
 import com.lume.app.data.prefs.ReaderSettings
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.TitleDetails
@@ -266,6 +269,39 @@ class ReaderViewModelTest {
         assertNull(runBlocking { dao.getProgress(sourceId, titleId) })
         assertNull(runBlocking { dao.getChapterProgress(sourceId, titleId, "c2") })
         assertTrue(runBlocking { dao.readChapterIds(sourceId, titleId) }.isEmpty())
+    }
+
+    @Test
+    fun resetSettingsRestoresDefaultsAndDropsTheTitlesReaderOverrides() {
+        seedTitle()
+        runBlocking {
+            dao.upsertTitlePrefs(
+                TitlePrefsEntity(
+                    sourceId = sourceId, titleId = titleId,
+                    readerMode = ReaderMode.Ltr.prefsIndex, readerTheme = ReaderTheme.Light.ordinal, gap = 12f,
+                    chapterFilter = 3, chapterSortAsc = true, branch = "b", showDuplicates = true, autoDownload = true,
+                ),
+            )
+        }
+        val vm = open("c1")
+        vm.awaitLoaded()
+        assertEquals(ReaderMode.Ltr, vm.settings.mode)
+        vm.updateSettings(vm.settings.copy(dim = 0.5f), commit = true)
+        awaitUntil(what = "custom settings saved") { app.prefs.readerSettings.value.dim == 0.5f }
+
+        vm.resetSettings()
+        assertEquals(ReaderSettings(), vm.settings)
+        awaitUntil(what = "defaults saved") { app.prefs.readerSettings.value == ReaderSettings() }
+        awaitUntil(what = "overrides cleared") { runBlocking { dao.getTitlePrefs(sourceId, titleId) }?.readerMode == null }
+
+        val prefs = runBlocking { dao.getTitlePrefs(sourceId, titleId) }!!
+        assertNull(prefs.readerTheme)
+        assertNull(prefs.gap)
+        assertEquals(3, prefs.chapterFilter)
+        assertTrue(prefs.chapterSortAsc)
+        assertEquals("b", prefs.branch)
+        assertTrue(prefs.showDuplicates)
+        assertTrue(prefs.autoDownload)
     }
 
     @Test

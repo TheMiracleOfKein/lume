@@ -141,6 +141,10 @@
     <string name="reader_seamless">Бесшовное чтение глав</string>
     <string name="reader_chapter_separator">Глава · %s</string>
     <string name="reader_save_for_title">Сохранить для тайтла</string>
+    <string name="reader_reset_defaults">Сбросить к значениям по умолчанию</string>
+    <string name="reader_reset_title">Сбросить настройки читалки?</string>
+    <string name="reader_reset_text">Настройки читалки вернутся к значениям по умолчанию. Остальное не изменится.</string>
+    <string name="reader_reset_confirm">Сбросить</string>
     <string name="reader_mode_rtl">Справа налево</string>
     <string name="reader_mode_webtoon">Вебтун</string>
     <string name="reader_mode_ltr">Слева направо</string>

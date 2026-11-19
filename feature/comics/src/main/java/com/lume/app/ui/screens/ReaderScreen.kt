@@ -451,6 +451,7 @@ fun ReaderScreen(
                 onChange = { next -> vm.updateSettings(next, commit = false) },
                 onCommit = { next -> vm.updateSettings(next, commit = true) },
                 onSaveForTitle = vm::saveSettingsForTitle,
+                onReset = vm::resetSettings,
             )
         }
     }

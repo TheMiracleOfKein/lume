@@ -89,6 +89,7 @@ class NovelReaderScreenshotTest : ScreenshotTest() {
             onClose = {},
             onChange = {},
             onCommit = {},
+            onReset = {},
         )
     }
 }

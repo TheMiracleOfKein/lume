@@ -127,6 +127,9 @@ class NovelReaderViewModel(
         if (commit) viewModelScope.launch { app.prefs.setNovelReaderSettings(clean) }
     }
 
+    /** Every text reader setting back to its default, saved. */
+    fun resetSettings() = updateSettings(NovelReaderSettings(), commit = true)
+
     // ---- Saving ---------------------------------------------------------------------------
     private val pendingSave = MutableStateFlow<NovelAnchor?>(null)
     private var dirty = false

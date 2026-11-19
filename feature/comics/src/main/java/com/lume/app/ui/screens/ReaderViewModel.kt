@@ -841,6 +841,15 @@ class ReaderViewModel(
         }
     }
 
+    /** Defaults for everything, saved; this title's own mode, theme and gap overrides are dropped too. */
+    fun resetSettings() {
+        updateSettings(ReaderSettings(), commit = true)
+        viewModelScope.launch {
+            val prefs = dao.getTitlePrefs(sourceId, titleId) ?: return@launch
+            dao.upsertTitlePrefs(prefs.copy(readerMode = null, readerTheme = null, gap = null))
+        }
+    }
+
     override fun onCleared() {
         flush()
         // "Delete after reading": chapters finished in this session lose their download.

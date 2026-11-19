@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextAlign
 import com.lume.app.R
+import com.lume.app.ui.components.ResetReaderSettingsButton
 import com.lume.app.ui.components.SheetHeader
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.data.prefs.ReaderSettings
@@ -67,6 +68,7 @@ internal fun ReaderSettingsSheet(
     /** A finished edit: becomes the new default. */
     onCommit: (ReaderSettings) -> Unit,
     onSaveForTitle: (ReaderSettings) -> Unit,
+    onReset: () -> Unit,
 ) {
     // A tap on a slider fires "change" and "finished" in the same frame, before [settings]
     // catches up; "finished" saves the latest edit kept here, not the value from before it.
@@ -332,6 +334,7 @@ internal fun ReaderSettingsSheet(
                 fontWeight = FontWeight.SemiBold,
             )
         }
+        ResetReaderSettingsButton(onConfirm = onReset)
     }
 }
 
