@@ -858,7 +858,11 @@ private fun TrackersDialog(
                                 .getOrDefault(emptyList())
                                 .filter { it.matchesKind(kind) }
                             if (results.isEmpty() && message == null) {
-                                message = resources.getString(R.string.search_empty)
+                                message = if (kind == com.lume.app.domain.MediaKind.Novel) {
+                                    resources.getString(R.string.tracker_novel_empty, selectedTracker.displayName)
+                                } else {
+                                    resources.getString(R.string.search_empty)
+                                }
                             }
                             loading = false
                         }

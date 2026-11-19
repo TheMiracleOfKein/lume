@@ -602,6 +602,7 @@
     <string name="type_novel">Роман</string>
     <string name="type_web_novel">Веб-новелла</string>
     <string name="tracker_result_unknown_format">Формат не указан</string>
+    <string name="tracker_novel_empty">На %1$s нет новеллы с таким названием. Многих корейских и китайских веб-новелл там нет; попробуйте другой трекер или оригинальное название.</string>
     <string name="tracker_novel_only_hint">В режиме ранобэ показаны трекеры со списками новелл: Shikimori, AniList и MyAnimeList.</string>
     <string name="section_new_titles">Новинки</string>
     <string name="section_top_rated">Лучшие</string>

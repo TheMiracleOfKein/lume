@@ -189,10 +189,10 @@ class AniListTracker(
                 val obj = el.jsonObject
                 val id = obj["id"]?.jsonPrimitive?.longOrNull?.toString() ?: return@mapNotNull null
                 val titles = obj["title"]?.jsonObject
-                val name = titles?.get("english")?.jsonPrimitive?.content
-                    ?: titles?.get("romaji")?.jsonPrimitive?.content
-                    ?: titles?.get("native")?.jsonPrimitive?.content
-                    ?: return@mapNotNull null
+                // A missing name is JSON null, which must not show up as the text "null".
+                val name = listOf("english", "romaji", "native").firstNotNullOfOrNull { key ->
+                    (titles?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content?.takeIf { it.isNotBlank() }
+                } ?: return@mapNotNull null
                 TrackerSearchResult(
                     remoteId = id,
                     title = name,
