@@ -69,6 +69,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import com.lume.app.ui.components.ReaderSheetContent
+import com.lume.app.ui.components.ReaderSheetInsets
 import com.lume.app.ui.components.rememberEasyDismissSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -442,7 +444,8 @@ fun ReaderScreen(
             onDismissRequest = { settingsOpen = false },
             sheetState = sheetState,
             containerColor = AppColors.surface,
-        ) {
+            contentWindowInsets = { ReaderSheetInsets },
+        ) { ReaderSheetContent {
             ReaderSettingsSheet(
                 settings = settings,
                 onClose = {
@@ -453,7 +456,7 @@ fun ReaderScreen(
                 onSaveForTitle = vm::saveSettingsForTitle,
                 onReset = vm::resetSettings,
             )
-        }
+        } }
     }
 
     if (bookmarksOpen) {
@@ -462,7 +465,8 @@ fun ReaderScreen(
             onDismissRequest = { bookmarksOpen = false },
             sheetState = sheetState,
             containerColor = AppColors.surface,
-        ) {
+            contentWindowInsets = { ReaderSheetInsets },
+        ) { ReaderSheetContent {
             SheetHeader(
                 stringResource(R.string.bookmarks_title),
                 Modifier.padding(horizontal = 16.dp),
@@ -503,7 +507,7 @@ fun ReaderScreen(
             }
             // The reader's own host sits behind the sheet; this one shows the same state (Undo) above it.
             SnackbarHost(snackbar)
-        }
+        } }
     }
 
     noteFor?.let { id ->

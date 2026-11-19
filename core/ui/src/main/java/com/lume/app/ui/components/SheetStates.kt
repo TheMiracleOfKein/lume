@@ -1,6 +1,18 @@
 package com.lume.app.ui.components
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
 import androidx.compose.runtime.Composable
@@ -43,4 +55,32 @@ fun rememberEasyDismissSheetState(): SheetState {
             initialValue = SheetValue.Hidden,
         )
     }
+}
+
+/** Room left above a capped sheet for its drag handle and a strip of the screen behind it. */
+private val SheetTopRoom = 72.dp
+
+/**
+ * Window insets for a reader sheet: the bottom ones only. By default the sheet pads its top by the
+ * part of the status bar it overlaps. A sheet tall enough to reach the status bar then changes
+ * height with its own position, re-anchors, moves, and twitches up and down without end, even with
+ * no finger on it. [ReaderSheetContent] keeps the sheet below the status bar instead.
+ */
+val ReaderSheetInsets: WindowInsets
+    @Composable get() = WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
+
+/**
+ * The content of a sheet that uses [ReaderSheetInsets], capped so the sheet never reaches the status
+ * bar. The status bar counts even while the reader hides it, so the cap doesn't change when the bars
+ * come and go. Taller content scrolls inside.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ReaderSheetContent(content: @Composable ColumnScope.() -> Unit) {
+    val density = LocalDensity.current
+    val windowHeight = with(density) { LocalWindowInfo.current.containerSize.height.toDp() }
+    val topInset = with(density) { WindowInsets.statusBarsIgnoringVisibility.getTop(this).toDp() }
+    val bottomInset = with(density) { WindowInsets.safeDrawing.getBottom(this).toDp() }
+    val maxHeight = (windowHeight - topInset - bottomInset - SheetTopRoom).coerceAtLeast(200.dp)
+    Column(Modifier.fillMaxWidth().heightIn(max = maxHeight), content = content)
 }
