@@ -130,8 +130,15 @@ class NovelReaderViewModel(
     var saveForTitle by mutableStateOf(false)
         private set
 
+    /** The sheet changed something; the title's saved overrides, read late, must not undo it. */
+    private var settingsTouched = false
+
+    /** Title override writes, one at a time in the order they were made. */
+    private val titleWrites = Mutex()
+
     private suspend fun initSettings() {
         val prefs = dao.getTitlePrefs(sourceId, titleId) ?: return
+        if (settingsTouched) return
         if (prefs.novelFontSize == null && prefs.novelTheme == null && prefs.novelPaged == null) return
         saveForTitle = true
         settings = settings.withTitleOverrides(prefs).clamped()
@@ -152,18 +159,21 @@ class NovelReaderViewModel(
 
     private fun saveTitleOverrides(s: NovelReaderSettings?) {
         viewModelScope.launch {
-            val base = dao.getTitlePrefs(sourceId, titleId)
-            if (base == null && s == null) return@launch
-            val row = base ?: TitlePrefsEntity(sourceId = sourceId, titleId = titleId)
-            dao.upsertTitlePrefs(
-                row.copy(novelFontSize = s?.fontSize, novelTheme = s?.theme?.ordinal, novelPaged = s?.paged),
-            )
+            titleWrites.withLock {
+                val base = dao.getTitlePrefs(sourceId, titleId)
+                if (base == null && s == null) return@withLock
+                val row = base ?: TitlePrefsEntity(sourceId = sourceId, titleId = titleId)
+                dao.upsertTitlePrefs(
+                    row.copy(novelFontSize = s?.fontSize, novelTheme = s?.theme?.ordinal, novelPaged = s?.paged),
+                )
+            }
         }
     }
 
     /** Live edit from the sheet (slider drag); [commit] also writes it as the new default (or title override). */
     fun updateSettings(next: NovelReaderSettings, commit: Boolean) {
         val clean = next.clamped()
+        settingsTouched = true
         settings = clean
         if (!commit) return
         if (saveForTitle) {
@@ -179,6 +189,7 @@ class NovelReaderViewModel(
     /** Switch "Save for this title": keeps the current size, theme and page mode for it, or drops them. */
     fun changeSaveForTitle(on: Boolean) {
         if (on == saveForTitle) return
+        settingsTouched = true
         saveForTitle = on
         if (on) {
             saveTitleOverrides(settings)
@@ -190,6 +201,7 @@ class NovelReaderViewModel(
 
     /** Every text reader setting back to its default, saved; this title's overrides are dropped too. */
     fun resetSettings() {
+        settingsTouched = true
         saveForTitle = false
         saveTitleOverrides(null)
         globalSettings = NovelReaderSettings()
