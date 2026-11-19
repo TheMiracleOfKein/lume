@@ -8,12 +8,16 @@ import com.lume.app.data.db.ChapterProgressEntity
 import com.lume.app.data.db.TitlePrefsEntity
 import com.lume.app.data.prefs.NovelReaderSettings
 import com.lume.app.data.prefs.NovelTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -46,13 +50,29 @@ class NovelReaderViewModelTest {
             append("Chapter 3\n\nThird one.\n\nThird two.\n\n")
         }
         File(dir, "Book.txt").writeText(text)
-        runBlocking {
+        // Off the main thread while the main looper keeps running: DataStore runs an edit's change
+        // in its caller's context, so an edit the last test's view model left queued on the main
+        // thread must get to finish first. runBlocking on the main thread would wait on it forever.
+        val seed = CoroutineScope(Dispatchers.IO).launch {
             app.sources.load()
             app.prefs.setIncognito(false)
             // The preferences file outlives a test: start from the defaults.
             app.prefs.setNovelReaderSettings(NovelReaderSettings())
         }
+        awaitUntil(what = "seeded") { seed.isCompleted }
         awaitUntil(what = "default text settings") { app.prefs.novelReaderSettings.value == NovelReaderSettings() }
+    }
+
+    /**
+     * Lets the preference edits a view model queued finish inside this test. Robolectric drops the
+     * main looper's queue between tests, and an edit whose change was due to run there would
+     * block the shared preferences file for every later test. Edits run in order, so once this
+     * last one is through, the earlier ones are too.
+     */
+    @After
+    fun drainPreferenceEdits() {
+        val last = CoroutineScope(Dispatchers.IO).launch { app.prefs.setIncognito(false) }
+        awaitUntil(what = "preference edits") { last.isCompleted }
     }
 
     private fun open(
