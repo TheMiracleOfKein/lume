@@ -14,9 +14,7 @@ import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
-import com.lume.app.ui.components.ReaderSheetContent
-import com.lume.app.ui.components.ReaderSheetInsets
+import com.lume.app.ui.components.LumeBottomSheet
 import com.lume.app.ui.components.rememberEasyDismissSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -172,11 +170,7 @@ fun NovelReaderScreen(
 
     if (settingsOpen) {
         val sheetState = rememberEasyDismissSheetState()
-        ModalBottomSheet(
-            onDismissRequest = { settingsOpen = false },
-            sheetState = sheetState,
-            contentWindowInsets = { ReaderSheetInsets },
-        ) { ReaderSheetContent {
+        LumeBottomSheet(onDismissRequest = { settingsOpen = false }, sheetState = sheetState) {
             NovelReaderSettingsSheet(
                 settings = settings,
                 onClose = { scope.launch { sheetState.hide() }.invokeOnCompletion { settingsOpen = false } },
@@ -186,15 +180,11 @@ fun NovelReaderScreen(
                 saveForTitle = vm.saveForTitle,
                 onSaveForTitleChange = vm::changeSaveForTitle,
             )
-        } }
+        }
     }
     if (chaptersOpen) {
         val sheetState = rememberEasyDismissSheetState()
-        ModalBottomSheet(
-            onDismissRequest = { chaptersOpen = false },
-            sheetState = sheetState,
-            contentWindowInsets = { ReaderSheetInsets },
-        ) { ReaderSheetContent {
+        LumeBottomSheet(onDismissRequest = { chaptersOpen = false }, sheetState = sheetState) {
             NovelChapterList(
                 chapters = vm.chapters,
                 currentId = vm.currentChapterId,
@@ -204,7 +194,7 @@ fun NovelReaderScreen(
                 },
                 onClose = { scope.launch { sheetState.hide() }.invokeOnCompletion { chaptersOpen = false } },
             )
-        } }
+        }
     }
 }
 

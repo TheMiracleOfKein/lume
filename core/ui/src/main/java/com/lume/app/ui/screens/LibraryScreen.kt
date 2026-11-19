@@ -57,12 +57,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
+import com.lume.app.ui.components.LumeBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -240,11 +239,7 @@ fun LibraryScreen(nav: NavHostController) {
     }
 
     if (sheetOpen) {
-        ModalBottomSheet(
-            onDismissRequest = { sheetOpen = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = AppColors.surface,
-        ) {
+        LumeBottomSheet(onDismissRequest = { sheetOpen = false }, containerColor = AppColors.surface) {
             val genres by vm.genreOptions.collectAsState()
             LibrarySheet(settings = settings, genres = genres, onChange = vm::updateSettings)
         }
