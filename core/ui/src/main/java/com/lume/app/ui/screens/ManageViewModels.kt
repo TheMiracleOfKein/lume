@@ -503,7 +503,8 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
     val trackerImportStatus = app.trackerListImport.status
 
     fun importTrackerList(trackerId: String) {
-        if (!app.trackerListImport.start(trackerId)) statusMessage = string(R.string.tracker_import_busy)
+        // The import follows the reading mode: Comics imports comics, Ranobe imports novels.
+        if (!app.trackerListImport.start(trackerId, app.prefs.activeMode.value)) statusMessage = string(R.string.tracker_import_busy)
     }
 
     fun cancelTrackerImport() = app.trackerListImport.cancel()

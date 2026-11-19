@@ -628,6 +628,8 @@ private fun TrackersDialog(
     val resources = LocalResources.current
     val container = LocalAppContainer.current
     val trackers = container.trackers.all
+    // Novels are searched and linked on the trackers' novel lists.
+    val kind = remember(sourceId) { container.titles.kindOf(sourceId) ?: com.lume.app.domain.MediaKind.Comics }
     var selectedTrackerId by rememberSaveable { mutableStateOf(trackers.first().id) }
     val selectedTracker = trackers.firstOrNull { it.id == selectedTrackerId } ?: trackers.first()
     var query by rememberSaveable { mutableStateOf(titleName) }
@@ -839,7 +841,7 @@ private fun TrackersDialog(
                             loading = true
                             message = null
                             isError = false
-                            results = runCatching { selectedTracker.search(query) }
+                            results = runCatching { selectedTracker.search(query, kind) }
                                 .onFailure {
                                     isError = true
                                     message = it.message
@@ -878,6 +880,7 @@ private fun TrackersDialog(
                                         titleId,
                                         item.remoteId,
                                         item.url,
+                                        kind,
                                     )
                                     isError = false
                                     message = resources.getString(R.string.tracker_linked_with, item.title)
@@ -901,7 +904,7 @@ private fun TrackersDialog(
                         val id = manualId.trim()
                         if (id.isEmpty()) return@TextButton
                         scope.launch {
-                            selectedTracker.link(sourceId, titleId, id)
+                            selectedTracker.link(sourceId, titleId, id, kind = kind)
                             isError = false
                             message = resources.getString(R.string.tracker_linked, id)
                         }
