@@ -50,6 +50,8 @@ internal fun NovelReaderSettingsSheet(
     /** A finished edit: becomes the new default. */
     onCommit: (NovelReaderSettings) -> Unit,
     onReset: () -> Unit,
+    saveForTitle: Boolean,
+    onSaveForTitleChange: (Boolean) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -61,6 +63,12 @@ internal fun NovelReaderSettingsSheet(
         Spacer(Modifier.height(8.dp))
         NovelReaderSettingsControls(settings, onChange, onCommit)
         Spacer(Modifier.height(8.dp))
+        SwitchRow(
+            label = stringResource(R.string.reader_save_for_title),
+            hint = stringResource(R.string.novel_save_for_title_hint),
+            checked = saveForTitle,
+            onCheckedChange = onSaveForTitleChange,
+        )
         ResetReaderSettingsButton(onConfirm = onReset)
     }
 }

@@ -60,6 +60,7 @@ class LibraryRepository(
         val defaultCategory = prefs.defaultCategoryId.value
             ?.takeIf { id -> dao.allCategories().any { it.id == id } }
         val known = titles.cached(sourceId, titleId)
+        val kind = titles.kindOf(sourceId) ?: com.lume.app.domain.MediaKind.Comics
         dao.upsertBookmark(
             BookmarkEntity(
                 sourceId = sourceId,
@@ -69,7 +70,7 @@ class LibraryRepository(
                 typeLabel = typeLabel,
                 categoryIdsJson = encodeCategoryIds(setOfNotNull(defaultCategory)),
                 genresJson = encodeGenres(known?.details?.genres.orEmpty()),
-                mediaKind = (titles.kindOf(sourceId) ?: com.lume.app.domain.MediaKind.Comics).id,
+                mediaKind = kind.id,
             ),
         )
         // Know the chapters right away: unread counts work and the next check only reports new ones.
@@ -77,7 +78,7 @@ class LibraryRepository(
         if (!discover) return
         // Signed-in trackers link the title when they find it under the same name.
         val names = listOfNotNull(titleName, known?.details?.altTitle)
-        appScope.launch(Dispatchers.IO) { runCatching { trackerSync.autoLink(sourceId, titleId, names) } }
+        appScope.launch(Dispatchers.IO) { runCatching { trackerSync.autoLink(sourceId, titleId, names, kind) } }
         // "Also on …": look for the title on the other sources.
         appScope.launch(Dispatchers.IO) { runCatching { titleSources.suggest(sourceId, titleId) } }
     }

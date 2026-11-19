@@ -284,6 +284,7 @@ class SyncRepository(
                     TitlePrefsDto(
                         it.sourceId, it.titleId, it.readerMode, it.readerTheme, it.gap, it.chapterFilter,
                         it.chapterSortAsc, it.branch, it.showDuplicates, it.autoDownload,
+                        it.novelFontSize, it.novelTheme, it.novelPaged,
                     ),
                 )
             },
@@ -426,6 +427,9 @@ class SyncRepository(
                             branch = it.branch,
                             showDuplicates = it.showDuplicates,
                             autoDownload = it.autoDownload,
+                            novelFontSize = it.novelFontSize,
+                            novelTheme = it.novelTheme,
+                            novelPaged = it.novelPaged,
                         ),
                     )
                 }

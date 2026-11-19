@@ -194,6 +194,9 @@ data class TitlePrefsDto(
     val branch: String? = null,
     val showDuplicates: Boolean = false,
     val autoDownload: Boolean = false,
+    val novelFontSize: Int? = null,
+    val novelTheme: Int? = null,
+    val novelPaged: Boolean? = null,
 )
 
 @Serializable
@@ -347,6 +350,9 @@ class BackupRepository(
                     branch = it.branch,
                     showDuplicates = it.showDuplicates,
                     autoDownload = it.autoDownload,
+                    novelFontSize = it.novelFontSize,
+                    novelTheme = it.novelTheme,
+                    novelPaged = it.novelPaged,
                 )
             },
             trackerLinks = dao.allTrackerLinks().map {
@@ -772,6 +778,9 @@ class BackupRepository(
                     branch = t.branch,
                     showDuplicates = t.showDuplicates,
                     autoDownload = t.autoDownload,
+                    novelFontSize = t.novelFontSize,
+                    novelTheme = t.novelTheme,
+                    novelPaged = t.novelPaged,
                 ),
             )
         }

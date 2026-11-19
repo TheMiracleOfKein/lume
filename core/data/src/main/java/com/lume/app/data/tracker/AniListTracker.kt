@@ -18,6 +18,15 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
+/**
+ * The search request body. Novels are the `NOVEL` format of the MANGA type; comics leave it out.
+ * [escapedSearch] is the search text already encoded as a JSON string.
+ */
+internal fun aniListSearchBody(kind: MediaKind, escapedSearch: String): String {
+    val format = if (kind == MediaKind.Novel) "format_in:[NOVEL]" else "format_not_in:[NOVEL]"
+    return """{"query":"query (${'$'}search:String){Page(perPage:10){media(search:${'$'}search,type:MANGA,$format){id title{romaji english native} synonyms siteUrl coverImage{large}}}}","variables":{"search":$escapedSearch}}"""
+}
+
 class AniListTracker(
     private val http: AppHttp,
     private val dao: LibraryDao,
@@ -91,14 +100,14 @@ class AniListTracker(
     override val supportsListImport: Boolean get() = true
 
     override suspend fun fetchReadingList(kind: MediaKind): List<TrackerListEntry>? = withContext(Dispatchers.IO) {
-        if (kind != MediaKind.Comics) return@withContext null
+        if (kind != MediaKind.Comics && kind != MediaKind.Novel) return@withContext null
         val token = prefs.anilistAccessToken.first() ?: return@withContext null
         val viewer = rawGraphql("""{"query":"query{Viewer{id}}"}""", token) ?: return@withContext null
         val userId = parseAniListViewerId(json, viewer) ?: return@withContext null
         val body =
-            """{"query":"query(${'$'}userId:Int){MediaListCollection(userId:${'$'}userId,type:MANGA,status:CURRENT){lists{entries{progress score(format:POINT_10_DECIMAL) media{id title{romaji english native} synonyms siteUrl coverImage{large} staff(perPage:3){nodes{name{full}}}}}}}}","variables":{"userId":$userId}}"""
+            """{"query":"query(${'$'}userId:Int){MediaListCollection(userId:${'$'}userId,type:MANGA,status:CURRENT){lists{entries{progress score(format:POINT_10_DECIMAL) media{id format title{romaji english native} synonyms siteUrl coverImage{large} staff(perPage:3){nodes{name{full}}}}}}}}","variables":{"userId":$userId}}"""
         val text = rawGraphql(body, token) ?: return@withContext null
-        runCatching { parseAniListReadingList(json, text) }.getOrNull()
+        runCatching { parseAniListReadingList(json, text, kind) }.getOrNull()
     }
 
     /** The raw answer text of a GraphQL call, or null when it failed. */
@@ -159,10 +168,8 @@ class AniListTracker(
 
     override suspend fun search(query: String, kind: MediaKind): List<TrackerSearchResult> = withContext(Dispatchers.IO) {
         val q = query.trim()
-        if (q.isEmpty() || kind != MediaKind.Comics) return@withContext emptyList()
-        val escaped = json.encodeToString(q)
-        val body =
-            """{"query":"query (${'$'}search:String){Page(perPage:10){media(search:${'$'}search,type:MANGA){id title{romaji english native} synonyms siteUrl coverImage{large}}}}","variables":{"search":$escaped}}"""
+        if (q.isEmpty() || (kind != MediaKind.Comics && kind != MediaKind.Novel)) return@withContext emptyList()
+        val body = aniListSearchBody(kind, json.encodeToString(q))
         val request = Request.Builder()
             .url("https://graphql.anilist.co")
             .post(body.toRequestBody("application/json".toMediaType()))
@@ -207,7 +214,7 @@ class AniListTracker(
         remoteUrl: String?,
         kind: MediaKind,
     ) {
-        if (kind != MediaKind.Comics) return
+        if (kind != MediaKind.Comics && kind != MediaKind.Novel) return
         dao.upsertTrackerLink(
             TrackerLinkEntity(
                 sourceId = sourceId,

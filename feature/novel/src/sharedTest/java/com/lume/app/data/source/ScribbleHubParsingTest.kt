@@ -3,16 +3,13 @@ package com.lume.app.data.source
 import com.lume.app.data.network.AppHttp
 import com.lume.app.domain.MediaKind
 import com.lume.app.domain.NovelSource
-import com.lume.app.domain.SourceManifest
 import com.lume.app.testing.Fixtures
-import kotlinx.serialization.json.Json
 import okhttp3.CookieJar
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
 
 /**
  * Pages saved from scribblehub.com (fixtures/scribblehub), trimmed of scripts. The chapter's
@@ -20,8 +17,7 @@ import java.io.File
  * finder without a query (no results).
  */
 class ScribbleHubParsingTest {
-    private val manifest = Json { ignoreUnknownKeys = true }
-        .decodeFromString(SourceManifest.serializer(), File("src/main/assets/sources/scribblehub.json").readText())
+    private val manifest = Fixtures.manifest("scribblehub")
     private val engine = ScribbleHubEngine(manifest, AppHttp(CookieJar.NO_COOKIES))
 
     @Test

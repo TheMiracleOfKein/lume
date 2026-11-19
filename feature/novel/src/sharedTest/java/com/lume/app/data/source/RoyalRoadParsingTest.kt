@@ -3,21 +3,17 @@ package com.lume.app.data.source
 import com.lume.app.data.network.AppHttp
 import com.lume.app.domain.MediaKind
 import com.lume.app.domain.NovelSource
-import com.lume.app.domain.SourceManifest
 import com.lume.app.testing.Fixtures
-import kotlinx.serialization.json.Json
 import okhttp3.CookieJar
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
 
 /** Pages saved from royalroad.com (fixtures/royalroad), trimmed of scripts and most chapter text. */
 class RoyalRoadParsingTest {
-    private val manifest = Json { ignoreUnknownKeys = true }
-        .decodeFromString(SourceManifest.serializer(), File("src/main/assets/sources/royalroad.json").readText())
+    private val manifest = Fixtures.manifest("royalroad")
     private val engine = RoyalRoadEngine(manifest, AppHttp(CookieJar.NO_COOKIES))
 
     @Test

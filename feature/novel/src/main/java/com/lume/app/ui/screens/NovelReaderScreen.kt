@@ -177,6 +177,8 @@ fun NovelReaderScreen(
                 onChange = { vm.updateSettings(it, commit = false) },
                 onCommit = { vm.updateSettings(it, commit = true) },
                 onReset = vm::resetSettings,
+                saveForTitle = vm.saveForTitle,
+                onSaveForTitleChange = vm::changeSaveForTitle,
             )
         }
     }

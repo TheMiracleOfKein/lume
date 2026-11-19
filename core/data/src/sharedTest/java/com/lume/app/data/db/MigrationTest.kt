@@ -290,6 +290,24 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate16To17AddsNullableNovelTitlePrefs() {
+        helper.createDatabase(dbName, 16).apply {
+            execSQL("INSERT INTO title_prefs (sourceId, titleId, readerMode, chapterFilter, chapterSortAsc, showDuplicates, autoDownload) VALUES ('s', 't', 2, 0, 0, 0, 0)")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(dbName, 17, true, LumeDatabase.MIGRATION_16_17)
+
+        db.query("SELECT readerMode, novelFontSize, novelTheme, novelPaged FROM title_prefs").use {
+            it.moveToFirst()
+            assertEquals(2, it.getInt(0))
+            assertTrue(it.isNull(1))
+            assertTrue(it.isNull(2))
+            assertTrue(it.isNull(3))
+        }
+    }
+
+    @Test
     fun freshDatabaseOpensWithAllMigrations() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         helper.createDatabase(dbName, 7).close()

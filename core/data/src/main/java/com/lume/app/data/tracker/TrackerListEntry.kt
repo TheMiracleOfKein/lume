@@ -1,6 +1,7 @@
 package com.lume.app.data.tracker
 
 import com.lume.app.domain.Chapter
+import com.lume.app.domain.MediaKind
 import com.lume.app.domain.TitleDetails
 import com.lume.app.domain.TitleMatch
 import com.lume.app.domain.chapterSortKey
@@ -42,7 +43,7 @@ fun parseAniListViewerId(json: Json, text: String): Long? =
  * Reads a `MediaListCollection` answer (all lists of one status). A title in several lists
  * (custom lists) is kept once.
  */
-fun parseAniListReadingList(json: Json, text: String): List<TrackerListEntry> {
+fun parseAniListReadingList(json: Json, text: String, kind: MediaKind = MediaKind.Comics): List<TrackerListEntry> {
     val data = json.parseToJsonElement(text).jsonObject["data"] as? JsonObject ?: return emptyList()
     val lists = (data["MediaListCollection"] as? JsonObject)?.get("lists") as? JsonArray ?: return emptyList()
     val seen = HashSet<String>()
@@ -53,6 +54,8 @@ fun parseAniListReadingList(json: Json, text: String): List<TrackerListEntry> {
             val entry = el as? JsonObject ?: continue
             val media = entry["media"] as? JsonObject ?: continue
             val id = media["id"].number()?.toLongOrNull()?.toString() ?: continue
+            // Novels and comics share AniList's MANGA lists; the format tells them apart.
+            if ((media["format"].text() == "NOVEL") != (kind == MediaKind.Novel)) continue
             val titles = media["title"] as? JsonObject
             val names = listOf("english", "romaji", "native").mapNotNull { titles?.get(it).text() }
             val title = names.firstOrNull() ?: continue
@@ -79,13 +82,18 @@ fun parseAniListReadingList(json: Json, text: String): List<TrackerListEntry> {
 }
 
 /** Reads one page of MyAnimeList's `mangalist`: its entries and the link to the next page, if any. */
-fun parseMalReadingList(json: Json, text: String): Pair<List<TrackerListEntry>, String?> {
+fun parseMalReadingList(
+    json: Json,
+    text: String,
+    kind: MediaKind = MediaKind.Comics,
+): Pair<List<TrackerListEntry>, String?> {
     val root = json.parseToJsonElement(text).jsonObject
     val data = root["data"] as? JsonArray ?: return emptyList<TrackerListEntry>() to null
     val next = (root["paging"] as? JsonObject)?.get("next").text()
     val entries = data.mapNotNull { el ->
         val item = el as? JsonObject ?: return@mapNotNull null
         val node = item["node"] as? JsonObject ?: return@mapNotNull null
+        if (isMalNovel(node["media_type"].text()) != (kind == MediaKind.Novel)) return@mapNotNull null
         val id = node["id"].number() ?: return@mapNotNull null
         val title = node["title"].text() ?: return@mapNotNull null
         val alt = node["alternative_titles"] as? JsonObject
@@ -112,6 +120,84 @@ fun parseMalReadingList(json: Json, text: String): Pair<List<TrackerListEntry>, 
         )
     }
     return entries to next
+}
+
+/** MyAnimeList keeps light novels and novels in its manga lists; this is their `media_type`. */
+fun isMalNovel(mediaType: String?): Boolean = mediaType == "light_novel" || mediaType == "novel"
+
+/** Reads a MyAnimeList `/manga` search answer, keeping the titles of [kind]. */
+fun parseMalSearch(json: Json, text: String, kind: MediaKind): List<TrackerSearchResult> {
+    val data = json.parseToJsonElement(text).jsonObject["data"] as? JsonArray ?: return emptyList()
+    return data.mapNotNull { el ->
+        val node = (el as? JsonObject)?.get("node") as? JsonObject ?: return@mapNotNull null
+        if (isMalNovel(node["media_type"].text()) != (kind == MediaKind.Novel)) return@mapNotNull null
+        val mangaId = node["id"].number() ?: return@mapNotNull null
+        val alt = node["alternative_titles"] as? JsonObject
+        TrackerSearchResult(
+            remoteId = mangaId,
+            title = node["title"].text() ?: return@mapNotNull null,
+            url = "https://myanimelist.net/manga/$mangaId",
+            coverUrl = (node["main_picture"] as? JsonObject)?.get("medium").text(),
+            altTitles = listOfNotNull(alt?.get("en").text(), alt?.get("ja").text()) +
+                (alt?.get("synonyms") as? JsonArray).orEmpty().mapNotNull { it.text() },
+        )
+    }
+}
+
+/** Shikimori's search request: novels are under `/ranobe`, comics under `/mangas`. */
+fun shikimoriSearchUrl(apiUrl: String, kind: MediaKind, encodedQuery: String): String =
+    "$apiUrl/${if (kind == MediaKind.Novel) "ranobe" else "mangas"}?search=$encodedQuery&limit=10"
+
+/** Reads a Shikimori `/mangas` or `/ranobe` search answer. */
+fun parseShikimoriSearch(json: Json, text: String, kind: MediaKind, baseUrl: String): List<TrackerSearchResult> {
+    val arr = json.parseToJsonElement(text) as? JsonArray ?: return emptyList()
+    val section = if (kind == MediaKind.Novel) "ranobe" else "mangas"
+    return arr.mapNotNull { el ->
+        val obj = el as? JsonObject ?: return@mapNotNull null
+        val id = obj["id"].number() ?: return@mapNotNull null
+        val name = obj["name"].text()
+        val russian = obj["russian"].text()
+        val image = (obj["image"] as? JsonObject)?.get("original").text()
+        TrackerSearchResult(
+            remoteId = id,
+            title = russian ?: name ?: return@mapNotNull null,
+            url = "$baseUrl/$section/$id",
+            coverUrl = image?.let { if (it.startsWith("http")) it else "$baseUrl$it" },
+            altTitles = listOfNotNull(name, russian),
+        )
+    }
+}
+
+/** Shikimori's `kind` of a manga-like title that is a ranobe. */
+fun isShikimoriRanobe(kind: String?): Boolean = kind == "novel" || kind == "light_novel"
+
+/**
+ * Reads Shikimori's `/users/:id/manga_rates` answer (manga and ranobe together), keeping the
+ * titles of [kind]. [baseUrl] is the site host the title links point to.
+ */
+fun parseShikimoriReadingList(json: Json, text: String, kind: MediaKind, baseUrl: String): List<TrackerListEntry> {
+    val rates = json.parseToJsonElement(text) as? JsonArray ?: return emptyList()
+    return rates.mapNotNull { el ->
+        val rate = el as? JsonObject ?: return@mapNotNull null
+        val manga = rate["manga"] as? JsonObject ?: return@mapNotNull null
+        if (isShikimoriRanobe(manga["kind"].text()) != (kind == MediaKind.Novel)) return@mapNotNull null
+        val id = manga["id"].number() ?: return@mapNotNull null
+        val name = manga["name"].text()
+        val russian = manga["russian"].text()
+        val title = russian ?: name ?: return@mapNotNull null
+        val image = (manga["image"] as? JsonObject)?.get("original").text()
+        val section = if (kind == MediaKind.Novel) "ranobe" else "mangas"
+        TrackerListEntry(
+            remoteId = id,
+            title = title,
+            altTitles = listOfNotNull(name, russian).filter { normalName(it) != normalName(title) }
+                .distinctBy { normalName(it) },
+            coverUrl = image?.let { if (it.startsWith("http")) it else "$baseUrl$it" },
+            url = "$baseUrl/$section/$id",
+            chaptersRead = rate["chapters"].number()?.toIntOrNull() ?: 0,
+            score = rate["score"].number()?.toFloatOrNull()?.takeIf { it > 0f },
+        )
+    }
 }
 
 /** What "Found for you" searches with: the entry's names and authors as a title. */

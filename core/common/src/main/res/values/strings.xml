@@ -215,6 +215,7 @@
     <string name="novel_justify">Justify text</string>
     <string name="novel_paged">Page by page</string>
     <string name="novel_paged_summary">Turn pages sideways instead of scrolling</string>
+    <string name="novel_save_for_title_hint">Text size, theme and page mode are kept for this title only</string>
     <string name="novel_theme">Reader theme</string>
     <string name="novel_theme_app">App</string>
     <string name="novel_theme_light">Light</string>
@@ -357,6 +358,11 @@
     <string name="error_http_server">%1$s server error (HTTP %2$d). Try again later.</string>
     <string name="error_source_login_required">%1$s shows chapters only to signed-in users. Sign in under Sources → %1$s.</string>
     <string name="error_http_generic" tools:ignore="PluralsCandidate">HTTP %1$d from %2$s</string>
+    <string name="error_network_offline">Can\'t reach the site. Check your internet connection and try again.</string>
+    <string name="error_network_timeout">The site took too long to answer. Try again.</string>
+    <string name="error_network_ssl">Couldn\'t make a secure connection to the site. Check the date and time on this phone and your network.</string>
+    <string name="error_chapter_unreadable">This chapter couldn\'t be read from the site. Its page may have changed; try again later or update the app.</string>
+    <string name="error_generic">Something went wrong while loading. The full text is in the error log.</string>
     <string name="error_chapter_locked">This chapter is locked on %1$s (paid or early access).</string>
     <string name="error_inkstory_restricted">%1$s offers this title only to signed-in readers, library members or subscribers. It has no free chapters.</string>
     <string name="error_source_changed">%1$s has changed its pages and can\'t be read for now. The source needs an app update.</string>
@@ -525,6 +531,16 @@
     <string name="filter_sort_year">Year</string>
     <string name="filter_sort_chapters">Chapters</string>
     <string name="filter_sort_votes">Votes</string>
+    <string name="filter_sort_followers">Followers</string>
+    <string name="filter_sort_views">Views</string>
+    <string name="filter_sort_pages">Pages</string>
+    <string name="filter_sort_author">Author</string>
+    <string name="filter_sort_favorites">Favorites</string>
+    <string name="filter_sort_readers">Readers</string>
+    <string name="filter_sort_reviews">Reviews</string>
+    <string name="filter_sort_words">Total words</string>
+    <string name="filter_sort_added">Date added</string>
+    <string name="filter_sort_frequency">Chapters per week</string>
     <string name="filter_year_from">Released in or after (year)</string>
     <string name="filter_year">Release year</string>
     <string name="filter_author">Author</string>
@@ -536,6 +552,11 @@
     <string name="filter_status_completed">Completed</string>
     <string name="filter_status_hiatus">On hiatus</string>
     <string name="filter_status_cancelled">Cancelled</string>
+    <string name="filter_status_dropped">Dropped</string>
+    <string name="filter_status_inactive">Inactive</string>
+    <string name="filter_status_stub">Stub</string>
+    <string name="filter_type_original">Original</string>
+    <string name="filter_type_fanfiction">Fan fiction</string>
     <string name="filter_demographic">Audience</string>
     <string name="filter_none">Not set</string>
     <string name="filter_content_rating">Content rating</string>

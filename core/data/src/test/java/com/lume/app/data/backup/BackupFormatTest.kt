@@ -133,7 +133,7 @@ class BackupFormatTest {
             ProgressEntityDto: sourceId, titleId, titleName, coverUrl?, typeLabel?, chapterId, chapterName, chapterUrl, pageIndex?, pageCount?, updatedAt?, pageOffset?, mediaKind?
             CategoryEntityDto: id?, name, sortOrder?
             SourcePackDto: id, json, installedAt?
-            TitlePrefsDto: sourceId, titleId, readerMode?, readerTheme?, gap?, chapterFilter?, chapterSortAsc?, branch?, showDuplicates?, autoDownload?
+            TitlePrefsDto: sourceId, titleId, readerMode?, readerTheme?, gap?, chapterFilter?, chapterSortAsc?, branch?, showDuplicates?, autoDownload?, novelFontSize?, novelTheme?, novelPaged?
             TrackerLinkDto: sourceId, titleId, tracker, remoteId, remoteUrl?, status?, score?, lastSync?
             ChapterProgressDto: sourceId, titleId, chapterId, pageIndex?, pageOffset?, pageCount?, completed?, pageAspectsJson?, updatedAt?
             PageBookmarkDto: sourceId, titleId, chapterId, chapterName, pageIndex, pageOffset?, pageImageUrl?, note?, createdAt?

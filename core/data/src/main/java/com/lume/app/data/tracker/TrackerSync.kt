@@ -8,6 +8,7 @@ import com.lume.app.data.db.ProgressEntity
 import com.lume.app.data.network.AppHttp
 import com.lume.app.data.prefs.AppPreferences
 import com.lume.app.domain.Chapter
+import com.lume.app.domain.MediaKind
 
 class TrackerRegistry(
     http: AppHttp,
@@ -34,15 +35,20 @@ class TrackerSync(
      * Adding a title to the library: every signed-in tracker without a link gets one when its
      * search finds the title under exactly the same name. Nothing is guessed.
      */
-    suspend fun autoLink(sourceId: String, titleId: String, names: List<String>) {
+    suspend fun autoLink(
+        sourceId: String,
+        titleId: String,
+        names: List<String>,
+        kind: MediaKind = MediaKind.Comics,
+    ) {
         if (prefs?.trackerAutoLink?.value == false) return
         val query = names.firstOrNull { it.isNotBlank() } ?: return
         val linked = dao.getTrackerLinks(sourceId, titleId).map { it.tracker }.toSet()
         for (tracker in trackers.all) {
             if (tracker.id in linked || !runCatching { tracker.isLoggedIn() }.getOrDefault(false)) continue
-            val results = runCatching { tracker.search(query) }.getOrDefault(emptyList())
+            val results = runCatching { tracker.search(query, kind) }.getOrDefault(emptyList())
             val match = exactMatch(names, results) ?: continue
-            runCatching { tracker.link(sourceId, titleId, match.remoteId, match.url) }
+            runCatching { tracker.link(sourceId, titleId, match.remoteId, match.url, kind) }
         }
     }
 

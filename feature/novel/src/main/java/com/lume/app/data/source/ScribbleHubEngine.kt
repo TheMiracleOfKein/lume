@@ -9,6 +9,7 @@ import com.lume.app.domain.NovelChapter
 import com.lume.app.domain.NovelSource
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
+import com.lume.app.domain.SourceFilter
 import com.lume.app.domain.SourceLinks
 import com.lume.app.domain.SourceManifest
 import com.lume.app.domain.TitleDetails
@@ -39,9 +40,114 @@ class ScribbleHubEngine(
 
     override suspend fun getLatest(page: Int): PagedResult<TitleSummary> = list("/latest-series/", page)
 
+    private val siteFilters = SiteFilters(::fetchFilters)
+
+    override fun getFilters(): FilterList = FilterList(
+        listOf(
+            SourceFilter.Sort(
+                id = SORT,
+                name = appString(R.string.filter_sort),
+                options = SORT_VALUES,
+                labels = listOf(
+                    appString(R.string.filter_sort_views),
+                    appString(R.string.filter_sort_rating),
+                    appString(R.string.filter_sort_latest),
+                    appString(R.string.filter_sort_added),
+                    appString(R.string.filter_sort_favorites),
+                    appString(R.string.filter_sort_readers),
+                    appString(R.string.filter_sort_reviews),
+                    appString(R.string.filter_sort_votes),
+                    appString(R.string.filter_sort_chapters),
+                    appString(R.string.filter_sort_frequency),
+                    appString(R.string.filter_sort_pages),
+                    appString(R.string.filter_sort_words),
+                ),
+            ),
+            SourceFilter.Select(
+                id = STATUS,
+                name = appString(R.string.filter_status),
+                options = listOf("", "ongoing", "completed", "hiatus"),
+                labels = listOf(
+                    appString(R.string.filter_any),
+                    appString(R.string.filter_status_ongoing),
+                    appString(R.string.filter_status_completed),
+                    appString(R.string.filter_status_hiatus),
+                ),
+            ),
+            matchFilter(),
+            SourceFilter.Group(
+                GENRES,
+                appString(R.string.filter_genres),
+                GENRE_IDS.map { (id, name) -> SourceFilter.TriState("$GENRES:$id", name) },
+            ),
+        ),
+    )
+
+    override suspend fun loadFilters(): FilterList = siteFilters.get(::getFilters)
+
+    /** The base filters plus the site's tag list, read from the series finder form. */
+    private suspend fun fetchFilters(): FilterList {
+        val tags = parseTags(fetch("/series-finder/"))
+        if (tags.isEmpty()) throw SourceFetchException("Scribble Hub: no tags")
+        return FilterList(getFilters().filters + SourceFilter.Group(TAGS, appString(R.string.filter_tags), tags))
+    }
+
+    /** Tags of the finder's include list (`<option value="id">name</option>`). */
+    internal fun parseTags(body: String): List<SourceFilter.TriState> =
+        Jsoup.parse(body).select("select.tagsalledit_include option[value]").mapNotNull { option ->
+            val id = option.attr("value").trim().takeIf { it.isNotEmpty() && it.all(Char::isDigit) } ?: return@mapNotNull null
+            val name = option.text().trim().ifEmpty { return@mapNotNull null }
+            SourceFilter.TriState("$TAGS:$id", name)
+        }
+
+    private fun matchFilter() = SourceFilter.Select(
+        id = MATCH,
+        name = appString(R.string.filter_match),
+        options = listOf("or", "and"),
+        labels = listOf(appString(R.string.filter_match_any), appString(R.string.filter_match_all)),
+    )
+
     override suspend fun search(query: String, page: Int, filters: FilterList): PagedResult<TitleSummary> {
-        if (query.isBlank()) return getPopular(page)
-        return list("/series-finder/?sf=1&sh=${urlEncode(query.trim())}&order=desc&sort=ratings", page)
+        val path = searchPath(query, filters)
+        return if (path == null) getPopular(page) else list(path, page)
+    }
+
+    /**
+     * Series finder path for [query] and [filters] (without the page number), or null when there
+     * is neither text nor a filter set. A plain text search keeps its rating-sorted URL. Genre and
+     * tag ids go comma separated into `gi`/`tgi` (included) and `ge`/`tge` (excluded).
+     */
+    internal fun searchPath(query: String, filters: FilterList): String? {
+        val text = query.trim()
+        val genresIn = filters.included(GENRES).map { it.substringAfter(':') }
+        val genresOut = filters.excluded(GENRES).map { it.substringAfter(':') }
+        val tagsIn = filters.included(TAGS).map { it.substringAfter(':') }
+        val tagsOut = filters.excluded(TAGS).map { it.substringAfter(':') }
+        val status = filters.selected(STATUS).orEmpty()
+        val sort = filters.sort(SORT)
+        val customSort = sort != null && (sort.index != 0 || sort.ascending)
+        val any = genresIn.isNotEmpty() || genresOut.isNotEmpty() || tagsIn.isNotEmpty() || tagsOut.isNotEmpty() ||
+            status.isNotEmpty() || customSort
+        if (!any) {
+            if (text.isEmpty()) return null
+            return "/series-finder/?sf=1&sh=${urlEncode(text)}&order=desc&sort=ratings"
+        }
+        val params = arrayListOf("sf=1")
+        if (text.isNotEmpty()) params += "sh=${urlEncode(text)}"
+        if (genresIn.isNotEmpty()) {
+            params += "gi=${genresIn.joinToString(",")}"
+            if (filters.selected(MATCH) == "and") params += "mgi=and"
+        }
+        if (genresOut.isNotEmpty()) params += "ge=${genresOut.joinToString(",")}"
+        if (tagsIn.isNotEmpty()) {
+            params += "tgi=${tagsIn.joinToString(",")}"
+            if (filters.selected(MATCH) == "and") params += "mtgi=and"
+        }
+        if (tagsOut.isNotEmpty()) params += "tge=${tagsOut.joinToString(",")}"
+        if (status.isNotEmpty()) params += "cp=$status"
+        params += "sort=${sort?.selectedValue ?: SORT_VALUES.first()}"
+        params += "order=${if (sort?.ascending == true) "asc" else "desc"}"
+        return "/series-finder/?" + params.joinToString("&")
     }
 
     override suspend fun getTitle(id: String): TitleDetails = parseDetails(fetch(id), id)
@@ -149,6 +255,29 @@ class ScribbleHubEngine(
     }
 
     private companion object {
+        const val SORT = "sort"
+        const val STATUS = "status"
+        const val MATCH = "match"
+        const val GENRES = "genres"
+        const val TAGS = "tags"
+
+        /** `sort` values of the series finder; the first (pageviews) is the site's default. */
+        val SORT_VALUES = listOf(
+            "pageviews", "ratings", "lastchpdate", "dateadded", "favorites", "readers",
+            "reviews", "numofrate", "chapters", "frequency", "pages", "totalwords",
+        )
+
+        /** Genre ids and names from the series finder form. */
+        val GENRE_IDS = listOf(
+            "9" to "Action", "902" to "Adult", "8" to "Adventure", "891" to "Boys Love", "7" to "Comedy",
+            "903" to "Drama", "904" to "Ecchi", "38" to "Fanfiction", "19" to "Fantasy", "905" to "Gender Bender",
+            "892" to "Girls Love", "1015" to "Harem", "21" to "Historical", "22" to "Horror", "37" to "Isekai",
+            "906" to "Josei", "1180" to "LitRPG", "907" to "Martial Arts", "20" to "Mature", "908" to "Mecha",
+            "909" to "Mystery", "910" to "Psychological", "6" to "Romance", "911" to "School Life",
+            "912" to "Sci-fi", "913" to "Seinen", "914" to "Slice of Life", "915" to "Smut", "916" to "Sports",
+            "5" to "Supernatural", "901" to "Tragedy",
+        )
+
         val TITLE_PATH = Regex("""^/series/\d+/[^/?#]+/?""")
         val READ_PATH = Regex("""^/read/(\d+)-([^/?#]+)/chapter/""")
         val POST_ID = Regex("""/series/(\d+)/""")

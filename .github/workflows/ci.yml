@@ -50,6 +50,7 @@ jobs:
           path: |
             core/ui/src/test/screenshots/
             feature/comics/src/test/screenshots/
+            feature/novel/src/test/screenshots/
           if-no-files-found: ignore
 
       # The R8-shrunk release builds of every flavor (unsigned here), so a missing keep rule fails

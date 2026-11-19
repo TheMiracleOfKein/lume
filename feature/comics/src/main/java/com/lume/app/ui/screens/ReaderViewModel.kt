@@ -22,6 +22,7 @@ import com.lume.app.data.db.ReadingSessionEntity
 import com.lume.app.data.db.TitlePrefsEntity
 import com.lume.app.data.locale.appString
 import com.lume.app.data.prefs.ReaderSettings
+import com.lume.app.data.userMessage
 import com.lume.app.data.title.TitleLoad
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ChapterNeighbours
@@ -261,7 +262,8 @@ class ReaderViewModel(
                     app.http.requestChallenge(e.uri)
                     error = appString(R.string.error_cloudflare_needed)
                 } else {
-                    error = e.message ?: e.toString()
+                    app.errorLog.record(sourceId, e)
+                    error = e.userMessage()
                 }
             }
         }

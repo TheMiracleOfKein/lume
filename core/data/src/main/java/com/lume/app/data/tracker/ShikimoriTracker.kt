@@ -126,7 +126,9 @@ class ShikimoriTracker(
         }
     }
 
-    /** The user's rate for a manga; null when it is not in the list (or signed out). Throws on HTTP errors. */
+    /**
+     * The user's rate for a manga or ranobe (ranobe ids live in the same id space, and their rates
+     * are `Manga` rates); null when it is not in the list (or signed out). Throws on HTTP errors. */
     private suspend fun userRate(remoteId: String): kotlinx.serialization.json.JsonObject? {
         val token = prefs.shikimoriAccessToken.first() ?: return null
         val userId = ensureUserId(token) ?: return null
@@ -191,37 +193,45 @@ class ShikimoriTracker(
 
     override suspend fun search(query: String, kind: MediaKind): List<TrackerSearchResult> = withContext(Dispatchers.IO) {
         val q = query.trim()
-        if (q.isEmpty() || kind != MediaKind.Comics) return@withContext emptyList()
+        if (q.isEmpty() || (kind != MediaKind.Comics && kind != MediaKind.Novel)) return@withContext emptyList()
         val encoded = urlEncode(q)
         // shikimori.one/api… often 404; Mihon uses shikimori.io
         val result = http.get(
-            URI("$API_URL/mangas?search=$encoded&limit=10"),
+            URI(shikimoriSearchUrl(API_URL, kind, encoded)),
             checkCloudflare = false,
             headers = mapOf(
                 "User-Agent" to USER_AGENT,
                 "Accept" to "application/json",
             ),
         )
-        val arr = json.parseToJsonElement(result.body).jsonArray
-        arr.mapNotNull { el ->
-            val obj = el.jsonObject
-            val id = obj["id"]?.jsonPrimitive?.content ?: return@mapNotNull null
-            val name = obj["russian"]?.jsonPrimitive?.content
-                ?.takeIf { it.isNotBlank() }
-                ?: obj["name"]?.jsonPrimitive?.content
-                ?: return@mapNotNull null
-            val image = obj["image"]?.jsonObject?.get("original")?.jsonPrimitive?.content
-            TrackerSearchResult(
-                remoteId = id,
-                title = name,
-                url = "$BASE_URL/mangas/$id",
-                coverUrl = image?.let { if (it.startsWith("http")) it else "$BASE_URL$it" },
-                altTitles = listOfNotNull(
-                    obj["name"]?.jsonPrimitive?.content,
-                    obj["russian"]?.jsonPrimitive?.content,
-                ),
-            )
+        parseShikimoriSearch(json, result.body, kind, BASE_URL)
+    }
+
+    override val supportsListImport: Boolean get() = true
+
+    override suspend fun fetchReadingList(kind: MediaKind): List<TrackerListEntry>? {
+        if (kind != MediaKind.Comics && kind != MediaKind.Novel) return null
+        val token = prefs.shikimoriAccessToken.first() ?: return null
+        val userId = ensureUserId(token) ?: return null
+        val all = mutableListOf<TrackerListEntry>()
+        for (page in 1..MAX_LIST_PAGES) {
+            val text = authed(
+                build = { t ->
+                    Request.Builder()
+                        .url("$API_URL/users/$userId/manga_rates?status=watching&limit=$LIST_PAGE&page=$page")
+                        .get()
+                        .header("User-Agent", USER_AGENT)
+                        .header("Authorization", "Bearer $t")
+                        .header("Accept", "application/json")
+                        .build()
+                },
+                read = { response -> response.body.string().takeIf { response.isSuccessful } },
+            ) ?: return null
+            val rows = runCatching { json.parseToJsonElement(text).jsonArray.size }.getOrNull() ?: return null
+            all += runCatching { parseShikimoriReadingList(json, text, kind, BASE_URL) }.getOrNull() ?: return null
+            if (rows < LIST_PAGE) break
         }
+        return all
     }
 
     override suspend fun link(
@@ -231,14 +241,14 @@ class ShikimoriTracker(
         remoteUrl: String?,
         kind: MediaKind,
     ) {
-        if (kind != MediaKind.Comics) return
+        if (kind != MediaKind.Comics && kind != MediaKind.Novel) return
         dao.upsertTrackerLink(
             TrackerLinkEntity(
                 sourceId = sourceId,
                 titleId = titleId,
                 tracker = id,
                 remoteId = remoteId,
-                remoteUrl = remoteUrl ?: "$BASE_URL/mangas/$remoteId",
+                remoteUrl = remoteUrl ?: "$BASE_URL/${if (kind == MediaKind.Novel) "ranobe" else "mangas"}/$remoteId",
             ),
         )
     }
@@ -334,6 +344,8 @@ class ShikimoriTracker(
         const val BASE_URL = "https://shikimori.io"
         const val API_URL = "$BASE_URL/api"
         const val USER_AGENT = "Lume"
+        private const val LIST_PAGE = 1000
+        private const val MAX_LIST_PAGES = 5
         private val STATUS = StatusMap(
             listOf(
                 TrackStatus.Reading to "watching",

@@ -21,6 +21,7 @@ import com.lume.app.data.source.SourceEngines
 import com.lume.app.data.title.SourceCandidate
 import com.lume.app.data.title.SourceLookup
 import com.lume.app.data.locale.appString
+import com.lume.app.data.userMessage
 import com.lume.app.data.title.TitleLoad
 import com.lume.app.domain.AutoDownloadMode
 import com.lume.app.domain.Chapter
@@ -131,7 +132,7 @@ abstract class TitleBackedViewModel(
                             app.http.requestChallenge(e.uri)
                             error = appString(R.string.error_cloudflare_needed)
                         } else {
-                            error = e.message ?: appString(R.string.error_no_title_data)
+                            error = e.userMessage()
                         }
                     }
                 }

@@ -4,18 +4,15 @@ import com.lume.app.data.network.AppHttp
 import com.lume.app.domain.MediaKind
 import com.lume.app.domain.NovelSource
 import com.lume.app.domain.SourceFetchException
-import com.lume.app.domain.SourceManifest
-import kotlinx.serialization.json.Json
+import com.lume.app.testing.Fixtures
 import okhttp3.CookieJar
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
-import java.io.File
 
 class RanobeLibEngineTest {
-    private val manifest = Json { ignoreUnknownKeys = true }
-        .decodeFromString(SourceManifest.serializer(), File("src/main/assets/sources/ranobelib.json").readText())
+    private val manifest = Fixtures.manifest("ranobelib")
     private val engine = RanobeLibEngine(manifest, AppHttp(CookieJar.NO_COOKIES))
 
     @Test

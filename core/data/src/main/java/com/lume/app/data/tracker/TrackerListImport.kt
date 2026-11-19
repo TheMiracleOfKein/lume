@@ -8,6 +8,7 @@ import com.lume.app.data.library.LibraryRepository
 import com.lume.app.data.source.SourceRegistry
 import com.lume.app.data.title.TitleRepository
 import com.lume.app.data.title.TitleSourceRepository
+import com.lume.app.domain.MediaKind
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -80,18 +81,18 @@ class TrackerListImport(
     private var job: Job? = null
 
     /** Starts importing [trackerId]'s list. False when an import is already running. */
-    fun start(trackerId: String): Boolean {
+    fun start(trackerId: String, kind: MediaKind = MediaKind.Comics): Boolean {
         val tracker = trackers.byId(trackerId)?.takeIf { it.supportsListImport } ?: return false
         if (_status.value?.running == true) return false
         _status.value = TrackerImportStatus(tracker.id, tracker.displayName, TrackerImportStage.Fetching)
         job = scope.launch {
             try {
-                val entries = withContext(Dispatchers.IO) { withTimeout(FETCH_TIMEOUT_MS) { tracker.fetchReadingList() } }
+                val entries = withContext(Dispatchers.IO) { withTimeout(FETCH_TIMEOUT_MS) { tracker.fetchReadingList(kind) } }
                 if (entries == null) {
                     finish(error = "")
                     return@launch
                 }
-                val result = import(tracker.id, entries) { done, total ->
+                val result = import(tracker.id, entries, kind) { done, total ->
                     _status.update { it?.copy(stage = TrackerImportStage.Progress(done, total)) }
                 }
                 finish(result = result)
@@ -122,6 +123,7 @@ class TrackerListImport(
     suspend fun import(
         trackerId: String,
         entries: List<TrackerListEntry>,
+        kind: MediaKind = MediaKind.Comics,
         onProgress: (Int, Int) -> Unit = { _, _ -> },
     ): TrackerListImportResult {
         sources.awaitLoaded()
@@ -146,7 +148,7 @@ class TrackerListImport(
                             already.incrementAndGet()
                         } else {
                             try {
-                                when (val outcome = importEntry(trackerId, entry)) {
+                                when (val outcome = importEntry(trackerId, entry, kind)) {
                                     is EntryOutcome.NotFound -> notFound += entry.title
                                     is EntryOutcome.Already -> already.incrementAndGet()
                                     is EntryOutcome.Added -> {
@@ -178,9 +180,10 @@ class TrackerListImport(
         data class Added(val marked: Int, val chaptersLoaded: Boolean) : EntryOutcome
     }
 
-    private suspend fun importEntry(trackerId: String, entry: TrackerListEntry): EntryOutcome {
-        // An empty main source id matches no source, so every searchable source is asked.
-        val found = withTimeout(ENTRY_TIMEOUT_MS) { titleSources.find("", entry.toTitleDetails()) }
+    private suspend fun importEntry(trackerId: String, entry: TrackerListEntry, kind: MediaKind): EntryOutcome {
+        // An empty main source id matches no source, so every searchable source of the list's kind is asked.
+        val among = titleSources.searchableSources("").filter { it.manifest.kind == kind }
+        val found = withTimeout(ENTRY_TIMEOUT_MS) { titleSources.find("", entry.toTitleDetails(), among) }
         val best = chooseListCandidate(
             entry,
             found.map { ListImportCandidate(it.sourceId, it.sourceName, it.titleId, it.title, it.coverUrl, it.match) },

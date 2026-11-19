@@ -90,6 +90,8 @@ class NovelReaderScreenshotTest : ScreenshotTest() {
             onChange = {},
             onCommit = {},
             onReset = {},
+            saveForTitle = false,
+            onSaveForTitleChange = {},
         )
     }
 }
