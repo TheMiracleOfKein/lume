@@ -121,42 +121,28 @@ class MyAnimeListTracker(
 
     override suspend fun search(query: String, kind: MediaKind): List<TrackerSearchResult> {
         val q = query.trim().take(64)
-        if (q.isEmpty() || kind != MediaKind.Comics) return emptyList()
-        val url = "$API/manga?q=${urlEncode(q)}&limit=10&nsfw=true&fields=alternative_titles,main_picture"
+        if (q.isEmpty() || (kind != MediaKind.Comics && kind != MediaKind.Novel)) return emptyList()
+        // Comics and novels share the /manga endpoint; the page is larger because the other kind is dropped.
+        val url = "$API/manga?q=${urlEncode(q)}&limit=$SEARCH_LIMIT&nsfw=true&fields=alternative_titles,main_picture,media_type"
         return api({ url(url).get() }) { response ->
             if (!response.isSuccessful) return@api emptyList()
-            val data = json.parseToJsonElement(response.body.string()).jsonObject["data"] as? JsonArray ?: return@api emptyList()
-            data.mapNotNull { el ->
-                val node = (el as? JsonObject)?.get("node") as? JsonObject ?: return@mapNotNull null
-                val mangaId = (node["id"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
-                val alt = node["alternative_titles"] as? JsonObject
-                TrackerSearchResult(
-                    remoteId = mangaId,
-                    title = (node["title"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null,
-                    url = "https://myanimelist.net/manga/$mangaId",
-                    coverUrl = ((node["main_picture"] as? JsonObject)?.get("medium") as? JsonPrimitive)?.contentOrNull,
-                    altTitles = listOfNotNull(
-                        (alt?.get("en") as? JsonPrimitive)?.contentOrNull,
-                        (alt?.get("ja") as? JsonPrimitive)?.contentOrNull,
-                    ) + (alt?.get("synonyms") as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.contentOrNull },
-                )
-            }
+            parseMalSearch(json, response.body.string(), kind).take(10)
         }.orEmpty()
     }
 
     override val supportsListImport: Boolean get() = true
 
     override suspend fun fetchReadingList(kind: MediaKind): List<TrackerListEntry>? {
-        if (kind != MediaKind.Comics) return null
+        if (kind != MediaKind.Comics && kind != MediaKind.Novel) return null
         val all = mutableListOf<TrackerListEntry>()
         var url: String? = "$API/users/@me/mangalist?status=reading&limit=1000" +
-            "&fields=list_status,alternative_titles,authors{first_name,last_name}"
+            "&fields=list_status,alternative_titles,media_type,authors{first_name,last_name}"
         var pages = 0
         while (url != null && pages++ < MAX_LIST_PAGES) {
             val page = url
             val parsed = api({ url(page).get() }) { response ->
                 if (!response.isSuccessful) return@api null
-                runCatching { parseMalReadingList(json, response.body.string()) }.getOrNull()
+                runCatching { parseMalReadingList(json, response.body.string(), kind) }.getOrNull()
             } ?: return null
             all += parsed.first
             url = parsed.second
@@ -172,7 +158,7 @@ class MyAnimeListTracker(
         }
 
     override suspend fun link(sourceId: String, titleId: String, remoteId: String, remoteUrl: String?, kind: MediaKind) {
-        if (kind != MediaKind.Comics) return
+        if (kind != MediaKind.Comics && kind != MediaKind.Novel) return
         dao.upsertTrackerLink(
             TrackerLinkEntity(sourceId, titleId, id, remoteId, remoteUrl ?: "https://myanimelist.net/manga/$remoteId"),
         )
@@ -229,6 +215,7 @@ class MyAnimeListTracker(
         private const val OAUTH = "https://myanimelist.net/v1/oauth2"
         private const val API = "https://api.myanimelist.net/v2"
         private const val MAX_LIST_PAGES = 20
+        private const val SEARCH_LIMIT = 25
         private val STATUS = StatusMap(
             listOf(
                 TrackStatus.Reading to "reading",
