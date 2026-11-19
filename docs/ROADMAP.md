@@ -252,7 +252,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
-**v1.4.2: reader settings reset** 🟡 ([notes](releases/v1.4.2.md)): a "Reset to defaults" button in the manga and text reader settings and in Settings → Reader; the manga one also drops the open title's own reader settings.
+**v1.4.2: reader settings reset** ✅ released 2026-11-19 ([notes](releases/v1.4.2.md)): a "Reset to defaults" button in the manga and text reader settings and in Settings → Reader; the manga one also drops the open title's own reader settings.
 
 **v1.4.1: novel reader fix** ✅ released 2026-11-19 ([notes](releases/v1.4.1.md)): Royal Road and Scribble Hub chapters open again; in v1.4.0 the reader showed only "z73".
 
