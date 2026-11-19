@@ -67,8 +67,8 @@ import com.lume.app.ui.theme.LumeTheme
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import com.lume.app.ui.components.LumeBottomSheet
 import com.lume.app.ui.components.rememberEasyDismissSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -438,7 +438,7 @@ fun ReaderScreen(
 
     if (settingsOpen) {
         val sheetState = rememberEasyDismissSheetState()
-        ModalBottomSheet(
+        LumeBottomSheet(
             onDismissRequest = { settingsOpen = false },
             sheetState = sheetState,
             containerColor = AppColors.surface,
@@ -458,7 +458,7 @@ fun ReaderScreen(
 
     if (bookmarksOpen) {
         val sheetState = rememberEasyDismissSheetState()
-        ModalBottomSheet(
+        LumeBottomSheet(
             onDismissRequest = { bookmarksOpen = false },
             sheetState = sheetState,
             containerColor = AppColors.surface,

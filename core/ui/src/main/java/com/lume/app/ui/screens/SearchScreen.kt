@@ -25,8 +25,7 @@ import com.lume.app.ui.components.BackButton
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
+import com.lume.app.ui.components.LumeBottomSheet
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -36,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.draw.clip
 import com.lume.app.ui.components.FilterPanel
-import com.lume.app.ui.components.FilterSheetInsets
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -116,12 +114,7 @@ fun SearchScreen(nav: NavHostController, globalQuery: String? = null) {
     LaunchedEffect(networkEpoch) { if (networkEpoch > 0) vm.retryChallenged() }
 
     if (filtersOpen) {
-        ModalBottomSheet(
-            onDismissRequest = { filtersOpen = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = AppColors.surface,
-            contentWindowInsets = { FilterSheetInsets },
-        ) {
+        LumeBottomSheet(onDismissRequest = { filtersOpen = false }, containerColor = AppColors.surface) {
             FilterPanel(
                 initial = vm.filters,
                 defaults = vm.defaultFilters,

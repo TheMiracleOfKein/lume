@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -62,13 +63,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
+import com.lume.app.ui.components.LumeBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -332,11 +332,7 @@ fun ChaptersScreen(
     }
 
     if (sheetOpen) {
-        ModalBottomSheet(
-            onDismissRequest = { sheetOpen = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = AppColors.card,
-        ) {
+        LumeBottomSheet(onDismissRequest = { sheetOpen = false }, containerColor = AppColors.card) {
             ChapterFilterSheet(options = options, onToggle = vm::toggleFilter, onSort = vm::toggleSort)
         }
     }
@@ -547,7 +543,7 @@ private fun BarAction(icon: ImageVector, label: String, onClick: () -> Unit, tin
 
 @Composable
 private fun ChapterFilterSheet(options: ChapterListOptions, onToggle: (Int) -> Unit, onSort: () -> Unit) {
-    Column(Modifier.padding(bottom = 24.dp)) {
+    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
         Text(
             stringResource(R.string.library_tab_filter),
             color = AppColors.textSecondary,

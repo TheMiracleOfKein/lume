@@ -46,14 +46,12 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Tune
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
+import com.lume.app.ui.components.LumeBottomSheet
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import com.lume.app.ui.components.FilterPanel
-import com.lume.app.ui.components.FilterSheetInsets
 import com.lume.app.ui.components.QuickSearchBar
 import com.lume.app.ui.components.BackButton
 import androidx.compose.material3.Icon
@@ -119,12 +117,7 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
     val focusManager = LocalFocusManager.current
 
     if (filtersOpen) {
-        ModalBottomSheet(
-            onDismissRequest = { filtersOpen = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = AppColors.surface,
-            contentWindowInsets = { FilterSheetInsets },
-        ) {
+        LumeBottomSheet(onDismissRequest = { filtersOpen = false }, containerColor = AppColors.surface) {
             FilterPanel(
                 initial = vm.filters,
                 defaults = vm.defaultFilters,
