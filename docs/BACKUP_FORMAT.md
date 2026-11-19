@@ -67,7 +67,9 @@ matches a built-in source, or isn't a valid pack id, are skipped on restore.
 
 **`titlePrefs`**: `sourceId`, `titleId`, `readerMode?` (null = app default), `readerTheme?`
 (null), `gap?` (null), `chapterFilter?` (0), `chapterSortAsc?` (false), `branch?` (null, the
-picked translation team), `showDuplicates?` (false), `autoDownload?` (false).
+picked translation team), `showDuplicates?` (false), `autoDownload?` (false), `novelFontSize?` (null, text reader size for this title), `novelTheme?`
+(null, text reader colours as a theme index), `novelPaged?` (null, text reader paged or scroll).
+The three `novel*` fields were added without a version bump; older files leave them null.
 
 **`trackerLinks`**: `sourceId`, `titleId`, `tracker` (e.g. `anilist`, `myanimelist`, `kitsu`),
 `remoteId`, `remoteUrl?`, `status?`, `score?`, `lastSync?` (0). Tokens are never included.

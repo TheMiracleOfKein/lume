@@ -157,6 +157,11 @@ data class TitlePrefsEntity(
      */
     @ColumnInfo(defaultValue = "0")
     val autoDownload: Boolean = false,
+    /** Text reader overrides for this title; null = the global text reader setting. */
+    val novelFontSize: Int? = null,
+    /** A [com.lume.app.data.prefs.NovelTheme] ordinal. */
+    val novelTheme: Int? = null,
+    val novelPaged: Boolean? = null,
 )
 
 /**
