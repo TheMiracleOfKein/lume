@@ -44,6 +44,8 @@ internal object NovelHtml {
         }
     }.toSet()
 
-    private val HIDDEN_RULE = Regex("""([^{}]+)\{[^}]*display\s*:\s*none[^}]*}""", RegexOption.IGNORE_CASE)
+    // Every brace escaped: Android's ICU regex rejects a bare `}` that the JVM accepts, and a
+    // failing pattern here breaks the whole object (every Royal Road / Scribble Hub chapter).
+    private val HIDDEN_RULE = Regex("""([^\{\}]+)\{[^\}]*display\s*:\s*none[^\}]*\}""", RegexOption.IGNORE_CASE)
     private val CLASS_NAME = Regex("""\.([A-Za-z0-9_-]+)""")
 }
