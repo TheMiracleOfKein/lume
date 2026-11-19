@@ -9,6 +9,7 @@ import com.lume.app.domain.NovelChapter
 import com.lume.app.domain.NovelSource
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.SourceFetchException
+import com.lume.app.domain.SourceFilter
 import com.lume.app.domain.SourceLinks
 import com.lume.app.domain.SourceManifest
 import com.lume.app.domain.TitleDetails
@@ -43,9 +44,80 @@ class RoyalRoadEngine(
 
     override suspend fun getLatest(page: Int): PagedResult<TitleSummary> = list("/fictions/latest-updates", page)
 
+    override fun getFilters(): FilterList = FilterList(
+        listOf(
+            SourceFilter.Sort(
+                id = SORT,
+                name = appString(R.string.filter_sort),
+                options = SORT_VALUES,
+                labels = listOf(
+                    appString(R.string.filter_sort_relevance),
+                    appString(R.string.filter_sort_popular),
+                    appString(R.string.filter_sort_rating),
+                    appString(R.string.filter_sort_latest),
+                    appString(R.string.filter_sort_new),
+                    appString(R.string.filter_sort_followers),
+                    appString(R.string.filter_sort_pages),
+                    appString(R.string.filter_sort_views),
+                    appString(R.string.filter_sort_title),
+                    appString(R.string.filter_sort_author),
+                ),
+            ),
+            SourceFilter.Select(
+                id = STATUS,
+                name = appString(R.string.filter_status),
+                options = listOf("", "ONGOING", "COMPLETED", "HIATUS", "DROPPED", "INACTIVE", "STUB"),
+                labels = listOf(
+                    appString(R.string.filter_any),
+                    appString(R.string.filter_status_ongoing),
+                    appString(R.string.filter_status_completed),
+                    appString(R.string.filter_status_hiatus),
+                    appString(R.string.filter_status_dropped),
+                    appString(R.string.filter_status_inactive),
+                    appString(R.string.filter_status_stub),
+                ),
+            ),
+            SourceFilter.Select(
+                id = TYPE,
+                name = appString(R.string.filter_type),
+                options = listOf("", "original", "fanfiction"),
+                labels = listOf(
+                    appString(R.string.filter_any),
+                    appString(R.string.filter_type_original),
+                    appString(R.string.filter_type_fanfiction),
+                ),
+            ),
+            tagGroup(GENRES, appString(R.string.filter_genres), GENRE_TAGS),
+            tagGroup(WARNINGS, appString(R.string.filter_content_warnings), WARNING_TAGS),
+            tagGroup(TAGS, appString(R.string.filter_tags), EXTRA_TAGS),
+        ),
+    )
+
     override suspend fun search(query: String, page: Int, filters: FilterList): PagedResult<TitleSummary> {
-        if (query.isBlank()) return getPopular(page)
-        return list("/fictions/search?title=${urlEncode(query.trim())}", page)
+        val path = searchPath(query, filters)
+        return if (path == null) getPopular(page) else list(path, page)
+    }
+
+    /**
+     * Search page path for [query] and [filters] (without the page number), or null when there is
+     * neither text nor a filter set, which is the popular list. Genres and tags the title must have
+     * go into `tagsAdd` (the site matches all of them), the excluded ones into `tagsRemove`.
+     */
+    internal fun searchPath(query: String, filters: FilterList): String? {
+        val params = ArrayList<String>()
+        if (query.isNotBlank()) params += "title=${urlEncode(query.trim())}"
+        filters.included().forEach { params += "tagsAdd=${urlEncode(it.substringAfter(':'))}" }
+        filters.excluded().forEach { params += "tagsRemove=${urlEncode(it.substringAfter(':'))}" }
+        filters.selected(STATUS)?.takeIf { it.isNotEmpty() }?.let { params += "status=$it" }
+        filters.selected(TYPE)?.takeIf { it.isNotEmpty() }?.let { params += "type=$it" }
+        filters.sort(SORT)?.let { sort ->
+            if (sort.index != 0 || sort.ascending) {
+                params += "orderBy=${sort.selectedValue}"
+                params += "dir=${if (sort.ascending) "asc" else "desc"}"
+            }
+        }
+        if (params.isEmpty()) return null
+        return "/fictions/search?" + params.joinToString("&")
     }
 
     override suspend fun getTitle(id: String): TitleDetails = parseDetails(fetch(id), id)
@@ -168,7 +240,65 @@ class RoyalRoadEngine(
 
     private fun statusLabel(raw: String): String = raw.lowercase().replaceFirstChar { it.uppercase() }
 
+    private fun tagGroup(id: String, name: String, tags: List<Pair<String, String>>) =
+        SourceFilter.Group(id, name, tags.map { (slug, label) -> SourceFilter.TriState("$id:$slug", label) })
+
     private companion object {
+        const val SORT = "sort"
+        const val STATUS = "status"
+        const val TYPE = "type"
+        const val GENRES = "genres"
+        const val WARNINGS = "warnings"
+        const val TAGS = "tags"
+
+        /** `orderBy` values of the search form; the first (relevance) is the site's default. */
+        val SORT_VALUES = listOf(
+            "relevance", "popularity", "rating", "last_update", "release_date",
+            "followers", "length", "views", "title", "author",
+        )
+
+        // Slugs and names from the search form (genre buttons and the additional tags list).
+        val GENRE_TAGS = listOf(
+            "action" to "Action", "adventure" to "Adventure", "comedy" to "Comedy", "contemporary" to "Contemporary",
+            "drama" to "Drama", "fantasy" to "Fantasy", "historical" to "Historical", "horror" to "Horror",
+            "mystery" to "Mystery", "psychological" to "Psychological", "romance_main" to "Romance",
+            "satire" to "Satire", "sci_fi" to "Sci-fi", "one_shot" to "Short Story", "thriller" to "Thriller",
+            "tragedy" to "Tragedy",
+        )
+        val WARNING_TAGS = listOf(
+            "ai_assisted" to "AI-Assisted", "ai_generated" to "AI-Generated Content", "ai_translated" to "AI-Translated",
+            "graphic_violence" to "Graphic Violence", "profanity" to "Profanity", "sensitive" to "Sensitive Content",
+            "sexuality" to "Sexual Content",
+        )
+        val EXTRA_TAGS = listOf(
+            "anti-hero_lead" to "Anti-Hero Lead", "antivillain_lead" to "Anti-Villain Lead", "apocalypse" to "Apocalypse",
+            "artificial_intelligence" to "Artificial Intelligence", "attractive_lead" to "Attractive Lead",
+            "chivalry" to "Chivalry", "competing_love" to "Competing Love Interest", "cozy" to "Cozy",
+            "crafting" to "Crafting", "cultivation" to "Cultivation", "cyberpunk" to "Cyberpunk",
+            "deck_building" to "Deck Building", "dungeon_core" to "Dungeon Core", "dungeon_crawler" to "Dungeon Crawler",
+            "dystopia" to "Dystopia", "female_lead" to "Female Lead", "first_contact" to "First Contact",
+            "gamelit" to "GameLit", "gender_bender" to "Gender Bender", "genetically_engineered" to "Genetically Engineered",
+            "grimdark" to "Grimdark", "hard_sci-fi" to "Hard Sci-fi", "high_fantasy" to "High Fantasy",
+            "kingdom_building" to "Kingdom Building", "lesbian_romance" to "Lesbian Romance", "litrpg" to "LitRPG",
+            "local_protagonist" to "Local Protagonist", "low_fantasy" to "Low Fantasy", "magic" to "Magic",
+            "magical_girl" to "Magical Girl", "magitech" to "Magitech", "gay_romance" to "Male Gay Romance",
+            "male_lead" to "Male Lead", "martial_arts" to "Martial Arts", "mecha" to "Mecha",
+            "modern_knowledge" to "Modern Knowledge", "monster_evolution" to "Monster Evolution",
+            "multiple_lead" to "Multiple Lead Characters", "harem" to "Multiple Lovers", "mythos" to "Mythos",
+            "non-human_lead" to "Non-Human Lead", "nonhumanoid_lead" to "Non-Humanoid Lead", "otome" to "Otome",
+            "summoned_hero" to "Portal Fantasy / Isekai", "post_apocalyptic" to "Post Apocalyptic",
+            "progression" to "Progression", "reader_interactive" to "Reader Interactive",
+            "reincarnation" to "Reincarnation", "romance" to "Romance Subplot", "ruling_class" to "Ruling Class",
+            "school_life" to "School Life", "secret_identity" to "Secret Identity", "slice_of_life" to "Slice of Life",
+            "soft_sci-fi" to "Soft Sci-fi", "space_opera" to "Space Opera", "sports" to "Sports",
+            "steampunk" to "Steampunk", "strategy" to "Strategy", "strong_lead" to "Strong Lead",
+            "super_heroes" to "Super Heroes", "supernatural" to "Supernatural", "survival" to "Survival",
+            "system_invasion" to "System Invasion", "technologically_engineered" to "Technologically Engineered",
+            "loop" to "Time Loop", "time_travel" to "Time Travel", "tower" to "Tower", "urban_fantasy" to "Urban Fantasy",
+            "villainous_lead" to "Villainous Lead", "virtual_reality" to "Virtual Reality",
+            "war_and_military" to "War and Military", "wuxia" to "Wuxia",
+        )
+
         val TITLE_PATH = Regex("""^/fiction/\d+(?:/[^/?#]+)?""")
         val CHAPTERS_SCRIPT = Regex("""window\.chapters\s*=\s*(\[.*?]);""", RegexOption.DOT_MATCHES_ALL)
         val STATUSES = setOf("ongoing", "completed", "hiatus", "stub", "dropped", "inactive")
