@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.lume.app.R
 import com.lume.app.data.prefs.ReaderSettings
 import com.lume.app.ui.components.ChoiceChip
+import com.lume.app.ui.components.ResetReaderSettingsButton
 import com.lume.app.ui.components.SwitchRow
 import com.lume.app.ui.screens.SettingsViewModel
 
@@ -148,6 +149,7 @@ fun ReaderDefaultsSettings(vm: SettingsViewModel) {
             SettingsNote(stringResource(R.string.reader_preload_chapters_hint), Modifier.padding(top = 8.dp))
         }
     }
+    ResetReaderSettingsButton(onConfirm = { vm.updateReader(ReaderSettings()) })
 }
 
 private val PRELOAD_CHOICES = listOf(0, 2, 4, 6, 8, 10)
