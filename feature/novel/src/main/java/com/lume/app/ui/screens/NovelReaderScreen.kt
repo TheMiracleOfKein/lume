@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
+import com.lume.app.ui.components.rememberEasyDismissSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -169,7 +169,7 @@ fun NovelReaderScreen(
     }
 
     if (settingsOpen) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val sheetState = rememberEasyDismissSheetState()
         ModalBottomSheet(onDismissRequest = { settingsOpen = false }, sheetState = sheetState) {
             NovelReaderSettingsSheet(
                 settings = settings,
@@ -183,7 +183,7 @@ fun NovelReaderScreen(
         }
     }
     if (chaptersOpen) {
-        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val sheetState = rememberEasyDismissSheetState()
         ModalBottomSheet(onDismissRequest = { chaptersOpen = false }, sheetState = sheetState) {
             NovelChapterList(
                 chapters = vm.chapters,
