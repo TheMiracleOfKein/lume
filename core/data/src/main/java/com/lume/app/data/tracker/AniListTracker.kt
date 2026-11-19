@@ -24,7 +24,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
  */
 internal fun aniListSearchBody(kind: MediaKind, escapedSearch: String): String {
     val format = if (kind == MediaKind.Novel) "format_in:[NOVEL]" else "format_not_in:[NOVEL]"
-    return """{"query":"query (${'$'}search:String){Page(perPage:10){media(search:${'$'}search,type:MANGA,$format){id title{romaji english native} synonyms siteUrl coverImage{large}}}}","variables":{"search":$escapedSearch}}"""
+    return """{"query":"query (${'$'}search:String){Page(perPage:10){media(search:${'$'}search,type:MANGA,$format){id format countryOfOrigin startDate{year} title{romaji english native} synonyms siteUrl coverImage{large}}}}","variables":{"search":$escapedSearch}}"""
 }
 
 class AniListTracker(
@@ -35,6 +35,7 @@ class AniListTracker(
 ) : Tracker {
     override val id: String = "anilist"
     override val displayName: String = "AniList"
+    override val kinds: Set<MediaKind> = setOf(MediaKind.Comics, MediaKind.Novel)
 
     override suspend fun isLoggedIn(): Boolean =
         !prefs.anilistAccessToken.first().isNullOrBlank()
@@ -188,10 +189,10 @@ class AniListTracker(
                 val obj = el.jsonObject
                 val id = obj["id"]?.jsonPrimitive?.longOrNull?.toString() ?: return@mapNotNull null
                 val titles = obj["title"]?.jsonObject
-                val name = titles?.get("english")?.jsonPrimitive?.content
-                    ?: titles?.get("romaji")?.jsonPrimitive?.content
-                    ?: titles?.get("native")?.jsonPrimitive?.content
-                    ?: return@mapNotNull null
+                // A missing name is JSON null, which must not show up as the text "null".
+                val name = listOf("english", "romaji", "native").firstNotNullOfOrNull { key ->
+                    (titles?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content?.takeIf { it.isNotBlank() }
+                } ?: return@mapNotNull null
                 TrackerSearchResult(
                     remoteId = id,
                     title = name,
@@ -202,6 +203,12 @@ class AniListTracker(
                     } + (obj["synonyms"] as? kotlinx.serialization.json.JsonArray).orEmpty().mapNotNull {
                         (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content
                     },
+                    format = TitleFormat.parse(
+                        (obj["format"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
+                        (obj["countryOfOrigin"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
+                    ),
+                    year = ((obj["startDate"] as? kotlinx.serialization.json.JsonObject)?.get("year") as? JsonPrimitive)
+                        ?.content?.toIntOrNull(),
                 )
             }
         }

@@ -264,7 +264,10 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         val disabled = app.prefs.disabledSources.value
         val pinned = app.prefs.pinnedSources.value
         val activeId = registry.activeSource()?.manifest?.id
+        val mode = app.prefs.activeMode.value
         val sources = registry.sources.value
+            // Ranobe searches novel sources, Manga searches comics: never the other mode's.
+            .filter { it.manifest.kind == mode }
             .filter { includeNsfw || !it.manifest.nsfw }
             .filter { it.manifest.id !in disabled || it.manifest.id == activeId }
             // Active source first, local files last, the rest alphabetically.

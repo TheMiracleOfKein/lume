@@ -74,9 +74,13 @@ class TitleSourceRepository(
     /** Sources worth searching for a title of [mainSourceId]: enabled, not local, not itself. */
     fun searchableSources(mainSourceId: String): List<CatalogSource> {
         val disabled = prefs.disabledSources.value
-        val mainNsfw = sources.sourceById(mainSourceId)?.manifest?.nsfw == true
+        val main = sources.sourceById(mainSourceId)?.manifest
+        val mainNsfw = main?.nsfw == true
         val includeNsfw = mainNsfw || prefs.globalSearchNsfw.value
+        // A novel is looked for on novel sources only, a comic on comics sources.
+        val kind = main?.kind ?: prefs.activeMode.value
         return sources.sources.value
+            .filter { it.manifest.kind == kind }
             .filter { it.manifest.id != mainSourceId && !SourceEngines.isLocal(it.manifest.engine) }
             .filter { it.manifest.id !in disabled }
             .filter { includeNsfw || !it.manifest.nsfw }

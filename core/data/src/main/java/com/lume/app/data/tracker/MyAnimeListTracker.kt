@@ -35,6 +35,7 @@ class MyAnimeListTracker(
 ) : Tracker {
     override val id: String = ID
     override val displayName: String = "MyAnimeList"
+    override val kinds: Set<MediaKind> = setOf(MediaKind.Comics, MediaKind.Novel)
     override val supportsDates: Boolean get() = true
     override val statuses: List<TrackStatus> get() = TrackStatus.entries
 
@@ -123,7 +124,7 @@ class MyAnimeListTracker(
         val q = query.trim().take(64)
         if (q.isEmpty() || (kind != MediaKind.Comics && kind != MediaKind.Novel)) return emptyList()
         // Comics and novels share the /manga endpoint; the page is larger because the other kind is dropped.
-        val url = "$API/manga?q=${urlEncode(q)}&limit=$SEARCH_LIMIT&nsfw=true&fields=alternative_titles,main_picture,media_type"
+        val url = "$API/manga?q=${urlEncode(q)}&limit=$SEARCH_LIMIT&nsfw=true&fields=alternative_titles,main_picture,media_type,start_date"
         return api({ url(url).get() }) { response ->
             if (!response.isSuccessful) return@api emptyList()
             parseMalSearch(json, response.body.string(), kind).take(10)

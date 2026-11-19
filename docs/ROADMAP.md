@@ -29,7 +29,7 @@ These hold for every release:
 | **0.8** | Reader 2.0 🟡 | Tall pages without memory problems, sharp zoom, crop and spreads, guided panel view, Coil 3 | L |
 | **0.9** | Library and sources | Self-hosted servers (OPDS, Komga, Kavita), CBR and PDF, watched folders, smarter updates, statistics | L |
 | **1.0** | Stable 🟡 | Reading modes and two builds (1.0.0); distribution, update check, crash log, accessibility, encrypted sign-ins, test coverage, user guide | M–L |
-| **1.x** | Ranobe 🟡 | Text reader and local EPUB/TXT (1.1.0); RanobeLib and novel downloads (1.2.0); paged reader and ranobe build (1.3.0); Royal Road and Scribble Hub (1.4.0); trackers and site filters (1.5.0); translated-novel sites still open | L |
+| **1.x** | Ranobe 🟡 | Text reader and local EPUB/TXT (1.1.0); RanobeLib and novel downloads (1.2.0); paged reader and ranobe build (1.3.0); Royal Road and Scribble Hub (1.4.0); trackers and site filters (1.5.0); trackers per mode (1.5.1); translated-novel sites and novel-only trackers still open | L |
 
 Order can change when a source breaks or a bug needs a patch release first.
 
@@ -252,6 +252,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
+**v1.5.1: ranobe trackers and search** ([notes](releases/v1.5.1.md), [device check](releases/v1.5.1-check.md)): Ranobe mode lists only the trackers with novel lists, tracker search results show their format and year, search in Ranobe mode looks only at novel sources, and the reader's settings sheet closes after a slow drag.
+
 **v1.5.0: novel trackers** ✅ released 2026-11-19 ([notes](releases/v1.5.0.md), [device check](releases/v1.5.0-check.md)): novel lists on AniList, MyAnimeList and Shikimori, Royal Road and Scribble Hub filters, readable error messages with an Android-side parser test, and text reader settings saved for one title.
 
 **v1.4.2: reader settings reset** ✅ released 2026-11-19 ([notes](releases/v1.4.2.md)): a "Reset to defaults" button in the manga and text reader settings and in Settings → Reader; the manga one also drops the open title's own reader settings.
@@ -364,7 +366,12 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 - 🟡 **English novel sites** (M): Royal Road and Scribble Hub as their own engines in v1.4.0 (catalogue, search, details, chapters, text, downloads). Their filters (genres and tags, status, sort order) in v1.5.0. Still open: translated-novel sites such as NovelBin, which refused plain requests when checked; a selector-driven engine with one JSON pack per site can come with those.
 - ✅ **Local EPUB and TXT** (M): through "Import books…", the folder import and watched folders. In v1.1.0.
 - ✅ **Downloads** (S): chapters saved as `chapter.html` with their pictures, read offline, in every storage. In v1.2.0. Sending them to a nearby phone (older receivers get only the manga chapters) in v1.3.0.
-- ✅ **Trackers** (S): the novel lists of AniList, MyAnimeList and Shikimori: linking, chapter progress from the text reader, and list import in Ranobe mode. In v1.5.0.
+- ✅ **Trackers** (S): the novel lists of AniList, MyAnimeList and Shikimori: linking, chapter progress from the text reader, and list import in Ranobe mode. In v1.5.0. In v1.5.1 Ranobe mode lists only these three (Kitsu and MangaUpdates keep manga only), and every search result says what it is ("Light novel · 2018", "Manhwa · 2020"), so a novel is never linked to its manga.
+- **Trackers made for novels** (M each), checked in this order:
+  - **NovelUpdates**: the largest list of translated novels and the usual reading list for them. No public API: search and series pages are read from the site, and the reading list needs the site's sign-in cookies (the way source logins work). Cloudflare may get in the way; check first.
+  - **RanobeDB**: a light novel database with a public API; check what its user lists allow before planning sign-in.
+  - **MangaUpdates novels**: its database has a "Novel" type, so it can serve Ranobe mode with the same account once its search keeps only novels.
+  - Not planned: Kitsu (few novels, entries mixed with manga).
 - ✅ **Ranobe build** (S): `ranobe` flavor, novel mode only, without the comics code; `lume-vX.Y.Z-ranobe.apk` on every release. In v1.3.0.
 
 ## Every release
