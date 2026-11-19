@@ -32,6 +32,7 @@ import com.lume.app.data.prefs.NovelFont
 import com.lume.app.data.prefs.NovelReaderSettings
 import com.lume.app.data.prefs.NovelTheme
 import com.lume.app.ui.components.ChoiceChip
+import com.lume.app.ui.components.ResetReaderSettingsButton
 import com.lume.app.ui.components.SheetHeader
 import com.lume.app.ui.components.SwitchRow
 import com.lume.app.ui.components.lumeSliderColors
@@ -48,6 +49,7 @@ internal fun NovelReaderSettingsSheet(
     onChange: (NovelReaderSettings) -> Unit,
     /** A finished edit: becomes the new default. */
     onCommit: (NovelReaderSettings) -> Unit,
+    onReset: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -58,6 +60,8 @@ internal fun NovelReaderSettingsSheet(
         SheetHeader(stringResource(R.string.settings_title), onClose = onClose)
         Spacer(Modifier.height(8.dp))
         NovelReaderSettingsControls(settings, onChange, onCommit)
+        Spacer(Modifier.height(8.dp))
+        ResetReaderSettingsButton(onConfirm = onReset)
     }
 }
 

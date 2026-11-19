@@ -176,6 +176,7 @@ fun NovelReaderScreen(
                 onClose = { scope.launch { sheetState.hide() }.invokeOnCompletion { settingsOpen = false } },
                 onChange = { vm.updateSettings(it, commit = false) },
                 onCommit = { vm.updateSettings(it, commit = true) },
+                onReset = vm::resetSettings,
             )
         }
     }

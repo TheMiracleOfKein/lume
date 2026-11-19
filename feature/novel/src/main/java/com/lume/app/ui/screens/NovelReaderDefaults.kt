@@ -16,6 +16,7 @@ import com.lume.app.AppContainer
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.prefs.NovelReaderSettings
+import com.lume.app.ui.components.ResetReaderSettingsButton
 import com.lume.app.ui.screens.settings.SettingItem
 import com.lume.app.ui.screens.settings.SettingsGroup
 import com.lume.app.ui.screens.settings.SettingsNote
@@ -38,6 +39,7 @@ internal fun NovelReaderDefaults() {
         )
         Spacer(Modifier.height(6.dp))
     }
+    ResetReaderSettingsButton(onConfirm = vm::reset)
 }
 
 internal class NovelReaderDefaultsViewModel(private val app: AppContainer) : ViewModel() {
@@ -51,4 +53,6 @@ internal class NovelReaderDefaultsViewModel(private val app: AppContainer) : Vie
         settings = clean
         if (commit) viewModelScope.launch { app.prefs.setNovelReaderSettings(clean) }
     }
+
+    fun reset() = update(NovelReaderSettings(), commit = true)
 }

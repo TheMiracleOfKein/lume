@@ -147,6 +147,10 @@
     <string name="reader_seamless">Seamless chapters</string>
     <string name="reader_chapter_separator">Chapter · %s</string>
     <string name="reader_save_for_title">Save for this title</string>
+    <string name="reader_reset_defaults">Reset to defaults</string>
+    <string name="reader_reset_title">Reset reader settings?</string>
+    <string name="reader_reset_text">Only the reader settings go back to their defaults. Nothing else changes.</string>
+    <string name="reader_reset_confirm">Reset</string>
     <string name="reader_mode_rtl">RTL</string>
     <string name="reader_mode_webtoon">Webtoon</string>
     <string name="reader_mode_ltr">LTR</string>
