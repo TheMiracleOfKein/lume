@@ -252,7 +252,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
-**v1.5.0: novel trackers** ([notes](releases/v1.5.0.md), [device check](releases/v1.5.0-check.md)): novel lists on AniList, MyAnimeList and Shikimori, Royal Road and Scribble Hub filters, readable error messages with an Android-side parser test, and text reader settings saved for one title.
+**v1.5.0: novel trackers** ✅ released 2026-11-19 ([notes](releases/v1.5.0.md), [device check](releases/v1.5.0-check.md)): novel lists on AniList, MyAnimeList and Shikimori, Royal Road and Scribble Hub filters, readable error messages with an Android-side parser test, and text reader settings saved for one title.
 
 **v1.4.2: reader settings reset** ✅ released 2026-11-19 ([notes](releases/v1.4.2.md)): a "Reset to defaults" button in the manga and text reader settings and in Settings → Reader; the manga one also drops the open title's own reader settings.
 
