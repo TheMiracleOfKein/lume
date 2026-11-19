@@ -13,10 +13,12 @@ import com.lume.app.data.db.ChapterProgressEntity
 import com.lume.app.data.db.ChapterReadEntity
 import com.lume.app.data.db.ProgressEntity
 import com.lume.app.data.db.ReadingSessionEntity
+import com.lume.app.data.db.TitlePrefsEntity
 import com.lume.app.data.locale.appString
 import com.lume.app.data.userMessage
 import com.lume.app.data.novel.NovelBlocks
 import com.lume.app.data.prefs.NovelReaderSettings
+import com.lume.app.data.prefs.NovelTheme
 import com.lume.app.data.title.TitleLoad
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ChapterNeighbours
@@ -118,18 +120,82 @@ class NovelReaderViewModel(
 
     // ---- Settings -------------------------------------------------------------------------
     /** Read once; after that only the sheet changes it, so a DataStore round trip can't snap a slider back. */
-    var settings by mutableStateOf(app.prefs.novelReaderSettings.value)
+    private var globalSettings = app.prefs.novelReaderSettings.value
+
+    /** The global settings with this title's text size, theme and page mode overrides applied. */
+    var settings by mutableStateOf(globalSettings)
         private set
 
-    /** Live edit from the sheet (slider drag); [commit] also writes it as the new default. */
+    /** "Save for this title" is on: size, theme and page mode edits go to this title, not the defaults. */
+    var saveForTitle by mutableStateOf(false)
+        private set
+
+    private suspend fun initSettings() {
+        val prefs = dao.getTitlePrefs(sourceId, titleId) ?: return
+        if (prefs.novelFontSize == null && prefs.novelTheme == null && prefs.novelPaged == null) return
+        saveForTitle = true
+        settings = settings.withTitleOverrides(prefs).clamped()
+    }
+
+    private fun NovelReaderSettings.withTitleOverrides(prefs: TitlePrefsEntity) = copy(
+        fontSize = prefs.novelFontSize ?: fontSize,
+        theme = prefs.novelTheme?.let { NovelTheme.entries.getOrNull(it) } ?: theme,
+        paged = prefs.novelPaged ?: paged,
+    )
+
+    /** These settings with the global size, theme and page mode back in: what a title override leaves untouched globally. */
+    private fun NovelReaderSettings.keepingGlobalTitleFields() = copy(
+        fontSize = globalSettings.fontSize,
+        theme = globalSettings.theme,
+        paged = globalSettings.paged,
+    )
+
+    private fun saveTitleOverrides(s: NovelReaderSettings?) {
+        viewModelScope.launch {
+            val base = dao.getTitlePrefs(sourceId, titleId)
+            if (base == null && s == null) return@launch
+            val row = base ?: TitlePrefsEntity(sourceId = sourceId, titleId = titleId)
+            dao.upsertTitlePrefs(
+                row.copy(novelFontSize = s?.fontSize, novelTheme = s?.theme?.ordinal, novelPaged = s?.paged),
+            )
+        }
+    }
+
+    /** Live edit from the sheet (slider drag); [commit] also writes it as the new default (or title override). */
     fun updateSettings(next: NovelReaderSettings, commit: Boolean) {
         val clean = next.clamped()
         settings = clean
-        if (commit) viewModelScope.launch { app.prefs.setNovelReaderSettings(clean) }
+        if (!commit) return
+        if (saveForTitle) {
+            globalSettings = clean.keepingGlobalTitleFields()
+            saveTitleOverrides(clean)
+        } else {
+            globalSettings = clean
+        }
+        val global = globalSettings
+        viewModelScope.launch { app.prefs.setNovelReaderSettings(global) }
     }
 
-    /** Every text reader setting back to its default, saved. */
-    fun resetSettings() = updateSettings(NovelReaderSettings(), commit = true)
+    /** Switch "Save for this title": keeps the current size, theme and page mode for it, or drops them. */
+    fun changeSaveForTitle(on: Boolean) {
+        if (on == saveForTitle) return
+        saveForTitle = on
+        if (on) {
+            saveTitleOverrides(settings)
+        } else {
+            settings = settings.keepingGlobalTitleFields()
+            saveTitleOverrides(null)
+        }
+    }
+
+    /** Every text reader setting back to its default, saved; this title's overrides are dropped too. */
+    fun resetSettings() {
+        saveForTitle = false
+        saveTitleOverrides(null)
+        globalSettings = NovelReaderSettings()
+        settings = globalSettings
+        viewModelScope.launch { app.prefs.setNovelReaderSettings(NovelReaderSettings()) }
+    }
 
     // ---- Saving ---------------------------------------------------------------------------
     private val pendingSave = MutableStateFlow<NovelAnchor?>(null)
@@ -152,6 +218,7 @@ class NovelReaderViewModel(
             )
         }
         currentChapterId = anchor.chapterId
+        viewModelScope.launch { initSettings() }
         viewModelScope.launch {
             pendingSave.filterNotNull().debounce(SAVE_DEBOUNCE_MS).collect { persist(it) }
         }

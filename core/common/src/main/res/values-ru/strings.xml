@@ -206,6 +206,7 @@
     <string name="novel_justify">Выравнивание по ширине</string>
     <string name="novel_paged">Постранично</string>
     <string name="novel_paged_summary">Листать страницы вбок вместо прокрутки</string>
+    <string name="novel_save_for_title_hint">Размер текста, тема и режим страниц сохраняются только для этого тайтла</string>
     <string name="novel_theme">Тема читалки</string>
     <string name="novel_theme_app">Как в приложении</string>
     <string name="novel_theme_light">Светлая</string>

@@ -215,6 +215,7 @@
     <string name="novel_justify">Justify text</string>
     <string name="novel_paged">Page by page</string>
     <string name="novel_paged_summary">Turn pages sideways instead of scrolling</string>
+    <string name="novel_save_for_title_hint">Text size, theme and page mode are kept for this title only</string>
     <string name="novel_theme">Reader theme</string>
     <string name="novel_theme_app">App</string>
     <string name="novel_theme_light">Light</string>
