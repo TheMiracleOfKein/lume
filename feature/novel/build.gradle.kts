@@ -47,6 +47,15 @@ android {
     }
 }
 
+// Parser tests on saved pages run both on the JVM and on a device, where the regex engine is
+// Android's (ICU), not the JVM's: they live in src/sharedTest. The fixtures and the bundled source
+// manifests are read as test resources, so both runs find them the same way.
+sourceSet("test").kotlin.directories.add("src/sharedTest/java")
+sourceSet("androidTest").kotlin.directories.add("src/sharedTest/java")
+sourceSet("test").resources.directories.add("src/main/assets")
+sourceSet("androidTest").resources.directories.add("src/main/assets")
+sourceSet("androidTest").resources.directories.add("src/test/resources")
+
 // Screenshot tests (Roborazzi), as in :core:ui: goldens live under src/test/screenshots.
 roborazzi {
     outputDir.set(layout.projectDirectory.dir("src/test/screenshots"))
@@ -78,7 +87,15 @@ dependencies {
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.roborazzi.junit.rule)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
 }
+
+private fun sourceSet(name: String): com.android.build.api.dsl.AndroidSourceSet =
+    extensions.getByType<com.android.build.api.dsl.LibraryExtension>().sourceSets.getByName(name)
 
 // Plain JVM unit tests have no Android assets, where OkHttp's Android build looks for its
 // public-suffix list (every request through AppHttp failed in the live checks). Tests use the

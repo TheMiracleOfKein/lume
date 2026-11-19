@@ -212,6 +212,18 @@ nothing; their fixtures are written by hand from the shape the parser reads, and
 comment says so (MangaDex and MangaBuff at the time of writing). After recording, shrink big
 files and run the offline tests: `./gradlew :feature:comics:testDebugUnitTest`.
 
+The `<Engine>ParsingTest` classes (and the novel ones in `feature/novel`: Royal Road, Scribble Hub,
+RanobeLib) live in `src/sharedTest`, so the same assertions also run on a device or emulator with
+Android's regex engine (ICU), which accepts less than the JVM's: a pattern that passes the JVM
+tests can still fail on a phone. The fixtures and the bundled source manifests are test resources
+for both runs. `ComicsEnginesAndroidTest` and `NovelEnginesAndroidTest` also build every engine on
+the device. Run them with an emulator or phone attached (the `Emulator tests` workflow does this on
+every PR):
+
+```bash
+./gradlew :feature:novel:connectedDebugAndroidTest :feature:comics:connectedDebugAndroidTest
+```
+
 ### Coverage gaps
 
 Not every engine has all five cases saved as their own file. Where a case is missing, the test
