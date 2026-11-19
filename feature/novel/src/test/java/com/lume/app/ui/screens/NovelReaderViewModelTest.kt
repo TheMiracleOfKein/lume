@@ -271,6 +271,20 @@ class NovelReaderViewModelTest {
         awaitUntil(what = "settings saved") { app.prefs.novelReaderSettings.value.fontSize == 22 }
     }
 
+    @Test
+    fun resetSettingsRestoresTheDefaultsAndSavesThem() {
+        val vm = open("Book/0")
+        vm.awaitLoaded()
+        vm.updateSettings(vm.settings.copy(fontSize = 24, justify = !vm.settings.justify), commit = true)
+        awaitUntil(what = "custom settings saved") { app.prefs.novelReaderSettings.value.fontSize == 24 }
+
+        vm.resetSettings()
+        assertEquals(com.lume.app.data.prefs.NovelReaderSettings(), vm.settings)
+        awaitUntil(what = "defaults saved") {
+            app.prefs.novelReaderSettings.value == com.lume.app.data.prefs.NovelReaderSettings()
+        }
+    }
+
     private companion object {
         const val LONG = 40
     }
