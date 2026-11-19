@@ -100,6 +100,8 @@ class MangaUpdatesTracker(
                     url = (record["url"] as? JsonPrimitive)?.contentOrNull,
                     coverUrl = image?.contentOrNull,
                     altTitles = listOfNotNull((el["hit_title"] as? JsonPrimitive)?.contentOrNull?.let(::stripTags)),
+                    format = TitleFormat.parse((record["type"] as? JsonPrimitive)?.contentOrNull),
+                    year = TitleFormat.year((record["year"] as? JsonPrimitive)?.contentOrNull),
                 )
             }
         }.orEmpty()

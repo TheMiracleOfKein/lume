@@ -142,6 +142,8 @@ class KitsuTracker(
                     url = "https://kitsu.app/manga/${slug ?: mangaId}",
                     coverUrl = ((attrs["posterImage"] as? JsonObject)?.get("small") as? JsonPrimitive)?.contentOrNull,
                     altTitles = titles + (attrs["abbreviatedTitles"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.contentOrNull },
+                    format = TitleFormat.parse((attrs["subtype"] as? JsonPrimitive)?.contentOrNull),
+                    year = TitleFormat.year((attrs["startDate"] as? JsonPrimitive)?.contentOrNull),
                 )
             }
         }.orEmpty()

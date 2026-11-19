@@ -66,6 +66,7 @@ fun TrackerSettings(vm: SettingsViewModel) {
     val shikiTokenState by prefs.shikimoriAccessToken.collectAsState()
     val trackerValues by prefs.trackerValues.collectAsState()
     val trackerAutoLink by prefs.trackerAutoLink.collectAsState()
+    val mode by prefs.activeMode.collectAsState()
     var passwordLoginId by rememberSaveable { mutableStateOf<String?>(null) }
     var logoutTrackerId by rememberSaveable { mutableStateOf<String?>(null) }
     container.trackers.all.firstOrNull { it.id == logoutTrackerId }?.let { tracker ->
@@ -111,7 +112,8 @@ fun TrackerSettings(vm: SettingsViewModel) {
             TrackerImportCard(status, onCancel = vm::cancelTrackerImport, onDismiss = vm::dismissTrackerImport)
             Spacer(Modifier.height(10.dp))
         }
-        container.trackers.all.forEach { tracker ->
+        // Each mode lists the trackers that keep its kind of titles (no Kitsu or MangaUpdates in Ranobe).
+        container.trackers.forKind(mode).forEach { tracker ->
             // Re-read whenever any stored token changes.
             val loggedIn by produceState(false, anilistTokenState, shikiTokenState, trackerValues) {
                 value = tracker.isLoggedIn()

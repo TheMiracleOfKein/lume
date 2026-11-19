@@ -140,6 +140,8 @@ fun parseMalSearch(json: Json, text: String, kind: MediaKind): List<TrackerSearc
             coverUrl = (node["main_picture"] as? JsonObject)?.get("medium").text(),
             altTitles = listOfNotNull(alt?.get("en").text(), alt?.get("ja").text()) +
                 (alt?.get("synonyms") as? JsonArray).orEmpty().mapNotNull { it.text() },
+            format = TitleFormat.parse(node["media_type"].text()),
+            year = TitleFormat.year(node["start_date"].text()),
         )
     }
 }
@@ -164,6 +166,8 @@ fun parseShikimoriSearch(json: Json, text: String, kind: MediaKind, baseUrl: Str
             url = "$baseUrl/$section/$id",
             coverUrl = image?.let { if (it.startsWith("http")) it else "$baseUrl$it" },
             altTitles = listOfNotNull(name, russian),
+            format = TitleFormat.parse(obj["kind"].text()),
+            year = TitleFormat.year(obj["aired_on"].text()),
         )
     }
 }

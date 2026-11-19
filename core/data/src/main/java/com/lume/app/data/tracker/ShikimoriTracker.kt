@@ -30,6 +30,7 @@ class ShikimoriTracker(
 ) : Tracker {
     override val id: String = "shikimori"
     override val displayName: String = "Shikimori"
+    override val kinds: Set<MediaKind> = setOf(MediaKind.Comics, MediaKind.Novel)
 
     override suspend fun isLoggedIn(): Boolean =
         !prefs.shikimoriAccessToken.first().isNullOrBlank()

@@ -23,6 +23,9 @@ class TrackerRegistry(
     val all: List<Tracker> = listOf(shikimori, anilist, myAnimeList, kitsu, mangaUpdates)
 
     fun byId(id: String): Tracker? = all.firstOrNull { it.id == id }
+
+    /** The trackers that keep lists of [kind]: in Ranobe mode only the ones with novels. */
+    fun forKind(kind: MediaKind): List<Tracker> = all.filter { kind in it.kinds }
 }
 
 class TrackerSync(
@@ -44,9 +47,10 @@ class TrackerSync(
         if (prefs?.trackerAutoLink?.value == false) return
         val query = names.firstOrNull { it.isNotBlank() } ?: return
         val linked = dao.getTrackerLinks(sourceId, titleId).map { it.tracker }.toSet()
-        for (tracker in trackers.all) {
+        for (tracker in trackers.forKind(kind)) {
             if (tracker.id in linked || !runCatching { tracker.isLoggedIn() }.getOrDefault(false)) continue
             val results = runCatching { tracker.search(query, kind) }.getOrDefault(emptyList())
+                .filter { it.matchesKind(kind) }
             val match = exactMatch(names, results) ?: continue
             runCatching { tracker.link(sourceId, titleId, match.remoteId, match.url, kind) }
         }

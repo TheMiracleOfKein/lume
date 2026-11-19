@@ -593,6 +593,13 @@
     <string name="type_manhwa">Manhwa</string>
     <string name="type_manhua">Manhua</string>
     <string name="type_comic">Comic</string>
+    <string name="type_one_shot">One-shot</string>
+    <string name="type_doujinshi">Doujinshi</string>
+    <string name="type_light_novel">Light novel</string>
+    <string name="type_novel">Novel</string>
+    <string name="type_web_novel">Web novel</string>
+    <string name="tracker_result_unknown_format">Format not given</string>
+    <string name="tracker_novel_only_hint">Ranobe mode shows the trackers that keep novel lists: Shikimori, AniList and MyAnimeList.</string>
     <string name="section_new_titles">New titles</string>
     <string name="section_top_rated">Top rated</string>
     <string name="section_completed">Completed</string>

@@ -93,7 +93,9 @@ import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.similar.SimilarResult
 import com.lume.app.data.similar.SimilarTitle
+import com.lume.app.data.tracker.TitleFormat
 import com.lume.app.data.tracker.TrackerSearchResult
+import com.lume.app.data.tracker.matchesKind
 import com.lume.app.ui.components.TrackerEntryDialog
 import com.lume.app.domain.AutoDownloadMode
 import com.lume.app.domain.Chapter
@@ -627,9 +629,9 @@ private fun TrackersDialog(
 ) {
     val resources = LocalResources.current
     val container = LocalAppContainer.current
-    val trackers = container.trackers.all
-    // Novels are searched and linked on the trackers' novel lists.
+    // Novels are searched and linked on the trackers' novel lists; trackers without one stay out.
     val kind = remember(sourceId) { container.titles.kindOf(sourceId) ?: com.lume.app.domain.MediaKind.Comics }
+    val trackers = remember(kind) { container.trackers.forKind(kind) }
     var selectedTrackerId by rememberSaveable { mutableStateOf(trackers.first().id) }
     val selectedTracker = trackers.firstOrNull { it.id == selectedTrackerId } ?: trackers.first()
     var query by rememberSaveable { mutableStateOf(titleName) }
@@ -730,6 +732,13 @@ private fun TrackersDialog(
                                 .padding(vertical = 6.dp),
                         )
                     }
+                }
+                if (kind == com.lume.app.domain.MediaKind.Novel) {
+                    Text(
+                        stringResource(R.string.tracker_novel_only_hint),
+                        color = AppColors.textTertiary,
+                        fontSize = 12.sp,
+                    )
                 }
                 val linked = links.firstOrNull { it.tracker == selectedTracker.id }
                 if (linked != null) {
@@ -847,6 +856,7 @@ private fun TrackersDialog(
                                     message = it.message
                                 }
                                 .getOrDefault(emptyList())
+                                .filter { it.matchesKind(kind) }
                             if (results.isEmpty() && message == null) {
                                 message = resources.getString(R.string.search_empty)
                             }
@@ -867,10 +877,11 @@ private fun TrackersDialog(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 results.forEach { item ->
-                    Text(
-                        text = item.title,
-                        color = AppColors.textPrimary,
-                        fontSize = 14.sp,
+                    val facts = listOfNotNull(
+                        stringResource(item.format?.let(::titleFormatLabel) ?: R.string.tracker_result_unknown_format),
+                        item.year?.toString(),
+                    ).joinToString(" · ")
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
@@ -887,9 +898,12 @@ private fun TrackersDialog(
                                 }
                             }
                             .heightIn(min = 48.dp)
-                            .wrapContentHeight(Alignment.CenterVertically)
                             .padding(vertical = 8.dp),
-                    )
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text(item.title, color = AppColors.textPrimary, fontSize = 14.sp)
+                        Text(facts, color = AppColors.textSecondary, fontSize = 12.sp)
+                    }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
@@ -916,6 +930,19 @@ private fun TrackersDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
         },
     )
+}
+
+/** The label of a tracker entry's format: "Light novel", "Manhwa" … */
+internal fun titleFormatLabel(format: TitleFormat): Int = when (format) {
+    TitleFormat.Manga -> R.string.type_manga
+    TitleFormat.Manhwa -> R.string.type_manhwa
+    TitleFormat.Manhua -> R.string.type_manhua
+    TitleFormat.OneShot -> R.string.type_one_shot
+    TitleFormat.Doujinshi -> R.string.type_doujinshi
+    TitleFormat.Comic -> R.string.type_comic
+    TitleFormat.LightNovel -> R.string.type_light_novel
+    TitleFormat.Novel -> R.string.type_novel
+    TitleFormat.WebNovel -> R.string.type_web_novel
 }
 
 /** The cover, names, facts and the Read / Continue button at the top of a title. */

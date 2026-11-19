@@ -596,6 +596,13 @@
     <string name="type_manhwa">Манхва</string>
     <string name="type_manhua">Маньхуа</string>
     <string name="type_comic">Комикс</string>
+    <string name="type_one_shot">Ваншот</string>
+    <string name="type_doujinshi">Додзинси</string>
+    <string name="type_light_novel">Ранобэ</string>
+    <string name="type_novel">Роман</string>
+    <string name="type_web_novel">Веб-новелла</string>
+    <string name="tracker_result_unknown_format">Формат не указан</string>
+    <string name="tracker_novel_only_hint">В режиме ранобэ показаны трекеры со списками новелл: Shikimori, AniList и MyAnimeList.</string>
     <string name="section_new_titles">Новинки</string>
     <string name="section_top_rated">Лучшие</string>
     <string name="section_completed">Завершённые</string>
