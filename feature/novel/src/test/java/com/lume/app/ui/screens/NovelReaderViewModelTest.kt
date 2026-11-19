@@ -5,6 +5,9 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.lume.app.AppContainer
 import com.lume.app.data.db.ChapterProgressEntity
+import com.lume.app.data.db.TitlePrefsEntity
+import com.lume.app.data.prefs.NovelReaderSettings
+import com.lume.app.data.prefs.NovelTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -46,7 +49,10 @@ class NovelReaderViewModelTest {
         runBlocking {
             app.sources.load()
             app.prefs.setIncognito(false)
+            // The preferences file outlives a test: start from the defaults.
+            app.prefs.setNovelReaderSettings(NovelReaderSettings())
         }
+        awaitUntil(what = "default text settings") { app.prefs.novelReaderSettings.value == NovelReaderSettings() }
     }
 
     private fun open(
@@ -283,6 +289,77 @@ class NovelReaderViewModelTest {
         awaitUntil(what = "defaults saved") {
             app.prefs.novelReaderSettings.value == com.lume.app.data.prefs.NovelReaderSettings()
         }
+    }
+
+    private fun titlePrefs() = runBlocking { dao.getTitlePrefs(sourceId, titleId) }
+
+    @Test
+    fun titleOverridesAreAppliedOverTheGlobalSettings() {
+        runBlocking {
+            dao.upsertTitlePrefs(
+                TitlePrefsEntity(sourceId, titleId, novelFontSize = 24, novelTheme = NovelTheme.Sepia.ordinal, novelPaged = true),
+            )
+        }
+        val vm = open("Book/0")
+        awaitUntil(what = "title overrides") { vm.saveForTitle }
+        assertEquals(24, vm.settings.fontSize)
+        assertEquals(NovelTheme.Sepia, vm.settings.theme)
+        assertTrue(vm.settings.paged)
+        // Everything else is still the global value.
+        assertEquals(NovelReaderSettings().font, vm.settings.font)
+    }
+
+    @Test
+    fun editsWhileTheSwitchIsOnGoToTheTitleAndOtherSettingsStayGlobal() {
+        val vm = open("Book/0")
+        vm.awaitLoaded()
+        vm.changeSaveForTitle(true)
+        awaitUntil(what = "overrides stored") { titlePrefs()?.novelFontSize == 18 }
+
+        vm.updateSettings(vm.settings.copy(fontSize = 26, theme = NovelTheme.Black, paged = true, justify = true), commit = true)
+        awaitUntil(what = "title saved") { titlePrefs()?.novelFontSize == 26 }
+        val row = titlePrefs()!!
+        assertEquals(NovelTheme.Black.ordinal, row.novelTheme)
+        assertEquals(true, row.novelPaged)
+        awaitUntil(what = "global saved") { app.prefs.novelReaderSettings.value.justify }
+        val global = app.prefs.novelReaderSettings.value
+        assertEquals(18, global.fontSize)
+        assertEquals(NovelTheme.App, global.theme)
+        assertFalse(global.paged)
+    }
+
+    @Test
+    fun switchingOffClearsTheOverridesAndFallsBackToTheGlobalSettings() {
+        val vm = open("Book/0")
+        vm.awaitLoaded()
+        vm.changeSaveForTitle(true)
+        vm.updateSettings(vm.settings.copy(fontSize = 26, paged = true), commit = true)
+        awaitUntil(what = "title saved") { titlePrefs()?.novelFontSize == 26 }
+
+        vm.changeSaveForTitle(false)
+        assertFalse(vm.saveForTitle)
+        assertEquals(18, vm.settings.fontSize)
+        assertFalse(vm.settings.paged)
+        awaitUntil(what = "overrides cleared") {
+            titlePrefs()?.let { it.novelFontSize == null && it.novelTheme == null && it.novelPaged == null } == true
+        }
+    }
+
+    @Test
+    fun resetDropsTheTitleOverridesButKeepsTheOtherTitlePrefs() {
+        runBlocking {
+            dao.upsertTitlePrefs(
+                TitlePrefsEntity(sourceId, titleId, readerMode = 2, novelFontSize = 24, novelPaged = true),
+            )
+        }
+        val vm = open("Book/0")
+        awaitUntil(what = "title overrides") { vm.saveForTitle }
+
+        vm.resetSettings()
+        assertFalse(vm.saveForTitle)
+        assertEquals(NovelReaderSettings(), vm.settings)
+        awaitUntil(what = "overrides cleared") { titlePrefs()?.novelFontSize == null && titlePrefs()?.novelPaged == null }
+        assertEquals(2, titlePrefs()!!.readerMode)
     }
 
     private companion object {
