@@ -346,6 +346,11 @@
     <string name="error_http_server">Ошибка сервера %1$s (HTTP %2$d). Попробуйте позже.</string>
     <string name="error_source_login_required">%1$s показывает главы только после входа. Войдите в разделе «Источники» → %1$s.</string>
     <string name="error_http_generic">HTTP %1$d от %2$s</string>
+    <string name="error_network_offline">Не удаётся подключиться к сайту. Проверьте интернет и попробуйте снова.</string>
+    <string name="error_network_timeout">Сайт слишком долго не отвечает. Попробуйте снова.</string>
+    <string name="error_network_ssl">Не удалось установить защищённое соединение с сайтом. Проверьте дату и время на телефоне и сеть.</string>
+    <string name="error_chapter_unreadable">Не удалось прочитать эту главу с сайта. Возможно, страница изменилась; попробуйте позже или обновите приложение.</string>
+    <string name="error_generic">При загрузке что-то пошло не так. Полный текст ошибки есть в журнале ошибок.</string>
     <string name="error_chapter_locked">Глава закрыта на %1$s (платная или ранний доступ).</string>
     <string name="error_inkstory_restricted">%1$s показывает этот тайтл только авторизованным читателям, участникам библиотеки или подписчикам. Бесплатных глав нет.</string>
     <string name="error_source_changed">%1$s изменил страницы, и сейчас их не прочитать. Источнику нужно обновление приложения.</string>

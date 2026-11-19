@@ -14,6 +14,7 @@ import com.lume.app.data.db.ChapterReadEntity
 import com.lume.app.data.db.ProgressEntity
 import com.lume.app.data.db.ReadingSessionEntity
 import com.lume.app.data.locale.appString
+import com.lume.app.data.userMessage
 import com.lume.app.data.novel.NovelBlocks
 import com.lume.app.data.prefs.NovelReaderSettings
 import com.lume.app.data.title.TitleLoad
@@ -207,7 +208,8 @@ class NovelReaderViewModel(
                     app.http.requestChallenge(e.uri)
                     error = appString(R.string.error_cloudflare_needed)
                 } else {
-                    error = e.message ?: e.toString()
+                    app.errorLog.record(sourceId, e)
+                    error = e.userMessage()
                 }
             }
         }

@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.lume.app.AppContainer
 import com.lume.app.R
 import com.lume.app.data.locale.appString
+import com.lume.app.data.userMessage
 import com.lume.app.data.network.AppHttp
 import com.lume.app.domain.BrowseSection
 import com.lume.app.domain.CatalogSource
@@ -43,7 +44,7 @@ private suspend fun describeFailure(http: AppHttp, e: Throwable, onChallenge: (U
         http.requestChallenge(e.uri)
         return appString(R.string.error_cloudflare_needed)
     }
-    return e.message ?: e.toString()
+    return e.userMessage()
 }
 
 /**
