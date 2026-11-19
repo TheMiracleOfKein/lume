@@ -252,6 +252,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
+**v1.5.2: still reader sheets** 🟡 in progress ([notes](releases/v1.5.2.md)): the reader's settings, chapter list and bookmarks sheets no longer twitch up and down after a slow drag or on their own. No device check: released on the user's request without emulator tests.
+
 **v1.5.1: ranobe trackers and search** ✅ released 2026-11-20 ([notes](releases/v1.5.1.md), [device check](releases/v1.5.1-check.md)): Ranobe mode lists only the trackers with novel lists, tracker search results show their format and year, search in Ranobe mode looks only at novel sources, and the reader's settings sheet closes after a slow drag.
 
 **v1.5.0: novel trackers** ✅ released 2026-11-19 ([notes](releases/v1.5.0.md), [device check](releases/v1.5.0-check.md)): novel lists on AniList, MyAnimeList and Shikimori, Royal Road and Scribble Hub filters, readable error messages with an Android-side parser test, and text reader settings saved for one title.
