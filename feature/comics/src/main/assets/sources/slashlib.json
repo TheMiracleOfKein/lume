@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "slashlib",
+  "name": "SlashLib",
+  "version": "1.0.0",
+  "mediaKind": "comics",
+  "language": "ru",
+  "nsfw": true,
+  "engine": "libsocial",
+  "baseUrl": "https://slashlib.me",
+  "headers": {
+    "Referer": "https://slashlib.me/"
+  },
+  "engineConfig": {
+    "apiBase": "https://api.cdnlibs.org/api",
+    "siteId": "2"
+  }
+}

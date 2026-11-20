@@ -44,7 +44,7 @@ data class LibBookmarkImportResult(
 )
 
 /**
- * Brings the bookmarks of a signed-in MangaLib, HentaiLib or YaoiLib account into the library.
+ * Brings the bookmarks of a signed-in MangaLib, HentaiLib, SlashLib or YaoiLib account into the library.
  * Each bookmark folder becomes a category of the same name; titles already in the library keep
  * their categories and gain the folder's. The last chapter read on the site and every chapter
  * before it are marked read; local read marks and progress are never taken away.
