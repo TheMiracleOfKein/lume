@@ -9,26 +9,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lume.app.AppContainer
 import com.lume.app.R
-import com.lume.app.data.db.ChapterProgressEntity
-import com.lume.app.data.db.ChapterReadEntity
-import com.lume.app.data.db.ProgressEntity
-import com.lume.app.data.db.ReadingSessionEntity
 import com.lume.app.data.db.TitlePrefsEntity
 import com.lume.app.data.locale.appString
 import com.lume.app.data.userMessage
-import com.lume.app.data.novel.NovelBlocks
 import com.lume.app.data.prefs.NovelReaderSettings
 import com.lume.app.data.prefs.NovelTheme
-import com.lume.app.data.title.TitleLoad
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ChapterNeighbours
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.ReadingSessionTracker
 import com.lume.app.domain.chapterNeighbours
 import com.lume.app.domain.chapterTranslations
-import com.lume.app.domain.dedupeChapters
-import com.lume.app.domain.inReadingOrder
-import com.lume.app.domain.requireNovel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -38,7 +29,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -65,18 +55,19 @@ class NovelReaderViewModel(
 ) : ViewModel() {
     private val dao = app.dao
 
+    /** Chapters, text and saved progress, shared with read aloud. */
+    private val book = NovelBook(app, sourceId, titleId)
+
     // ---- Title ----------------------------------------------------------------------------
     var titleName by mutableStateOf("")
         private set
-    private var coverUrl: String? = null
-    private var typeLabel: String? = null
 
     /** Reading order (oldest to newest). */
     var chapters by mutableStateOf<List<Chapter>>(emptyList())
         private set
 
     /** Every copy of every chapter (all teams), for switching translation. */
-    private var allCopies: List<Chapter> = emptyList()
+    private val allCopies: List<Chapter> get() = book.allCopies
 
     /** The current chapter's copies by each team (empty when there is only one). */
     var translations by mutableStateOf<List<Chapter>>(emptyList())
@@ -268,9 +259,9 @@ class NovelReaderViewModel(
                 if (chapters.isEmpty()) loadTitle()
                 val ch = chapters.firstOrNull { it.id == target.chapterId }
                     ?: error(appString(R.string.error_chapter_not_found))
-                val chapter = loadChapter(ch)
+                val chapter = book.loadChapter(ch)
                 if (chapter.blocks.isEmpty()) error(appString(R.string.novel_no_text))
-                val saved = dao.getChapterProgress(sourceId, titleId, ch.id)
+                val saved = book.chapterProgress(ch.id)
                 val start = when {
                     explicit -> target.copy(chapterId = ch.id)
                     saved != null && !saved.completed -> NovelAnchor(ch.id, saved.pageIndex, saved.pageOffset)
@@ -304,46 +295,13 @@ class NovelReaderViewModel(
     }
 
     private suspend fun loadTitle() {
-        val known = when (val r = app.titles.stream(sourceId, titleId).first { it !is TitleLoad.Loading }) {
-            is TitleLoad.Ready -> r.title
-            is TitleLoad.Failed -> throw r.error
-            TitleLoad.Loading -> error(appString(R.string.error_no_title_offline))
-        }
-        titleName = known.details.title
-        coverUrl = known.details.coverUrl
-        typeLabel = known.details.typeLabel
-        if (known.chapters.isEmpty()) error(appString(R.string.error_no_chapters))
-        allCopies = known.chapters
-        // One copy per chapter, continuing with the team of the chapter that was opened.
-        val prefs = dao.getTitlePrefs(sourceId, titleId)
-        val opened = known.chapters.firstOrNull { it.id == currentChapterId }
-        showAllCopies = prefs?.showDuplicates == true
-        chapters = readingList(opened?.branchId ?: prefs?.branch, opened, showAllCopies)
+        val list = book.loadTitle(currentChapterId)
+        titleName = book.titleName
+        chapters = list
     }
 
-    /** The title's chapter list shows every team's copy ("All"), so the reader does too. */
-    private var showAllCopies = false
-
-    private fun readingList(branch: String?, opened: Chapter?, showDuplicates: Boolean): List<Chapter> =
-        if (showDuplicates) {
-            allCopies.inReadingOrder()
-        } else {
-            val deduped = dedupeChapters(allCopies, branch)
-            (if (opened != null && deduped.none { it.id == opened.id }) deduped + opened else deduped).inReadingOrder()
-        }
-
-    /**
-     * The chapter's text, from its download when there is one (offline, no request), else from its
-     * source; parsed into blocks away from the main thread.
-     */
-    private suspend fun loadChapter(ch: Chapter): LoadedNovelChapter {
-        val text = app.downloads.localText(sourceId, titleId, ch.id) ?: withContext(Dispatchers.IO) {
-            val source = app.sources.sourceById(sourceId) ?: error(appString(R.string.error_source_not_found))
-            source.requireNovel().getChapterText(ch)
-        }
-        val blocks = withContext(Dispatchers.Default) { NovelBlocks.parse(text.html, null) }
-        return LoadedNovelChapter(ch, blocks)
-    }
+    /** The title's cover, for read aloud's notification. */
+    val coverUrl: String? get() = book.coverUrl
 
     /** Adds the chapter after the last loaded one to the list (no-op at the end or while one loads). */
     private fun appendNextChapter() {
@@ -354,7 +312,7 @@ class NovelReaderViewModel(
         viewModelScope.launch {
             appendMutex.withLock {
                 if (forSession != session || loaded.lastOrNull()?.chapter?.id != last.id) return@launch
-                runCatching { loadChapter(next) }
+                runCatching { book.loadChapter(next) }
                     .onSuccess { chapter ->
                         if (forSession != session) return@onSuccess
                         loaded = loaded + chapter
@@ -420,37 +378,15 @@ class NovelReaderViewModel(
         sessionTracker.finish(System.currentTimeMillis())?.let(::saveSession)
     }
 
-    private fun saveSession(session: ReadingSessionTracker.Session) {
-        // Incognito: nothing about this reading is kept.
-        if (app.prefs.incognito.value) return
-        val entity = ReadingSessionEntity(
-            sourceId = sourceId,
-            titleId = titleId,
-            titleName = titleName,
-            chapterId = session.chapterId,
-            startedAt = session.startedAt,
-            durationMs = session.durationMs,
-            // Time counts for novels; "pages" don't exist.
-            pagesRead = 0,
-        )
-        app.appScope.launch { withContext(NonCancellable) { dao.insertSession(entity) } }
-    }
+    private fun saveSession(session: ReadingSessionTracker.Session) = book.saveSession(session)
 
     private fun markFinished(chapterId: String) {
         // Incognito: nothing about this reading is kept (read marks, trackers).
         if (app.prefs.incognito.value) return
         if (!markedRead.add(chapterId)) return
-        val lc = loaded.firstOrNull { it.chapter.id == chapterId }
-        app.appScope.launch {
-            withContext(NonCancellable) {
-                dao.markChapterRead(ChapterReadEntity(sourceId = sourceId, titleId = titleId, chapterId = chapterId))
-                if (lc != null && lc.chapter.id != anchor.chapterId) {
-                    // Left behind at its end: reopening it from the list starts from the top.
-                    writeChapterProgress(NovelAnchor(lc.chapter.id, lc.blocks.size - 1, 1f), lc.blocks.size, completed = true)
-                }
-                runCatching { app.trackerSync.pushProgress(sourceId, titleId, chapters, chapterId) }
-            }
-        }
+        // Left behind at its end: reopening it from the list starts from the top.
+        val leftBehind = loaded.firstOrNull { it.chapter.id == chapterId }?.takeIf { it.chapter.id != anchor.chapterId }
+        book.markRead(chapterId, chapters, leftBehind)
     }
 
     /** Save now, in a scope that survives this ViewModel (Back, stop, process going away). */
@@ -470,39 +406,7 @@ class NovelReaderViewModel(
         // Incognito: the spot survives rotation (saved state) but never reaches history.
         if (app.prefs.incognito.value) return
         val lc = loaded.firstOrNull { it.chapter.id == a.chapterId } ?: return
-        val count = lc.blocks.size
-        writeChapterProgress(a, count, completed = atEnd)
-        dao.upsertProgress(
-            ProgressEntity(
-                sourceId = sourceId,
-                titleId = titleId,
-                titleName = titleName,
-                coverUrl = coverUrl,
-                typeLabel = typeLabel,
-                chapterId = lc.chapter.id,
-                chapterName = lc.chapter.title,
-                chapterUrl = lc.chapter.url,
-                pageIndex = a.block,
-                pageCount = count,
-                pageOffset = a.fraction,
-                pageImageUrl = null,
-                mediaKind = "novel",
-            ),
-        )
-    }
-
-    private suspend fun writeChapterProgress(a: NovelAnchor, count: Int, completed: Boolean) {
-        dao.upsertChapterProgress(
-            ChapterProgressEntity(
-                sourceId = sourceId,
-                titleId = titleId,
-                chapterId = a.chapterId,
-                pageIndex = a.block,
-                pageOffset = a.fraction,
-                pageCount = count,
-                completed = completed,
-            ),
-        )
+        book.saveProgress(a, lc, completed = atEnd)
     }
 
     // ---- Navigation inside the reader -----------------------------------------------------
@@ -527,7 +431,7 @@ class NovelReaderViewModel(
         if (copy.id == currentChapterId) return
         flush()
         val branch = copy.branchId
-        chapters = readingList(branch, copy, showAllCopies)
+        chapters = book.readingList(branch, copy)
         if (branch != null) {
             viewModelScope.launch {
                 titleWrites.withLock {
