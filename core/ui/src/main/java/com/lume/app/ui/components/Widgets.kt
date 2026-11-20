@@ -197,6 +197,8 @@ fun TitleListRow(
     onLongClick: (() -> Unit)? = null,
     /** What [onLongClick] does, for TalkBack's actions menu. */
     onLongClickLabel: String? = null,
+    /** A tap on the cover alone (e.g. open the title page while the row goes on reading); null = the whole row. */
+    onCoverClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     Row(
@@ -223,7 +225,17 @@ fun TitleListRow(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CoverImage(url = coverUrl, width = 48.dp, height = 64.dp, radius = 6.dp, sourceId = sourceId)
+        if (onCoverClick != null) {
+            Box(
+                Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .clickable(role = Role.Button, onClickLabel = stringResource(R.string.cd_open_title), onClick = onCoverClick),
+            ) {
+                CoverImage(url = coverUrl, width = 48.dp, height = 64.dp, radius = 6.dp, sourceId = sourceId)
+            }
+        } else {
+            CoverImage(url = coverUrl, width = 48.dp, height = 64.dp, radius = 6.dp, sourceId = sourceId)
+        }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

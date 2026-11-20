@@ -91,7 +91,7 @@ You can also open a title link from your browser, or share it to Lume.
 
 ## Sources and packs
 
-Lume has built-in sources: MangaDex, MangaKatana, Asura Scans, MangaRead, HiveToons, Vortex Scans, MangaLib, YaoiLib, HentaiLib, ReManga, MangaBuff and **Local files**. The full list is in the [README](../README.md#built-in-sources).
+Lume has built-in sources: MangaDex, MangaKatana, Asura Scans, MangaRead, HiveToons, Vortex Scans, MangaLib, SlashLib, YaoiLib, HentaiLib, ReManga, MangaBuff and **Local files**. The full list is in the [README](../README.md#built-in-sources).
 
 Manage them in **Settings → Sources and search → Sources** (or **Menu → Source**).
 

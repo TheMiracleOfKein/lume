@@ -96,6 +96,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextDecoration
 import com.lume.app.ui.components.EmptyBox
+import com.lume.app.ui.components.SwipeTabPager
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import com.lume.app.ui.components.TooltipIconButton
 import com.lume.app.ui.components.LocalShellBottomPadding
 import com.lume.app.ui.components.LumeInsets
@@ -177,30 +180,56 @@ fun LibraryScreen(nav: NavHostController) {
             if (settings.filterChips) {
                 FilterChipRow(settings = settings, onCycle = { filter -> vm.updateSettings { it.cycled(filter) } })
             }
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                when {
-                    !loaded -> Unit
-                    items.isEmpty() -> EmptyBox(
-                        stringResource(
-                            if (vm.search.isNotBlank() || settings.activeFilterCount > 0) R.string.library_no_results
-                            else R.string.library_empty,
-                        ),
-                    )
-                    else -> LibraryContent(
-                        items = items,
-                        settings = settings,
-                        selected = vm.selected,
-                        bottomPadding = bottomPadding + if (vm.selecting) SelectionBarHeight else 0.dp,
-                        onClick = onClick,
-                        onLongClick = onLongClick,
-                        onContinue = if (settings.continueButton && !vm.selecting) {
-                            { item ->
-                                vm.continuePoint(item) { p ->
-                                    if (p != null) nav.openReader(p.sourceId, p.titleId, p.chapterId) else open(item)
+            // Swipe left / right moves between categories ("All" first), like tapping their chips.
+            val base by vm.base.collectAsState()
+            val selectedPage = categories.indexOfFirst { it.id == vm.categoryId } + 1
+            // Each page works out its own list, so a neighbour shown mid-swipe has the right titles.
+            // With no categories the VM's list is the page.
+            val page: @Composable (Long?, Boolean) -> Unit = { category, single ->
+                val pageItems = if (single) {
+                    items
+                } else {
+                    remember(base, settings, category, vm.search) { vm.visibleIn(base, settings, category) }
+                }
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    when {
+                        !loaded -> Unit
+                        pageItems.isEmpty() -> EmptyBox(
+                            stringResource(
+                                if (vm.search.isNotBlank() || settings.activeFilterCount > 0) R.string.library_no_results
+                                else R.string.library_empty,
+                            ),
+                        )
+                        else -> LibraryContent(
+                            items = pageItems,
+                            settings = settings,
+                            selected = vm.selected,
+                            bottomPadding = bottomPadding + if (vm.selecting) SelectionBarHeight else 0.dp,
+                            onClick = onClick,
+                            onLongClick = onLongClick,
+                            onContinue = if (settings.continueButton && !vm.selecting) {
+                                { item ->
+                                    vm.continuePoint(item) { p ->
+                                        if (p != null) nav.openReader(p.sourceId, p.titleId, p.chapterId) else open(item)
+                                    }
                                 }
-                            }
-                        } else null,
-                    )
+                            } else null,
+                        )
+                    }
+                }
+            }
+            if (categories.isEmpty()) {
+                page(null, true)
+            } else {
+                SwipeTabPager(
+                    selected = selectedPage,
+                    pageCount = categories.size + 1,
+                    onSelect = { index -> vm.categoryId = if (index == 0) null else categories.getOrNull(index - 1)?.id },
+                    modifier = Modifier.fillMaxSize(),
+                    // While titles are being picked a swipe would change what "all" selects.
+                    userScrollEnabled = !vm.selecting,
+                ) { index ->
+                    page(if (index == 0) null else categories.getOrNull(index - 1)?.id, false)
                 }
             }
         }
@@ -441,6 +470,9 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
         Motion.short(),
         label = "chipBackground",
     )
+    // Chosen by a swipe across the categories: scroll the row so the chip is in view.
+    val inView = remember { BringIntoViewRequester() }
+    LaunchedEffect(selected) { if (selected) inView.bringIntoView() }
     Text(
         text = label,
         color = color,
@@ -448,6 +480,7 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
         fontWeight = FontWeight.Medium,
         fontSize = 13.sp,
         modifier = Modifier
+            .bringIntoViewRequester(inView)
             .padding(end = 8.dp)
             .minimumInteractiveComponentSize()
             .clip(RoundedCornerShape(16.dp))

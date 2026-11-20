@@ -25,6 +25,7 @@ import com.lume.app.domain.ChapterNeighbours
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.ReadingSessionTracker
 import com.lume.app.domain.chapterNeighbours
+import com.lume.app.domain.chapterTranslations
 import com.lume.app.domain.dedupeChapters
 import com.lume.app.domain.inReadingOrder
 import com.lume.app.domain.requireNovel
@@ -72,6 +73,13 @@ class NovelReaderViewModel(
 
     /** Reading order (oldest to newest). */
     var chapters by mutableStateOf<List<Chapter>>(emptyList())
+        private set
+
+    /** Every copy of every chapter (all teams), for switching translation. */
+    private var allCopies: List<Chapter> = emptyList()
+
+    /** The current chapter's copies by each team (empty when there is only one). */
+    var translations by mutableStateOf<List<Chapter>>(emptyList())
         private set
 
     // ---- Load state -----------------------------------------------------------------------
@@ -274,6 +282,7 @@ class NovelReaderViewModel(
                 items = buildNovelItems(loaded)
                 anchor = start
                 currentChapterId = start.chapterId
+                translations = chapterTranslations(allCopies, first.chapter)
                 currentBlock = start.block
                 atChapterEnd = false
                 appendFailedFor = null
@@ -304,16 +313,24 @@ class NovelReaderViewModel(
         coverUrl = known.details.coverUrl
         typeLabel = known.details.typeLabel
         if (known.chapters.isEmpty()) error(appString(R.string.error_no_chapters))
+        allCopies = known.chapters
         // One copy per chapter, continuing with the team of the chapter that was opened.
         val prefs = dao.getTitlePrefs(sourceId, titleId)
         val opened = known.chapters.firstOrNull { it.id == currentChapterId }
-        chapters = if (prefs?.showDuplicates == true) {
-            known.chapters.inReadingOrder()
+        showAllCopies = prefs?.showDuplicates == true
+        chapters = readingList(opened?.branchId ?: prefs?.branch, opened, showAllCopies)
+    }
+
+    /** The title's chapter list shows every team's copy ("All"), so the reader does too. */
+    private var showAllCopies = false
+
+    private fun readingList(branch: String?, opened: Chapter?, showDuplicates: Boolean): List<Chapter> =
+        if (showDuplicates) {
+            allCopies.inReadingOrder()
         } else {
-            val deduped = dedupeChapters(known.chapters, opened?.branchId ?: prefs?.branch)
+            val deduped = dedupeChapters(allCopies, branch)
             (if (opened != null && deduped.none { it.id == opened.id }) deduped + opened else deduped).inReadingOrder()
         }
-    }
 
     /**
      * The chapter's text, from its download when there is one (offline, no request), else from its
@@ -367,7 +384,10 @@ class NovelReaderViewModel(
         val chapterChanged = next.chapterId != anchor.chapterId
         anchor = next
         dirty = true
-        if (chapterChanged) currentChapterId = next.chapterId
+        if (chapterChanged) {
+            currentChapterId = next.chapterId
+            translations = currentChapter?.let { chapterTranslations(allCopies, it) }.orEmpty()
+        }
         if (currentBlock != next.block) currentBlock = next.block
         pendingSave.value = next
         trackReading(next)
@@ -497,6 +517,26 @@ class NovelReaderViewModel(
     fun openChapter(chapterId: String) {
         flush()
         load(NovelAnchor(chapterId, 0, 0f), explicit = false)
+    }
+
+    /**
+     * Reads [copy] (another team's translation of the current chapter) from the top, and follows
+     * its team from here on: next / previous, and the title's preferred team.
+     */
+    fun switchTranslation(copy: Chapter) {
+        if (copy.id == currentChapterId) return
+        flush()
+        val branch = copy.branchId
+        chapters = readingList(branch, copy, showAllCopies)
+        if (branch != null) {
+            viewModelScope.launch {
+                titleWrites.withLock {
+                    val row = dao.getTitlePrefs(sourceId, titleId) ?: TitlePrefsEntity(sourceId = sourceId, titleId = titleId)
+                    dao.upsertTitlePrefs(row.copy(branch = branch))
+                }
+            }
+        }
+        load(NovelAnchor(copy.id, 0, 0f), explicit = true)
     }
 
     override fun onCleared() {

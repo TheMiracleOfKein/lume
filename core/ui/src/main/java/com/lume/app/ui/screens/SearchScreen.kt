@@ -1,6 +1,5 @@
 package com.lume.app.ui.screens
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.ui.semantics.semantics
@@ -74,6 +73,7 @@ import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
 import com.lume.app.ui.components.QuickSearchBar
 import com.lume.app.ui.components.SegmentTab
+import com.lume.app.ui.components.SwipeTabPager
 import com.lume.app.ui.components.SourceProblemLine
 import com.lume.app.ui.components.TitleListRow
 import com.lume.app.ui.components.libraryStatusColor
@@ -84,7 +84,6 @@ import com.lume.app.ui.screens.SearchViewModel.Mode
 import com.lume.app.ui.screens.SearchViewModel.SourceRow
 import com.lume.app.ui.screens.SearchViewModel.SourceState
 import com.lume.app.ui.theme.AppColors
-import com.lume.app.ui.theme.Motion
 import com.lume.app.ui.theme.animatedItem
 import com.lume.app.ui.theme.fadingItem
 import kotlinx.coroutines.launch
@@ -153,18 +152,18 @@ fun SearchScreen(nav: NavHostController, globalQuery: String? = null) {
                 .fillMaxSize()
                 .background(AppColors.background),
         ) {
+            val selectMode = { mode: Mode ->
+                if (vm.mode != mode) {
+                    vm.mode = mode
+                    vm.search()
+                }
+            }
             Row(modifier = Modifier.fillMaxWidth().selectableGroup().padding(horizontal = 8.dp, vertical = 4.dp)) {
                 SegmentTab(stringResource(R.string.search_mode_current), vm.mode == Mode.Current, Modifier.weight(1f)) {
-                    if (vm.mode != Mode.Current) {
-                        vm.mode = Mode.Current
-                        vm.search()
-                    }
+                    selectMode(Mode.Current)
                 }
                 SegmentTab(stringResource(R.string.search_mode_all), vm.mode == Mode.Global, Modifier.weight(1f)) {
-                    if (vm.mode != Mode.Global) {
-                        vm.mode = Mode.Global
-                        vm.search()
-                    }
+                    selectMode(Mode.Global)
                 }
             }
             Row(
@@ -221,13 +220,13 @@ fun SearchScreen(nav: NavHostController, globalQuery: String? = null) {
                 )
                 return@Column
             }
-            AnimatedContent(
-                targetState = vm.mode,
+            SwipeTabPager(
+                selected = if (vm.mode == Mode.Current) 0 else 1,
+                pageCount = 2,
+                onSelect = { page -> selectMode(if (page == 0) Mode.Current else Mode.Global) },
                 modifier = Modifier.fillMaxSize(),
-                transitionSpec = Motion.contentSwap(),
-                label = "searchMode",
-            ) { pane ->
-                if (pane == Mode.Current) {
+            ) { page ->
+                if (page == 0) {
                     CurrentSourceResults(vm, nav, onChallenge = { uri ->
                         scope.launch { container.http.requestChallenge(uri) }
                     })

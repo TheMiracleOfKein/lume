@@ -30,6 +30,9 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -170,6 +173,9 @@ internal fun ReaderTopBar(
     /** Guided panel view on or off; null hides the button (webtoon mode). */
     guidedPanels: Boolean? = null,
     onToggleGuidedPanels: () -> Unit = {},
+    /** The team that translated this chapter; null when there is no other translation to pick. */
+    translation: String? = null,
+    onTranslation: () -> Unit = {},
 ) {
     var pageMenu by remember { mutableStateOf(false) }
     Box(
@@ -189,28 +195,51 @@ internal fun ReaderTopBar(
         ) {
             BackButton(onClick = onBack, tint = Color.White)
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(role = Role.Button, onClick = onOpenTitle),
+                modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = titleName,
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                )
-                Text(
-                    text = chapterTitle,
-                    color = Color.White.copy(alpha = 0.75f),
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                )
+                Column(
+                    modifier = Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onOpenTitle),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = titleName,
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                    )
+                    Text(
+                        text = chapterTitle,
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                if (translation != null) {
+                    val label = stringResource(R.string.reader_translation_switch, translation)
+                    Row(
+                        modifier = Modifier
+                            .clickable(role = Role.Button, onClick = onTranslation)
+                            .semantics(mergeDescendants = true) { contentDescription = label }
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = translation,
+                            color = AppColors.accent,
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        Icon(Icons.Outlined.ArrowDropDown, null, tint = AppColors.accent, modifier = Modifier.size(18.dp))
+                    }
+                }
             }
             if (guidedPanels != null) {
                 IconButton(onClick = onToggleGuidedPanels) {

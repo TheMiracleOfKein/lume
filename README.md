@@ -59,11 +59,11 @@ apksigner verify --print-certs lume-vX.Y.Z-full.apk
 - Move a title to another source in one tap, with progress, bookmarks, categories, trackers and downloads.
 
 **Sources**
-- 12 built-in sources (11 sites in English and Russian, plus local files; listed below), plus your own JSON packs for Madara, LibSocial and HiveToons sites.
+- 13 built-in sources (12 sites in English and Russian, plus local files; listed below), plus your own JSON packs for Madara, LibSocial and HiveToons sites.
 - Your own servers (in development for v0.9.2): OPDS catalogues, Komga and Kavita, added in Sources with a password or API key, with reading progress sent back to Komga and Kavita.
 - Global search with per-source results, filters and history.
 - Open a title link from the browser or share it to Lume.
-- Cloudflare and DDoS-Guard checks are solved in a built-in browser; sign-in for MangaLib, YaoiLib and HentaiLib.
+- Cloudflare and DDoS-Guard checks are solved in a built-in browser; sign-in for MangaLib, SlashLib, YaoiLib and HentaiLib.
 
 **Downloads and offline**
 - Background downloads with a notification; pause, reorder, retry.
@@ -95,7 +95,7 @@ apksigner verify --print-certs lume-vX.Y.Z-full.apk
 | Asura Scans | English | `asura` |
 | MangaRead | English | `madara` |
 | HiveToons, Vortex Scans | English | `hivetoons` |
-| MangaLib, YaoiLib\*, HentaiLib\* | Russian | `libsocial` |
+| MangaLib, SlashLib\*, YaoiLib\*, HentaiLib\* | Russian | `libsocial` |
 | ReManga | Russian | `remanga` |
 | MangaBuff | Russian | `mangabuff` |
 | Local files | — | `local` |

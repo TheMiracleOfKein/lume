@@ -9,7 +9,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.PaddingValues
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.listBottomPadding
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,11 +64,11 @@ import com.lume.app.ui.components.ErrorRetryBox
 import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
 import com.lume.app.ui.components.SegmentTab
+import com.lume.app.ui.components.SwipeTabPager
 import com.lume.app.ui.components.TitleListRow
 import com.lume.app.ui.components.loadStateOf
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.theme.AppColors
-import com.lume.app.ui.theme.Motion
 import com.lume.app.ui.theme.animatedItem
 
 /**
@@ -105,12 +104,6 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
         else -> section?.let { vm.sectionFeed(it) } ?: vm.popular
     }
 
-    LaunchedEffect(tab, section, genreOpen, vm.sectionsEpoch) {
-        when (tab) {
-            0 -> vm.ensureLoaded(popularFeed)
-            1 -> vm.ensureLoaded(vm.latest)
-        }
-    }
     val searchList = rememberLazyListState()
     var filtersOpen by rememberSaveable { mutableStateOf(false) }
     val keyboard = LocalSoftwareKeyboardController.current
@@ -182,13 +175,16 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
             }
         }
 
-        AnimatedContent(
-            targetState = tab,
-            transitionSpec = Motion.contentSwap(),
-            label = "catalogTab",
+        SwipeTabPager(
+            selected = tab,
+            pageCount = if (browseName == null) 3 else 2,
+            onSelect = { tab = it },
+            modifier = Modifier.fillMaxSize(),
         ) { tabPane ->
             when (tabPane) {
+                // Each page loads its feed once it is shown, a swipe's neighbour included.
                 0 -> Column(Modifier.fillMaxSize()) {
+                    LaunchedEffect(popularFeed, section, genreOpen, vm.sectionsEpoch) { vm.ensureLoaded(popularFeed) }
                     if (sections.isNotEmpty() || genreFeed != null) {
                         Row(
                             Modifier
@@ -221,12 +217,15 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
                         onOpen = { id -> nav.navigate(Routes.title(vm.sourceId, id)) },
                     )
                 }
-                1 -> CatalogFeedList(
-                    vm = vm,
-                    feed = vm.latest,
-                    listState = latestList,
-                    onOpen = { id -> nav.navigate(Routes.title(vm.sourceId, id)) },
-                )
+                1 -> {
+                    LaunchedEffect(vm.latest, vm.sectionsEpoch) { vm.ensureLoaded(vm.latest) }
+                    CatalogFeedList(
+                        vm = vm,
+                        feed = vm.latest,
+                        listState = latestList,
+                        onOpen = { id -> nav.navigate(Routes.title(vm.sourceId, id)) },
+                    )
+                }
                 else -> {
                     if (bookmarks.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

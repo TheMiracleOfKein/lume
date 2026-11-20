@@ -44,7 +44,7 @@ JSON pack ──► SourceRegistry ──► known engine id ──► Kotlin cl
 | `mangadex` | `mangadex` | Core |
 | `mangakatana` | `mangakatana` | Core HTML |
 | `asura` | `asura` | Core API |
-| `mangalib` / `yaoilib` / `hentailib` | `libsocial` | Family packs (`siteId`) |
+| `mangalib` / `slashlib` / `yaoilib` / `hentailib` | `libsocial` | Family packs (`siteId`) |
 | `ranobelib` | `ranobelib` | Novels, `siteId` 3; in `feature/novel` assets, so the full and ranobe builds only |
 | `royalroad` | `royalroad` | English novels; `feature/novel` assets |
 | `scribblehub` | `scribblehub` | English novels; `feature/novel` assets |
@@ -111,7 +111,7 @@ See historical notes in [MIHON_EXTENSIONS.md](MIHON_EXTENSIONS.md).
 | Key | Engines | Meaning |
 | --- | --- | --- |
 | `apiBase` | most API engines | API root (e.g. `https://api.cdnlibs.org/api`) |
-| `siteId` | `libsocial`, `ranobelib` | cdnlibs site id (`1` MangaLib, `2` YaoiLib, `3` RanobeLib, `4` HentaiLib) |
+| `siteId` | `libsocial`, `ranobelib` | cdnlibs site id (`1` MangaLib, `2` SlashLib (formerly YaoiLib), `3` RanobeLib, `4` HentaiLib) |
 | `webPath` | `libsocial`, `ranobelib` | title page path on the site: `manga` (default) or `book` (RanobeLib) |
 | `mangaPath`, `useAjaxLoadMore`, `chapterUrlSuffix` | `madara` | catalogue path, `admin-ajax` list loading, reader query |
 | `languages` | `mangadex` | comma-separated chapter languages |

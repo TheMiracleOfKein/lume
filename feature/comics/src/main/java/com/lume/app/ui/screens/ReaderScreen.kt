@@ -20,6 +20,8 @@ import com.lume.app.ui.components.BookmarkNoteDialog
 import com.lume.app.ui.components.LocalNavExiting
 import com.lume.app.ui.components.PageBookmarkRow
 import com.lume.app.ui.components.SheetHeader
+import com.lume.app.ui.components.TranslationPickerSheet
+import com.lume.app.ui.components.translationLabel
 import com.lume.app.ui.nav.openTitleFromReader
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.collectLatest
@@ -135,7 +137,10 @@ fun ReaderScreen(
     var chromeVisible by rememberSaveable { mutableStateOf(true) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var bookmarksOpen by rememberSaveable { mutableStateOf(false) }
+    var translationsOpen by rememberSaveable { mutableStateOf(false) }
     var noteFor by rememberSaveable { mutableStateOf<Long?>(null) }
+    val translations = remember(vm.currentChapterId, vm.chapters) { vm.translations }
+    val translationLabelOrNull = vm.currentChapter?.takeIf { translations.isNotEmpty() }?.let(::translationLabel)
     val inLibrary by vm.inLibrary.collectAsState()
     val pageBookmarks by vm.pageBookmarks.collectAsState()
     val snackbar = remember { SnackbarHostState() }
@@ -187,7 +192,7 @@ fun ReaderScreen(
     // Leaving (Back, or a back gesture in progress): bars come back before the next screen shows,
     // and since the shell no longer pads for them, nothing resizes either way.
     val exiting = LocalNavExiting.current
-    val hideSystemBars = settings.immersive && !chromeVisible && !settingsOpen && !bookmarksOpen && !exiting
+    val hideSystemBars = settings.immersive && !chromeVisible && !settingsOpen && !bookmarksOpen && !translationsOpen && !exiting
     LaunchedEffect(insetsController, hideSystemBars) {
         insetsController?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         if (hideSystemBars) {
@@ -393,6 +398,8 @@ fun ReaderScreen(
                             onSavePage = ::savePage,
                             guidedPanels = settings.guidedPanels.takeIf { settings.mode != ReaderMode.Webtoon },
                             onToggleGuidedPanels = { vm.updateSettings(settings.copy(guidedPanels = !settings.guidedPanels), commit = true) },
+                            translation = translationLabelOrNull,
+                            onTranslation = { translationsOpen = true },
                         )
                     }
                     Column(
@@ -434,6 +441,15 @@ fun ReaderScreen(
                 }
             }
         }
+    }
+
+    if (translationsOpen) {
+        TranslationPickerSheet(
+            copies = translations,
+            currentId = vm.currentChapterId,
+            onPick = vm::switchTranslation,
+            onDismiss = { translationsOpen = false },
+        )
     }
 
     if (settingsOpen) {

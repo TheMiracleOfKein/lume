@@ -29,6 +29,9 @@ class SourceLinkParsingTest {
         val engine = LibSocialEngine(manifest("libsocial", "https://mangalib.me"), http, null)
         assertEquals("/7580--solo-leveling", engine.titleIdFromUrl("https://mangalib.me/ru/manga/7580--solo-leveling"))
         assertEquals("/7580--solo-leveling", engine.titleIdFromUrl("https://mangalib.me/ru/7580--solo-leveling/read/v1/c1"))
+        val slash = LibSocialEngine(manifest("libsocial", "https://slashlib.me"), http, null)
+        assertEquals("/23435--secret-alliance", slash.titleIdFromUrl("https://slashlib.me/ru/manga/23435--secret-alliance"))
+        assertNull(slash.titleIdFromUrl("https://mangalib.me/ru/manga/23435--secret-alliance"))
     }
 
     @Test

@@ -1162,6 +1162,9 @@
     <string name="reader_page_menu">This page</string>
     <string name="reader_page_share">Share page</string>
     <string name="reader_page_save">Save page to Pictures</string>
+    <string name="reader_translation">Translation</string>
+    <string name="reader_translation_switch">Translation: %1$s. Change translation</string>
+    <string name="cd_open_title">Open title page</string>
     <string name="reader_page_saved">Page saved to Pictures/Lume</string>
     <string name="reader_page_failed">The page isn\'t loaded yet</string>
     <string name="reader_auto_scroll_start">Start auto-scroll</string>
