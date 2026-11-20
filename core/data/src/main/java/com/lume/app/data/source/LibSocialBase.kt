@@ -32,7 +32,7 @@ import java.net.URI
 /**
  * The MangaLib-family API (`api.cdnlibs.org`) shared by every Lib site, whatever it serves:
  * catalogue, search and filters, title details, chapters with their teams, bookmarks and links.
- * The sites differ by `engineConfig.siteId` (1 MangaLib, 2 YaoiLib, 3 RanobeLib, 4 HentaiLib)
+ * The sites differ by `engineConfig.siteId` (1 MangaLib, 2 SlashLib / YaoiLib, 3 RanobeLib, 4 HentaiLib)
  * and `engineConfig.webPath` (`manga`, or `book` on RanobeLib). Subclasses add the chapter
  * content: image pages ([LibSocialEngine] in the comics module) or text (RanobeLib).
  */
@@ -236,7 +236,7 @@ abstract class LibSocialBase(
             year = data.str("releaseDate")?.take(4)?.toIntOrNull(),
             score = data["rating"].obj()?.str("average")?.toDoubleOrNull()?.takeIf { it > 0 },
             coverUrl = cover,
-            description = htmlToText(stringOrNull(data["summary"]) ?: stringOrNull(data["description"])),
+            description = summaryText(data["summary"]) ?: summaryText(data["description"]) ?: summaryText(data["rawSummary"]),
             typeLabel = nestedLabel(data["type"]),
             status = nestedLabel(data["status"]),
             authors = authors,
@@ -400,6 +400,15 @@ abstract class LibSocialBase(
         is JsonPrimitive -> el.contentOrNull?.takeIf { it.isNotBlank() && it != "null" }
         else -> null
     }
+
+    /**
+     * A title's description as plain text. The API sends either an HTML string or, for most
+     * titles now, a rich-text document (`{"type":"doc",…}`, the format of chapter text).
+     */
+    private fun summaryText(el: JsonElement?): String? = when (el) {
+        is JsonObject, is JsonArray -> LibChapterText.toHtml(JsonObject(mapOf("content" to el)), manifest.baseUrl)
+        else -> stringOrNull(el)
+    }?.let(::htmlToText)?.takeIf { it.isNotBlank() }
 
     protected fun asObject(el: JsonElement): JsonObject = el as? JsonObject ?: JsonObject(emptyMap())
 

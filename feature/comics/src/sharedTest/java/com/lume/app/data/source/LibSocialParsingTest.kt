@@ -46,6 +46,19 @@ class LibSocialParsingTest {
         assertEquals(listOf("Gwon Gyeoeul"), details.authors)
         assertTrue(details.genres.size >= 9)
         assertHttpUrls(listOfNotNull(details.coverUrl))
+        // The summary comes as a rich-text document, not a string.
+        assertTrue(details.description.orEmpty().startsWith("Я перевоплотилась"))
+    }
+
+    @Test
+    fun descriptionFromHtmlStringOrDocument() {
+        fun description(summary: String) = engine.parseDetails("""{"data":{"name":"X","summary":$summary}}""", titleId).description
+        assertEquals("One\n\nTwo", description("\"<p>One</p><p>Two</p>\""))
+        assertEquals(
+            "One\n\nTwo",
+            description("""{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"One"}]},{"type":"paragraph","content":[{"type":"text","text":"Two"}]}]}"""),
+        )
+        assertEquals(null, description("null"))
     }
 
     @Test
