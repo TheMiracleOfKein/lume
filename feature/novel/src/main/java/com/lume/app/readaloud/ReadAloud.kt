@@ -1,6 +1,5 @@
 package com.lume.app.readaloud
 
-import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -114,6 +113,9 @@ object ReadAloud {
     fun engines(): List<EngineOption> = engine?.engines().orEmpty()
     val enginePackage: String? get() = engine?.enginePackage
 
+    /** The language of the chapter being read, as read aloud guessed it. */
+    val textLocale: java.util.Locale get() = engine?.textLocale ?: java.util.Locale.getDefault()
+
     /** New speed, voice or engine: used from the next sentence on, and kept for next time. */
     fun updateSettings(settings: ReadAloudSettings) {
         val clean = settings.clamped()
@@ -150,7 +152,6 @@ object ReadAloud {
         }
     }
 
-    @SuppressLint("WakelockTimeout")
     private fun hold(context: Context) {
         // Keeps the CPU awake between sentences and while the next chapter loads, screen off.
         val lock = wakeLock ?: (context.getSystemService(Context.POWER_SERVICE) as PowerManager)

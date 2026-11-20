@@ -1,6 +1,9 @@
 package com.lume.app.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.DragInteraction
+import com.lume.app.readaloud.textLength
+import kotlinx.coroutines.flow.filterNotNull
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -203,7 +206,24 @@ internal fun NovelPagedText(
         LaunchedEffect(session, pagerState) {
             snapshotFlow { restored && pagerState.isScrollInProgress }.collect { if (it) onTurned() }
         }
+        // Read aloud: turn to the page of the spoken sentence until the reader turns pages by hand.
+        LaunchedEffect(pagerState) {
+            pagerState.interactionSource.interactions.collect {
+                if (it is DragInteraction.Start && vm.readAloud != null) vm.changeFollowVoice(false)
+            }
+        }
+        LaunchedEffect(session, pagerState) {
+            snapshotFlow { vm.readAloud?.takeIf { restored && vm.followVoice }?.let { SpokenRange(it.chapterId, it.block, it.start, it.end) } }
+                .filterNotNull()
+                .distinctUntilChanged()
+                .collect { s ->
+                    val target = spokenPage(currentItems, currentMeasures, currentPages, s) ?: return@collect
+                    if (target != pagerState.currentPage) pagerState.animateScrollToPage(target, animationSpec = Motion.medium())
+                }
+        }
 
+        val spoken = vm.spoken
+        val spokenColor = spokenColor(palette)
         val scope = rememberCoroutineScope()
         HorizontalPager(
             state = pagerState,
@@ -214,6 +234,8 @@ internal fun NovelPagedText(
                 .pointerInput(pagerState) {
                     detectTapGestures { tap ->
                         val third = size.width / 3f
+                        val turns = tap.x < third || tap.x > 2 * third
+                        if (turns && vm.readAloud != null) vm.changeFollowVoice(false)
                         when {
                             tap.x < third -> scope.launch { turn(pagerState, -1) }
                             tap.x > 2 * third -> scope.launch { turn(pagerState, 1) }
@@ -237,7 +259,11 @@ internal fun NovelPagedText(
                         )
                         is PagedRow.Text -> {
                             val lines = measure as? PageMeasure.Lines ?: continue
-                            TextSlice(row, lines, slice, settings.sideMargin.dp)
+                            // The highlight only adds a background, so the measured lines still fit.
+                            val text = (items.getOrNull(slice.item) as? NovelItem.Block)
+                                ?.let { row.text.withSpoken(spoken, it.chapterId, it.index, spokenColor) }
+                                ?: row.text
+                            TextSlice(row, text, lines, slice, settings.sideMargin.dp)
                         }
                     }
                 }
@@ -248,11 +274,11 @@ internal fun NovelPagedText(
 
 /** Lines [PageSlice.from] until [PageSlice.to] of a text row: the whole text, shifted up and cut. */
 @Composable
-private fun TextSlice(row: PagedRow.Text, lines: PageMeasure.Lines, slice: PageSlice, side: Dp) {
+private fun TextSlice(row: PagedRow.Text, text: AnnotatedString, lines: PageMeasure.Lines, slice: PageSlice, side: Dp) {
     val top = lines.lineTops[slice.from]
     val height = lines.lineBottoms[slice.to - 1] - top
     Text(
-        text = row.text,
+        text = text,
         style = row.style,
         modifier = Modifier
             .padding(start = side, end = side)
@@ -269,6 +295,22 @@ private fun TextSlice(row: PagedRow.Text, lines: PageMeasure.Lines, slice: PageS
 private suspend fun turn(state: PagerState, delta: Int) {
     val target = (state.currentPage + delta).coerceIn(0, (state.pageCount - 1).coerceAtLeast(0))
     if (target != state.currentPage) state.animateScrollToPage(target, animationSpec = Motion.medium())
+}
+
+/** The page with the spoken sentence's first line, or null when its row isn't loaded. */
+private fun spokenPage(items: List<NovelItem>, measures: List<PageMeasure>, pages: List<NovelPage>, s: SpokenRange): Int? {
+    if (pages.isEmpty()) return null
+    val index = if (s.block < 0) {
+        chapterStartIndex(items, s.chapterId)
+    } else {
+        items.indexOfFirst { it is NovelItem.Block && it.chapterId == s.chapterId && it.index == s.block }
+    }
+    if (index < 0) return null
+    val item = items[index]
+    val m = measures.getOrNull(index)
+    val length = (item as? NovelItem.Block)?.block?.textLength() ?: 0
+    val line = if (m is PageMeasure.Lines && length > 0) lineAtFraction(m, s.start.toFloat() / length) else 0
+    return pageOf(pages, index, line)
 }
 
 /** The page that shows [anchor]: its row, at the line its fraction points to. */

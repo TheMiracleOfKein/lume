@@ -233,6 +233,7 @@
     <string name="read_aloud_voice_default">По умолчанию для языка текста</string>
     <string name="read_aloud_voice_network">Нужен интернет</string>
     <string name="read_aloud_no_voices">Движок не сообщает о голосах.</string>
+    <string name="read_aloud_all_languages">Голоса для всех языков</string>
     <string name="read_aloud_engine">Движок</string>
     <string name="read_aloud_engine_default">Системный</string>
     <string name="read_aloud_sleep">Таймер сна</string>

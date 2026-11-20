@@ -83,6 +83,7 @@ internal class TtsPlayer : SimpleBasePlayer(Looper.getMainLooper()) {
         when (seekCommand) {
             Player.COMMAND_SEEK_TO_NEXT, Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM -> ReadAloud.nextParagraph()
             Player.COMMAND_SEEK_TO_PREVIOUS, Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> ReadAloud.previousParagraph()
+            else -> Unit // not offered: no seek bar, one item
         }
         return Futures.immediateVoidFuture()
     }

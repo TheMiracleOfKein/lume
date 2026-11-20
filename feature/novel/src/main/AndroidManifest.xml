@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Read aloud plays on with the screen off, as a media foreground service. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -15,9 +16,12 @@
     </queries>
 
     <application>
+        <!-- Exported so the system's media controls (lock screen, Bluetooth, Wear) can connect;
+             it only offers play/pause, stop and paragraph skips. -->
         <service
             android:name="com.lume.app.readaloud.ReadAloudService"
             android:exported="true"
+            tools:ignore="ExportedService"
             android:foregroundServiceType="mediaPlayback">
             <intent-filter>
                 <action android:name="androidx.media3.session.MediaSessionService" />

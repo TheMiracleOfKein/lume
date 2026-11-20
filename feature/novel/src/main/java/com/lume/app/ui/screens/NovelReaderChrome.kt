@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.FormatListNumbered
+import androidx.compose.material.icons.outlined.Headphones
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.SkipPrevious
 import androidx.compose.material.icons.outlined.Tune
@@ -148,6 +149,8 @@ internal fun NovelBottomBar(
     onChapters: () -> Unit,
     onSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Starts read aloud (or opens its settings while it runs); null hides the button. */
+    onReadAloud: (() -> Unit)? = null,
 ) {
     val progressLabel = stringResource(R.string.novel_chapter_progress, percent)
     Column(
@@ -196,6 +199,11 @@ internal fun NovelBottomBar(
             }
             IconButton(onClick = onChapters) {
                 Icon(Icons.Outlined.FormatListNumbered, stringResource(R.string.novel_chapter_list), tint = palette.text)
+            }
+            if (onReadAloud != null) {
+                IconButton(onClick = onReadAloud) {
+                    Icon(Icons.Outlined.Headphones, stringResource(R.string.read_aloud), tint = palette.text)
+                }
             }
             IconButton(onClick = onSettings) {
                 Icon(Icons.Outlined.Tune, stringResource(R.string.cd_settings), tint = palette.text)

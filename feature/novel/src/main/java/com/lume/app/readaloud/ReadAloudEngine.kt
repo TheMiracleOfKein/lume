@@ -67,7 +67,8 @@ class ReadAloudEngine(
 
     private var chapter: LoadedNovelChapter? = null
     private var script: List<Utterance> = emptyList()
-    private var textLocale: Locale = Locale.ENGLISH
+    var textLocale: Locale = Locale.ENGLISH
+        private set
     private var index = 0
     private var queuedTo = -1
     private var generation = 0

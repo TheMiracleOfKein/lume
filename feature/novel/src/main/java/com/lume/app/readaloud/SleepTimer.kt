@@ -7,14 +7,17 @@ sealed interface SleepTimer {
     /** Stops once the current chapter has been read to its end. */
     data object EndOfChapter : SleepTimer
 
-    /** Stops at the end of the sentence being read when [deadline] (wall clock, ms) has passed. */
-    data class At(val deadline: Long) : SleepTimer
+    /**
+     * Stops at the end of the sentence being read when [deadline] (wall clock, ms) has passed;
+     * [minutes] is the choice it was set with.
+     */
+    data class At(val deadline: Long, val minutes: Int) : SleepTimer
 
     companion object {
         /** The timer choices offered, in minutes. */
         val MINUTES = listOf(15, 30, 45, 60)
 
-        fun minutes(n: Int, now: Long): SleepTimer = At(now + n * 60_000L)
+        fun minutes(n: Int, now: Long): SleepTimer = At(now + n * 60_000L, n)
     }
 }
 

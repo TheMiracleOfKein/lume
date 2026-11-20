@@ -242,6 +242,7 @@
     <string name="read_aloud_voice_default">Default for the text\'s language</string>
     <string name="read_aloud_voice_network">Needs internet</string>
     <string name="read_aloud_no_voices">The engine lists no voices.</string>
+    <string name="read_aloud_all_languages">Voices for every language</string>
     <string name="read_aloud_engine">Engine</string>
     <string name="read_aloud_engine_default">System default</string>
     <string name="read_aloud_sleep">Sleep timer</string>

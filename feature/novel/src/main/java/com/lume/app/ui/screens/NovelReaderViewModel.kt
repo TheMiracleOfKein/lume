@@ -1,5 +1,6 @@
 package com.lume.app.ui.screens
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -20,6 +21,9 @@ import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.ReadingSessionTracker
 import com.lume.app.domain.chapterNeighbours
 import com.lume.app.domain.chapterTranslations
+import com.lume.app.readaloud.ReadAloud
+import com.lume.app.readaloud.ReadAloudState
+import com.lume.app.readaloud.ReadAloudStatus
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -208,6 +212,16 @@ class NovelReaderViewModel(
         viewModelScope.launch { app.prefs.setNovelReaderSettings(NovelReaderSettings()) }
     }
 
+    // ---- Read aloud state (declared before init, whose collector sets it at once) --------
+
+    /** Read aloud of this title, or null when it is off or reading another title. */
+    var readAloud by mutableStateOf<ReadAloudState?>(null)
+        private set
+
+    /** The list keeps the spoken sentence in view; off once the reader scrolls away by hand. */
+    var followVoice by mutableStateOf(true)
+        private set
+
     // ---- Saving ---------------------------------------------------------------------------
     private val pendingSave = MutableStateFlow<NovelAnchor?>(null)
     private var dirty = false
@@ -237,8 +251,48 @@ class NovelReaderViewModel(
         viewModelScope.launch {
             app.http.networkEpoch.drop(1).collect { if (error != null) reload() }
         }
+        // Read aloud of this title: its state for the screen, and its chapter in the list.
+        viewModelScope.launch {
+            ReadAloud.state.collect { s ->
+                val mine = s?.takeIf { it.isFor(sourceId, titleId) }
+                readAloud = mine
+                if (mine != null && followVoice) followChapter(mine)
+            }
+        }
         load(anchor, explicit = savedChapter != null || routeHasTarget)
     }
+
+    // ---- Read aloud -----------------------------------------------------------------------
+
+    /** The sentence being read, for the highlight; null on the chapter title or a pause. */
+    internal val spoken: SpokenRange?
+        get() = readAloud?.takeIf { it.block >= 0 && it.end > it.start }?.let { SpokenRange(it.chapterId, it.block, it.start, it.end) }
+
+    /** Starts reading aloud from the text at the top of the screen. */
+    fun startReadAloud(context: Context) {
+        val lc = loaded.firstOrNull { it.chapter.id == anchor.chapterId } ?: return
+        flush()
+        followVoice = true
+        ReadAloud.start(context, app, book, chapters, lc, anchor)
+    }
+
+    fun changeFollowVoice(on: Boolean) {
+        if (on == followVoice) return
+        followVoice = on
+        readAloud?.let { if (on) followChapter(it) }
+    }
+
+    /** The voice went on into a chapter the list doesn't have: open it there. */
+    private fun followChapter(s: ReadAloudState) {
+        if (loading || loadJob?.isActive == true) return
+        if (loaded.any { it.chapter.id == s.chapterId }) return
+        if (chapters.none { it.id == s.chapterId }) return
+        load(NovelAnchor(s.chapterId, s.block.coerceAtLeast(0), 0f), explicit = true)
+    }
+
+    /** Read aloud is playing this title, so it keeps the progress, not the scrolling. */
+    private fun readAloudKeepsProgress(): Boolean =
+        ReadAloud.state.value?.let { it.isFor(sourceId, titleId) && it.status != ReadAloudStatus.Paused } == true
 
     // ---- Loading --------------------------------------------------------------------------
 
@@ -405,6 +459,7 @@ class NovelReaderViewModel(
         savedState[KEY_FRACTION] = a.fraction
         // Incognito: the spot survives rotation (saved state) but never reaches history.
         if (app.prefs.incognito.value) return
+        if (readAloudKeepsProgress()) return
         val lc = loaded.firstOrNull { it.chapter.id == a.chapterId } ?: return
         book.saveProgress(a, lc, completed = atEnd)
     }
