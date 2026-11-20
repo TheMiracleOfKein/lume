@@ -382,6 +382,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
   - **RanobeDB**: a light novel database with a public API; check what its user lists allow before planning sign-in.
   - **MangaUpdates novels**: its database has a "Novel" type, so it can serve Ranobe mode with the same account once its search keeps only novels.
   - Not planned: Kitsu (few novels, entries mixed with manga).
+- 🟡 **Read aloud** (L): Android's own text-to-speech reads the chapter and goes on to the next one. It keeps playing with the screen off, as a media session with notification and lock-screen controls, highlights and follows the spoken sentence, and saves the spot as reading progress. It has speed, voice and engine choice and a sleep timer (end of chapter or minutes), works offline, and needs no Google services. Built for the next release; the device check is still to do.
 - ✅ **Ranobe build** (S): `ranobe` flavor, novel mode only, without the comics code; `lume-vX.Y.Z-ranobe.apk` on every release. In v1.3.0.
 
 ## Every release
