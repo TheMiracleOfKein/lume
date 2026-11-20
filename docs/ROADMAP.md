@@ -252,6 +252,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
+**v1.5.3: swipe tabs and translations** 🟡 in release ([notes](releases/v1.5.3.md), [device check](releases/v1.5.3-check.md)): swipe between the Catalog tabs, search modes and library categories; switch a chapter's translation team from the reader (MangaLib, RanobeLib); SlashLib in manga mode; a Continue reading or History cover opens the title page; the text reader's title opens the title page; RanobeLib and MangaLib descriptions sent as rich text show again.
+
 **v1.5.2: still reader sheets** ✅ released 2026-11-20 ([notes](releases/v1.5.2.md)): the reader's settings, chapter list and bookmarks sheets no longer twitch up and down after a slow drag or on their own; every sheet now goes through one `LumeBottomSheet` with the fix, and a test fails the build on a sheet that bypasses it. No device check: released on the user's request without emulator tests.
 
 **v1.5.1: ranobe trackers and search** ✅ released 2026-11-20 ([notes](releases/v1.5.1.md), [device check](releases/v1.5.1-check.md)): Ranobe mode lists only the trackers with novel lists, tracker search results show their format and year, search in Ranobe mode looks only at novel sources, and the reader's settings sheet closes after a slow drag.
@@ -391,7 +393,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 | MyAnimeList, Kitsu and MangaUpdates never tried with real accounts | v0.6.x |
 | MangaRead and ToonGod often show Cloudflare checks; ReManga and MangaBuff block some regions | The in-app browser handles checks; region blocks can't be fixed in the app |
 | HentaiLib needs a signed-in account to read | Works as designed since v0.6.1; the reader says so |
-| YaoiLib title pages answer 404 ("Not Found") without a sign-in, while its catalogue and chapter lists still load (found 2026-11-17, same on v1.1.2) | Likely an account is now needed, as on HentaiLib; check with a signed-in account and then say so on the title page (`pagesNeedLogin`-style) |
+| YaoiLib title pages answer 404 ("Not Found") without a sign-in, while its catalogue and chapter lists still load (found 2026-11-17, same on v1.1.2) | Likely an account is now needed, as on HentaiLib; check with a signed-in account and then say so on the title page (`pagesNeedLogin`-style). The site now lives at slashlib.me (same site id 2; yaoilib.me no longer resolves in some networks): SlashLib was added in v1.5.3; YaoiLib can go once its library entries can move over |
+| When Home's source needs a Cloudflare check (MangaRead, for example), the error fills the whole Home page and hides Continue reading (found in the v1.5.3 device check, older behaviour) | Show the error in the feed's own section and keep Continue reading above it |
 | ✅ The weekly live source check failed for every source since early November (OkHttp's public-suffix list missing in JVM tests) | Fixed in v1.2.0: unit tests use OkHttp's JVM build |
 | Room 6→7 migration can't be tested (no v6 schema was exported) | Accepted; every later migration is tested |
 | ✅ The Room migration test was skipped on Windows JVM runs | Fixed in v0.9.13: the test names its open helper by full path, so Room's path check passes on Windows too; the emulator job on CI runs it on a device |
