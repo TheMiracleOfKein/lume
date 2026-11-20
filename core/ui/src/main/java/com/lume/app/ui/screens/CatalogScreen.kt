@@ -104,12 +104,6 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
         else -> section?.let { vm.sectionFeed(it) } ?: vm.popular
     }
 
-    LaunchedEffect(tab, section, genreOpen, vm.sectionsEpoch) {
-        when (tab) {
-            0 -> vm.ensureLoaded(popularFeed)
-            1 -> vm.ensureLoaded(vm.latest)
-        }
-    }
     val searchList = rememberLazyListState()
     var filtersOpen by rememberSaveable { mutableStateOf(false) }
     val keyboard = LocalSoftwareKeyboardController.current
@@ -188,7 +182,9 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
             modifier = Modifier.fillMaxSize(),
         ) { tabPane ->
             when (tabPane) {
+                // Each page loads its feed once it is shown, a swipe's neighbour included.
                 0 -> Column(Modifier.fillMaxSize()) {
+                    LaunchedEffect(popularFeed, section, genreOpen, vm.sectionsEpoch) { vm.ensureLoaded(popularFeed) }
                     if (sections.isNotEmpty() || genreFeed != null) {
                         Row(
                             Modifier
@@ -221,12 +217,15 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
                         onOpen = { id -> nav.navigate(Routes.title(vm.sourceId, id)) },
                     )
                 }
-                1 -> CatalogFeedList(
-                    vm = vm,
-                    feed = vm.latest,
-                    listState = latestList,
-                    onOpen = { id -> nav.navigate(Routes.title(vm.sourceId, id)) },
-                )
+                1 -> {
+                    LaunchedEffect(vm.latest, vm.sectionsEpoch) { vm.ensureLoaded(vm.latest) }
+                    CatalogFeedList(
+                        vm = vm,
+                        feed = vm.latest,
+                        listState = latestList,
+                        onOpen = { id -> nav.navigate(Routes.title(vm.sourceId, id)) },
+                    )
+                }
                 else -> {
                     if (bookmarks.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
