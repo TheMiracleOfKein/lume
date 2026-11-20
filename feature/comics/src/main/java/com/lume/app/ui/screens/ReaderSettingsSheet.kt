@@ -347,6 +347,26 @@ private fun PagedLayoutSettings(settings: ReaderSettings, onCommit: (ReaderSetti
         checked = settings.guidedPanels,
         onCheckedChange = { onCommit(settings.copy(guidedPanels = it)) },
     )
+    if (settings.guidedPanels) {
+        Spacer(Modifier.height(4.dp))
+        Text(stringResource(R.string.reader_panel_order), color = AppColors.textSecondary, fontSize = 13.sp)
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(
+                ReaderSettings.PANELS_RTL to R.string.reader_panel_order_rtl,
+                ReaderSettings.PANELS_LTR to R.string.reader_panel_order_ltr,
+            ).forEach { (value, label) ->
+                ChoiceChip(
+                    label = stringResource(label),
+                    selected = settings.panelOrder == value,
+                    onClick = { onCommit(settings.copy(panelOrder = value)) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        Text(stringResource(R.string.reader_panel_order_hint), color = AppColors.textSecondary, fontSize = 12.sp)
+        Spacer(Modifier.height(10.dp))
+    }
     SwitchRow(
         label = stringResource(R.string.reader_crop_borders),
         hint = stringResource(R.string.reader_crop_borders_hint),

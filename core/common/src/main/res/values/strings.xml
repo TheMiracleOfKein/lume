@@ -998,6 +998,7 @@
     <string name="settings_kw_crop_borders">crop, margins, white border, trim</string>
     <string name="settings_kw_split_wide">double page, spread, split, wide page</string>
     <string name="settings_kw_spreads">two pages, double page, book, landscape, tablet</string>
+    <string name="settings_kw_panel_order">panel order, manga, right to left, left to right, comics, frames</string>
     <string name="settings_kw_preload">preload, prefetch, load ahead, buffer, data</string>
     <string name="settings_kw_library_check">update, new chapters, notification, background</string>
     <string name="settings_kw_interval">hours, frequency, how often</string>
@@ -1173,7 +1174,11 @@
     <string name="reader_webtoon_tap_zones">Tap zones in webtoon mode</string>
     <string name="reader_webtoon_tap_zones_hint">Tap the top third to scroll back and the bottom third to scroll on; the middle shows the controls.</string>
     <string name="reader_guided_panels">Guided panel view</string>
-    <string name="reader_guided_panels_hint">A tap or page turn moves from panel to panel, zoomed in, in reading order. Each page starts whole.</string>
+    <string name="reader_guided_panels_hint">A tap or page turn moves from panel to panel, zoomed in, in reading order, with the rest of the page dimmed. Each page starts whole.</string>
+    <string name="reader_panel_order">Panel order</string>
+    <string name="reader_panel_order_hint">How panels in a row are read in guided panel view. Separate from the page-turn direction.</string>
+    <string name="reader_panel_order_rtl">Right to left (manga)</string>
+    <string name="reader_panel_order_ltr">Left to right (comics)</string>
     <string name="reader_panels_on">Guided panel view on</string>
     <string name="reader_panels_off">Guided panel view off</string>
     <string name="reader_crop_borders">Crop borders</string>
