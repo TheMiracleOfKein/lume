@@ -252,7 +252,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
-**v1.5.5: guided panels** 🟡 in release ([notes](releases/v1.5.5.md), [device check](releases/v1.5.5-check.md)): guided panel view no longer stops responding after an interrupted animation; a panel order setting (right to left by default, separate from the page-turn direction); the page around the panel in focus is dimmed; panels include bubbles and art that break out of their frames.
+**v1.5.5: guided panels** ✅ released 2026-11-21 ([notes](releases/v1.5.5.md), [device check](releases/v1.5.5-check.md)): guided panel view no longer stops responding after an interrupted animation; a panel order setting (right to left by default, separate from the page-turn direction); the page around the panel in focus is dimmed; panels include bubbles and art that break out of their frames.
 
 **v1.5.4: smooth tab swipes** ✅ released 2026-11-21 ([notes](releases/v1.5.4.md)): the tab underline slides with the finger and the tab changes as soon as the next page is nearer; neighbouring pages are prepared ahead; the Catalog's search bar stays on the Library tab, so the tabs no longer jump. No device check: released on the user's request without emulator tests.
 
