@@ -117,7 +117,9 @@ internal fun PagedReader(
                 vm.onPosition(session, anchor, finished, page, page)
             }
     }
-    // Guided view: a page left behind (by a tap or a swipe) starts whole when it comes back.
+    // Guided view: a page left behind (by a tap or a swipe) starts whole when it comes back, and
+    // a page arriving with no panel step shows whole even if its zoom was kept (the zoom state
+    // outlives the step: seekbar jumps, pages recomposed off screen, rotation).
     LaunchedEffect(pagerState) {
         var shown: String? = null
         snapshotFlow { vm.strip.getOrNull(pagerState.settledPage)?.key() }
@@ -125,9 +127,14 @@ internal fun PagedReader(
             .collect { key ->
                 val left = shown
                 shown = key
-                if (left == null || left == key) return@collect
-                steps.remove(left)
-                if (vm.settings.guidedPanels) zoomStates[left]?.let { interruptible { it.resetZoom(withAnimation = false) } }
+                val guided = vm.settings.guidedPanels
+                if (left != null && left != key) {
+                    steps.remove(left)
+                    if (guided) zoomStates[left]?.let { interruptible { it.resetZoom(withAnimation = false) } }
+                }
+                if (guided && key != null && steps[key] == null) {
+                    zoomStates[key]?.let { interruptible { it.resetZoom(withAnimation = false) } }
+                }
             }
     }
     val chromeHider = rememberChromeHider(settings.immersive, onUserScroll)
