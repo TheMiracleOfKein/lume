@@ -44,6 +44,9 @@ import com.lume.app.LocalAppContainer
 import com.lume.app.ui.components.ErrorRetryBox
 import com.lume.app.ui.components.LoadingBox
 import com.lume.app.ui.components.LocalNavExiting
+import com.lume.app.ui.components.TranslationPickerSheet
+import com.lume.app.ui.components.translationLabel
+import com.lume.app.ui.nav.openTitleFromReader
 import com.lume.app.ui.theme.Motion
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
@@ -84,6 +87,7 @@ fun NovelReaderScreen(
     var chromeVisible by rememberSaveable { mutableStateOf(true) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var chaptersOpen by rememberSaveable { mutableStateOf(false) }
+    var translationsOpen by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     // Reading: the screen stays on, and the system bars hide with the reader's own bars.
@@ -96,7 +100,7 @@ fun NovelReaderScreen(
     val window = activity?.window
     val insetsController = remember(window, view) { window?.let { WindowCompat.getInsetsController(it, view) } }
     val exiting = LocalNavExiting.current
-    val hideSystemBars = !chromeVisible && !settingsOpen && !chaptersOpen && !exiting
+    val hideSystemBars = !chromeVisible && !settingsOpen && !chaptersOpen && !translationsOpen && !exiting
     LaunchedEffect(insetsController, hideSystemBars) {
         insetsController?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         if (hideSystemBars) {
@@ -121,16 +125,33 @@ fun NovelReaderScreen(
         }
     }
 
+    val openTitle = {
+        vm.flush()
+        nav.openTitleFromReader(sourceId, titleId)
+    }
+    val topBar = @Composable { modifier: Modifier ->
+        NovelTopBar(
+            titleName = vm.titleName,
+            chapterTitle = vm.currentChapter?.title.orEmpty(),
+            palette = palette,
+            onBack = leave,
+            onOpenTitle = openTitle,
+            modifier = modifier,
+            translation = vm.currentChapter?.takeIf { vm.translations.isNotEmpty() }?.let(::translationLabel),
+            onTranslation = { translationsOpen = true },
+        )
+    }
+
     Box(Modifier.fillMaxSize().background(palette.background)) {
         val error = vm.error
         when {
             vm.loading -> {
                 LoadingBox()
-                NovelTopBar(vm.titleName, vm.currentChapter?.title.orEmpty(), palette, onBack = leave, modifier = Modifier.align(Alignment.TopCenter))
+                topBar(Modifier.align(Alignment.TopCenter))
             }
             error != null -> {
                 ErrorRetryBox(message = error, onRetry = vm::retry)
-                NovelTopBar(vm.titleName, vm.currentChapter?.title.orEmpty(), palette, onBack = leave, modifier = Modifier.align(Alignment.TopCenter))
+                topBar(Modifier.align(Alignment.TopCenter))
             }
             else -> {
                 NovelReaderContent(
@@ -145,7 +166,7 @@ fun NovelReaderScreen(
                     enter = Motion.barEnterFromTop,
                     exit = Motion.barExitToTop,
                 ) {
-                    NovelTopBar(vm.titleName, vm.currentChapter?.title.orEmpty(), palette, onBack = leave)
+                    topBar(Modifier)
                 }
                 AnimatedVisibility(
                     visible = chromeVisible,
@@ -195,6 +216,14 @@ fun NovelReaderScreen(
                 onClose = { scope.launch { sheetState.hide() }.invokeOnCompletion { chaptersOpen = false } },
             )
         }
+    }
+    if (translationsOpen) {
+        TranslationPickerSheet(
+            copies = vm.translations,
+            currentId = vm.currentChapterId,
+            onPick = vm::switchTranslation,
+            onDismiss = { translationsOpen = false },
+        )
     }
 }
 

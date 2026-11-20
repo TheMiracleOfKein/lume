@@ -1205,6 +1205,9 @@
     <string name="reader_page_menu">Эта страница</string>
     <string name="reader_page_share">Поделиться страницей</string>
     <string name="reader_page_save">Сохранить страницу в «Изображения»</string>
+    <string name="reader_translation">Перевод</string>
+    <string name="reader_translation_switch">Перевод: %1$s. Сменить перевод</string>
+    <string name="cd_open_title">Открыть страницу тайтла</string>
     <string name="reader_page_saved">Страница сохранена в Pictures/Lume</string>
     <string name="reader_page_failed">Страница ещё не загрузилась</string>
     <string name="reader_auto_scroll_start">Включить автопрокрутку</string>

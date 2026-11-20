@@ -35,6 +35,7 @@ import com.lume.app.domain.ComicPage
 import com.lume.app.domain.ReaderMode
 import com.lume.app.domain.ReadingSessionTracker
 import com.lume.app.domain.ReaderTheme
+import com.lume.app.domain.chapterTranslations
 import com.lume.app.domain.dedupeChapters
 import com.lume.app.domain.inReadingOrder
 import com.lume.app.domain.ReadProgressSink
@@ -92,6 +93,13 @@ class ReaderViewModel(
 
     /** Every copy of every chapter (all teams and linked sources), for falling back. */
     private var allCopies: List<Chapter> = emptyList()
+
+    /** The title's chapter list shows every team's copy ("All"), so the reader does too. */
+    private var showAllCopies = false
+
+    /** The current chapter's copies by each team (empty when there is only one). */
+    val translations: List<Chapter>
+        get() = currentChapter?.let { chapterTranslations(allCopies, it) }.orEmpty()
 
     /**
      * Set when a chapter came from another source than its own because its own failed
@@ -284,13 +292,17 @@ class ReaderViewModel(
         // of the chapter that was opened.
         val prefs = dao.getTitlePrefs(sourceId, titleId)
         val opened = known.chapters.firstOrNull { chapterIdsMatch(it.id, currentChapterId) }
-        chapters = if (prefs?.showDuplicates == true) {
-            known.chapters.inReadingOrder()
+        showAllCopies = prefs?.showDuplicates == true
+        chapters = readingList(opened?.branchId ?: prefs?.branch, opened)
+    }
+
+    private fun readingList(branch: String?, opened: Chapter?): List<Chapter> =
+        if (showAllCopies) {
+            allCopies.inReadingOrder()
         } else {
-            val deduped = dedupeChapters(known.chapters, opened?.branchId ?: prefs?.branch)
+            val deduped = dedupeChapters(allCopies, branch)
             (if (opened != null && deduped.none { it.id == opened.id }) deduped + opened else deduped).inReadingOrder()
         }
-    }
 
     /**
      * Downloaded pages first. Otherwise the chapter's own source (a linked source for its
@@ -733,6 +745,25 @@ class ReaderViewModel(
         val next = (if (delta < 0) neighbours.previous else neighbours.next) ?: return
         flush()
         load(ReaderAnchor(next.id, 0, 0f), explicit = false)
+    }
+
+    /**
+     * Reads [copy] (another team's translation of the current chapter) at the same page, and
+     * follows its team from here on: next / previous, and the title's preferred team.
+     */
+    fun switchTranslation(copy: Chapter) {
+        if (chapterIdsMatch(copy.id, currentChapterId)) return
+        val page = currentPageIndex
+        flush()
+        chapters = readingList(copy.branchId, copy)
+        copy.branchId?.let { branch ->
+            viewModelScope.launch {
+                val row = dao.getTitlePrefs(sourceId, titleId) ?: TitlePrefsEntity(sourceId = sourceId, titleId = titleId)
+                dao.upsertTitlePrefs(row.copy(branch = branch))
+            }
+        }
+        // load() clamps the page to the new chapter's page count.
+        load(ReaderAnchor(copy.id, page, 0f), explicit = true)
     }
 
     /** Jump to a page bookmark (a fresh strip starting in its chapter). */

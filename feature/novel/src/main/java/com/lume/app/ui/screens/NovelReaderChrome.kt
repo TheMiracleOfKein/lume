@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -22,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.SkipPrevious
@@ -67,7 +69,11 @@ internal fun NovelTopBar(
     chapterTitle: String,
     palette: NovelPalette,
     onBack: () -> Unit,
+    onOpenTitle: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The team that translated this chapter; null when there is no other translation to pick. */
+    translation: String? = null,
+    onTranslation: () -> Unit = {},
 ) {
     Box(
         modifier = modifier
@@ -86,22 +92,44 @@ internal fun NovelTopBar(
         ) {
             BackButton(onClick = onBack, tint = palette.text)
             Column(modifier = Modifier.weight(1f).padding(end = 12.dp).padding(vertical = 6.dp)) {
-                Text(
-                    text = titleName,
-                    color = palette.text,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (chapterTitle.isNotEmpty()) {
+                Column(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onOpenTitle)) {
                     Text(
-                        text = chapterTitle,
-                        color = palette.textSecondary,
-                        fontSize = 13.sp,
+                        text = titleName,
+                        color = palette.text,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    if (chapterTitle.isNotEmpty()) {
+                        Text(
+                            text = chapterTitle,
+                            color = palette.textSecondary,
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                if (translation != null) {
+                    val label = stringResource(R.string.reader_translation_switch, translation)
+                    Row(
+                        modifier = Modifier
+                            .clickable(role = Role.Button, onClick = onTranslation)
+                            .semantics(mergeDescendants = true) { contentDescription = label }
+                            .padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = translation,
+                            color = palette.accent,
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        Icon(Icons.Outlined.ArrowDropDown, null, tint = palette.accent, modifier = Modifier.size(18.dp))
+                    }
                 }
             }
         }

@@ -59,6 +59,7 @@ class NovelReaderScreenshotTest : ScreenshotTest() {
                 chapterTitle = chapter.title,
                 palette = palette,
                 onBack = {},
+                onOpenTitle = {},
                 modifier = Modifier.align(Alignment.TopCenter),
             )
             NovelBottomBar(

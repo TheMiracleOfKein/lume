@@ -63,6 +63,24 @@ class ChapterDedupeTest {
         assertEquals(listOf("1", "x", "y"), dedupeChapters(single).map { it.id })
     }
 
+    @Test
+    fun translationsListEveryTeamsCopyMostChaptersFirst() {
+        assertEquals(listOf("2a", "2b"), chapterTranslations(list, list.first { it.id == "2b" }).map { it.id })
+        // Only team A has chapter 1: nothing to switch to.
+        assertTrue(chapterTranslations(list, list.first { it.id == "1a" }).isEmpty())
+        // One team, or no number: no choice either.
+        assertTrue(chapterTranslations(list.filter { it.branchId == "A" }, list.first()).isEmpty())
+        assertTrue(chapterTranslations(listOf(ch("x", null, "A"), ch("y", null, "B")), ch("x", null, "A")).isEmpty())
+    }
+
+    @Test
+    fun switchingTeamMakesNextFollowIt() {
+        val all = list + ch("1b", "1", "B", "Team B")
+        val onB = dedupeChapters(all, "B").inReadingOrder()
+        assertEquals(listOf("1b", "2b", "3b"), onB.map { it.id })
+        assertEquals("3b", chapterNeighbours(onB, "2b").next?.id)
+    }
+
     private fun known(id: String, number: String) =
         LibraryChapterEntity("s", "t", id, dedupeKey(ch(id, number)), "Ch $number")
 

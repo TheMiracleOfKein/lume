@@ -70,6 +70,24 @@ fun dedupeChapters(chapters: List<Chapter>, preferredBranch: String? = null): Li
     return dedupeOwnChapters(chapters, preferredBranch)
 }
 
+/**
+ * Every team's copy of [chapter] in its own source, [chapter] included, ordered like
+ * [chapterBranches] (most chapters first). Empty when there is nothing to switch to: one team,
+ * a chapter without a number or team, or a chapter from a linked source.
+ */
+fun chapterTranslations(all: List<Chapter>, chapter: Chapter): List<Chapter> {
+    if (chapter.branchId == null || LinkedChapterId.isLinked(chapter.id)) return emptyList()
+    val key = dedupeKey(chapter)
+    if (key.startsWith("id:")) return emptyList()
+    val rank = chapterBranches(all).withIndex().associate { (i, b) -> b.id to i }
+    if (rank.isEmpty()) return emptyList()
+    val copies = all.filter { it.branchId != null && !LinkedChapterId.isLinked(it.id) && dedupeKey(it) == key }
+        .distinctBy { it.branchId }
+        .let { list -> if (list.none { it.id == chapter.id }) list.filterNot { it.branchId == chapter.branchId } + chapter else list }
+    if (copies.size <= 1) return emptyList()
+    return copies.sortedBy { rank[it.branchId] ?: Int.MAX_VALUE }
+}
+
 private fun dedupeOwnChapters(chapters: List<Chapter>, preferredBranch: String?): List<Chapter> {
     if (chapters.size <= 1) return chapters
     val branchRank = chapterBranches(chapters).withIndex().associate { (i, b) -> b.id to i }
