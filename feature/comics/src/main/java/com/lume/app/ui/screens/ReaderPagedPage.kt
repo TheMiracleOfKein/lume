@@ -1,5 +1,9 @@
 package com.lume.app.ui.screens
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -19,7 +23,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -127,6 +136,10 @@ internal fun PagedPageImage(
     zoomEnabled: Boolean,
     /** Guided panel view moves [zoomState] even when the zoom gestures are off. */
     guided: Boolean,
+    /** Guided view: the panel in focus (fractions of the page); the rest of the screen is dimmed. */
+    highlight: PageRect?,
+    /** The dim comes and goes without a fade (e-ink). */
+    instantDim: Boolean,
     /** The page's zoom, hoisted so guided panel view can move it. */
     zoomState: ZoomableState,
     /** Single tap at (x, viewport width). */
@@ -157,6 +170,7 @@ internal fun PagedPageImage(
                     DoubleClickToZoomListener { _, _ -> }
                 },
             )
+            if (guided) PanelSpotlight(zoomState, highlight, instantDim)
         } else {
             // No zoom: a plain image, and single taps fire at once (no wait for a double tap).
             val currentTap by rememberUpdatedState(onTap)
@@ -175,6 +189,49 @@ internal fun PagedPageImage(
         PageLoadOverlay(load)
     }
 }
+
+/**
+ * Dims the screen around [panel] (fractions of the page). The hole follows the page's live zoom
+ * and pan, so it stays on the panel while the zoom animates and when the reader pinches or pans.
+ * Draws only: taps pass through to the page.
+ */
+@Composable
+private fun PanelSpotlight(zoomState: ZoomableState, panel: PageRect?, instant: Boolean) {
+    val strength by animateFloatAsState(
+        targetValue = if (panel != null) 1f else 0f,
+        animationSpec = if (instant) snap() else tween(SPOTLIGHT_FADE_MS),
+        label = "panelSpotlight",
+    )
+    // The last panel stays the hole while the dim fades out.
+    val last = remember { arrayOfNulls<PageRect>(1) }
+    if (panel != null) last[0] = panel
+    val hole = panel ?: last[0]
+    val padding = with(LocalDensity.current) { SPOTLIGHT_PADDING.toPx() }
+    Canvas(Modifier.fillMaxSize()) {
+        if (strength <= 0f || hole == null) return@Canvas
+        // The page's bounds after zoom and pan, in this viewport's pixels.
+        @Suppress("DEPRECATION")
+        val page = zoomState.transformedContentBounds
+        if (page.isEmpty) return@Canvas
+        val cut = Rect(
+            page.left + hole.left * page.width - padding,
+            page.top + hole.top * page.height - padding,
+            page.left + hole.right * page.width + padding,
+            page.top + hole.bottom * page.height + padding,
+        )
+        val scrim = Path().apply {
+            fillType = PathFillType.EvenOdd
+            addRect(Rect(Offset.Zero, size))
+            addRect(cut)
+        }
+        drawPath(scrim, Color.Black.copy(alpha = SPOTLIGHT_ALPHA * strength))
+    }
+}
+
+/** How dark the screen gets around the panel in focus. */
+private const val SPOTLIGHT_ALPHA = 0.7f
+private const val SPOTLIGHT_FADE_MS = 220
+private val SPOTLIGHT_PADDING = 4.dp
 
 /**
  * Two pages side by side with one shared zoom: [first] on the reading side ([rightToLeft]: first
