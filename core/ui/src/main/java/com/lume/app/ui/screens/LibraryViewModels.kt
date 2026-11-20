@@ -123,14 +123,25 @@ class LibraryViewModel(private val app: AppContainer) : ViewModel() {
         private set
     var search by mutableStateOf("")
 
-    /** What the screen shows. Offline, only titles with downloads. */
-    val visible: StateFlow<List<LibraryItem>> = combine(
-        items, settings, snapshotFlow { categoryId }, snapshotFlow { search }, online,
-    ) { loadedItems, s, category, query, isOnline ->
+    /** Every title the screen may show, before category, filters and search. Offline, only titles with downloads. */
+    val base: StateFlow<List<LibraryItem>> = combine(items, online) { loadedItems, isOnline ->
         val all = loadedItems.orEmpty()
-        val base = if (isOnline) all else all.filter { it.downloaded > 0 }
-        queryLibrary(base, s, category, query)
+        if (isOnline) all else all.filter { it.downloaded > 0 }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** What the screen shows: the selected category, filtered, sorted and searched. */
+    val visible: StateFlow<List<LibraryItem>> = combine(
+        base, settings, snapshotFlow { categoryId }, snapshotFlow { search },
+    ) { all, s, category, query ->
+        queryLibrary(all, s, category, query)
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /**
+     * What [category] would show, for the neighbouring page while the categories are swiped
+     * (the selected one is [visible]).
+     */
+    fun visibleIn(all: List<LibraryItem>, settings: LibrarySettings, category: Long?): List<LibraryItem> =
+        queryLibrary(all, settings, category, search)
 
     /** Genres the filter offers: those of the library's titles, merged and sorted. */
     val genreOptions: StateFlow<List<GenreOption>> = items.map { collectLibraryGenres(it.orEmpty()) }

@@ -9,7 +9,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.PaddingValues
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.listBottomPadding
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,11 +64,11 @@ import com.lume.app.ui.components.ErrorRetryBox
 import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
 import com.lume.app.ui.components.SegmentTab
+import com.lume.app.ui.components.SwipeTabPager
 import com.lume.app.ui.components.TitleListRow
 import com.lume.app.ui.components.loadStateOf
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.theme.AppColors
-import com.lume.app.ui.theme.Motion
 import com.lume.app.ui.theme.animatedItem
 
 /**
@@ -182,10 +181,11 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
             }
         }
 
-        AnimatedContent(
-            targetState = tab,
-            transitionSpec = Motion.contentSwap(),
-            label = "catalogTab",
+        SwipeTabPager(
+            selected = tab,
+            pageCount = if (browseName == null) 3 else 2,
+            onSelect = { tab = it },
+            modifier = Modifier.fillMaxSize(),
         ) { tabPane ->
             when (tabPane) {
                 0 -> Column(Modifier.fillMaxSize()) {
