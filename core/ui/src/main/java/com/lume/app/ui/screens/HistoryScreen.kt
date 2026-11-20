@@ -121,6 +121,7 @@ fun HistoryScreen(nav: NavHostController) {
                             typeLabel = item.typeLabel,
                             onLongClick = { removeKey = "${item.sourceId}:${item.titleId}" },
                             onLongClickLabel = stringResource(R.string.history_remove),
+                            onCoverClick = { nav.navigate(Routes.title(item.sourceId, item.titleId)) },
                             onClick = {
                                 nav.openReader(item.sourceId, item.titleId, item.chapterId, item.pageIndex, item.pageOffset)
                             },

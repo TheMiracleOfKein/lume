@@ -175,6 +175,8 @@ fun HomeScreen(nav: NavHostController) {
                         onContinue = { item ->
                             nav.openReader(item.sourceId, item.titleId, item.chapterId, item.pageIndex, item.pageOffset)
                         },
+                        // History mixes sources: the item's own source, not the feed's.
+                        onOpenContinueTitle = { item -> nav.navigate(Routes.title(item.sourceId, item.titleId)) },
                     )
                     }
                 }
@@ -209,49 +211,65 @@ fun HomeScreen(nav: NavHostController) {
     }
 }
 
+/** The cover opens the title page; the rest of the card goes on reading. A long press anywhere removes it. */
 @Composable
-private fun ContinueCard(item: ProgressEntity, onLongClick: () -> Unit, onClick: () -> Unit) {
+private fun ContinueCard(item: ProgressEntity, onLongClick: () -> Unit, onOpenTitle: () -> Unit, onClick: () -> Unit) {
     val progress = if (item.pageCount > 0) {
         (item.pageIndex + 1).toFloat() / item.pageCount
     } else {
         0f
     }
-    Column(
-        modifier = Modifier
-            .width(110.dp)
-            .combinedClickable(
-                role = Role.Button,
-                onLongClickLabel = stringResource(R.string.history_remove),
-                onLongClick = onLongClick,
-                onClick = onClick,
-            ),
-    ) {
-        CoverImage(url = item.coverUrl, width = 110.dp, height = 150.dp, radius = 8.dp)
-        LinearProgressIndicator(
-            progress = { progress.coerceIn(0f, 1f) },
-            modifier = Modifier
+    val removeLabel = stringResource(R.string.history_remove)
+    Column(Modifier.width(110.dp)) {
+        Box(
+            Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .combinedClickable(
+                    role = Role.Button,
+                    onClickLabel = stringResource(R.string.cd_open_title),
+                    onLongClickLabel = removeLabel,
+                    onLongClick = onLongClick,
+                    onClick = onOpenTitle,
+                ),
+        ) {
+            CoverImage(url = item.coverUrl, width = 110.dp, height = 150.dp, radius = 8.dp)
+        }
+        Column(
+            Modifier
                 .fillMaxWidth()
-                .padding(top = 6.dp)
-                .height(3.dp)
-                .clip(RoundedCornerShape(2.dp)),
-            color = AppColors.accentText,
-            trackColor = AppColors.card,
-        )
-        Text(
-            text = item.titleName,
-            color = AppColors.textPrimary,
-            fontSize = 12.sp,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 4.dp),
-        )
-        Text(
-            text = item.chapterName,
-            color = AppColors.textSecondary,
-            fontSize = 11.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+                .combinedClickable(
+                    role = Role.Button,
+                    onLongClickLabel = removeLabel,
+                    onLongClick = onLongClick,
+                    onClick = onClick,
+                ),
+        ) {
+            LinearProgressIndicator(
+                progress = { progress.coerceIn(0f, 1f) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp)
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = AppColors.accentText,
+                trackColor = AppColors.card,
+            )
+            Text(
+                text = item.titleName,
+                color = AppColors.textPrimary,
+                fontSize = 12.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            Text(
+                text = item.chapterName,
+                color = AppColors.textSecondary,
+                fontSize = 11.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -268,6 +286,7 @@ internal fun HomeFeedList(
     onRetry: () -> Unit,
     onRemoveContinue: (ProgressEntity) -> Unit,
     onContinue: (ProgressEntity) -> Unit,
+    onOpenContinueTitle: (ProgressEntity) -> Unit = {},
 ) {
                     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalShellBottomPadding.current)) {
                         item(key = "spotlight") {
@@ -318,6 +337,7 @@ internal fun HomeFeedList(
                                         ContinueCard(
                                             item,
                                             onLongClick = { onRemoveContinue(item) },
+                                            onOpenTitle = { onOpenContinueTitle(item) },
                                         ) {
                                             onContinue(item)
                                         }
