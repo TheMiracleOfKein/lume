@@ -5,7 +5,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.PaddingValues
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.listBottomPadding
@@ -63,8 +62,9 @@ import com.lume.app.ui.components.EmptyBox
 import com.lume.app.ui.components.ErrorRetryBox
 import com.lume.app.ui.components.LoadState
 import com.lume.app.ui.components.LoadingBox
-import com.lume.app.ui.components.SegmentTab
 import com.lume.app.ui.components.SwipeTabPager
+import com.lume.app.ui.components.SwipeTabRow
+import com.lume.app.ui.components.rememberSwipeTabState
 import com.lume.app.ui.components.TitleListRow
 import com.lume.app.ui.components.loadStateOf
 import com.lume.app.ui.nav.Routes
@@ -149,12 +149,11 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
                 )
             }
         }
-        if (tab != 2 || vm.searchActive) {
-            CatalogSearchRow(vm, onOpenFilters = {
-                vm.prepareFilters()
-                filtersOpen = true
-            })
-        }
+        // On every tab, so the tabs below don't jump when the Library tab is reached.
+        CatalogSearchRow(vm, onOpenFilters = {
+            vm.prepareFilters()
+            filtersOpen = true
+        })
         if (vm.searchActive) {
             // Opened straight on a search (a similar title): Back goes back to where it came from.
             BackHandler(enabled = query == null) { vm.clearSearch() }
@@ -166,18 +165,24 @@ fun CatalogScreen(nav: NavHostController, browseSourceId: String? = null, genre:
             )
             return@Column
         }
-        Row(modifier = Modifier.fillMaxWidth().selectableGroup().padding(horizontal = 4.dp, vertical = 8.dp)) {
-            SegmentTab(stringResource(R.string.catalog_tab_popular), selected = tab == 0, modifier = Modifier.weight(1f)) { tab = 0 }
-            SegmentTab(stringResource(R.string.catalog_tab_updates), selected = tab == 1, modifier = Modifier.weight(1f)) { tab = 1 }
+        val tabLabels = listOfNotNull(
+            stringResource(R.string.catalog_tab_popular),
+            stringResource(R.string.catalog_tab_updates),
             // A browsed source has no library tab: the library is the same for every source.
-            if (browseName == null) {
-                SegmentTab(stringResource(R.string.catalog_tab_library), selected = tab == 2, modifier = Modifier.weight(1f)) { tab = 2 }
-            }
-        }
+            stringResource(R.string.catalog_tab_library).takeIf { browseName == null },
+        )
+        val pagerState = rememberSwipeTabState(tab, tabLabels.size)
+        SwipeTabRow(
+            labels = tabLabels,
+            state = pagerState,
+            selected = tab,
+            onTap = { tab = it },
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+        )
 
         SwipeTabPager(
             selected = tab,
-            pageCount = if (browseName == null) 3 else 2,
+            state = pagerState,
             onSelect = { tab = it },
             modifier = Modifier.fillMaxSize(),
         ) { tabPane ->
