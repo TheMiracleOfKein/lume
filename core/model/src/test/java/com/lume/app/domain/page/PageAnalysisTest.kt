@@ -164,6 +164,56 @@ class PageAnalysisTest {
         assertNull(PageAnalysis.spotPanel(emptyList(), emptyList(), 0.7f, 0.5f))
     }
 
+    /**
+     * 400 x 300: a panel on top (rows 10..140) and one below (rows 160..290), with a speech
+     * bubble (a 1 px outline, white inside) over the top panel reaching down to [bubbleBottom].
+     */
+    private fun bubblePage(bubbleBottom: Int, nub: Boolean = false): LumaGrid {
+        val w = 400
+        val h = 300
+        val px = IntArray(w * h) { argb(255) }
+        fun fill(x0: Int, y0: Int, x1: Int, y1: Int, grey: Int) {
+            for (y in y0 until y1) for (x in x0 until x1) px[y * w + x] = argb(grey)
+        }
+        fill(10, 10, 390, 140, 30)
+        fill(10, 160, 390, 290, 30)
+        fill(100, 120, 160, bubbleBottom, 255)
+        fill(100, 120, 160, 121, 30)
+        fill(100, bubbleBottom - 1, 160, bubbleBottom, 30)
+        fill(100, 120, 101, bubbleBottom, 30)
+        fill(159, 120, 160, bubbleBottom, 30)
+        if (nub) fill(300, 140, 301, 141, 30)
+        return LumaGrid.fromArgb(px, w, h)
+    }
+
+    @Test
+    fun `bubble spilling into the gutter belongs to its panel`() {
+        for (order in listOf(PanelOrder.LeftToRight, PanelOrder.RightToLeft)) {
+            val panels = PageAnalysis.panels(bubblePage(bubbleBottom = 152), order)
+            assertEquals(2, panels.size)
+            close(152f / 300, panels[0].bottom)
+            close(10f / 300, panels[0].top)
+            close(160f / 300, panels[1].top)
+        }
+    }
+
+    @Test
+    fun `bubble across two panels does not merge them`() {
+        val panels = PageAnalysis.panels(bubblePage(bubbleBottom = 170), PanelOrder.RightToLeft)
+        assertEquals(2, panels.size)
+        // Each takes the bubble up to the other's frame, no further.
+        close(160f / 300, panels[0].bottom)
+        close(140f / 300, panels[1].top)
+        close(290f / 300, panels[1].bottom)
+    }
+
+    @Test
+    fun `a speck on a frame is not overflow`() {
+        val panels = PageAnalysis.panels(bubblePage(bubbleBottom = 135, nub = true), PanelOrder.LeftToRight)
+        assertEquals(2, panels.size)
+        close(140f / 300, panels[0].bottom)
+    }
+
     @Test
     fun `panel at a spot`() {
         val panels = PageAnalysis.panels(twoRowPage, PanelOrder.Vertical)
