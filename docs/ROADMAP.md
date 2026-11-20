@@ -252,7 +252,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
-**v1.5.3: swipe tabs and translations** 🟡 in release ([notes](releases/v1.5.3.md), [device check](releases/v1.5.3-check.md)): swipe between the Catalog tabs, search modes and library categories; switch a chapter's translation team from the reader (MangaLib, RanobeLib); SlashLib in manga mode; a Continue reading or History cover opens the title page; the text reader's title opens the title page; RanobeLib and MangaLib descriptions sent as rich text show again.
+**v1.5.3: swipe tabs and translations** ✅ released 2026-11-20 ([notes](releases/v1.5.3.md), [device check](releases/v1.5.3-check.md)): swipe between the Catalog tabs, search modes and library categories; switch a chapter's translation team from the reader (MangaLib, RanobeLib); SlashLib in manga mode; a Continue reading or History cover opens the title page; the text reader's title opens the title page; RanobeLib and MangaLib descriptions sent as rich text show again.
 
 **v1.5.2: still reader sheets** ✅ released 2026-11-20 ([notes](releases/v1.5.2.md)): the reader's settings, chapter list and bookmarks sheets no longer twitch up and down after a slow drag or on their own; every sheet now goes through one `LumeBottomSheet` with the fix, and a test fails the build on a sheet that bypasses it. No device check: released on the user's request without emulator tests.
 
