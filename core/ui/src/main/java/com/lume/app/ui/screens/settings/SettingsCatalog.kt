@@ -92,6 +92,7 @@ object SettingsCatalog {
         SettingInfo("volume_keys", SettingsPage.Reader, R.string.reader_volume_keys, R.string.reader_volume_keys_hint, R.string.settings_kw_volume_keys, modes = COMICS_ONLY),
         SettingInfo("double_tap_zoom", SettingsPage.Reader, R.string.reader_double_tap_zoom, R.string.reader_double_tap_zoom_hint, R.string.settings_kw_double_tap_zoom, modes = COMICS_ONLY),
         SettingInfo("guided_panels", SettingsPage.Reader, R.string.reader_guided_panels, R.string.reader_guided_panels_hint, R.string.settings_kw_guided_panels, modes = COMICS_ONLY),
+        SettingInfo("panel_order", SettingsPage.Reader, R.string.reader_panel_order, R.string.reader_panel_order_hint, R.string.settings_kw_panel_order, modes = COMICS_ONLY),
         SettingInfo("crop_borders", SettingsPage.Reader, R.string.reader_crop_borders, R.string.reader_crop_borders_hint, R.string.settings_kw_crop_borders, modes = COMICS_ONLY),
         SettingInfo("split_wide", SettingsPage.Reader, R.string.reader_split_wide, R.string.reader_split_wide_hint, R.string.settings_kw_split_wide, modes = COMICS_ONLY),
         SettingInfo("spreads", SettingsPage.Reader, R.string.reader_spreads, R.string.settings_reader_paged_only, R.string.settings_kw_spreads, modes = COMICS_ONLY),

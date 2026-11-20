@@ -67,6 +67,14 @@ data class AnalysisTuning(
     val minGutter: Float = 0.006f,
     /** Panels smaller than this fraction of the page area are dropped (text, specks). */
     val minPanelArea: Float = 0.012f,
+    /**
+     * Art and bubbles breaking out of a panel's frame count as the panel's up to this fraction of
+     * its side beyond the frame (at least [minOverflowMargin] of the page side).
+     */
+    val overflowMargin: Float = 0.3f,
+    val minOverflowMargin: Float = 0.03f,
+    /** Fewer outside pixels than this joined to a frame are noise, not overflow. */
+    val minOverflowPixels: Int = 4,
 )
 
 object PageAnalysis {
@@ -119,7 +127,15 @@ object PageAnalysis {
         cut(ink, content, order, minGutterX, minGutterY, depth = 0, out = leaves)
         val pageArea = grid.width.toFloat() * grid.height
         val kept = leaves.filter { it.area / pageArea >= tuning.minPanelArea }
-        return if (kept.isEmpty()) listOf(content.toRect(grid)) else kept.map { it.toRect(grid) }
+        if (kept.isEmpty()) return listOf(content.toRect(grid))
+        // Bands stay as cut; comic panels take in what spills over their frames.
+        if (order == PanelOrder.Vertical) return kept.map { it.toRect(grid) }
+        return kept.mapIndexed { i, core ->
+            val others = kept.filterIndexed { j, _ -> j != i }
+            val marginX = max((core.width * tuning.overflowMargin).toInt(), (grid.width * tuning.minOverflowMargin).toInt())
+            val marginY = max((core.height * tuning.overflowMargin).toInt(), (grid.height * tuning.minOverflowMargin).toInt())
+            ink.withOverflow(core, others, marginX, marginY, tuning.minOverflowPixels).toRect(grid)
+        }
     }
 
     /** The panel holding the spot at [y] (fraction of the page height, x in the middle), if any. */
@@ -189,7 +205,11 @@ object PageAnalysis {
 
 /** Grid rows [y0, y1) and columns [x0, x1). */
 internal data class Box(val x0: Int, val y0: Int, val x1: Int, val y1: Int) {
-    val area: Float get() = (x1 - x0).toFloat() * (y1 - y0)
+    val width: Int get() = x1 - x0
+    val height: Int get() = y1 - y0
+    val area: Float get() = width.toFloat() * height
+
+    fun contains(x: Int, y: Int): Boolean = x in x0 until x1 && y in y0 until y1
 
     fun toRect(grid: LumaGrid) = PageRect(
         x0.toFloat() / grid.width,
@@ -202,6 +222,7 @@ internal data class Box(val x0: Int, val y0: Int, val x1: Int, val y1: Int) {
 /** Which pixels differ from the background, with blank-row and blank-column tests over a box. */
 internal class InkMap(grid: LumaGrid, background: Int, private val tuning: AnalysisTuning) {
     private val w = grid.width
+    private val h = grid.height
     private val ink = BooleanArray(grid.width * grid.height) { i ->
         abs(grid[i % grid.width, i / grid.width] - background) > tuning.tolerance
     }
@@ -235,6 +256,56 @@ internal class InkMap(grid: LumaGrid, background: Int, private val tuning: Analy
         while (right > left && columnBlank(right - 1, top, bottom)) right--
         if (left >= right || top >= bottom) return null
         return Box(left, top, right, bottom)
+    }
+
+    /**
+     * [core] grown over the ink joined to its frame from outside: bubbles and art breaking out
+     * into gutters or the page margin. The search stays within [marginX] / [marginY] of the core
+     * and out of [others] (neighbouring panels), so two panels never merge; fewer than [minPixels]
+     * joined pixels are noise.
+     */
+    fun withOverflow(core: Box, others: List<Box>, marginX: Int, marginY: Int, minPixels: Int): Box {
+        val rx0 = max(0, core.x0 - marginX)
+        val ry0 = max(0, core.y0 - marginY)
+        val rx1 = min(w, core.x1 + marginX)
+        val ry1 = min(h, core.y1 + marginY)
+        val rw = rx1 - rx0
+        val visited = BooleanArray(rw * (ry1 - ry0))
+        val stack = ArrayDeque<Int>()
+        // Seeds: ink on the core's outermost two rows and columns.
+        for (y in core.y0 until core.y1) for (x in core.x0 until core.x1) {
+            val ring = x < core.x0 + 2 || x >= core.x1 - 2 || y < core.y0 + 2 || y >= core.y1 - 2
+            if (ring && ink[y * w + x]) {
+                visited[(y - ry0) * rw + (x - rx0)] = true
+                stack.addLast(y * w + x)
+            }
+        }
+        var count = 0
+        var bx0 = core.x0
+        var by0 = core.y0
+        var bx1 = core.x1
+        var by1 = core.y1
+        while (stack.isNotEmpty()) {
+            val p = stack.removeLast()
+            val px = p % w
+            val py = p / w
+            for (dy in -1..1) for (dx in -1..1) {
+                val nx = px + dx
+                val ny = py + dy
+                if (nx < rx0 || nx >= rx1 || ny < ry0 || ny >= ry1) continue
+                val v = (ny - ry0) * rw + (nx - rx0)
+                if (visited[v]) continue
+                visited[v] = true
+                if (!ink[ny * w + nx] || core.contains(nx, ny) || others.any { it.contains(nx, ny) }) continue
+                count++
+                bx0 = min(bx0, nx)
+                by0 = min(by0, ny)
+                bx1 = max(bx1, nx + 1)
+                by1 = max(by1, ny + 1)
+                stack.addLast(ny * w + nx)
+            }
+        }
+        return if (count < minPixels) core else Box(bx0, by0, bx1, by1)
     }
 
     /** The box split at blank rows at least [minGutter] tall; one entry when there is none. */

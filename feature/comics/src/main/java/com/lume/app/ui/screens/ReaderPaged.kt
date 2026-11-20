@@ -1,5 +1,6 @@
 package com.lume.app.ui.screens
 
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -20,10 +22,13 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import com.lume.app.LocalAppContainer
 import com.lume.app.data.page.PageLayout
+import com.lume.app.data.prefs.ReaderSettings
 import com.lume.app.domain.ReaderMode
 import com.lume.app.domain.page.PageFit
 import com.lume.app.domain.page.PageRect
 import com.lume.app.domain.page.PanelOrder
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import me.saket.telephoto.ExperimentalTelephotoApi
@@ -34,13 +39,27 @@ import me.saket.telephoto.zoomable.ZoomableContent
 import me.saket.telephoto.zoomable.rememberZoomableState
 import me.saket.telephoto.zoomable.spatial.CoordinateSpace
 import me.saket.telephoto.zoomable.spatial.SpatialOffset
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
 
 // The paged modes (left to right, right to left): one page, half a wide page or a two-page
 // spread per screen, cropped borders, and guided panel view.
 
-/** Guided view: which panel of which strip item is shown; -1 = the whole page. */
-private data class PanelStep(val stripIndex: Int, val panel: Int)
+/** Guided view on one strip item: the panel shown (index in reading order) and its rectangle. */
+private data class PanelStep(val panel: Int, val rect: PageRect)
+
+/**
+ * Runs one page turn. An animation in it that a gesture or another animation cuts short throws
+ * [CancellationException]; that ends this turn only, not the collector of all later turns.
+ */
+private suspend inline fun interruptible(block: () -> Unit) {
+    try {
+        block()
+    } catch (e: CancellationException) {
+        // Rethrown only when the reader itself is going away.
+        currentCoroutineContext().ensureActive()
+    }
+}
 
 /** A panel fills this much of the screen, leaving a margin around it. */
 private const val PANEL_FILL = 0.94f
@@ -62,9 +81,10 @@ internal fun PagedReader(
         PagerState(currentPage = stripIndexOf(vm.strip, vm.anchor).coerceAtLeast(0)) { vm.strip.size.coerceAtLeast(1) }
     }
     val rtl = settings.mode == ReaderMode.Rtl
-    /** Zoom of each composed pager page, for guided panel view. */
-    val zoomStates = remember { HashMap<Int, ZoomableState>() }
-    val step = remember { arrayOfNulls<PanelStep>(1) }
+    /** Zoom of each composed pager page by strip item key, for guided panel view. */
+    val zoomStates = remember { HashMap<String, ZoomableState>() }
+    /** Guided view: the panel shown on each strip item (by key); none = the whole page. */
+    val steps = remember { mutableStateMapOf<String, PanelStep>() }
 
     // Split pages or spreads changed under the pager: stay on the page that was on screen.
     LaunchedEffect(pagerState) {
@@ -81,7 +101,6 @@ internal fun PagedReader(
         snapshotFlow { pagerState.currentPage to vm.strip }
             .distinctUntilChanged()
             .collect { (page, strip) ->
-                if (step[0]?.stripIndex != page) step[0] = null
                 val anchor = anchorAt(strip, page) ?: return@collect
                 val finished = when (val item = strip.getOrNull(page)) {
                     is ReaderStripItem.Page ->
@@ -98,21 +117,40 @@ internal fun PagedReader(
                 vm.onPosition(session, anchor, finished, page, page)
             }
     }
+    // Guided view: a page left behind (by a tap or a swipe) starts whole when it comes back.
+    LaunchedEffect(pagerState) {
+        var shown: String? = null
+        snapshotFlow { vm.strip.getOrNull(pagerState.settledPage)?.key() }
+            .distinctUntilChanged()
+            .collect { key ->
+                val left = shown
+                shown = key
+                if (left == null || left == key) return@collect
+                steps.remove(left)
+                if (vm.settings.guidedPanels) zoomStates[left]?.let { interruptible { it.resetZoom(withAnimation = false) } }
+            }
+    }
     val chromeHider = rememberChromeHider(settings.immersive, onUserScroll)
     LaunchedEffect(pagerState) {
         pageTurns.collect { delta ->
             onUserScroll()
-            val current = pagerState.currentPage
-            // Guided view: step through the panels of this page before turning it.
-            if (vm.settings.guidedPanels) {
-                val moved = stepPanel(vm, analyzer, current, delta, zoomStates[current], step, animate = !vm.settings.eInk)
-                if (moved) return@collect
+            interruptible {
+                val current = pagerState.currentPage
+                val key = vm.strip.getOrNull(current)?.key()
+                // Guided view: step through the panels of this page before turning it.
+                if (vm.settings.guidedPanels && key != null) {
+                    val moved = stepPanel(vm, analyzer, current, key, delta, zoomStates[key], steps, animate = !vm.settings.eInk)
+                    if (moved) return@interruptible
+                }
+                val wanted = current + delta
+                val target = wanted.coerceIn(0, pagerState.pageCount - 1)
+                if (target != wanted) onEdge(delta > 0)
+                if (key != null && vm.settings.guidedPanels) {
+                    steps.remove(key)
+                    zoomStates[key]?.resetZoom(withAnimation = false)
+                }
+                if (vm.settings.eInk) pagerState.scrollToPage(target) else pagerState.animateScrollToPage(target)
             }
-            val wanted = current + delta
-            val target = wanted.coerceIn(0, pagerState.pageCount - 1)
-            if (target != wanted) onEdge(delta > 0)
-            zoomStates[current]?.let { if (vm.settings.guidedPanels) it.resetZoom(withAnimation = false) }
-            if (vm.settings.eInk) pagerState.scrollToPage(target) else pagerState.animateScrollToPage(target)
         }
     }
     LaunchedEffect(pagerState) {
@@ -150,9 +188,10 @@ internal fun PagedReader(
         key = { index -> vm.strip.getOrNull(index)?.key() ?: index },
     ) { index ->
         val zoom = rememberZoomableState(ZoomSpec(maxZoomFactor = PAGED_MAX_ZOOM))
-        DisposableEffect(index, zoom) {
-            zoomStates[index] = zoom
-            onDispose { if (zoomStates[index] === zoom) zoomStates.remove(index) }
+        val itemKey = vm.strip.getOrNull(index)?.key()
+        DisposableEffect(itemKey, zoom) {
+            if (itemKey != null) zoomStates[itemKey] = zoom
+            onDispose { if (itemKey != null && zoomStates[itemKey] === zoom) zoomStates.remove(itemKey) }
         }
         when (val item = vm.strip.getOrNull(index)) {
             is ReaderStripItem.Page -> {
@@ -168,6 +207,8 @@ internal fun PagedReader(
                     region = pageRegion(item, layout, settings.cropBorders, settings.guidedPanels),
                     zoomEnabled = settings.doubleTapZoom,
                     guided = settings.guidedPanels,
+                    highlight = if (settings.guidedPanels && itemKey != null) steps[itemKey]?.rect else null,
+                    instantDim = settings.eInk,
                     zoomState = zoom,
                     onTap = { x, w -> tap(x, w) },
                     colorFilter = colorFilter,
@@ -213,59 +254,61 @@ private fun pageRegion(item: ReaderStripItem.Page, layout: PageLayout?, crop: Bo
 }
 
 /**
- * Moves guided view one panel by [delta] on strip item [index]. Each page goes whole page, then
- * its panels in reading order; true when it moved, false when the page should turn instead.
+ * Moves guided view one panel by [delta] on strip item [index] (key [key]). Each page goes whole
+ * page, then its panels in reading order; true when it moved, false when the page should turn.
+ * The step is recorded before the zoom animates, so a cut-short animation leaves it consistent.
  */
+@OptIn(ExperimentalTelephotoApi::class)
 private suspend fun stepPanel(
     vm: ReaderViewModel,
     analyzer: com.lume.app.data.page.PageAnalyzer,
     index: Int,
+    key: String,
     delta: Int,
     zoom: ZoomableState?,
-    step: Array<PanelStep?>,
+    steps: MutableMap<String, PanelStep>,
     animate: Boolean,
 ): Boolean {
     val item = vm.strip.getOrNull(index) as? ReaderStripItem.Page ?: return false
     if (item.part != PagePart.Whole || zoom == null) return false
-    val order = if (vm.settings.mode == ReaderMode.Rtl) PanelOrder.RightToLeft else PanelOrder.LeftToRight
+    // Panel order is the reader's choice, apart from the page-turn direction.
+    val order = if (vm.settings.panelOrder == ReaderSettings.PANELS_LTR) PanelOrder.LeftToRight else PanelOrder.RightToLeft
     val panels = analyzer.cached(item.page.imageUrl)?.panels(order).orEmpty()
     // One panel (or none found yet): the page is its own panel.
     if (panels.size <= 1) return false
-    val current = step[0]?.takeIf { it.stripIndex == index }?.panel ?: -1
+    val current = steps[key]?.panel ?: -1
     val next = current + delta
     return when {
         next in panels.indices -> {
-            step[0] = PanelStep(index, next)
-            zoom.focusPanel(panels[next], animate)
+            // Page not measured yet: turn the page rather than step through panels unseen.
+            val move = zoom.panelMove(panels[next]) ?: return false
+            steps[key] = PanelStep(next, panels[next])
+            if (animate) zoom.zoomTo(move.first, move.second) else zoom.zoomTo(move.first, move.second, animationSpec = snap())
             true
         }
         next == -1 -> {
-            step[0] = PanelStep(index, -1)
+            steps.remove(key)
             if (animate) zoom.resetZoom() else zoom.resetZoom(withAnimation = false)
             true
         }
         else -> {
-            step[0] = null
+            steps.remove(key)
             false
         }
     }
 }
 
-/** Zooms so that [panel] (fractions of the page) fills the screen, centred. */
+/** The zoom and focal point that make [panel] (fractions of the page) fill the screen, centred; null before the page is measured. */
 @OptIn(ExperimentalTelephotoApi::class)
-private suspend fun ZoomableState.focusPanel(panel: PageRect, animate: Boolean) {
+private fun ZoomableState.panelMove(panel: PageRect): Pair<Float, ZoomFocalPoint>? {
     val transformation = contentTransformation
-    if (!transformation.isSpecified) return
+    if (!transformation.isSpecified) return null
     val content = transformation.contentSize
     val viewport = coordinateSystem.viewportSize
-    if (content.width <= 0f || content.height <= 0f || viewport.width <= 0f || viewport.height <= 0f) return
+    if (content.width <= 0f || content.height <= 0f || viewport.width <= 0f || viewport.height <= 0f) return null
+    if (panel.width <= 0f || panel.height <= 0f) return null
     // Zoom relative to the page's own pixels: the panel's size against the screen's.
     val target = min(viewport.width / (panel.width * content.width), viewport.height / (panel.height * content.height)) * PANEL_FILL
     val centre = Offset((panel.left + panel.width / 2f) * content.width, (panel.top + panel.height / 2f) * content.height)
-    val focal = ZoomFocalPoint.moveToViewportCenter(SpatialOffset(centre, CoordinateSpace.ZoomableContent))
-    if (animate) {
-        zoomTo(target, focal)
-    } else {
-        zoomTo(target, focal, animationSpec = androidx.compose.animation.core.snap())
-    }
+    return target to ZoomFocalPoint.moveToViewportCenter(SpatialOffset(centre, CoordinateSpace.ZoomableContent))
 }

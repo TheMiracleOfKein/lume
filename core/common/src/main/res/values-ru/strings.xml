@@ -1019,6 +1019,7 @@
     <string name="settings_kw_crop_borders">обрезка, поля, белые поля, рамка</string>
     <string name="settings_kw_split_wide">разворот, двойная страница, деление, широкая страница</string>
     <string name="settings_kw_spreads">две страницы, разворот, книга, альбомная, планшет</string>
+    <string name="settings_kw_panel_order">порядок кадров, манга, справа налево, слева направо, комиксы, кадры</string>
     <string name="settings_kw_preload">предзагрузка, загрузка заранее, буфер, трафик</string>
     <string name="settings_kw_library_check">обновление, новые главы, уведомление, фон</string>
     <string name="settings_kw_interval">часы, частота, как часто</string>
@@ -1216,7 +1217,11 @@
     <string name="reader_webtoon_tap_zones">Зоны касания в режиме вебтуна</string>
     <string name="reader_webtoon_tap_zones_hint">Касание верхней трети прокручивает назад, нижней — вперёд; середина показывает управление.</string>
     <string name="reader_guided_panels">Чтение по кадрам</string>
-    <string name="reader_guided_panels_hint">Касание или перелистывание переходит от кадра к кадру с увеличением, в порядке чтения. Каждая страница сначала показывается целиком.</string>
+    <string name="reader_guided_panels_hint">Касание или перелистывание переходит от кадра к кадру с увеличением, в порядке чтения; остальная страница затемняется. Каждая страница сначала показывается целиком.</string>
+    <string name="reader_panel_order">Порядок кадров</string>
+    <string name="reader_panel_order_hint">Как читаются кадры в ряду при чтении по кадрам. Не зависит от направления листания.</string>
+    <string name="reader_panel_order_rtl">Справа налево (манга)</string>
+    <string name="reader_panel_order_ltr">Слева направо (комиксы)</string>
     <string name="reader_panels_on">Чтение по кадрам включено</string>
     <string name="reader_panels_off">Чтение по кадрам выключено</string>
     <string name="reader_crop_borders">Обрезать поля</string>

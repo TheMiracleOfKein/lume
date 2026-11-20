@@ -87,8 +87,15 @@ data class ReaderSettings(
     val spreadCoverAlone: Boolean = true,
     /** Paged modes: a tap or page turn moves from panel to panel, zooming in on each. */
     val guidedPanels: Boolean = false,
+    /**
+     * Guided panel view: [PANELS_RTL] (manga) or [PANELS_LTR] (western comics) within a row of
+     * panels. Separate from the page-turn direction ([mode]).
+     */
+    val panelOrder: Int = PANELS_RTL,
 ) {
     companion object {
+        const val PANELS_RTL = 0
+        const val PANELS_LTR = 1
         const val SPREADS_OFF = 0
         const val SPREADS_AUTO = 1
         const val SPREADS_ALWAYS = 2
@@ -184,6 +191,7 @@ class AppPreferences(
     private val readerSpreadsKey = intPreferencesKey("reader_spreads")
     private val readerSpreadCoverKey = booleanPreferencesKey("reader_spread_cover_alone")
     private val readerGuidedPanelsKey = booleanPreferencesKey("reader_guided_panels")
+    private val readerPanelOrderKey = intPreferencesKey("reader_panel_order")
     private val novelFontSizeKey = intPreferencesKey("novel_font_size")
     private val novelLineHeightKey = doublePreferencesKey("novel_line_height")
     private val novelFontKey = intPreferencesKey("novel_font")
@@ -503,6 +511,7 @@ class AppPreferences(
             spreads = (prefs[readerSpreadsKey] ?: ReaderSettings.SPREADS_AUTO).coerceIn(0, 2),
             spreadCoverAlone = prefs[readerSpreadCoverKey] ?: true,
             guidedPanels = prefs[readerGuidedPanelsKey] ?: false,
+            panelOrder = (prefs[readerPanelOrderKey] ?: ReaderSettings.PANELS_RTL).coerceIn(0, 1),
         )
     }
 
@@ -882,6 +891,7 @@ class AppPreferences(
             it[readerSpreadsKey] = settings.spreads
             it[readerSpreadCoverKey] = settings.spreadCoverAlone
             it[readerGuidedPanelsKey] = settings.guidedPanels
+            it[readerPanelOrderKey] = settings.panelOrder
         }
     }
 

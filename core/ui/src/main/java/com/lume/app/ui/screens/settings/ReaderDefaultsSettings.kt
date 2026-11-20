@@ -86,6 +86,23 @@ fun ReaderDefaultsSettings(vm: SettingsViewModel) {
                 onCheckedChange = { vm.updateReader(reader.copy(guidedPanels = it)) },
             )
         }
+        SettingItem("panel_order") {
+            SettingsLabel(stringResource(R.string.reader_panel_order))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf(
+                    ReaderSettings.PANELS_RTL to R.string.reader_panel_order_rtl,
+                    ReaderSettings.PANELS_LTR to R.string.reader_panel_order_ltr,
+                ).forEach { (value, label) ->
+                    ChoiceChip(
+                        label = stringResource(label),
+                        selected = reader.panelOrder == value,
+                        modifier = Modifier.weight(1f),
+                        onClick = { vm.updateReader(reader.copy(panelOrder = value)) },
+                    )
+                }
+            }
+            SettingsNote(stringResource(R.string.reader_panel_order_hint), Modifier.padding(top = 8.dp))
+        }
         SettingItem("crop_borders") {
             SwitchRow(
                 label = stringResource(R.string.reader_crop_borders),
