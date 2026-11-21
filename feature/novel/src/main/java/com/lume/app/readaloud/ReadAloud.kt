@@ -6,7 +6,9 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
+import android.media.AudioFormat
 import android.media.AudioManager
+import android.media.AudioTrack
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
@@ -161,6 +163,7 @@ object ReadAloud {
                 wakeLock = it
             }
         lock.acquire(WAKE_LOCK_MS)
+        startSilence()
 
         if (focusRequest == null) {
             val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -195,7 +198,54 @@ object ReadAloud {
         }
     }
 
+    /**
+     * A silent track played by this process while speaking. The speech itself is played by the
+     * TTS engine's process, and Android gives media keys (headsets, Bluetooth, keyboards) to the
+     * session of the app that plays audio; without this the keys would never reach read aloud.
+     */
+    private var silence: AudioTrack? = null
+
+    private fun startSilence() {
+        if (silence != null) return
+        silence = runCatching {
+            val frames = SILENCE_RATE // one second, looped
+            AudioTrack.Builder()
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build(),
+                )
+                .setAudioFormat(
+                    AudioFormat.Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .setSampleRate(SILENCE_RATE)
+                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                        .build(),
+                )
+                .setTransferMode(AudioTrack.MODE_STATIC)
+                .setBufferSizeInBytes(frames * 2)
+                .build()
+                .apply {
+                    write(ShortArray(frames), 0, frames)
+                    setLoopPoints(0, frames, -1)
+                    play()
+                }
+        }.getOrNull()
+    }
+
+    private fun stopSilence() {
+        silence?.let {
+            runCatching {
+                it.stop()
+                it.release()
+            }
+        }
+        silence = null
+    }
+
     private fun letGo(context: Context) {
+        stopSilence()
         wakeLock?.takeIf { it.isHeld }?.release()
         if (noisyRegistered) {
             runCatching { context.unregisterReceiver(noisy) }
@@ -234,6 +284,9 @@ object ReadAloud {
 
     /** Renewed on every sentence; only runs out if something hangs. */
     private const val WAKE_LOCK_MS = 10 * 60_000L
+
+    /** Sample rate of the silent track: low, it carries nothing. */
+    private const val SILENCE_RATE = 8_000
 }
 
 /** [ReadAloudStore] on the title's [NovelBook]: the same rows the reader writes. */

@@ -71,6 +71,9 @@ private data class Viewport(val index: Int, val offset: Int, val size: Int, val 
 /** Fraction of the viewport a tap on the top or bottom third scrolls. */
 private const val TAP_SCROLL_FRACTION = 0.9f
 
+/** Room for the read aloud panel (its buttons and one line of messages) below the text. */
+private val READ_ALOUD_PANEL_SPACE = 112.dp
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun NovelReaderScreen(
@@ -289,7 +292,9 @@ private fun NovelReaderContent(
     onScrolled: () -> Unit,
 ) {
     val topPad = WindowInsets.statusBarsIgnoringVisibility.let { with(LocalDensity.current) { it.getTop(this).toDp() } }
-    val bottomPad = WindowInsets.navigationBarsIgnoringVisibility.let { with(LocalDensity.current) { it.getBottom(this).toDp() } }
+    // While reading aloud its panel stays at the bottom: the text ends above it.
+    val panelPad = if (vm.readAloud != null) READ_ALOUD_PANEL_SPACE else 0.dp
+    val bottomPad = WindowInsets.navigationBarsIgnoringVisibility.let { with(LocalDensity.current) { it.getBottom(this).toDp() } } + panelPad
     if (vm.settings.paged) {
         NovelPagedText(vm, palette, topPad, bottomPad, onTapCentre = onTapCentre, onTurned = onScrolled)
         return
