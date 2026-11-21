@@ -23,6 +23,8 @@ Lume connects only to these services, and only when you use the feature:
 | You tap **Download** on an update | github.com (the release assets of TheMiracleOfKein/lume; GitHub may pass the file on to its own download servers) | A request for the APK. Lume checks its size and checksum before it offers to install it. |
 | You check packs for updates | raw.githubusercontent.com (or the catalogue address you set) | A request for the pack catalogue. |
 | You tap **Install Lume Translate** in the text reader's translation sheet | api.github.com and github.com (the releases of TheMiracleOfKein/lume) | The same requests as an update: the latest release, then the add-on's APK, checked by size and checksum before Android's installer opens. |
+| You pick **Google Translate** as the way to translate and turn translation on for a title | translate.googleapis.com | The text of the chapters you read in that title, paragraph by paragraph, and the two languages. Google's own terms apply to that text. Nothing about your account or library is sent. |
+| You pick **DeepL** and turn translation on for a title | api-free.deepl.com or api.deepl.com | The same chapter text, with your DeepL API key. The key is stored encrypted on the phone and is never part of a backup or sync. |
 | You download a language pack in the translation sheet | storage.googleapis.com (Mozilla's Firefox Translations model storage) | Requests for the model files of that language pair, made by the Lume Translate add-on. They carry no account or library data. Each file is checked against a checksum fixed in the add-on. Translating itself happens on the phone; chapter text never leaves it. |
 
 Each of these services has its own privacy policy.

@@ -8,11 +8,13 @@ import com.lume.app.data.db.GlossaryTermEntity
 import com.lume.app.data.db.TitlePrefsEntity
 import com.lume.app.data.novel.NovelBlock
 import com.lume.app.ui.screens.LoadedNovelChapter
-import com.lume.translate.ModelCatalog
 import com.lume.translate.ModelPair
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -24,17 +26,21 @@ sealed interface TranslationProgress {
     data class Failed(val message: String) : TranslationProgress
 }
 
+/** Why translation can't run right now with the chosen engine. */
+enum class TranslationBlocker { NoEngine, AddonMissing, PackMissing, NoDeepLKey }
+
 /**
  * Translation for one open title in the text reader. The title's language comes from its source;
- * [target] is saved per title. Loaded chapters are translated block for block, nearest the reading
- * spot first, and handed back through [replace]; the originals stay on each chapter for the long
- * press and for "Show original".
+ * the target language is saved per title, the engine (on the phone, Google, DeepL) for the app.
+ * Loaded chapters are translated block for block, nearest the reading spot first, and handed
+ * back through [replace]; the originals stay on each chapter for the long press and "off".
  */
+@OptIn(FlowPreview::class)
 class ReaderTranslation(
     private val app: AppContainer,
     private val scope: CoroutineScope,
-    private val sourceId: String,
-    private val titleId: String,
+    val sourceId: String,
+    val titleId: String,
     /** Puts a chapter's new blocks into the reader (same count as the original). */
     private val replace: (chapterId: String, blocks: List<NovelBlock>, original: List<NovelBlock>?) -> Unit,
 ) {
@@ -47,14 +53,20 @@ class ReaderTranslation(
     val sourceLanguage: String? = app.sources.sourceById(sourceId)?.manifest?.language
         ?.let { if (it == "local") "en" else it }
 
-    /** Pairs from this title's language, in catalogue order. Empty: no translate button. */
-    val pairs: List<ModelPair> = ModelCatalog.pairs.filter { it.from == sourceLanguage }
+    /** Languages this title can be read in (Russian for English titles, English for Russian ones). */
+    val targets: List<String> = when (sourceLanguage) {
+        "en" -> listOf("ru")
+        "ru" -> listOf("en")
+        null -> emptyList()
+        else -> listOf("ru", "en")
+    }
 
     /** The language chosen for this title, or null when it reads in the original. */
     var target by mutableStateOf<String?>(null)
         private set
 
-    val pair: ModelPair? get() = target?.let { t -> pairs.firstOrNull { it.to == t } }
+    /** The app's translation engine; null until the user picks one. */
+    val engine: TranslationEngine? get() = TranslationEngine.fromId(app.prefs.translationEngine.value)
 
     var progress by mutableStateOf<TranslationProgress>(TranslationProgress.Idle)
         private set
@@ -67,35 +79,69 @@ class ReaderTranslation(
     /** The chapter the reader is in, translated first; its progress is the one shown. */
     var currentChapterId: String? = null
 
-    /** Reads the saved language and follows the glossary. Call once. */
+    private var loaded: () -> List<LoadedNovelChapter> = { emptyList() }
+    private var anchorBlock: () -> Int = { 0 }
+
+    /** The offline model for [to], if Mozilla has one. */
+    fun offlinePair(to: String): ModelPair? = sourceLanguage?.let { AddonProvider.pairFor(it, to) }
+
+    /** What stops [engine] from translating into [to], or null when it can. */
+    fun blocker(engine: TranslationEngine?, to: String): TranslationBlocker? = when (engine) {
+        null -> TranslationBlocker.NoEngine
+        TranslationEngine.Offline -> {
+            val pair = offlinePair(to)
+            when {
+                pair == null -> TranslationBlocker.PackMissing
+                TranslateAddon.state.value !is AddonState.Ready -> TranslationBlocker.AddonMissing
+                !TranslateAddon.isReady(pair) -> TranslationBlocker.PackMissing
+                else -> null
+            }
+        }
+        TranslationEngine.Google -> null
+        TranslationEngine.DeepL -> if (app.prefs.deeplKey.value.isNullOrBlank()) TranslationBlocker.NoDeepLKey else null
+    }
+
+    private fun route(): TranslationRoute? {
+        val from = sourceLanguage ?: return null
+        val to = target ?: return null
+        val provider = when (val e = engine) {
+            TranslationEngine.Offline -> offlinePair(to)?.takeIf { TranslateAddon.isReady(it) }?.let { AddonProvider(app.app, it) }
+            TranslationEngine.Google -> GoogleProvider(app.http.okHttp)
+            TranslationEngine.DeepL -> app.prefs.deeplKey.value?.takeIf { it.isNotBlank() }?.let { DeepLProvider(app.http.okHttp, it) }
+            null -> null
+        } ?: return null
+        return TranslationRoute(provider, from, to)
+    }
+
+    /** Reads the saved language, follows the glossary and the engine setting. Call once. */
     fun start(loaded: () -> List<LoadedNovelChapter>, anchorBlock: () -> Int) {
         this.loaded = loaded
         this.anchorBlock = anchorBlock
         scope.launch {
             val saved = dao.getTitlePrefs(sourceId, titleId)?.novelTranslateTo
-            if (saved != null && pairs.any { it.to == saved }) {
-                TranslateAddon.refresh(app.app)
+            if (saved != null && saved in targets) {
+                if (engine == TranslationEngine.Offline) TranslateAddon.refresh(app.app)
                 target = saved
                 translateAll()
             }
         }
         scope.launch {
-            dao.glossary(sourceId, titleId).collect { list ->
+            // Several quick edits (a pasted list, a few adds) translate again once.
+            dao.glossary(sourceId, titleId).debounce(GLOSSARY_SETTLE_MS).collect { list ->
                 val changed = list.map { it.source to it.target } != glossary.map { it.source to it.target }
                 glossary = list
                 if (changed && target != null) retranslate()
             }
         }
+        // Another engine (or DeepL key) picked while reading: translate again with it.
+        scope.launch { app.prefs.translationEngine.drop(1).collect { if (target != null) retranslate() } }
     }
 
-    private var loaded: () -> List<LoadedNovelChapter> = { emptyList() }
-    private var anchorBlock: () -> Int = { 0 }
-
-    /** Turns translation on into [pair]'s language (the add-on and its pack must be ready). */
-    fun enable(pair: ModelPair) {
-        target = pair.to
-        save(pair.to)
-        translateAll()
+    /** Turns translation on into [to] with the current engine (which must be ready). */
+    fun enable(to: String) {
+        target = to
+        save(to)
+        retranslate()
     }
 
     /** Back to the original text, saved for the title. */
@@ -105,6 +151,17 @@ class ReaderTranslation(
         cancelAll()
         progress = TranslationProgress.Idle
         for (lc in loaded()) lc.original?.let { replace(lc.chapter.id, it, null) }
+    }
+
+    fun setEngine(engine: TranslationEngine) {
+        scope.launch { app.prefs.setTranslationEngine(engine.id) }
+    }
+
+    fun setDeepLKey(key: String) {
+        scope.launch {
+            app.prefs.setDeeplKey(key)
+            if (target != null && engine == TranslationEngine.DeepL) retranslate()
+        }
     }
 
     /** A chapter joined the list (first load, next chapter): translate it if translation is on. */
@@ -120,51 +177,42 @@ class ReaderTranslation(
 
     fun retry() = translateAll()
 
-    fun addTerm(source: String, target: String) {
-        val s = source.trim()
-        val t = target.trim()
-        if (s.isEmpty() || t.isEmpty()) return
-        scope.launch {
-            dao.upsertGlossaryTerm(GlossaryTermEntity(sourceId, titleId, s, t, System.currentTimeMillis()))
-        }
-    }
-
-    fun removeTerm(source: String) {
-        scope.launch { dao.deleteGlossaryTerm(sourceId, titleId, source) }
-    }
+    fun addTerm(source: String, target: String) = saveTerm(app, sourceId, titleId, source, target)
 
     private fun translateAll() {
         val list = loaded()
-        // The chapter being read first, then the ones after it.
         val current = list.indexOfFirst { it.chapter.id == currentChapterId }.coerceAtLeast(0)
+        // The chapter being read first, then the ones after it.
         (list.drop(current) + list.take(current)).forEach(::translate)
     }
 
     private fun retranslate() {
         cancelAll()
-        for (lc in loaded()) {
-            lc.original?.let { replace(lc.chapter.id, it, null) }
-        }
+        progress = TranslationProgress.Idle
+        for (lc in loaded()) lc.original?.let { replace(lc.chapter.id, it, null) }
         translateAll()
     }
 
     private fun translate(lc: LoadedNovelChapter) {
-        val pair = pair ?: return
         val id = lc.chapter.id
         if (jobs[id]?.isActive == true) return
+        val route = route()
+        if (route == null) {
+            if (id == currentChapterId) progress = TranslationProgress.Idle
+            return
+        }
         val original = lc.original ?: lc.blocks
         val glossaryNow = entries
         jobs[id] = scope.launch {
             // A chapter in the cache shows at once; others wait their turn.
-            translator.cached(original, pair, glossaryNow)?.let {
+            translator.cached(original, route, glossaryNow)?.let {
                 replace(id, it, original)
                 return@launch
             }
             queue.withLock {
-                val mine = id == currentChapterId
                 try {
-                    val start = if (mine) anchorBlock() else 0
-                    val result = translator.translate(original, pair, glossaryNow, start) { partial, done, total ->
+                    val start = if (id == currentChapterId) anchorBlock() else 0
+                    val result = translator.translate(original, route, glossaryNow, start) { partial, done, total ->
                         replace(id, partial, original)
                         if (id == currentChapterId) progress = TranslationProgress.Working(done, total)
                     }
@@ -173,7 +221,7 @@ class ReaderTranslation(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    if (id == currentChapterId || mine) progress = TranslationProgress.Failed(e.message ?: e.toString())
+                    if (id == currentChapterId) progress = TranslationProgress.Failed(e.message ?: e.toString())
                 }
             }
         }
@@ -192,16 +240,29 @@ class ReaderTranslation(
     }
 
     /**
-     * [lc] translated whole (for read aloud), or as it is when translation is off or the pack is
-     * missing. Doesn't touch the reader's list.
+     * [lc] translated whole (for read aloud), or as it is when translation is off or the engine
+     * isn't ready. Doesn't touch the reader's list.
      */
     suspend fun forListening(lc: LoadedNovelChapter): LoadedNovelChapter {
-        val pair = pair ?: return lc
-        if (!TranslateAddon.isReady(pair)) return lc
+        val route = route() ?: return lc
         val original = lc.original ?: lc.blocks
-        return LoadedNovelChapter(lc.chapter, translator.translate(original, pair, entries), original)
+        return LoadedNovelChapter(lc.chapter, translator.translate(original, route, entries), original)
     }
 
     /** The translation cache, for "Clear cache" style actions. */
     fun clearCache() = translator.clearCache()
+
+    private companion object {
+        const val GLOSSARY_SETTLE_MS = 800L
+    }
+}
+
+/** Adds or replaces a glossary term of a title (blank parts are ignored). */
+fun saveTerm(app: AppContainer, sourceId: String, titleId: String, source: String, target: String) {
+    val s = source.trim()
+    val t = target.trim()
+    if (s.isEmpty() || t.isEmpty()) return
+    app.appScope.launch {
+        app.dao.upsertGlossaryTerm(GlossaryTermEntity(sourceId, titleId, s, t, System.currentTimeMillis()))
+    }
 }

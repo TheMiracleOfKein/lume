@@ -203,6 +203,10 @@ class AppPreferences(
     private val readAloudSpeedKey = doublePreferencesKey("read_aloud_speed")
     private val readAloudVoiceKey = stringPreferencesKey("read_aloud_voice")
     private val readAloudEngineKey = stringPreferencesKey("read_aloud_engine")
+    private val translationEngineKey = stringPreferencesKey("translation_engine")
+
+    // "secret" in the name: private store, encrypted, never in backups or sync.
+    private val deeplKeySecret = stringPreferencesKey("translate_deepl_secret")
     private val libraryIntervalKey = intPreferencesKey("library_update_interval_hours")
     private val libraryWifiOnlyKey = booleanPreferencesKey("library_update_wifi_only")
     private val librarySkipCompletedKey = booleanPreferencesKey("library_update_skip_completed")
@@ -875,6 +879,21 @@ class AppPreferences(
             it[novelPagedKey] = s.paged
         }
     }
+
+    /**
+     * How the text reader translates: `offline` (the Lume Translate add-on), `google` or `deepl`
+     * (online, chapter text goes to that service). Null until the user picks one.
+     */
+    val translationEngine: StateFlow<String?> = state { it[translationEngineKey] }
+
+    suspend fun setTranslationEngine(id: String) {
+        context.appDataStore.edit { it[translationEngineKey] = id }
+    }
+
+    /** The user's own DeepL API key (free or paid), or null. */
+    val deeplKey: StateFlow<String?> = privateState { it.secret(deeplKeySecret) }
+
+    suspend fun setDeeplKey(key: String?) = putSecret(deeplKeySecret, key?.trim())
 
     suspend fun setReadAloudSettings(settings: ReadAloudSettings) {
         val s = settings.clamped()

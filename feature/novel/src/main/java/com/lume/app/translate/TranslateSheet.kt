@@ -10,14 +10,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,7 +30,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -59,17 +61,21 @@ internal fun languageName(code: String): String {
 }
 
 /**
- * Everything about translating this title, in one place: installing the add-on, downloading the
- * language pack, turning translation on and off, and the title's glossary.
+ * Everything about translating this title, in one place: the language to read in, the engine
+ * (on the phone with the add-on, Google or DeepL online) and its setup, and the glossary.
  */
 @Composable
-fun TranslateSheet(translation: ReaderTranslation, onClose: () -> Unit) {
+fun TranslateSheet(translation: ReaderTranslation, onOpenGlossary: () -> Unit, onClose: () -> Unit) {
     val context = LocalContext.current
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
+    val engineId by container.prefs.translationEngine.collectAsStateWithLifecycle()
+    val deeplKey by container.prefs.deeplKey.collectAsStateWithLifecycle()
     val addon by TranslateAddon.state.collectAsStateWithLifecycle()
+    val engine = TranslationEngine.fromId(engineId)
     // Back from the system installer (or app info): look at the add-on again.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { scope.launch { TranslateAddon.refresh(context) } }
+    LaunchedEffect(Unit) { TranslateAddon.refresh(context) }
 
     Column(
         Modifier
@@ -79,28 +85,92 @@ fun TranslateSheet(translation: ReaderTranslation, onClose: () -> Unit) {
             .padding(bottom = 24.dp),
     ) {
         SheetHeader(stringResource(R.string.translate_title), onClose = onClose)
-        when (val a = addon) {
-            AddonState.Unknown -> Unit
-            AddonState.NotInstalled -> AddonInstall(update = false)
-            is AddonState.Incompatible -> AddonInstall(update = true)
-            AddonState.WrongSignature -> {
-                Hint(stringResource(R.string.translate_addon_wrong_signature))
-                TextButton(onClick = {
-                    context.startActivity(
-                        Intent(Intent.ACTION_DELETE, "package:${TranslateContract.ADDON_PACKAGE}".toUri())
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    )
-                }) { Text(stringResource(R.string.translate_addon_uninstall)) }
-            }
-            is AddonState.Ready -> {
-                for (pair in translation.pairs) {
-                    PairSection(pair, installed = pair.id in a.installedPairs, translation = translation)
-                }
-                if (translation.pair != null) Glossary(translation)
-            }
+
+        // ---- Read in … ----
+        // The sheet recomposes when the add-on state or the DeepL key changes (both collected above).
+        for (to in translation.targets) {
+            val blocker = translation.blocker(engine, to)
+            SwitchRow(
+                label = stringResource(R.string.translate_switch, languageName(to)),
+                hint = when (blocker) {
+                    null -> stringResource(R.string.translate_switch_hint)
+                    TranslationBlocker.NoEngine -> stringResource(R.string.translate_pick_engine)
+                    TranslationBlocker.AddonMissing -> stringResource(R.string.translate_needs_addon)
+                    TranslationBlocker.PackMissing -> stringResource(R.string.translate_needs_pack)
+                    TranslationBlocker.NoDeepLKey -> stringResource(R.string.translate_needs_deepl_key)
+                },
+                checked = translation.target == to,
+                onCheckedChange = { on ->
+                    if (!on) translation.disable() else if (blocker == null) translation.enable(to)
+                },
+            )
         }
+        when (val p = translation.progress) {
+            is TranslationProgress.Working -> {
+                Hint(stringResource(R.string.translate_progress, p.done, p.total))
+                LinearProgressIndicator(progress = { if (p.total > 0) p.done.toFloat() / p.total else 0f }, modifier = Modifier.fillMaxWidth())
+            }
+            is TranslationProgress.Failed -> {
+                Hint(stringResource(R.string.translate_failed, p.message))
+                TextButton(onClick = translation::retry) { Text(stringResource(R.string.action_retry)) }
+            }
+            TranslationProgress.Idle -> Unit
+        }
+
+        // ---- Engine ----
+        SettingsSection(stringResource(R.string.translate_engine))
+        val offlineAvailable = translation.targets.any { translation.offlinePair(it) != null }
+        EngineRow(
+            title = stringResource(R.string.translate_engine_offline),
+            hint = stringResource(if (offlineAvailable) R.string.translate_engine_offline_hint else R.string.translate_engine_offline_none),
+            selected = engine == TranslationEngine.Offline,
+            enabled = offlineAvailable,
+        ) { translation.setEngine(TranslationEngine.Offline) }
+        EngineRow(
+            title = stringResource(R.string.translate_engine_google),
+            hint = stringResource(R.string.translate_engine_google_hint),
+            selected = engine == TranslationEngine.Google,
+        ) { translation.setEngine(TranslationEngine.Google) }
+        EngineRow(
+            title = stringResource(R.string.translate_engine_deepl),
+            hint = stringResource(R.string.translate_engine_deepl_hint),
+            selected = engine == TranslationEngine.DeepL,
+        ) { translation.setEngine(TranslationEngine.DeepL) }
+
+        when (engine) {
+            TranslationEngine.Offline -> when (val a = addon) {
+                AddonState.Unknown -> Unit
+                AddonState.NotInstalled -> AddonInstall(update = false)
+                is AddonState.Incompatible -> AddonInstall(update = true)
+                AddonState.WrongSignature -> {
+                    Hint(stringResource(R.string.translate_addon_wrong_signature))
+                    TextButton(onClick = {
+                        context.startActivity(
+                            Intent(Intent.ACTION_DELETE, "package:${TranslateContract.ADDON_PACKAGE}".toUri())
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    }) { Text(stringResource(R.string.translate_addon_uninstall)) }
+                }
+                is AddonState.Ready -> {
+                    for (to in translation.targets) {
+                        val pair = translation.offlinePair(to) ?: continue
+                        PackRow(pair, installed = pair.id in a.installedPairs, translation = translation)
+                    }
+                }
+            }
+            TranslationEngine.DeepL -> DeepLKey(saved = deeplKey, onSave = translation::setDeepLKey)
+            TranslationEngine.Google, null -> Unit
+        }
+
+        // ---- Glossary ----
+        SettingsSection(stringResource(R.string.translate_glossary))
+        Hint(stringResource(R.string.translate_glossary_hint))
+        OutlinedButton(onClick = onOpenGlossary, modifier = Modifier.fillMaxWidth()) {
+            val n = translation.glossary.size
+            Text(if (n == 0) stringResource(R.string.glossary_open) else pluralStringResource(R.plurals.glossary_open_count, n, n))
+        }
+        GlossaryAdd(onAdd = translation::addTerm)
     }
-    LaunchedEffect(Unit) { TranslateAddon.refresh(context) }
     // Keeps the add-on updater alive with the sheet.
     remember(container) { TranslateAddon.updater(container) }
 }
@@ -108,6 +178,43 @@ fun TranslateSheet(translation: ReaderTranslation, onClose: () -> Unit) {
 @Composable
 private fun Hint(text: String) {
     Text(text, color = AppColors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(vertical = 6.dp))
+}
+
+@Composable
+private fun EngineRow(title: String, hint: String, selected: Boolean, enabled: Boolean = true, onSelect: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onSelect)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = null, enabled = enabled)
+        Column(Modifier.padding(start = 8.dp).weight(1f)) {
+            Text(title, color = if (enabled) AppColors.textPrimary else AppColors.textSecondary, fontSize = 15.sp)
+            Text(hint, color = AppColors.textSecondary, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun DeepLKey(saved: String?, onSave: (String) -> Unit) {
+    var key by rememberSaveable { mutableStateOf("") }
+    Hint(stringResource(if (saved.isNullOrBlank()) R.string.translate_deepl_key_about else R.string.translate_deepl_key_saved))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(
+            value = key,
+            onValueChange = { key = it },
+            label = { Text(stringResource(R.string.translate_deepl_key)) },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(enabled = key.isNotBlank(), onClick = {
+            onSave(key)
+            key = ""
+        }) { Text(stringResource(R.string.action_save)) }
+    }
 }
 
 /** "Install Lume Translate": the add-on APK from Lume's latest release, through the system installer. */
@@ -145,90 +252,56 @@ private fun AddonInstall(update: Boolean) {
     }
 }
 
-/** One language pair: download its pack, then switch translation on or off. */
+/** One offline language pack: download it, or delete it. */
 @Composable
-private fun PairSection(pair: ModelPair, installed: Boolean, translation: ReaderTranslation) {
+private fun PackRow(pair: ModelPair, installed: Boolean, translation: ReaderTranslation) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val label = stringResource(R.string.translate_pair, languageName(pair.from), languageName(pair.to))
-    SettingsSection(label)
+    Text(
+        stringResource(R.string.translate_pair, languageName(pair.from), languageName(pair.to)),
+        color = AppColors.textPrimary,
+        fontSize = 14.sp,
+        modifier = Modifier.padding(top = 8.dp),
+    )
     var downloading by remember { mutableStateOf<Job?>(null) }
     var fraction by remember { mutableStateOf<Float?>(null) }
     var failed by remember { mutableStateOf<String?>(null) }
-    if (!installed) {
-        val size = Formatter.formatShortFileSize(context, pair.downloadSize)
-        Hint(stringResource(R.string.translate_pack_about, size))
-        failed?.let { Hint(stringResource(R.string.translate_pack_failed, it)) }
-        if (downloading?.isActive == true) {
-            val f = fraction
-            if (f == null) LinearProgressIndicator(Modifier.fillMaxWidth()) else LinearProgressIndicator(progress = { f }, modifier = Modifier.fillMaxWidth())
-            TextButton(onClick = { downloading?.cancel() }) { Text(stringResource(R.string.action_cancel)) }
-        } else {
-            Button(onClick = {
-                failed = null
-                downloading = scope.launch {
-                    TranslateAddon.download(context, pair)
-                        .catch { e -> failed = e.message }
-                        .collect { p ->
-                            when (p) {
-                                is PackDownload.Progress -> fraction = if (p.total > 0) p.done.toFloat() / p.total else null
-                                PackDownload.Done -> {
-                                    TranslateAddon.refresh(context)
-                                    translation.enable(pair)
-                                }
-                            }
-                        }
-                }
-            }) { Text(stringResource(R.string.translate_pack_download, size)) }
+    if (installed) {
+        TextButton(onClick = {
+            scope.launch {
+                if (translation.target == pair.to) translation.disable()
+                runCatching { TranslateAddon.delete(context, pair) }
+            }
+        }) {
+            Text(stringResource(R.string.translate_pack_delete, Formatter.formatShortFileSize(context, pair.installedSize)))
         }
         return
     }
-    SwitchRow(
-        label = stringResource(R.string.translate_switch, languageName(pair.to)),
-        hint = stringResource(R.string.translate_switch_hint),
-        checked = translation.target == pair.to,
-        onCheckedChange = { on -> if (on) translation.enable(pair) else translation.disable() },
-    )
-    when (val p = translation.progress) {
-        is TranslationProgress.Working -> {
-            Hint(stringResource(R.string.translate_progress, p.done, p.total))
-            LinearProgressIndicator(progress = { if (p.total > 0) p.done.toFloat() / p.total else 0f }, modifier = Modifier.fillMaxWidth())
-        }
-        is TranslationProgress.Failed -> {
-            Hint(stringResource(R.string.translate_failed, p.message))
-            TextButton(onClick = translation::retry) { Text(stringResource(R.string.action_retry)) }
-        }
-        TranslationProgress.Idle -> Unit
-    }
-    TextButton(onClick = {
-        scope.launch {
-            if (translation.target == pair.to) translation.disable()
-            runCatching { TranslateAddon.delete(context, pair) }
-        }
-    }) {
-        Text(stringResource(R.string.translate_pack_delete, Formatter.formatShortFileSize(context, pair.installedSize)))
-    }
-}
-
-/** The title's glossary: names and terms that must read the same in every chapter. */
-@Composable
-private fun Glossary(translation: ReaderTranslation) {
-    SettingsSection(stringResource(R.string.translate_glossary))
-    Hint(stringResource(R.string.translate_glossary_hint))
-    for (term in translation.glossary) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text(
-                stringResource(R.string.translate_glossary_term, term.source, term.target),
-                color = AppColors.textPrimary,
-                fontSize = 15.sp,
-                modifier = Modifier.weight(1f),
-            )
-            IconButton(onClick = { translation.removeTerm(term.source) }) {
-                Icon(Icons.Outlined.Close, stringResource(R.string.translate_glossary_remove, term.source), tint = AppColors.textSecondary)
+    val size = Formatter.formatShortFileSize(context, pair.downloadSize)
+    Hint(stringResource(R.string.translate_pack_about, size))
+    failed?.let { Hint(stringResource(R.string.translate_pack_failed, it)) }
+    if (downloading?.isActive == true) {
+        val f = fraction
+        if (f == null) LinearProgressIndicator(Modifier.fillMaxWidth()) else LinearProgressIndicator(progress = { f }, modifier = Modifier.fillMaxWidth())
+        TextButton(onClick = { downloading?.cancel() }) { Text(stringResource(R.string.action_cancel)) }
+    } else {
+        Button(onClick = {
+            failed = null
+            downloading = scope.launch {
+                TranslateAddon.download(context, pair)
+                    .catch { e -> failed = e.message }
+                    .collect { p ->
+                        when (p) {
+                            is PackDownload.Progress -> fraction = if (p.total > 0) p.done.toFloat() / p.total else null
+                            PackDownload.Done -> {
+                                TranslateAddon.refresh(context)
+                                translation.enable(pair.to)
+                            }
+                        }
+                    }
             }
-        }
+        }) { Text(stringResource(R.string.translate_pack_download, size)) }
     }
-    GlossaryAdd(onAdd = translation::addTerm)
 }
 
 @Composable

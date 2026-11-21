@@ -63,6 +63,7 @@ import androidx.compose.ui.res.stringResource
 import com.lume.app.R
 import com.lume.app.translate.OriginalDialog
 import com.lume.app.translate.TranslateSheet
+import com.lume.app.translate.glossaryRoute
 import com.lume.app.translate.TranslationProgress
 import com.lume.app.translate.originalText
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -165,7 +166,7 @@ fun NovelReaderScreen(
             modifier = modifier,
             translation = vm.currentChapter?.takeIf { vm.translations.isNotEmpty() }?.let(::translationLabel),
             onTranslation = { translationsOpen = true },
-            onTranslate = { translateOpen = true }.takeIf { vm.translation.pairs.isNotEmpty() },
+            onTranslate = { translateOpen = true }.takeIf { vm.translation.targets.isNotEmpty() },
             translated = vm.translation.target != null,
             translateStatus = (vm.translation.progress as? TranslationProgress.Working)?.let {
                 stringResource(R.string.translate_progress, it.done, it.total)
@@ -292,6 +293,10 @@ fun NovelReaderScreen(
         LumeBottomSheet(onDismissRequest = { translateOpen = false }, sheetState = sheetState) {
             TranslateSheet(
                 translation = vm.translation,
+                onOpenGlossary = {
+                    translateOpen = false
+                    nav.navigate(glossaryRoute(sourceId, titleId, vm.titleName))
+                },
                 onClose = { scope.launch { sheetState.hide() }.invokeOnCompletion { translateOpen = false } },
             )
         }

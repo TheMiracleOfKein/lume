@@ -1415,4 +1415,47 @@
     <string name="translate_glossary_add_term">В глоссарий</string>
     <string name="translate_original">Оригинал</string>
     <string name="translate_working">Перевод…</string>
+    <string name="translate_pick_engine">Сначала выберите ниже, чем переводить.</string>
+    <string name="translate_needs_addon">Установите Lume Translate ниже или выберите онлайн-переводчик.</string>
+    <string name="translate_needs_pack">Скачайте языковой пакет ниже или выберите онлайн-переводчик.</string>
+    <string name="translate_needs_deepl_key">Сначала введите ниже ключ DeepL API.</string>
+    <string name="translate_engine">Чем переводить</string>
+    <string name="translate_engine_offline">На телефоне</string>
+    <string name="translate_engine_offline_hint">Дополнение Lume Translate и языковой пакет. Приватно, работает без интернета.</string>
+    <string name="translate_engine_offline_none">Для этого языка пока нет модели без интернета.</string>
+    <string name="translate_engine_google">Google Переводчик</string>
+    <string name="translate_engine_google_hint">Онлайн, бесплатно, ничего настраивать не нужно. Текст глав отправляется в Google.</string>
+    <string name="translate_engine_deepl">DeepL</string>
+    <string name="translate_engine_deepl_hint">Онлайн, с вашим ключом DeepL API (бесплатный тариф — 500 000 символов в месяц). Текст глав отправляется в DeepL.</string>
+    <string name="translate_deepl_key">Ключ DeepL API</string>
+    <string name="translate_deepl_key_about">Создайте бесплатный аккаунт DeepL API на deepl.com/pro-api и вставьте его ключ сюда. Он хранится на телефоне в зашифрованном виде и не попадает в резервные копии.</string>
+    <string name="translate_deepl_key_saved">Ключ сохранён. Введите другой, чтобы заменить его.</string>
+    <string name="glossary_open">Открыть глоссарий</string>
+    <plurals name="glossary_open_count">
+        <item quantity="one">Открыть глоссарий (%d термин)</item>
+        <item quantity="few">Открыть глоссарий (%d термина)</item>
+        <item quantity="many">Открыть глоссарий (%d терминов)</item>
+        <item quantity="other">Открыть глоссарий (%d термина)</item>
+    </plurals>
+    <plurals name="glossary_count">
+        <item quantity="one">%d термин</item>
+        <item quantity="few">%d термина</item>
+        <item quantity="many">%d терминов</item>
+        <item quantity="other">%d термина</item>
+    </plurals>
+    <string name="glossary_empty">Терминов пока нет. Добавьте через +, вставьте список или зажмите абзац в читалке.</string>
+    <string name="glossary_search">Поиск терминов</string>
+    <string name="glossary_sort_name">Сортировать по имени</string>
+    <string name="glossary_sort_newest">Сначала новые</string>
+    <string name="glossary_import">Вставить термины</string>
+    <string name="glossary_import_hint">По одному термину на строку: «Shirou = Широ», «mana core → ядро маны» или две колонки через табуляцию. Уже существующий термин заменяется.</string>
+    <plurals name="glossary_import_count">
+        <item quantity="one">Добавить %d термин</item>
+        <item quantity="few">Добавить %d термина</item>
+        <item quantity="many">Добавить %d терминов</item>
+        <item quantity="other">Добавить %d термина</item>
+    </plurals>
+    <string name="glossary_copy_all">Скопировать все термины</string>
+    <string name="glossary_new_term">Новый термин</string>
+    <string name="glossary_edit_term">Изменить термин</string>
 </resources>
