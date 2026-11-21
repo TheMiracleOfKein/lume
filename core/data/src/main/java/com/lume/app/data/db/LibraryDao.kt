@@ -278,6 +278,33 @@ interface LibraryDao {
     @Query("SELECT COUNT(*) FROM chapter_digests")
     suspend fun digestCount(): Int
 
+    /** Digests of the title's chapters in [lang], any chapter. */
+    @Query("SELECT * FROM chapter_digests WHERE sourceId = :sourceId AND titleId = :titleId AND lang = :lang")
+    suspend fun titleDigests(sourceId: String, titleId: String, lang: String): List<ChapterDigestEntity>
+
+    // Codex relations (AI-proposed, rebuildable, not backed up)
+    @Query(
+        "SELECT * FROM codex_relations WHERE sourceId = :sourceId AND titleId = :titleId " +
+            "AND (fromName = :name COLLATE NOCASE OR toName = :name COLLATE NOCASE) ORDER BY createdAt",
+    )
+    suspend fun relationsOf(sourceId: String, titleId: String, name: String): List<CodexRelationEntity>
+
+    @Query("DELETE FROM codex_relations WHERE sourceId = :sourceId AND titleId = :titleId AND fromName = :fromName COLLATE NOCASE")
+    suspend fun deleteRelationsFrom(sourceId: String, titleId: String, fromName: String)
+
+    @Insert
+    suspend fun insertRelations(relations: List<CodexRelationEntity>)
+
+    /** The relations [fromName] has, replaced by [relations] (a new summary sees the story anew). */
+    @Transaction
+    suspend fun replaceRelationsFrom(sourceId: String, titleId: String, fromName: String, relations: List<CodexRelationEntity>) {
+        deleteRelationsFrom(sourceId, titleId, fromName)
+        if (relations.isNotEmpty()) insertRelations(relations)
+    }
+
+    @Query("DELETE FROM codex_relations WHERE id = :id")
+    suspend fun deleteRelation(id: Long)
+
     /** Per chapter: first and last block containing [query] (an FTS4 expression) and how many blocks do. */
     @Query(
         "SELECT t.chapterId AS chapterId, MIN(t.block) AS firstBlock, MAX(t.block) AS lastBlock, COUNT(*) AS hits " +

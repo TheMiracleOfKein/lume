@@ -399,6 +399,24 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate21To22AddsCodexRelations() {
+        helper.createDatabase(dbName, 21).close()
+
+        val db = helper.runMigrationsAndValidate(dbName, 22, true, LumeDatabase.MIGRATION_21_22)
+
+        db.execSQL(
+            "INSERT INTO codex_relations (sourceId, titleId, fromName, toName, label, upToChapterId, origin, createdAt) " +
+                "VALUES ('s', 't', 'Kirito', 'Asuna', 'partner', 'c9', 'llm:openrouter:auto', 1)",
+        )
+        db.query("SELECT fromName, toName, label, upToChapterId FROM codex_relations WHERE toName = 'Asuna'").use {
+            it.moveToFirst()
+            assertEquals("Kirito", it.getString(0))
+            assertEquals("partner", it.getString(2))
+            assertEquals("c9", it.getString(3))
+        }
+    }
+
+    @Test
     fun freshDatabaseOpensWithAllMigrations() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         helper.createDatabase(dbName, 7).close()
