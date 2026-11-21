@@ -70,7 +70,7 @@ domain/     plain Kotlin models and pure logic (no Android): unit-tested on the 
 
 ## Database
 
-Room database `lume.db` (`data/db/Database.kt`), version 9. Schemas are exported to `core/data/schemas/` and every upgrade is an additive migration in `LumeDatabase.MIGRATIONS`, tested by `MigrationTest`.
+Room database `lume.db` (`data/db/Database.kt`), version 19. Schemas are exported to `core/data/schemas/` and every upgrade is an additive migration in `LumeDatabase.MIGRATIONS`, tested by `MigrationTest`.
 
 Main tables:
 - `bookmarks`: library titles. `categories`, `title_prefs`, `title_meta`.
@@ -80,6 +80,9 @@ Main tables:
 - `offline_title_cache`: the last loaded copy of each title.
 - `tracker_links`, `source_packs`.
 - `title_sources`: linked, suggested and dismissed other sources of a title.
+- `glossary_terms`: the per-title glossary of chapter translation.
+- `chapter_text` (plain text of read and downloaded novel chapters, one row per block, original language) with its full-text index `chapter_text_fts` (FTS4 over that table, `unicode61` tokenizer, kept in sync by triggers). Written by `StoryIndex` (`feature/novel/data/story/`) when a chapter is loaded and by a backfill of downloaded chapters on a lookup; searched by `StoryLookup` for the reader's name lookup and read by the "Previously…" recap. Rebuildable, so it is not in backups.
+- `codex_entries` and `codex_aliases`: names a reader saved for a title (kind, note, other spellings). Unique per title and name; aliases go with their entry. `summary`, `summaryOrigin` and `summaryUpToChapterId` are reserved for generated summaries and unused so far. In backups (format 7), not yet in sync.
 
 ### Linked chapters
 
