@@ -95,6 +95,16 @@ class BackupFormatTest {
     }
 
     @Test
+    fun `version 7 adds the codex`() {
+        val p = load(7)
+        val c = p.codexEntries.single()
+        assertEquals("Kirito", c.name)
+        assertEquals("character", c.kind)
+        assertEquals(listOf("Kirigaya", "Кирито"), c.aliases)
+        assertTrue(load(6).codexEntries.isEmpty())
+    }
+
+    @Test
     fun `the newest saved file round-trips unchanged`() {
         val p = load(BackupPayload.CURRENT_VERSION)
         val again = BackupPayload.parse(BackupPayload.json.encodeToString(BackupPayload.serializer(), p))
@@ -125,6 +135,7 @@ class BackupFormatTest {
             TitleSourceDto.serializer().descriptor,
             ReadingSessionDto.serializer().descriptor,
             GlossaryTermDto.serializer().descriptor,
+            CodexEntryDto.serializer().descriptor,
         ).joinToString("\n") { describe(it) }
         assertEquals(FORMAT, actual)
     }
@@ -139,7 +150,7 @@ class BackupFormatTest {
 
     private companion object {
         val FORMAT = """
-            BackupPayload: version?, createdAt?, bookmarks?, progress?, categories?, sourcePacks?, titlePrefs?, trackerLinks?, chapterProgress?, pageBookmarks?, chapterRead?, settings?, titleSources?, readingSessions?, glossaryTerms?
+            BackupPayload: version?, createdAt?, bookmarks?, progress?, categories?, sourcePacks?, titlePrefs?, trackerLinks?, chapterProgress?, pageBookmarks?, chapterRead?, settings?, titleSources?, readingSessions?, glossaryTerms?, codexEntries?
             BookmarkEntityDto: sourceId, titleId, titleName, coverUrl?, typeLabel?, createdAt?, categoryIdsJson?, genresJson?, mediaKind?
             ProgressEntityDto: sourceId, titleId, titleName, coverUrl?, typeLabel?, chapterId, chapterName, chapterUrl, pageIndex?, pageCount?, updatedAt?, pageOffset?, mediaKind?
             CategoryEntityDto: id?, name, sortOrder?
@@ -153,6 +164,7 @@ class BackupFormatTest {
             TitleSourceDto: sourceId, titleId, linkSourceId, linkTitleId, linkTitleName, coverUrl?, state?, priority?, addedAt?
             ReadingSessionDto: sourceId, titleId, titleName?, chapterId, startedAt, durationMs?, pagesRead?
             GlossaryTermDto: sourceId, titleId, source, target, updatedAt?
+            CodexEntryDto: sourceId, titleId, name, kind?, note?, aliases?, createdAt?, updatedAt?
         """.trimIndent()
     }
 }

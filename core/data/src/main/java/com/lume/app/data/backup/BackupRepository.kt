@@ -9,6 +9,7 @@ import com.lume.app.data.db.ChapterProgressEntity
 import com.lume.app.data.db.ChapterReadEntity
 import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.db.PageBookmarkEntity
+import com.lume.app.data.db.CodexEntryEntity
 import com.lume.app.data.db.GlossaryTermEntity
 import com.lume.app.data.db.ReadingSessionEntity
 import com.lume.app.data.db.ProgressEntity
@@ -44,7 +45,7 @@ import java.util.Locale
  *
  * Version 2 adds per-chapter progress, page bookmarks and read marks; version 3 adds settings;
  * version 4 adds the other sources of each title; version 5 adds reading sessions;
- * version 6 adds the per-title translation language and glossary.
+ * version 6 adds the per-title translation language and glossary; version 7 adds the codex.
  * Older files still load: the new lists default to empty.
  */
 @OptIn(ExperimentalSerializationApi::class)
@@ -66,9 +67,10 @@ data class BackupPayload(
     val titleSources: List<TitleSourceDto> = emptyList(),
     val readingSessions: List<ReadingSessionDto> = emptyList(),
     val glossaryTerms: List<GlossaryTermDto> = emptyList(),
+    val codexEntries: List<CodexEntryDto> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 6
+        const val CURRENT_VERSION = 7
 
         val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
@@ -209,6 +211,19 @@ data class GlossaryTermDto(
     val titleId: String,
     val source: String,
     val target: String,
+    val updatedAt: Long = 0L,
+)
+
+/** A saved story name of a title with its spellings; the searchable chapter text is not backed up. */
+@Serializable
+data class CodexEntryDto(
+    val sourceId: String,
+    val titleId: String,
+    val name: String,
+    val kind: String = "other",
+    val note: String? = null,
+    val aliases: List<String> = emptyList(),
+    val createdAt: Long = 0L,
     val updatedAt: Long = 0L,
 )
 
@@ -429,6 +444,12 @@ class BackupRepository(
             },
             glossaryTerms = dao.allGlossaryTerms().map {
                 GlossaryTermDto(it.sourceId, it.titleId, it.source, it.target, it.updatedAt)
+            },
+            codexEntries = dao.allCodexEntries().let { entries ->
+                val aliases = dao.allCodexAliases().groupBy({ it.entryId }, { it.alias })
+                entries.map {
+                    CodexEntryDto(it.sourceId, it.titleId, it.name, it.kind, it.note, aliases[it.id].orEmpty().sorted(), it.createdAt, it.updatedAt)
+                }
             },
         )
         return json.encodeToString(payload)
@@ -811,6 +832,32 @@ class BackupRepository(
                     target = g.target,
                     updatedAt = g.updatedAt,
                 ),
+            )
+        }
+        // Codex: an entry of the same name is overwritten unless the phone's copy is newer.
+        val codexByTitle = HashMap<Pair<String, String>, Map<String, CodexEntryEntity>>()
+        for (c in payload.codexEntries) {
+            val name = c.name.trim()
+            if (name.isEmpty()) continue
+            val existing = codexByTitle.getOrPut(c.sourceId to c.titleId) {
+                dao.codexOnce(c.sourceId, c.titleId).associate { it.entry.name to it.entry }
+            }[name]
+            if (existing != null && existing.updatedAt > c.updatedAt) continue
+            dao.saveCodexEntry(
+                CodexEntryEntity(
+                    id = existing?.id ?: 0L,
+                    sourceId = c.sourceId,
+                    titleId = c.titleId,
+                    name = name,
+                    kind = c.kind,
+                    note = c.note,
+                    summary = existing?.summary,
+                    summaryOrigin = existing?.summaryOrigin,
+                    summaryUpToChapterId = existing?.summaryUpToChapterId,
+                    createdAt = existing?.createdAt ?: c.createdAt,
+                    updatedAt = c.updatedAt,
+                ),
+                c.aliases,
             )
         }
         for (l in payload.trackerLinks) {
