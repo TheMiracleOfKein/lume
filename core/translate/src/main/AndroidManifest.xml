@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Guards the add-on's translation service: only apps signed with the same key as the add-on
+         (Lume itself) may bind to it. Declared by both apps, so the order of installation doesn't
+         matter. -->
+    <permission
+        android:name="com.lume.permission.TRANSLATE"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="com.lume.permission.TRANSLATE" />
+
+    <!-- Lume looks for the add-on (Android 11+ package visibility). -->
+    <queries>
+        <package android:name="com.lume.translate" />
+    </queries>
+</manifest>

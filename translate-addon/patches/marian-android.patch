@@ -1,0 +1,54 @@
+diff --git a/src/3rd_party/faiss/VectorTransform.h b/src/3rd_party/faiss/VectorTransform.h
+index f0ed144..4637a14 100644
+--- a/src/3rd_party/faiss/VectorTransform.h
++++ b/src/3rd_party/faiss/VectorTransform.h
+@@ -18,7 +18,7 @@
+ #include <stdint.h>
+ 
+ #include <faiss/Index.h>
+-#if defined(__APPLE__) && !defined(__arm64__)
++#if (defined(__APPLE__) && !defined(__arm64__)) || (defined(__ANDROID__) && defined(__SSE__))
+ #include <x86intrin.h>
+ #endif
+ 
+diff --git a/src/3rd_party/pathie-cpp/src/path.cpp b/src/3rd_party/pathie-cpp/src/path.cpp
+index e13d5ce..8e4722f 100644
+--- a/src/3rd_party/pathie-cpp/src/path.cpp
++++ b/src/3rd_party/pathie-cpp/src/path.cpp
+@@ -3172,7 +3172,11 @@ Path Path::global_programs_dir()
+ ///
+ std::vector<Path> Path::glob(const std::string& pattern, int flags /* = 0 */)
+ {
+-#if defined(_PATHIE_UNIX)
++#if defined(__ANDROID__)
++  // glob() needs API 28; marian never globs on Android.
++  (void)pattern; (void)flags;
++  throw(GlobError(GLOB_NOMATCH));
++#elif defined(_PATHIE_UNIX)
+   std::string nstr = utf8_to_filename(pattern);
+   glob_t globinfo;
+   int result = ::glob(nstr.c_str(), flags, NULL, &globinfo);
+diff --git a/src/3rd_party/pathie-cpp/src/pathie.cpp b/src/3rd_party/pathie-cpp/src/pathie.cpp
+index d8e567e..3606c27 100644
+--- a/src/3rd_party/pathie-cpp/src/pathie.cpp
++++ b/src/3rd_party/pathie-cpp/src/pathie.cpp
+@@ -111,6 +111,11 @@ std::wstring Pathie::utf8_to_utf16(std::string str)
+  */
+ std::string Pathie::convert_encodings(const char* from_encoding, const char* to_encoding, const std::string& string)
+ {
++#if defined(__ANDROID__)
++  // Android paths and locales are always UTF-8, and iconv() needs API 28.
++  (void)from_encoding; (void)to_encoding;
++  return string;
++#else
+   size_t input_length = string.length();
+ 
+   // We need a C string working copy that isn’t const
+@@ -173,6 +178,7 @@ std::string Pathie::convert_encodings(const char* from_encoding, const char* to_
+   free(outbuf);
+ 
+   return result;
++#endif
+ }
+ 
+ /**

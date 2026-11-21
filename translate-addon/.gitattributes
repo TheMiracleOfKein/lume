@@ -1,0 +1,2 @@
+# The build applies these with git apply to LF sources: keep them byte for byte.
+*.patch -text
