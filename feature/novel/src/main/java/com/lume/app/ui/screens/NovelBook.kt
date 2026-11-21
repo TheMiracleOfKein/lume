@@ -8,6 +8,7 @@ import com.lume.app.data.db.ProgressEntity
 import com.lume.app.data.db.ReadingSessionEntity
 import com.lume.app.data.locale.appString
 import com.lume.app.data.novel.NovelBlocks
+import com.lume.app.data.story.StoryIndex
 import com.lume.app.data.title.TitleLoad
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ReadingSessionTracker
@@ -27,6 +28,9 @@ import kotlinx.coroutines.withContext
  */
 class NovelBook(private val app: AppContainer, val sourceId: String, val titleId: String) {
     private val dao = app.dao
+
+    /** The text index that name lookup searches; [loadChapter] feeds it. */
+    val storyIndex = StoryIndex(app)
 
     var titleName: String = ""
         private set
@@ -80,7 +84,10 @@ class NovelBook(private val app: AppContainer, val sourceId: String, val titleId
             source.requireNovel().getChapterText(ch)
         }
         val blocks = withContext(Dispatchers.Default) { NovelBlocks.parse(text.html, null) }
-        return LoadedNovelChapter(ch, blocks)
+        val lc = LoadedNovelChapter(ch, blocks)
+        // Off the reading path: a failed or slow write never holds the chapter back.
+        app.appScope.launch { runCatching { storyIndex.index(sourceId, titleId, lc) } }
+        return lc
     }
 
     /**
