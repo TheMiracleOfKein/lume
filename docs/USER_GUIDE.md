@@ -307,6 +307,14 @@ English titles (Royal Road, Scribble Hub, English books you imported) can be rea
 - Read aloud reads the translated text, with a Russian voice when the engine has one.
 - Machine translation makes mistakes, mostly with genders and slang. The original is a long press away.
 
+### "Previously…" and the AI recap
+
+After a break (Settings → Reader → **"Previously…" recap**: after 6 hours, 1 day or 3 days, or off), opening a title shows the last paragraphs before your spot.
+
+- **AI recap** (Settings → Reader, off by default) adds **The story so far**: a short summary written by the AI service you set up in the translation sheet ("AI (your key)"), in the title's translation language or else the app's language.
+- For it, each chapter you finish gets a brief summary from that service, stored on the phone. "Previously…" joins the summaries of the last four chapters with the text of the current chapter up to your spot, so it never tells what comes after. A chapter without a summary yet gets one when the recap is made.
+- Chapter text is sent to the AI service for this. Nothing is sent in incognito. **Clear story index** also removes the stored summaries.
+
 ### Progress and history
 
 Lume remembers the paragraph you stopped at, also after rotating the phone or when Android closes the app. **Continue reading** on the title and in History opens the book at that place. A book in History opens in the text reader straight after a start of the app.
