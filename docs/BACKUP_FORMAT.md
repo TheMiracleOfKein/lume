@@ -100,7 +100,12 @@ come and go between versions: a key Lume no longer knows is stored but has no ef
 `durationMs?` (0), `pagesRead?` (0).
 
 **`glossaryTerms`**: `sourceId`, `titleId`, `source` (the term as written in the original),
-`target` (how it must read in the translation), `updatedAt?` (0).
+`target` (how it must read in the translation), `updatedAt?` (0), `status?` (`confirmed`; or
+`suggested`, proposed by AI translation and already used, or `rejected`, not used and never
+proposed again), `kind?` (null; a codex kind when AI translation named one). Files before version
+8 have only confirmed terms.
+
+**`titlePrefs.translateStyle?`** (null, version 8): the title's style note for AI translation.
 
 **`codexEntries`**: `sourceId`, `titleId`, `name`, `kind?` (`other`; one of `character`, `place`,
 `group`, `item`, `term`, `other`), `note?` (null), `aliases?` (`[]`, other spellings of the name),
@@ -136,6 +141,7 @@ A small version 7 file:
 | 5 | v0.9.6 | `readingSessions` |
 | 6 | v1.7.0 | `glossaryTerms`, `titlePrefs.novelTranslateTo` |
 | 7 | v1.8.0 | `codexEntries` |
+| 8 | v1.9.0 | `glossaryTerms.status`, `glossaryTerms.kind`, `titlePrefs.translateStyle` |
 
 Some optional fields inside the lists (for example `titlePrefs.branch`, `showDuplicates` and
 `autoDownload`) came between version bumps. Following rule 1, older files without them load with
