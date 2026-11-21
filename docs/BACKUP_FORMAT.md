@@ -29,7 +29,7 @@ loads one saved sample file per version from `core/data/src/test/resources/backu
 
 | Field | Type | Since | Notes |
 | --- | --- | --- | --- |
-| `version` | int | 1 | Format version, currently **5**. Always written since v0.9.10; files from before that often leave it out, and a missing value reads as the current version. |
+| `version` | int | 1 | Format version, currently **6**. Always written since v0.9.10; files from before that often leave it out, and a missing value reads as the current version. |
 | `createdAt` | long | 1 | When the backup was made, in milliseconds since 1970 (UTC). Always written since v0.9.10. |
 | `bookmarks` | list | 1 | Titles in the library. |
 | `progress` | list | 1 | The "Continue" point of each title. |
@@ -43,6 +43,7 @@ loads one saved sample file per version from `core/data/src/test/resources/backu
 | `settings` | list | 3 | App settings. |
 | `titleSources` | list | 4 | Other sources of a title. |
 | `readingSessions` | list | 5 | Reading time for the statistics. |
+| `glossaryTerms` | list | 6 | Per-title glossary of the on-device translation. |
 
 Every list may be missing or empty. A title is always named by `sourceId` (Lume's source id, for
 example `mangadex`) and `titleId` (the source's own id for the title). A chapter adds `chapterId`.
@@ -70,6 +71,8 @@ matches a built-in source, or isn't a valid pack id, are skipped on restore.
 picked translation team), `showDuplicates?` (false), `autoDownload?` (false), `novelFontSize?` (null, text reader size for this title), `novelTheme?`
 (null, text reader colours as a theme index), `novelPaged?` (null, text reader paged or scroll).
 The three `novel*` fields were added without a version bump; older files leave them null.
+Version 6 adds `novelTranslateTo?` (null = off, the language this title's chapters are translated
+into on the phone, ISO 639-1 such as `ru`).
 
 **`trackerLinks`**: `sourceId`, `titleId`, `tracker` (e.g. `anilist`, `myanimelist`, `kitsu`),
 `remoteId`, `remoteUrl?`, `status?`, `score?`, `lastSync?` (0). Tokens are never included.
@@ -95,13 +98,16 @@ come and go between versions: a key Lume no longer knows is stored but has no ef
 **`readingSessions`**: `sourceId`, `titleId`, `titleName?` (""), `chapterId`, `startedAt`,
 `durationMs?` (0), `pagesRead?` (0).
 
+**`glossaryTerms`**: `sourceId`, `titleId`, `source` (the term as written in the original),
+`target` (how it must read in the translation), `updatedAt?` (0).
+
 ## Example
 
-A small version 5 file:
+A small version 6 file:
 
 ```json
 {
-  "version": 5,
+  "version": 6,
   "createdAt": 1762000000000,
   "bookmarks": [
     { "sourceId": "mangadex", "titleId": "t1", "titleName": "First Title", "categoryIdsJson": "[1]" }
@@ -121,6 +127,7 @@ A small version 5 file:
 | 3 | settings in backups | `settings` |
 | 4 | several sources per title | `titleSources` |
 | 5 | v0.9.6 | `readingSessions` |
+| 6 | on-device translation | `glossaryTerms`, `titlePrefs.novelTranslateTo` |
 
 Some optional fields inside the lists (for example `titlePrefs.branch`, `showDuplicates` and
 `autoDownload`) came between version bumps. Following rule 1, older files without them load with

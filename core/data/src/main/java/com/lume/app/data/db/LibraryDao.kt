@@ -204,6 +204,22 @@ interface LibraryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertTitlePrefs(item: TitlePrefsEntity)
 
+    // Translation glossary
+    @Query("SELECT * FROM glossary_terms WHERE sourceId = :sourceId AND titleId = :titleId ORDER BY source COLLATE NOCASE")
+    fun glossary(sourceId: String, titleId: String): Flow<List<GlossaryTermEntity>>
+
+    @Query("SELECT * FROM glossary_terms WHERE sourceId = :sourceId AND titleId = :titleId ORDER BY source COLLATE NOCASE")
+    suspend fun glossaryOnce(sourceId: String, titleId: String): List<GlossaryTermEntity>
+
+    @Query("SELECT * FROM glossary_terms")
+    suspend fun allGlossaryTerms(): List<GlossaryTermEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertGlossaryTerm(term: GlossaryTermEntity)
+
+    @Query("DELETE FROM glossary_terms WHERE sourceId = :sourceId AND titleId = :titleId AND source = :source")
+    suspend fun deleteGlossaryTerm(sourceId: String, titleId: String, source: String)
+
     // Tracker links
     @Query("SELECT * FROM tracker_links WHERE sourceId = :sourceId AND titleId = :titleId")
     fun observeTrackerLinks(sourceId: String, titleId: String): Flow<List<TrackerLinkEntity>>

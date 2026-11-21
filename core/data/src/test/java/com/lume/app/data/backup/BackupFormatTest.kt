@@ -85,6 +85,16 @@ class BackupFormatTest {
     }
 
     @Test
+    fun `version 6 adds the translation language and glossary`() {
+        val p = load(6)
+        assertEquals("ru", p.titlePrefs.single().novelTranslateTo)
+        val g = p.glossaryTerms.single()
+        assertEquals("Kirito", g.source)
+        assertEquals("Кирито", g.target)
+        assertTrue(load(5).glossaryTerms.isEmpty())
+    }
+
+    @Test
     fun `the newest saved file round-trips unchanged`() {
         val p = load(BackupPayload.CURRENT_VERSION)
         val again = BackupPayload.parse(BackupPayload.json.encodeToString(BackupPayload.serializer(), p))
@@ -114,6 +124,7 @@ class BackupFormatTest {
             SettingDto.serializer().descriptor,
             TitleSourceDto.serializer().descriptor,
             ReadingSessionDto.serializer().descriptor,
+            GlossaryTermDto.serializer().descriptor,
         ).joinToString("\n") { describe(it) }
         assertEquals(FORMAT, actual)
     }
@@ -128,12 +139,12 @@ class BackupFormatTest {
 
     private companion object {
         val FORMAT = """
-            BackupPayload: version?, createdAt?, bookmarks?, progress?, categories?, sourcePacks?, titlePrefs?, trackerLinks?, chapterProgress?, pageBookmarks?, chapterRead?, settings?, titleSources?, readingSessions?
+            BackupPayload: version?, createdAt?, bookmarks?, progress?, categories?, sourcePacks?, titlePrefs?, trackerLinks?, chapterProgress?, pageBookmarks?, chapterRead?, settings?, titleSources?, readingSessions?, glossaryTerms?
             BookmarkEntityDto: sourceId, titleId, titleName, coverUrl?, typeLabel?, createdAt?, categoryIdsJson?, genresJson?, mediaKind?
             ProgressEntityDto: sourceId, titleId, titleName, coverUrl?, typeLabel?, chapterId, chapterName, chapterUrl, pageIndex?, pageCount?, updatedAt?, pageOffset?, mediaKind?
             CategoryEntityDto: id?, name, sortOrder?
             SourcePackDto: id, json, installedAt?
-            TitlePrefsDto: sourceId, titleId, readerMode?, readerTheme?, gap?, chapterFilter?, chapterSortAsc?, branch?, showDuplicates?, autoDownload?, novelFontSize?, novelTheme?, novelPaged?
+            TitlePrefsDto: sourceId, titleId, readerMode?, readerTheme?, gap?, chapterFilter?, chapterSortAsc?, branch?, showDuplicates?, autoDownload?, novelFontSize?, novelTheme?, novelPaged?, novelTranslateTo?
             TrackerLinkDto: sourceId, titleId, tracker, remoteId, remoteUrl?, status?, score?, lastSync?
             ChapterProgressDto: sourceId, titleId, chapterId, pageIndex?, pageOffset?, pageCount?, completed?, pageAspectsJson?, updatedAt?
             PageBookmarkDto: sourceId, titleId, chapterId, chapterName, pageIndex, pageOffset?, pageImageUrl?, note?, createdAt?
@@ -141,6 +152,7 @@ class BackupFormatTest {
             SettingDto: key, type, value
             TitleSourceDto: sourceId, titleId, linkSourceId, linkTitleId, linkTitleName, coverUrl?, state?, priority?, addedAt?
             ReadingSessionDto: sourceId, titleId, titleName?, chapterId, startedAt, durationMs?, pagesRead?
+            GlossaryTermDto: sourceId, titleId, source, target, updatedAt?
         """.trimIndent()
     }
 }

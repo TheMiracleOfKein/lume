@@ -7,6 +7,7 @@ import androidx.room.withTransaction
 import com.lume.app.R
 import com.lume.app.data.backup.ChapterProgressDto
 import com.lume.app.data.backup.ChapterReadDto
+import com.lume.app.data.backup.GlossaryTermDto
 import com.lume.app.data.backup.PageBookmarkDto
 import com.lume.app.data.backup.ProgressEntityDto
 import com.lume.app.data.backup.SourcePackDto
@@ -17,6 +18,7 @@ import com.lume.app.data.db.BookmarkEntity
 import com.lume.app.data.db.CategoryEntity
 import com.lume.app.data.db.ChapterProgressEntity
 import com.lume.app.data.db.ChapterReadEntity
+import com.lume.app.data.db.GlossaryTermEntity
 import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.db.LumeDatabase
 import com.lume.app.data.db.PageBookmarkEntity
@@ -284,8 +286,14 @@ class SyncRepository(
                     TitlePrefsDto(
                         it.sourceId, it.titleId, it.readerMode, it.readerTheme, it.gap, it.chapterFilter,
                         it.chapterSortAsc, it.branch, it.showDuplicates, it.autoDownload,
-                        it.novelFontSize, it.novelTheme, it.novelPaged,
+                        it.novelFontSize, it.novelTheme, it.novelPaged, it.novelTranslateTo,
                     ),
+                )
+            },
+            GLOSSARY to dao.allGlossaryTerms().associate {
+                key(it.sourceId, it.titleId, it.source) to encode(
+                    GlossaryTermDto.serializer(),
+                    GlossaryTermDto(it.sourceId, it.titleId, it.source, it.target, it.updatedAt),
                 )
             },
             SOURCE_PACKS to dao.allSourcePacks().associate {
@@ -430,10 +438,17 @@ class SyncRepository(
                             novelFontSize = it.novelFontSize,
                             novelTheme = it.novelTheme,
                             novelPaged = it.novelPaged,
+                            novelTranslateTo = it.novelTranslateTo,
                         ),
                     )
                 }
                 is SyncChange.Remove -> parts(change.key).let { (s, t) -> dao.deleteTitlePrefs(s, t) }
+            } }
+            for (change in byCollection[GLOSSARY].orEmpty()) guarded(change) { when (change) {
+                is SyncChange.Put -> decode(GlossaryTermDto.serializer(), change.data).let {
+                    dao.upsertGlossaryTerm(GlossaryTermEntity(it.sourceId, it.titleId, it.source, it.target, it.updatedAt))
+                }
+                is SyncChange.Remove -> parts(change.key).let { (s, t, term) -> dao.deleteGlossaryTerm(s, t, term) }
             } }
         }
         return failed.toList()
@@ -466,6 +481,7 @@ class SyncRepository(
         const val TRACKER_LINKS = "tracker_links"
         const val TITLE_PREFS = "title_prefs"
         const val SOURCE_PACKS = "source_packs"
+        const val GLOSSARY = "glossary_terms"
 
         private const val SEP = '\u001f'
 

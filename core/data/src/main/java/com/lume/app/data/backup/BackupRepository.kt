@@ -9,6 +9,7 @@ import com.lume.app.data.db.ChapterProgressEntity
 import com.lume.app.data.db.ChapterReadEntity
 import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.db.PageBookmarkEntity
+import com.lume.app.data.db.GlossaryTermEntity
 import com.lume.app.data.db.ReadingSessionEntity
 import com.lume.app.data.db.ProgressEntity
 import com.lume.app.data.db.SourcePackEntity
@@ -42,7 +43,8 @@ import java.util.Locale
  * saved sample file.
  *
  * Version 2 adds per-chapter progress, page bookmarks and read marks; version 3 adds settings;
- * version 4 adds the other sources of each title; version 5 adds reading sessions.
+ * version 4 adds the other sources of each title; version 5 adds reading sessions;
+ * version 6 adds the per-title translation language and glossary.
  * Older files still load: the new lists default to empty.
  */
 @OptIn(ExperimentalSerializationApi::class)
@@ -63,9 +65,10 @@ data class BackupPayload(
     val settings: List<SettingDto> = emptyList(),
     val titleSources: List<TitleSourceDto> = emptyList(),
     val readingSessions: List<ReadingSessionDto> = emptyList(),
+    val glossaryTerms: List<GlossaryTermDto> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 5
+        const val CURRENT_VERSION = 6
 
         val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
@@ -197,6 +200,16 @@ data class TitlePrefsDto(
     val novelFontSize: Int? = null,
     val novelTheme: Int? = null,
     val novelPaged: Boolean? = null,
+    val novelTranslateTo: String? = null,
+)
+
+@Serializable
+data class GlossaryTermDto(
+    val sourceId: String,
+    val titleId: String,
+    val source: String,
+    val target: String,
+    val updatedAt: Long = 0L,
 )
 
 @Serializable
@@ -353,6 +366,7 @@ class BackupRepository(
                     novelFontSize = it.novelFontSize,
                     novelTheme = it.novelTheme,
                     novelPaged = it.novelPaged,
+                    novelTranslateTo = it.novelTranslateTo,
                 )
             },
             trackerLinks = dao.allTrackerLinks().map {
@@ -412,6 +426,9 @@ class BackupRepository(
             },
             readingSessions = dao.allSessions().map {
                 ReadingSessionDto(it.sourceId, it.titleId, it.titleName, it.chapterId, it.startedAt, it.durationMs, it.pagesRead)
+            },
+            glossaryTerms = dao.allGlossaryTerms().map {
+                GlossaryTermDto(it.sourceId, it.titleId, it.source, it.target, it.updatedAt)
             },
         )
         return json.encodeToString(payload)
@@ -781,6 +798,18 @@ class BackupRepository(
                     novelFontSize = t.novelFontSize,
                     novelTheme = t.novelTheme,
                     novelPaged = t.novelPaged,
+                    novelTranslateTo = t.novelTranslateTo,
+                ),
+            )
+        }
+        for (g in payload.glossaryTerms) {
+            dao.upsertGlossaryTerm(
+                GlossaryTermEntity(
+                    sourceId = g.sourceId,
+                    titleId = g.titleId,
+                    source = g.source,
+                    target = g.target,
+                    updatedAt = g.updatedAt,
                 ),
             )
         }

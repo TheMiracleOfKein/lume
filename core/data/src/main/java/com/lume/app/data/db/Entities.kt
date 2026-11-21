@@ -162,6 +162,24 @@ data class TitlePrefsEntity(
     /** A [com.lume.app.data.prefs.NovelTheme] ordinal. */
     val novelTheme: Int? = null,
     val novelPaged: Boolean? = null,
+    /**
+     * Text reader: translate this title's chapters on the phone into this language (ISO 639-1,
+     * e.g. "ru") with the Lume Translate add-on; null = off.
+     */
+    val novelTranslateTo: String? = null,
+)
+
+/**
+ * A name or term that a title's machine translation must always render the same way:
+ * [source] as written in the original, [target] as it must read in the translation.
+ */
+@Entity(tableName = "glossary_terms", primaryKeys = ["sourceId", "titleId", "source"])
+data class GlossaryTermEntity(
+    val sourceId: String,
+    val titleId: String,
+    val source: String,
+    val target: String,
+    val updatedAt: Long = 0L,
 )
 
 /**
