@@ -105,6 +105,20 @@ class BackupFormatTest {
     }
 
     @Test
+    fun `version 8 adds glossary status, kind and the style note`() {
+        val p = load(8)
+        assertEquals("Keep -san and -sama", p.titlePrefs.single().translateStyle)
+        val suggested = p.glossaryTerms.single { it.source == "Aincrad" }
+        assertEquals("suggested", suggested.status)
+        assertEquals("place", suggested.kind)
+        // Older files: every term is the user's own.
+        val old = load(7).glossaryTerms.single()
+        assertEquals("confirmed", old.status)
+        assertNull(old.kind)
+        assertNull(load(7).titlePrefs.single().translateStyle)
+    }
+
+    @Test
     fun `the newest saved file round-trips unchanged`() {
         val p = load(BackupPayload.CURRENT_VERSION)
         val again = BackupPayload.parse(BackupPayload.json.encodeToString(BackupPayload.serializer(), p))
@@ -155,7 +169,7 @@ class BackupFormatTest {
             ProgressEntityDto: sourceId, titleId, titleName, coverUrl?, typeLabel?, chapterId, chapterName, chapterUrl, pageIndex?, pageCount?, updatedAt?, pageOffset?, mediaKind?
             CategoryEntityDto: id?, name, sortOrder?
             SourcePackDto: id, json, installedAt?
-            TitlePrefsDto: sourceId, titleId, readerMode?, readerTheme?, gap?, chapterFilter?, chapterSortAsc?, branch?, showDuplicates?, autoDownload?, novelFontSize?, novelTheme?, novelPaged?, novelTranslateTo?
+            TitlePrefsDto: sourceId, titleId, readerMode?, readerTheme?, gap?, chapterFilter?, chapterSortAsc?, branch?, showDuplicates?, autoDownload?, novelFontSize?, novelTheme?, novelPaged?, novelTranslateTo?, translateStyle?
             TrackerLinkDto: sourceId, titleId, tracker, remoteId, remoteUrl?, status?, score?, lastSync?
             ChapterProgressDto: sourceId, titleId, chapterId, pageIndex?, pageOffset?, pageCount?, completed?, pageAspectsJson?, updatedAt?
             PageBookmarkDto: sourceId, titleId, chapterId, chapterName, pageIndex, pageOffset?, pageImageUrl?, note?, createdAt?
@@ -163,7 +177,7 @@ class BackupFormatTest {
             SettingDto: key, type, value
             TitleSourceDto: sourceId, titleId, linkSourceId, linkTitleId, linkTitleName, coverUrl?, state?, priority?, addedAt?
             ReadingSessionDto: sourceId, titleId, titleName?, chapterId, startedAt, durationMs?, pagesRead?
-            GlossaryTermDto: sourceId, titleId, source, target, updatedAt?
+            GlossaryTermDto: sourceId, titleId, source, target, updatedAt?, status?, kind?
             CodexEntryDto: sourceId, titleId, name, kind?, note?, aliases?, createdAt?, updatedAt?
         """.trimIndent()
     }

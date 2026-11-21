@@ -33,6 +33,9 @@ enum class TranslationEngine(val id: String, val online: Boolean) {
 
     /** DeepL's API with the user's own key: chapter text goes to DeepL. */
     DeepL("deepl", online = true),
+
+    /** A chat model through an OpenAI-compatible API with the user's own key (OpenRouter and others). */
+    Llm("llm", online = true),
     ;
 
     companion object {
@@ -42,11 +45,21 @@ enum class TranslationEngine(val id: String, val online: Boolean) {
 
 /**
  * Translates HTML paragraphs (bold, italic and glossary `<span data-g>` marks kept) from one
- * language to another, in order, one result per input. An LLM API can be added as another one.
+ * language to another, in order, one result per input.
  */
 interface TranslationProvider {
     /** Part of the cache key: output of different providers isn't mixed. */
     val cacheId: String
+
+    /**
+     * Whether a new glossary term means translating cached chapters again. True for engines that
+     * only see the marks; false for [LlmProvider], which adds terms itself while translating.
+     */
+    val glossaryInCacheKey: Boolean get() = true
+
+    /** Characters in the first request (about a screen, so reading starts soon) and in later ones. */
+    val firstRunChars: Int get() = 1_000
+    val runChars: Int get() = 3_000
 
     suspend fun translate(from: String, to: String, html: List<String>): List<String>
 }

@@ -204,6 +204,9 @@ class AppPreferences(
     private val readAloudVoiceKey = stringPreferencesKey("read_aloud_voice")
     private val readAloudEngineKey = stringPreferencesKey("read_aloud_engine")
     private val translationEngineKey = stringPreferencesKey("translation_engine")
+    private val llmPresetKey = stringPreferencesKey("translate_llm_preset")
+    private val llmBaseUrlKey = stringPreferencesKey("translate_llm_base_url")
+    private val llmModelKey = stringPreferencesKey("translate_llm_model")
 
     // "secret" in the name: private store, encrypted, never in backups or sync.
     private val deeplKeySecret = stringPreferencesKey("translate_deepl_secret")
@@ -911,6 +914,35 @@ class AppPreferences(
 
     suspend fun setDeeplKey(key: String?) = putSecret(deeplKeySecret, key?.trim())
 
+    /** AI translation: which OpenAI-compatible service (`openrouter`, `openai`, ...); null = the default. */
+    val llmPreset: StateFlow<String?> = state { it[llmPresetKey] }
+
+    /** AI translation: the base URL for the `custom` service (for example a local Ollama). */
+    val llmBaseUrl: StateFlow<String?> = state { it[llmBaseUrlKey]?.takeIf(String::isNotBlank) }
+
+    /** AI translation: the model id; null = the service's default. */
+    val llmModel: StateFlow<String?> = state { it[llmModelKey]?.takeIf(String::isNotBlank) }
+
+    suspend fun setLlmService(preset: String, baseUrl: String?, model: String?) {
+        context.appDataStore.edit {
+            it[llmPresetKey] = preset
+            if (baseUrl.isNullOrBlank()) it.remove(llmBaseUrlKey) else it[llmBaseUrlKey] = baseUrl.trim()
+            if (model.isNullOrBlank()) it.remove(llmModelKey) else it[llmModelKey] = model.trim()
+        }
+    }
+
+    /** The user's API keys for AI translation, one per service id, decrypted. */
+    val llmKeys: StateFlow<Map<String, String>> = privateState { prefs ->
+        prefs.asMap().keys.mapNotNull { key ->
+            val preset = key.name.removePrefix(LLM_KEY_PREFIX).removeSuffix(LLM_KEY_SUFFIX)
+            if (!key.name.startsWith(LLM_KEY_PREFIX) || !key.name.endsWith(LLM_KEY_SUFFIX)) return@mapNotNull null
+            prefs.secret(stringPreferencesKey(key.name))?.takeIf(String::isNotBlank)?.let { preset to it }
+        }.toMap()
+    }
+
+    suspend fun setLlmKey(preset: String, key: String?) =
+        putSecret(stringPreferencesKey(LLM_KEY_PREFIX + preset + LLM_KEY_SUFFIX), key?.trim())
+
     suspend fun setReadAloudSettings(settings: ReadAloudSettings) {
         val s = settings.clamped()
         context.appDataStore.edit {
@@ -1004,6 +1036,10 @@ class AppPreferences(
         private val PRIVATE_KEY_PARTS = listOf("token", "secret", "client_id", "user_id", "password", "verifier")
         private val SECRET_KEY_PARTS = listOf("token", "secret", "password", "verifier", "passphrase")
         private const val TRACKER_PREFIX = "tracker_"
+
+        // "secret" in the name keeps these keys private and encrypted.
+        private const val LLM_KEY_PREFIX = "translate_llm_"
+        private const val LLM_KEY_SUFFIX = "_secret"
         const val DEFAULT_PACK_INDEX = "https://raw.githubusercontent.com/TheMiracleOfKein/lume/main/docs/packs/index.json"
         private val prefsJson = Json { ignoreUnknownKeys = true }
     }

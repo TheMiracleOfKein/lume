@@ -45,7 +45,8 @@ import java.util.Locale
  *
  * Version 2 adds per-chapter progress, page bookmarks and read marks; version 3 adds settings;
  * version 4 adds the other sources of each title; version 5 adds reading sessions;
- * version 6 adds the per-title translation language and glossary; version 7 adds the codex.
+ * version 6 adds the per-title translation language and glossary; version 7 adds the codex;
+ * version 8 adds glossary term status and kind (AI suggestions) and the per-title style note.
  * Older files still load: the new lists default to empty.
  */
 @OptIn(ExperimentalSerializationApi::class)
@@ -70,7 +71,7 @@ data class BackupPayload(
     val codexEntries: List<CodexEntryDto> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 7
+        const val CURRENT_VERSION = 8
 
         val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
@@ -203,6 +204,7 @@ data class TitlePrefsDto(
     val novelTheme: Int? = null,
     val novelPaged: Boolean? = null,
     val novelTranslateTo: String? = null,
+    val translateStyle: String? = null,
 )
 
 @Serializable
@@ -212,6 +214,9 @@ data class GlossaryTermDto(
     val source: String,
     val target: String,
     val updatedAt: Long = 0L,
+    /** `confirmed`, `suggested` or `rejected`; files before version 8 have only confirmed terms. */
+    val status: String = "confirmed",
+    val kind: String? = null,
 )
 
 /** A saved story name of a title with its spellings; the searchable chapter text is not backed up. */
@@ -382,6 +387,7 @@ class BackupRepository(
                     novelTheme = it.novelTheme,
                     novelPaged = it.novelPaged,
                     novelTranslateTo = it.novelTranslateTo,
+                    translateStyle = it.translateStyle,
                 )
             },
             trackerLinks = dao.allTrackerLinks().map {
@@ -443,7 +449,7 @@ class BackupRepository(
                 ReadingSessionDto(it.sourceId, it.titleId, it.titleName, it.chapterId, it.startedAt, it.durationMs, it.pagesRead)
             },
             glossaryTerms = dao.allGlossaryTerms().map {
-                GlossaryTermDto(it.sourceId, it.titleId, it.source, it.target, it.updatedAt)
+                GlossaryTermDto(it.sourceId, it.titleId, it.source, it.target, it.updatedAt, it.status, it.kind)
             },
             codexEntries = dao.allCodexEntries().let { entries ->
                 val aliases = dao.allCodexAliases().groupBy({ it.entryId }, { it.alias })
@@ -820,6 +826,7 @@ class BackupRepository(
                     novelTheme = t.novelTheme,
                     novelPaged = t.novelPaged,
                     novelTranslateTo = t.novelTranslateTo,
+                    translateStyle = t.translateStyle,
                 ),
             )
         }
@@ -831,6 +838,8 @@ class BackupRepository(
                     source = g.source,
                     target = g.target,
                     updatedAt = g.updatedAt,
+                    status = g.status,
+                    kind = g.kind,
                 ),
             )
         }

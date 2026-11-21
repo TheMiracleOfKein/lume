@@ -286,14 +286,14 @@ class SyncRepository(
                     TitlePrefsDto(
                         it.sourceId, it.titleId, it.readerMode, it.readerTheme, it.gap, it.chapterFilter,
                         it.chapterSortAsc, it.branch, it.showDuplicates, it.autoDownload,
-                        it.novelFontSize, it.novelTheme, it.novelPaged, it.novelTranslateTo,
+                        it.novelFontSize, it.novelTheme, it.novelPaged, it.novelTranslateTo, it.translateStyle,
                     ),
                 )
             },
             GLOSSARY to dao.allGlossaryTerms().associate {
                 key(it.sourceId, it.titleId, it.source) to encode(
                     GlossaryTermDto.serializer(),
-                    GlossaryTermDto(it.sourceId, it.titleId, it.source, it.target, it.updatedAt),
+                    GlossaryTermDto(it.sourceId, it.titleId, it.source, it.target, it.updatedAt, it.status, it.kind),
                 )
             },
             SOURCE_PACKS to dao.allSourcePacks().associate {
@@ -439,6 +439,7 @@ class SyncRepository(
                             novelTheme = it.novelTheme,
                             novelPaged = it.novelPaged,
                             novelTranslateTo = it.novelTranslateTo,
+                            translateStyle = it.translateStyle,
                         ),
                     )
                 }
@@ -446,7 +447,7 @@ class SyncRepository(
             } }
             for (change in byCollection[GLOSSARY].orEmpty()) guarded(change) { when (change) {
                 is SyncChange.Put -> decode(GlossaryTermDto.serializer(), change.data).let {
-                    dao.upsertGlossaryTerm(GlossaryTermEntity(it.sourceId, it.titleId, it.source, it.target, it.updatedAt))
+                    dao.upsertGlossaryTerm(GlossaryTermEntity(it.sourceId, it.titleId, it.source, it.target, it.updatedAt, it.status, it.kind))
                 }
                 is SyncChange.Remove -> parts(change.key).let { (s, t, term) -> dao.deleteGlossaryTerm(s, t, term) }
             } }

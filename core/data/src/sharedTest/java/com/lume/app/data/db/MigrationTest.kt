@@ -360,6 +360,29 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate19To20AddsGlossaryStatusAndStyleNote() {
+        helper.createDatabase(dbName, 19).apply {
+            execSQL("INSERT INTO glossary_terms (sourceId, titleId, source, target, updatedAt) VALUES ('s', 't', 'Kirito', 'Кирито', 5)")
+            execSQL("INSERT INTO title_prefs (sourceId, titleId, chapterFilter, chapterSortAsc, showDuplicates, autoDownload, novelTranslateTo) VALUES ('s', 't', 0, 0, 0, 0, 'ru')")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(dbName, 20, true, LumeDatabase.MIGRATION_19_20)
+
+        db.query("SELECT target, status, kind FROM glossary_terms").use {
+            it.moveToFirst()
+            assertEquals("Кирито", it.getString(0))
+            assertEquals("confirmed", it.getString(1))
+            assertTrue(it.isNull(2))
+        }
+        db.query("SELECT novelTranslateTo, translateStyle FROM title_prefs").use {
+            it.moveToFirst()
+            assertEquals("ru", it.getString(0))
+            assertTrue(it.isNull(1))
+        }
+    }
+
+    @Test
     fun freshDatabaseOpensWithAllMigrations() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         helper.createDatabase(dbName, 7).close()

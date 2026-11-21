@@ -4,8 +4,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.lume.app.AppContainer
+import com.lume.app.data.db.GLOSSARY_SUGGESTED
 import com.lume.app.data.db.GlossaryTermEntity
 import com.lume.app.data.db.TitlePrefsEntity
+import com.lume.app.llm.LlmClient
+import com.lume.app.llm.LlmConfig
 import com.lume.app.data.novel.NovelBlock
 import com.lume.app.ui.screens.LoadedNovelChapter
 import com.lume.translate.ModelPair
@@ -13,7 +16,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -27,7 +32,7 @@ sealed interface TranslationProgress {
 }
 
 /** Why translation can't run right now with the chosen engine. */
-enum class TranslationBlocker { NoEngine, AddonMissing, PackMissing, NoDeepLKey }
+enum class TranslationBlocker { NoEngine, AddonMissing, PackMissing, NoDeepLKey, NoLlmSetup }
 
 /**
  * Translation for one open title in the text reader. The title's language comes from its source;
@@ -76,6 +81,16 @@ class ReaderTranslation(
 
     private val entries: List<GlossaryEntry> get() = glossary.map { GlossaryEntry(it.source, it.target) }
 
+    /** Terms AI translation proposed that the user hasn't accepted or rejected yet. */
+    val suggestedCount: Int get() = glossary.count { it.status == GLOSSARY_SUGGESTED }
+
+    /** Every glossary source of the title, rejected ones included: AI translation doesn't propose these again. */
+    private var knownSources: List<String> = emptyList()
+
+    /** The title's style note for AI translation. */
+    var style by mutableStateOf<String?>(null)
+        private set
+
     /** The chapter the reader is in, translated first; its progress is the one shown. */
     var currentChapterId: String? = null
 
@@ -99,18 +114,30 @@ class ReaderTranslation(
         }
         TranslationEngine.Google -> null
         TranslationEngine.DeepL -> if (app.prefs.deeplKey.value.isNullOrBlank()) TranslationBlocker.NoDeepLKey else null
+        TranslationEngine.Llm -> if (llmConfig(app) == null) TranslationBlocker.NoLlmSetup else null
     }
 
     private fun route(): TranslationRoute? {
         val from = sourceLanguage ?: return null
         val to = target ?: return null
-        val provider = when (val e = engine) {
+        val provider = when (engine) {
             TranslationEngine.Offline -> offlinePair(to)?.takeIf { TranslateAddon.isReady(it) }?.let { AddonProvider(app.app, it) }
             TranslationEngine.Google -> GoogleProvider(app.http.okHttp)
             TranslationEngine.DeepL -> app.prefs.deeplKey.value?.takeIf { it.isNotBlank() }?.let { DeepLProvider(app.http.okHttp, it) }
+            TranslationEngine.Llm -> llmConfig(app)?.let { config ->
+                LlmProvider(LlmClient(app.http.okHttp, config), glossary, knownSources, style, ::saveSuggestions)
+            }
             null -> null
         } ?: return null
         return TranslationRoute(provider, from, to)
+    }
+
+    /** New terms from AI translation go to the glossary as suggestions, used from the next chapter part on. */
+    private suspend fun saveSuggestions(terms: List<SuggestedTerm>) {
+        val now = System.currentTimeMillis()
+        dao.insertGlossaryTermsIfNew(
+            terms.map { GlossaryTermEntity(sourceId, titleId, it.source, it.target, now, GLOSSARY_SUGGESTED, it.kind) },
+        )
     }
 
     /** Reads the saved language, follows the glossary and the engine setting. Call once. */
@@ -118,7 +145,10 @@ class ReaderTranslation(
         this.loaded = loaded
         this.anchorBlock = anchorBlock
         scope.launch {
-            val saved = dao.getTitlePrefs(sourceId, titleId)?.novelTranslateTo
+            val prefs = dao.getTitlePrefs(sourceId, titleId)
+            style = prefs?.translateStyle
+            knownSources = dao.glossarySources(sourceId, titleId)
+            val saved = prefs?.novelTranslateTo
             if (saved != null && saved in targets) {
                 if (engine == TranslationEngine.Offline) TranslateAddon.refresh(app.app)
                 target = saved
@@ -128,13 +158,33 @@ class ReaderTranslation(
         scope.launch {
             // Several quick edits (a pasted list, a few adds) translate again once.
             dao.glossary(sourceId, titleId).debounce(GLOSSARY_SETTLE_MS).collect { list ->
-                val changed = list.map { it.source to it.target } != glossary.map { it.source to it.target }
+                val old = glossary
                 glossary = list
-                if (changed && target != null) retranslate()
+                knownSources = dao.glossarySources(sourceId, titleId)
+                if (target != null && needsRetranslate(old, list)) retranslate()
             }
         }
-        // Another engine (or DeepL key) picked while reading: translate again with it.
+        // Another engine (or DeepL key, AI service or model) picked while reading: translate again with it.
         scope.launch { app.prefs.translationEngine.drop(1).collect { if (target != null) retranslate() } }
+        scope.launch {
+            combine(app.prefs.llmPreset, app.prefs.llmBaseUrl, app.prefs.llmModel, app.prefs.llmKeys) { _, _, _, _ -> llmConfig(app) }
+                .distinctUntilChanged().drop(1)
+                .collect { if (target != null && engine == TranslationEngine.Llm) retranslate() }
+        }
+    }
+
+    /**
+     * Whether a glossary change means translating again. Suggestions that AI translation itself
+     * just added don't: the running translation already uses them, and restarting would throw its
+     * work away. Any other change (an edit, a removal, a term of the user's) does.
+     */
+    private fun needsRetranslate(old: List<GlossaryTermEntity>, new: List<GlossaryTermEntity>): Boolean {
+        val before = old.associate { it.source to it.target }
+        val after = new.associate { it.source to it.target }
+        if (before == after) return false
+        val removedOrChanged = before.any { (s, t) -> after[s] != t }
+        val addedByUser = new.any { it.source !in before && it.status != GLOSSARY_SUGGESTED }
+        return removedOrChanged || addedByUser
     }
 
     /** Turns translation on into [to] with the current engine (which must be ready). */
@@ -161,6 +211,38 @@ class ReaderTranslation(
         scope.launch {
             app.prefs.setDeeplKey(key)
             if (target != null && engine == TranslationEngine.DeepL) retranslate()
+        }
+    }
+
+    fun setLlmService(preset: String, baseUrl: String?, model: String?, key: String?) {
+        scope.launch {
+            app.prefs.setLlmService(preset, baseUrl, model)
+            if (key != null) app.prefs.setLlmKey(preset, key)
+        }
+    }
+
+    /** Saves the title's style note for AI translation; chapters are translated again with it. */
+    fun setStyleNote(text: String) {
+        val clean = text.trim().ifEmpty { null }
+        if (clean == style) return
+        style = clean
+        scope.launch {
+            val row = dao.getTitlePrefs(sourceId, titleId) ?: TitlePrefsEntity(sourceId = sourceId, titleId = titleId)
+            dao.upsertTitlePrefs(row.copy(translateStyle = clean))
+            if (target != null && engine == TranslationEngine.Llm) retranslate()
+        }
+    }
+
+    /** Asks the engine again for the chapter being read, skipping its cached translation. */
+    fun translateCurrentAgain() {
+        val lc = loaded().firstOrNull { it.chapter.id == currentChapterId } ?: return
+        val route = route() ?: return
+        val original = lc.original ?: lc.blocks
+        val glossaryNow = entries
+        jobs.remove(lc.chapter.id)?.cancel()
+        scope.launch {
+            translator.forget(original, route, glossaryNow)
+            translate(lc)
         }
     }
 
@@ -256,6 +338,10 @@ class ReaderTranslation(
         const val GLOSSARY_SETTLE_MS = 800L
     }
 }
+
+/** The AI translation service from the settings, or null when its key, URL or model is missing. */
+fun llmConfig(app: AppContainer): LlmConfig? =
+    LlmConfig.from(app.prefs.llmPreset.value, app.prefs.llmBaseUrl.value, app.prefs.llmModel.value, app.prefs.llmKeys.value)
 
 /** Adds or replaces a glossary term of a title (blank parts are ignored). */
 fun saveTerm(app: AppContainer, sourceId: String, titleId: String, source: String, target: String) {

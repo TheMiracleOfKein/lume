@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Search
@@ -48,9 +50,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import com.lume.app.AppContainer
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
+import com.lume.app.data.db.GLOSSARY_CONFIRMED
+import com.lume.app.data.db.GLOSSARY_REJECTED
+import com.lume.app.data.db.GLOSSARY_SUGGESTED
 import com.lume.app.data.db.GlossaryTermEntity
+import com.lume.app.data.story.saveCodexEntry
+import com.lume.app.ui.screens.codexKindLabel
 import com.lume.app.ui.components.BackButton
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.theme.AppColors
@@ -79,7 +87,8 @@ fun GlossaryScreen(nav: NavHostController, sourceId: String, titleId: String, ti
     val clipboard = LocalClipboardManager.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
-    val shown = filterGlossary(terms, query).let { list ->
+    val suggested = terms.filter { it.status == GLOSSARY_SUGGESTED }.sortedBy { it.source.lowercase() }
+    val shown = filterGlossary(terms.filter { it.status != GLOSSARY_SUGGESTED }, query).let { list ->
         if (byName) list.sortedBy { it.source.lowercase() } else list.sortedByDescending { it.updatedAt }
     }
 
@@ -142,6 +151,52 @@ fun GlossaryScreen(nav: NavHostController, sourceId: String, titleId: String, ti
                     )
                     Text(stringResource(R.string.translate_glossary_hint), color = AppColors.textSecondary, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
                 }
+            }
+            if (suggested.isNotEmpty()) {
+                item(key = "suggested-head") {
+                    Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                pluralStringResource(R.plurals.glossary_suggested_title, suggested.size, suggested.size),
+                                color = AppColors.textPrimary,
+                                fontSize = 15.sp,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = { scope.launch { suggested.forEach { acceptSuggestion(app, it) } } }) {
+                                Text(stringResource(R.string.glossary_accept_all))
+                            }
+                        }
+                        Text(stringResource(R.string.glossary_suggested_hint), color = AppColors.textSecondary, fontSize = 12.sp)
+                    }
+                }
+                items(suggested, key = { "s:" + it.source }) { term ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 2.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(AppColors.surface)
+                            .clickable { editing = term.source }
+                            .heightIn(min = 52.dp)
+                            .padding(start = 14.dp, top = 4.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("${term.source} → ${term.target}", color = AppColors.textPrimary, fontSize = 15.sp)
+                            term.kind?.let { Text(stringResource(codexKindLabel(it)), color = AppColors.textSecondary, fontSize = 12.sp) }
+                        }
+                        IconButton(onClick = { scope.launch { acceptSuggestion(app, term) } }) {
+                            Icon(Icons.Outlined.Check, stringResource(R.string.glossary_accept), tint = AppColors.accent)
+                        }
+                        IconButton(onClick = {
+                            scope.launch { app.dao.setGlossaryStatus(sourceId, titleId, term.source, GLOSSARY_REJECTED, System.currentTimeMillis()) }
+                        }) {
+                            Icon(Icons.Outlined.Close, stringResource(R.string.glossary_reject), tint = AppColors.textSecondary)
+                        }
+                    }
+                }
+                item(key = "suggested-end") { androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 12.dp)) }
             }
             items(shown, key = { it.source }) { term ->
                 Row(
@@ -248,6 +303,22 @@ private fun ImportDialog(onImport: (String) -> Unit, onDismiss: () -> Unit) {
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
+}
+
+/** The codex kinds a confirmed AI suggestion also becomes a codex entry for. */
+private val CODEX_LINKED_KINDS = setOf("character", "place", "group", "item")
+
+/**
+ * Accepts an AI suggestion: it becomes a confirmed term. A character, place, group or item that the
+ * codex doesn't know yet (by name or other spelling) is added there too, with the translation as
+ * another spelling, so story lookup finds it in either language.
+ */
+internal suspend fun acceptSuggestion(app: AppContainer, term: GlossaryTermEntity) {
+    app.dao.setGlossaryStatus(term.sourceId, term.titleId, term.source, GLOSSARY_CONFIRMED, System.currentTimeMillis())
+    val kind = term.kind?.takeIf { it in CODEX_LINKED_KINDS } ?: return
+    val codex = app.dao.codexOnce(term.sourceId, term.titleId)
+    val known = codex.any { e -> e.entry.name.equals(term.source, true) || e.aliases.any { it.alias.equals(term.source, true) } }
+    if (!known) saveCodexEntry(app.dao, term.sourceId, term.titleId, null, term.source, kind, "", listOf(term.target))
 }
 
 /** Terms whose original or translation contains [query], ignoring case. */

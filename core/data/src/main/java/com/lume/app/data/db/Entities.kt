@@ -172,6 +172,8 @@ data class TitlePrefsEntity(
      * e.g. "ru") with the Lume Translate add-on; null = off.
      */
     val novelTranslateTo: String? = null,
+    /** Text reader: a short style note for AI translation of this title (tone, honorifics); null = none. */
+    val translateStyle: String? = null,
 )
 
 /**
@@ -185,7 +187,18 @@ data class GlossaryTermEntity(
     val source: String,
     val target: String,
     val updatedAt: Long = 0L,
+    /**
+     * [GLOSSARY_CONFIRMED] (the user's own or accepted), [GLOSSARY_SUGGESTED] (proposed by AI
+     * translation and already used) or [GLOSSARY_REJECTED] (not used and never proposed again).
+     */
+    @ColumnInfo(defaultValue = "confirmed") val status: String = GLOSSARY_CONFIRMED,
+    /** A codex kind (`character`, `place`, `group`, `item`, `term`) when AI translation named one. */
+    val kind: String? = null,
 )
+
+const val GLOSSARY_CONFIRMED = "confirmed"
+const val GLOSSARY_SUGGESTED = "suggested"
+const val GLOSSARY_REJECTED = "rejected"
 
 /**
  * Every known chapter of a library title. New chapters are found by comparing ids with these

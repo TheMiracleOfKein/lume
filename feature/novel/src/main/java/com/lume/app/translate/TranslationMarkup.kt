@@ -77,6 +77,36 @@ object TranslationMarkup {
         return out.ifEmpty { listOf(Span("")) }
     }
 
+    /**
+     * Engine output with each `data-g` number replaced by its term's source (`data-gs`), for a cache
+     * that outlives glossary changes: new terms shift the numbers, the sources stay.
+     */
+    fun marksToSources(html: String, glossary: List<GlossaryEntry>): String {
+        val body = fragment(html)
+        for (span in body.select("span[data-g]")) {
+            val term = span.attr("data-g").toIntOrNull()?.let(glossary::getOrNull)
+            span.removeAttr("data-g")
+            if (term != null) span.attr("data-gs", term.source.trim()) else span.unwrap()
+        }
+        return body.html()
+    }
+
+    /** The reverse of [marksToSources] for the current [glossary]; a term no longer there keeps the engine's words. */
+    fun sourcesToMarks(html: String, glossary: List<GlossaryEntry>): String {
+        val index = HashMap<String, Int>()
+        glossary.forEachIndexed { i, e -> index.putIfAbsent(e.source.trim().lowercase(), i) }
+        val body = fragment(html)
+        for (span in body.select("span[data-gs]")) {
+            val i = index[span.attr("data-gs").lowercase()]
+            span.removeAttr("data-gs")
+            if (i != null) span.attr("data-g", i.toString()) else span.unwrap()
+        }
+        return body.html()
+    }
+
+    private fun fragment(html: String): Element =
+        Jsoup.parseBodyFragment(html).also { it.outputSettings().prettyPrint(false) }.body()
+
     private val BOLD = setOf("b", "strong")
     private val ITALIC = setOf("i", "em")
 }

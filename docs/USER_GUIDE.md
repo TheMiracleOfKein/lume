@@ -292,6 +292,7 @@ English titles (Royal Road, Scribble Hub, English books you imported) can be rea
 
 - **Google Translate**: online, free, nothing to set up. The chapter text goes to Google.
 - **DeepL**: online, with your own key from a free DeepL API account (500,000 characters a month). The key is stored encrypted and never leaves the phone in a backup.
+- **AI (your key)**: online, with a language model and your own API key. It handles names, tone and dialogue best and keeps names the same across chapters (see below). Pick a service: **OpenRouter** (one key for many models, the default model picks one for you), **OpenAI**, **DeepSeek**, **Gemini**, or **Other (URL)** for any OpenAI-compatible server, such as Ollama or LM Studio on your computer (no key needed). **Choose…** lists the service's models, with prices on OpenRouter. It costs what the service charges, usually cents per chapter. The key is stored encrypted and is never part of backups or sync. The chapter text goes to the service you picked.
 - **On the phone**: offline and private, with the open-source models Firefox uses (English → Russian for now). It needs no Google services and sends no chapter text anywhere. The steps below set it up.
 
 - With **On the phone**, the first time it offers **Install Lume Translate**: a small separate app (about 8 MB) from the same Lume release. Android asks you to confirm the install. Only Lume can use it. Its own icon opens a short page with the downloaded language packs and a button back to Lume.
@@ -300,6 +301,9 @@ English titles (Royal Road, Scribble Hub, English books you imported) can be rea
 - Long-press a paragraph to see the original. The original can be selected and copied, and **Add to glossary** adds a name or term from it.
 - **Glossary**: names and terms that must read the same in every chapter of this title, for example "Shirou → Широ" or "mana core → ядро маны". It works with every engine. The glossary fixes the spelling; word endings stay as the translation has them. It is part of backups and sync.
 - **Open glossary** shows all of a title's terms on their own screen: search, sort by name or newest, tap a term to edit or delete it, **+** to add one, paste a whole list ("Shirou = Широ", one per line) and copy all terms to share them.
+- With **AI (your key)**, the model also lists the names it meets for the first time (characters, places, organizations, items, techniques) with the translation it used. They go into the glossary as **Suggested** and are used straight away, so the next paragraphs and chapters write them the same way. In the glossary, **Accept**, edit or **Reject** each one, or **Accept all**. An accepted character, place, group or item is also added to the codex, with the translation as another spelling. A rejected name isn't suggested again.
+- **Style note** (AI only): a short note for this title, for example "keep -san and -sama" or "the friends talk informally". Changing it translates the chapters again.
+- **Translate this chapter again** (AI only) asks the model again for the chapter you're reading, for example after accepting or editing names.
 - Read aloud reads the translated text, with a Russian voice when the engine has one.
 - Machine translation makes mistakes, mostly with genders and slang. The original is a long press away.
 

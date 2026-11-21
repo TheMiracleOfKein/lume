@@ -206,12 +206,22 @@ interface LibraryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertTitlePrefs(item: TitlePrefsEntity)
 
-    // Translation glossary
-    @Query("SELECT * FROM glossary_terms WHERE sourceId = :sourceId AND titleId = :titleId ORDER BY source COLLATE NOCASE")
+    // Translation glossary (rejected suggestions are left out: they only stop the same proposal)
+    @Query("SELECT * FROM glossary_terms WHERE sourceId = :sourceId AND titleId = :titleId AND status != 'rejected' ORDER BY source COLLATE NOCASE")
     fun glossary(sourceId: String, titleId: String): Flow<List<GlossaryTermEntity>>
 
-    @Query("SELECT * FROM glossary_terms WHERE sourceId = :sourceId AND titleId = :titleId ORDER BY source COLLATE NOCASE")
+    @Query("SELECT * FROM glossary_terms WHERE sourceId = :sourceId AND titleId = :titleId AND status != 'rejected' ORDER BY source COLLATE NOCASE")
     suspend fun glossaryOnce(sourceId: String, titleId: String): List<GlossaryTermEntity>
+
+    /** Every source spelling of the title's glossary, rejected ones included, for skipping known proposals. */
+    @Query("SELECT source FROM glossary_terms WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun glossarySources(sourceId: String, titleId: String): List<String>
+
+    @Query("UPDATE glossary_terms SET status = :status, updatedAt = :now WHERE sourceId = :sourceId AND titleId = :titleId AND source = :source")
+    suspend fun setGlossaryStatus(sourceId: String, titleId: String, source: String, status: String, now: Long)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertGlossaryTermsIfNew(terms: List<GlossaryTermEntity>)
 
     @Query("SELECT * FROM glossary_terms")
     suspend fun allGlossaryTerms(): List<GlossaryTermEntity>
