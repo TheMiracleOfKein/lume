@@ -26,8 +26,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ImportedFileEntity::class,
         ReadingSessionEntity::class,
         GlossaryTermEntity::class,
+        ChapterTextEntity::class,
+        ChapterTextFts::class,
+        CodexEntryEntity::class,
+        CodexAliasEntity::class,
     ],
-    version = 18,
+    version = 19,
     exportSchema = true,
 )
 abstract class LumeDatabase : RoomDatabase() {
@@ -278,10 +282,62 @@ abstract class LumeDatabase : RoomDatabase() {
             }
         }
 
+        /** Chapter text index (FTS4 over a content table) and the codex of saved names. Additive. */
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `chapter_text` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`sourceId` TEXT NOT NULL, `titleId` TEXT NOT NULL, `chapterId` TEXT NOT NULL, " +
+                        "`block` INTEGER NOT NULL, `text` TEXT NOT NULL)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_chapter_text_sourceId_titleId_chapterId` " +
+                        "ON `chapter_text` (`sourceId`, `titleId`, `chapterId`)",
+                )
+                db.execSQL(
+                    "CREATE VIRTUAL TABLE IF NOT EXISTS `chapter_text_fts` USING FTS4(`text` TEXT NOT NULL, " +
+                        "tokenize=unicode61, content=`chapter_text`)",
+                )
+                db.execSQL(
+                    "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_chapter_text_fts_BEFORE_UPDATE BEFORE UPDATE ON " +
+                        "`chapter_text` BEGIN DELETE FROM `chapter_text_fts` WHERE `docid`=OLD.`rowid`; END",
+                )
+                db.execSQL(
+                    "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_chapter_text_fts_BEFORE_DELETE BEFORE DELETE ON " +
+                        "`chapter_text` BEGIN DELETE FROM `chapter_text_fts` WHERE `docid`=OLD.`rowid`; END",
+                )
+                db.execSQL(
+                    "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_chapter_text_fts_AFTER_UPDATE AFTER UPDATE ON " +
+                        "`chapter_text` BEGIN INSERT INTO `chapter_text_fts`(`docid`, `text`) " +
+                        "VALUES (NEW.`rowid`, NEW.`text`); END",
+                )
+                db.execSQL(
+                    "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_chapter_text_fts_AFTER_INSERT AFTER INSERT ON " +
+                        "`chapter_text` BEGIN INSERT INTO `chapter_text_fts`(`docid`, `text`) " +
+                        "VALUES (NEW.`rowid`, NEW.`text`); END",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `codex_entries` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`sourceId` TEXT NOT NULL, `titleId` TEXT NOT NULL, `name` TEXT NOT NULL, " +
+                        "`kind` TEXT NOT NULL DEFAULT 'other', `note` TEXT, `summary` TEXT, `summaryOrigin` TEXT, " +
+                        "`summaryUpToChapterId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)",
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_codex_entries_sourceId_titleId_name` " +
+                        "ON `codex_entries` (`sourceId`, `titleId`, `name`)",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `codex_aliases` (`entryId` INTEGER NOT NULL, `alias` TEXT NOT NULL, " +
+                        "PRIMARY KEY(`entryId`, `alias`), FOREIGN KEY(`entryId`) REFERENCES `codex_entries`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE )",
+                )
+            }
+        }
+
         val MIGRATIONS: Array<Migration> get() = arrayOf(
             MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
             MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
-            MIGRATION_16_17, MIGRATION_17_18,
+            MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
         )
     }
 }
