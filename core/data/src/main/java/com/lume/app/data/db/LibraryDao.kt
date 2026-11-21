@@ -4,6 +4,8 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -219,6 +221,115 @@ interface LibraryDao {
 
     @Query("DELETE FROM glossary_terms WHERE sourceId = :sourceId AND titleId = :titleId AND source = :source")
     suspend fun deleteGlossaryTerm(sourceId: String, titleId: String, source: String)
+
+    // Story text index (plain text per block, original language)
+    @Query("SELECT EXISTS(SELECT 1 FROM chapter_text WHERE sourceId = :sourceId AND titleId = :titleId AND chapterId = :chapterId)")
+    suspend fun isChapterIndexed(sourceId: String, titleId: String, chapterId: String): Boolean
+
+    @Query("SELECT DISTINCT chapterId FROM chapter_text WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun indexedChapterIds(sourceId: String, titleId: String): List<String>
+
+    @Query("DELETE FROM chapter_text WHERE sourceId = :sourceId AND titleId = :titleId AND chapterId = :chapterId")
+    suspend fun deleteChapterText(sourceId: String, titleId: String, chapterId: String)
+
+    @Insert
+    suspend fun insertChapterText(rows: List<ChapterTextEntity>)
+
+    /** Replaces the chapter's rows, so indexing it again leaves one copy. */
+    @Transaction
+    suspend fun replaceChapterText(sourceId: String, titleId: String, chapterId: String, rows: List<ChapterTextEntity>) {
+        deleteChapterText(sourceId, titleId, chapterId)
+        if (rows.isNotEmpty()) insertChapterText(rows)
+    }
+
+    @Query("DELETE FROM chapter_text WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun deleteTitleText(sourceId: String, titleId: String)
+
+    @Query("DELETE FROM chapter_text")
+    suspend fun deleteAllText()
+
+    @Query("SELECT COUNT(*) AS blocks, COALESCE(SUM(LENGTH(text)), 0) AS chars FROM chapter_text")
+    suspend fun textIndexSize(): TextIndexSize
+
+    /** Per chapter: first and last block containing [query] (an FTS4 expression) and how many blocks do. */
+    @Query(
+        "SELECT t.chapterId AS chapterId, MIN(t.block) AS firstBlock, MAX(t.block) AS lastBlock, COUNT(*) AS hits " +
+            "FROM chapter_text t JOIN chapter_text_fts f ON f.rowid = t.id " +
+            "WHERE f.text MATCH :query AND t.sourceId = :sourceId AND t.titleId = :titleId GROUP BY t.chapterId",
+    )
+    suspend fun mentionsByChapter(sourceId: String, titleId: String, query: String): List<ChapterMention>
+
+    /** The last [limit] blocks of the chapter before [beforeBlock] that contain [query], newest first. */
+    @Query(
+        "SELECT t.block AS block, t.text AS text " +
+            "FROM chapter_text t JOIN chapter_text_fts f ON f.rowid = t.id " +
+            "WHERE f.text MATCH :query AND t.sourceId = :sourceId AND t.titleId = :titleId " +
+            "AND t.chapterId = :chapterId AND t.block < :beforeBlock ORDER BY t.block DESC LIMIT :limit",
+    )
+    suspend fun matchingBlocksBefore(
+        sourceId: String,
+        titleId: String,
+        chapterId: String,
+        query: String,
+        beforeBlock: Int,
+        limit: Int,
+    ): List<BlockText>
+
+    @Query("SELECT text FROM chapter_text WHERE sourceId = :sourceId AND titleId = :titleId AND chapterId = :chapterId AND block = :block")
+    suspend fun blockText(sourceId: String, titleId: String, chapterId: String, block: Int): String?
+
+    /** Blocks of the chapter from [fromBlock] to [toBlock] inclusive, in order. */
+    @Query(
+        "SELECT block, text FROM chapter_text WHERE sourceId = :sourceId AND titleId = :titleId " +
+            "AND chapterId = :chapterId AND block BETWEEN :fromBlock AND :toBlock ORDER BY block",
+    )
+    suspend fun blocksInRange(sourceId: String, titleId: String, chapterId: String, fromBlock: Int, toBlock: Int): List<BlockText>
+
+    /** The chapter's last [n] blocks, in reading order. */
+    @Query(
+        "SELECT * FROM (SELECT block, text FROM chapter_text WHERE sourceId = :sourceId AND titleId = :titleId " +
+            "AND chapterId = :chapterId ORDER BY block DESC LIMIT :n) ORDER BY block",
+    )
+    suspend fun chapterTail(sourceId: String, titleId: String, chapterId: String, n: Int): List<BlockText>
+
+    // Codex
+    @Transaction
+    @Query("SELECT * FROM codex_entries WHERE sourceId = :sourceId AND titleId = :titleId ORDER BY name COLLATE NOCASE")
+    fun codexFor(sourceId: String, titleId: String): Flow<List<CodexEntryWithAliases>>
+
+    @Transaction
+    @Query("SELECT * FROM codex_entries WHERE sourceId = :sourceId AND titleId = :titleId ORDER BY name COLLATE NOCASE")
+    suspend fun codexOnce(sourceId: String, titleId: String): List<CodexEntryWithAliases>
+
+    @Query("SELECT * FROM codex_entries")
+    suspend fun allCodexEntries(): List<CodexEntryEntity>
+
+    @Query("SELECT * FROM codex_aliases")
+    suspend fun allCodexAliases(): List<CodexAliasEntity>
+
+    @Insert
+    suspend fun insertCodexEntry(entry: CodexEntryEntity): Long
+
+    @Update
+    suspend fun updateCodexEntry(entry: CodexEntryEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertCodexAliases(aliases: List<CodexAliasEntity>)
+
+    @Query("DELETE FROM codex_aliases WHERE entryId = :entryId")
+    suspend fun deleteCodexAliases(entryId: Long)
+
+    @Query("DELETE FROM codex_entries WHERE id = :id")
+    suspend fun deleteCodexEntry(id: Long)
+
+    /** Inserts the entry (id 0) or updates it, and makes [aliases] its aliases. Returns the entry id. */
+    @Transaction
+    suspend fun saveCodexEntry(entry: CodexEntryEntity, aliases: List<String>): Long {
+        val id = if (entry.id == 0L) insertCodexEntry(entry) else entry.id.also { updateCodexEntry(entry) }
+        deleteCodexAliases(id)
+        insertCodexAliases(aliases.map { it.trim() }.filter { it.isNotEmpty() }.distinct().map { CodexAliasEntity(id, it) })
+        return id
+    }
 
     // Tracker links
     @Query("SELECT * FROM tracker_links WHERE sourceId = :sourceId AND titleId = :titleId")

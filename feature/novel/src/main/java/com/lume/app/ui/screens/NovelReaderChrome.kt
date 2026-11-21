@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.outlined.Headphones
 import androidx.compose.material.icons.outlined.SkipNext
@@ -82,6 +83,8 @@ internal fun NovelTopBar(
     translated: Boolean = false,
     /** "Translating: 3 of 40 paragraphs" while it runs. */
     translateStatus: String? = null,
+    /** Opens the title's codex of saved names; null hides the button. */
+    onCodex: (() -> Unit)? = null,
 ) {
     Box(
         modifier = modifier
@@ -147,6 +150,11 @@ internal fun NovelTopBar(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                }
+            }
+            if (onCodex != null) {
+                IconButton(onClick = onCodex) {
+                    Icon(Icons.Outlined.AutoStories, stringResource(R.string.codex_open), tint = palette.text)
                 }
             }
             if (onTranslate != null) {

@@ -65,7 +65,6 @@ import com.lume.app.translate.OriginalDialog
 import com.lume.app.translate.TranslateSheet
 import com.lume.app.translate.glossaryRoute
 import com.lume.app.translate.TranslationProgress
-import com.lume.app.translate.originalText
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.filter
@@ -127,7 +126,10 @@ fun NovelReaderScreen(
     val window = activity?.window
     val insetsController = remember(window, view) { window?.let { WindowCompat.getInsetsController(it, view) } }
     val exiting = LocalNavExiting.current
-    val hideSystemBars = !chromeVisible && !settingsOpen && !chaptersOpen && !translationsOpen && !readAloudOpen && !translateOpen && !exiting
+    val lookupOpen = vm.lookupState != null
+    val recapOpen = vm.recap != null
+    val hideSystemBars = !chromeVisible && !settingsOpen && !chaptersOpen && !translationsOpen && !readAloudOpen && !translateOpen &&
+        !lookupOpen && !recapOpen && !exiting
     LaunchedEffect(insetsController, hideSystemBars) {
         insetsController?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         if (hideSystemBars) {
@@ -166,6 +168,7 @@ fun NovelReaderScreen(
             modifier = modifier,
             translation = vm.currentChapter?.takeIf { vm.translations.isNotEmpty() }?.let(::translationLabel),
             onTranslation = { translationsOpen = true },
+            onCodex = { nav.navigate(codexRoute(sourceId, titleId, vm.titleName)) },
             onTranslate = { translateOpen = true }.takeIf { vm.translation.targets.isNotEmpty() },
             translated = vm.translation.target != null,
             translateStatus = (vm.translation.progress as? TranslationProgress.Working)?.let {
@@ -173,9 +176,9 @@ fun NovelReaderScreen(
             },
         )
     }
-    val longPress = { chapterId: String, index: Int ->
-        vm.originalOf(chapterId, index)?.originalText()?.let { originalText = it }
-        Unit
+    // A long press looks the word up; with no word under it, a translated paragraph shows its original.
+    val longPress = { chapterId: String, index: Int, offset: Int? ->
+        vm.lookup(chapterId, index, offset) { original -> originalText = original }
     }
 
     Box(Modifier.fillMaxSize().background(palette.background)) {
@@ -301,6 +304,44 @@ fun NovelReaderScreen(
             )
         }
     }
+    vm.lookupState?.let { state ->
+        val sheetState = rememberEasyDismissSheetState()
+        LumeBottomSheet(onDismissRequest = vm::dismissLookup, sheetState = sheetState) {
+            LookupSheet(
+                state = state,
+                onSearch = vm::lookupTerm,
+                loadContext = vm::mentionContext,
+                onSaveCodex = vm::saveCodex,
+                onDeleteCodex = vm::deleteCodex,
+                onShowOriginal = state.original?.let { text ->
+                    {
+                        vm.dismissLookup()
+                        originalText = text
+                    }
+                },
+                onAllEntries = {
+                    vm.dismissLookup()
+                    nav.navigate(codexRoute(sourceId, titleId, vm.titleName))
+                },
+                onRebuild = vm::rebuildIndexForTitle,
+            )
+        }
+    }
+    vm.recap?.let { paragraphs ->
+        val sheetState = rememberEasyDismissSheetState()
+        // Reading on (the position moved) closes it too.
+        LaunchedEffect(paragraphs) {
+            val at = vm.currentBlock
+            snapshotFlow { vm.currentBlock }.first { it != at }
+            vm.dismissRecap()
+        }
+        LumeBottomSheet(onDismissRequest = vm::dismissRecap, sheetState = sheetState) {
+            RecapSheet(
+                paragraphs = paragraphs,
+                onContinue = { scope.launch { sheetState.hide() }.invokeOnCompletion { vm.dismissRecap() } },
+            )
+        }
+    }
     originalText?.let { text ->
         OriginalDialog(text = text, onAddTerm = vm.translation::addTerm, onDismiss = { originalText = null })
     }
@@ -326,9 +367,10 @@ private fun NovelReaderContent(
     palette: NovelPalette,
     onTapCentre: () -> Unit,
     onScrolled: () -> Unit,
-    /** A block was long-pressed (chapter id, block index). */
-    onLongPress: (String, Int) -> Unit = { _, _ -> },
+    /** A block was long-pressed (chapter id, block index, character offset in its text or null). */
+    onLongPress: (String, Int, Int?) -> Unit = { _, _, _ -> },
 ) {
+    val layouts = remember { NovelTextLayouts() }
     val topPad = WindowInsets.statusBarsIgnoringVisibility.let { with(LocalDensity.current) { it.getTop(this).toDp() } }
     // While reading aloud its panel stays at the bottom: the text ends above it.
     val panelPad = if (vm.readAloud != null) READ_ALOUD_PANEL_SPACE else 0.dp
@@ -398,7 +440,9 @@ private fun NovelReaderContent(
                         val info = listState.layoutInfo
                         val y = at.y.toInt() + info.viewportStartOffset
                         val row = info.visibleItemsInfo.firstOrNull { y in it.offset until it.offset + it.size }
-                        (row?.let { vm.items.getOrNull(it.index) } as? NovelItem.Block)?.let { onLongPress(it.chapterId, it.index) }
+                        val block = row?.let { vm.items.getOrNull(it.index) } as? NovelItem.Block
+                        // The word under the finger, from the layout the block reported (null if it has none yet).
+                        if (row != null && block != null) onLongPress(block.chapterId, block.index, layouts.offsetAt(block.key, at.x, (y - row.offset).toFloat()))
                     },
                 ) { tap ->
                     val third = size.height / 3f
@@ -420,6 +464,7 @@ private fun NovelReaderContent(
             listState = listState,
             contentPadding = PaddingValues(top = topPad + 16.dp, bottom = bottomPad + 48.dp),
             spoken = vm.spoken,
+            layouts = layouts,
         )
     }
 }

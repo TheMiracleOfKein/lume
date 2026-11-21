@@ -316,6 +316,22 @@ Two phones on the same Wi-Fi, one with a few downloaded titles (one stored as CB
 - [ ] Chapters of both download, show as "Text" in Downloads and read in airplane mode.
 - [ ] A Royal Road or Scribble Hub title or chapter link opened from the browser or shared to Lume opens the title (full and ranobe builds).
 
+## v1.8.0: story lookup and recap
+
+- [ ] Full and ranobe builds, Ranobe mode, an English title with a few chapters read: a long press on a character's name in scroll mode opens the lookup sheet with the name (a run of capitalized words, "Lin Feng", not one word), where it first appeared with the name in bold, "Mentioned in N chapters", recent mentions newest first, and "Searched X of Y chapters".
+- [ ] The same in page-by-page mode, on a paragraph that continues over the page break, on its first and last line.
+- [ ] A long press on a heading, a scene break or beside a short last line opens no wrong word (a scene break or empty space does nothing; a translated paragraph still shows its original).
+- [ ] With a title shown translated: a long press looks up the translated name (through the glossary target when there is one); "Show original" in the sheet's menu opens the original paragraph with "Add to glossary".
+- [ ] Edit the term in the sheet's field and search from the keyboard: the result changes. Tap a snippet: the paragraphs before and after show in place and the reader does not move; tap again to fold.
+- [ ] Mentions in chapters after the one you are in never show. Open an earlier chapter from the chapter list: the counts shrink.
+- [ ] Download a few chapters without opening them, read a later one, look up a name: the spinner shows, then the earlier downloaded chapters are counted ("Searched" rises).
+- [ ] "Save to codex": pick a kind, add aliases and a note; the card shows in the sheet and a later long press on an alias finds the same entry. The book icon in the reader's top bar and "All entries" open the codex screen: search, sort, add, edit and delete work.
+- [ ] "Rebuild for this title" empties and refills the index (the coverage line shows the change).
+- [ ] Settings → Reader (Ranobe mode): turning "Story index" off stops new chapters being stored and lookups find nothing new; with incognito on nothing is stored. The size line grows as chapters are read and "Clear story index" empties it (codex entries stay).
+- [ ] Recap: set "Previously…" to after 6 hours, read a chapter halfway, close the reader, set the title's last-read time back more than 6 hours (or wait) and open it with Continue reading: the sheet shows the last paragraphs before your spot, and the end of the previous chapter when the chapter has few. "Continue reading" closes it and the text is where you left it. A title read minutes ago shows no recap; "Off" shows none.
+- [ ] A backup holds the codex (restore on a clean install brings the entries and aliases back) and not the chapter text.
+- [ ] Sheets: the lookup and recap sheets close by dragging and the status bar behaves as with the other reader sheets.
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.

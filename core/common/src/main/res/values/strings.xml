@@ -1403,4 +1403,59 @@
     <string name="glossary_copy_all">Copy all terms</string>
     <string name="glossary_new_term">New term</string>
     <string name="glossary_edit_term">Edit term</string>
+
+    <!-- Story lookup, codex and recap -->
+    <string name="lookup_term_hint">Name or term</string>
+    <string name="lookup_glossary_translation">Glossary: %1$s</string>
+    <string name="lookup_codex_save">Save to codex</string>
+    <string name="lookup_codex_edit">Edit</string>
+    <string name="lookup_first_appeared">First appeared: %1$s</string>
+    <plurals name="lookup_mentioned_in">
+        <item quantity="one">Mentioned in %d chapter</item>
+        <item quantity="other">Mentioned in %d chapters</item>
+    </plurals>
+    <string name="lookup_recent">Recent mentions</string>
+    <string name="lookup_coverage">Searched %1$d of %2$d chapters up to here</string>
+    <string name="lookup_not_found">Not found in the searched chapters</string>
+    <string name="lookup_show_original">Show original</string>
+    <string name="lookup_all_entries">All entries</string>
+    <string name="lookup_rebuild">Rebuild for this title</string>
+    <string name="lookup_more">More</string>
+    <string name="codex_title">Codex</string>
+    <string name="codex_open">Codex of names</string>
+    <string name="codex_new">New entry</string>
+    <string name="codex_edit">Edit entry</string>
+    <string name="codex_add">Add entry</string>
+    <string name="codex_name">Name</string>
+    <string name="codex_kind">Kind</string>
+    <string name="codex_aliases">Other spellings, separated by commas</string>
+    <string name="codex_note">Note</string>
+    <string name="codex_search">Search names and notes</string>
+    <string name="codex_empty">No saved names yet. Long-press a name in the reader to look it up and save it.</string>
+    <plurals name="codex_count">
+        <item quantity="one">%d entry</item>
+        <item quantity="other">%d entries</item>
+    </plurals>
+    <string name="codex_kind_character">Character</string>
+    <string name="codex_kind_place">Place</string>
+    <string name="codex_kind_group">Group</string>
+    <string name="codex_kind_item">Item</string>
+    <string name="codex_kind_term">Term</string>
+    <string name="codex_kind_other">Other</string>
+    <string name="recap_title">Previously…</string>
+    <string name="recap_previous_chapter">End of previous chapter</string>
+    <string name="recap_continue">Continue reading</string>
+    <string name="settings_story_index">Story index</string>
+    <string name="settings_story_index_hint">Keeps the text of chapters you read or download on this phone, so a long-pressed name can be looked up offline. Nothing is stored in incognito.</string>
+    <string name="settings_story_recap">“Previously…” recap</string>
+    <string name="settings_story_recap_hint">When you return to a title after a break, shows the last paragraphs before your spot.</string>
+    <string name="settings_story_recap_off">Off</string>
+    <string name="settings_story_recap_6h">After 6 hours</string>
+    <string name="settings_story_recap_1d">After 1 day</string>
+    <string name="settings_story_recap_3d">After 3 days</string>
+    <string name="settings_story_index_size">Story index: %1$d blocks, about %2$s</string>
+    <string name="settings_story_index_clear">Clear story index</string>
+    <string name="settings_story_index_clear_hint">Removes the stored chapter text. It is rebuilt as you read. Saved codex names stay.</string>
+    <string name="settings_story_index_cleared">Story index cleared</string>
+    <string name="settings_kw_story">names, characters, lookup, x-ray, codex, previously, recap, summary</string>
 </resources>

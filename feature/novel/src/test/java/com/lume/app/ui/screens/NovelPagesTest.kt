@@ -33,6 +33,18 @@ class NovelPagesTest {
     }
 
     @Test
+    fun aPressOnALaterSliceIsMeasuredFromTheTopOfTheWholeText() {
+        val measures = listOf(text(3, bottom = 5), text(6))
+        val pages = paginate(measures, pageHeight = 50)
+        // Page 1 shows row 1's first line (0..10) after row 0 (0..30) and a gap of 5.
+        assertEquals(SliceHit(1, 2f), sliceHit(pages[0], measures, 37f))
+        // Page 2 starts at row 1's second line, which sits 10 px down the whole text.
+        assertEquals(SliceHit(1, 13f), sliceHit(pages[1], measures, 3f))
+        assertEquals(null, sliceHit(pages[1], measures, 60f))
+        assertEquals(SliceHit(0, 0f), sliceHit(NovelPage(listOf(PageSlice(0, 0, 1, 0))), listOf(PageMeasure.Whole(false)), 500f))
+    }
+
+    @Test
     fun rowsShareAPageWithTheSpaceBetweenThem() {
         val pages = paginate(listOf(text(2, bottom = 5), text(3, top = 4)), pageHeight = 100)
         assertEquals(listOf(NovelPage(listOf(PageSlice(0, 0, 2, 0), PageSlice(1, 0, 3, 9)))), pages)

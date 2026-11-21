@@ -11,7 +11,11 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -45,6 +49,8 @@ internal fun NovelTextList(
     modifier: Modifier = Modifier,
     /** The sentence read aloud is on, highlighted. */
     spoken: SpokenRange? = null,
+    /** Collects each block's text layout, for finding the word under a long press. */
+    layouts: NovelTextLayouts? = null,
 ) {
     val body = novelBodyStyle(settings, palette)
     val spokenColor = spokenColor(palette)
@@ -68,7 +74,7 @@ internal fun NovelTextList(
                         .padding(start = settings.sideMargin.dp, end = settings.sideMargin.dp, top = 28.dp, bottom = 20.dp)
                         .semantics { heading() },
                 )
-                is NovelItem.Block -> NovelBlockView(item.block, settings, palette, body) {
+                is NovelItem.Block -> NovelBlockView(item.block, settings, palette, body, item.key, layouts) {
                     it.withSpoken(spoken, item.chapterId, item.index, spokenColor)
                 }
             }
@@ -94,20 +100,30 @@ private fun NovelBlockView(
     settings: NovelReaderSettings,
     palette: NovelPalette,
     body: TextStyle,
+    key: String,
+    layouts: NovelTextLayouts?,
     marked: (AnnotatedString) -> AnnotatedString,
 ) {
     val side = settings.sideMargin.dp
     val after = settings.paragraphSpacing.dp
+    val density = LocalDensity.current
+    // Remember where the text sits in its row, so a press can be mapped to a character.
+    fun onLayout(top: Dp): (TextLayoutResult) -> Unit = { layout ->
+        layouts?.put(key, layout, with(density) { side.toPx() }, with(density) { top.toPx() })
+    }
+    if (layouts != null) DisposableEffect(key, layouts) { onDispose { layouts.remove(key) } }
     when (block) {
         is NovelBlock.Paragraph -> Text(
             text = marked(block.spans.toAnnotatedString()),
             style = body,
+            onTextLayout = onLayout(0.dp),
             modifier = Modifier.fillMaxWidth().padding(start = side, end = side, bottom = after),
         )
         is NovelBlock.Heading -> {
             val scale = headingScale(block.level)
             Text(
                 text = marked(block.spans.toAnnotatedString()),
+                onTextLayout = onLayout(12.dp),
                 style = body.copy(
                     fontSize = (settings.fontSize * scale).sp,
                     lineHeight = (settings.fontSize * scale * settings.lineHeight).sp,

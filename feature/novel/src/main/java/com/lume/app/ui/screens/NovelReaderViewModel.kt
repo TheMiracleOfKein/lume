@@ -10,7 +10,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lume.app.AppContainer
 import com.lume.app.R
+import com.lume.app.data.db.CodexEntryEntity
 import com.lume.app.data.db.TitlePrefsEntity
+import com.lume.app.data.story.RecapParagraph
+import com.lume.app.data.story.StoryLookup
+import com.lume.app.data.story.StoryMention
+import com.lume.app.data.story.knownTerms
+import com.lume.app.data.story.recapBlocks
+import com.lume.app.data.story.saveCodexEntry
+import com.lume.app.data.story.termAt
+import com.lume.app.translate.originalText
 import com.lume.app.data.locale.appString
 import com.lume.app.data.userMessage
 import com.lume.app.data.prefs.NovelReaderSettings
@@ -288,7 +297,7 @@ class NovelReaderViewModel(
         translation.currentChapterId = anchor.chapterId
         translation.start(loaded = { loaded }, anchorBlock = { anchor.block })
         book.listeningTransform = translation::forListening
-        load(anchor, explicit = savedChapter != null || routeHasTarget)
+        load(anchor, explicit = savedChapter != null || routeHasTarget, opening = true)
     }
 
     // ---- Read aloud -----------------------------------------------------------------------
@@ -331,14 +340,18 @@ class NovelReaderViewModel(
 
     /**
      * Opens [target]'s chapter as a fresh list. When [explicit] is false the chapter's own saved
-     * position is used, unless that chapter was finished (then it starts from the top).
+     * position is used, unless that chapter was finished (then it starts from the top). [opening] is
+     * the reader's first load (from Continue reading, the title or the chapter list): only then can
+     * a "Previously…" recap show.
      */
-    private fun load(target: NovelAnchor, explicit: Boolean) {
+    private fun load(target: NovelAnchor, explicit: Boolean, opening: Boolean = false) {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             loading = loaded.isEmpty()
             error = null
             runCatching {
+                // Before anything is saved for this visit: when the title was last read, for the recap.
+                val lastRead = if (opening) dao.getProgress(sourceId, titleId)?.updatedAt else null
                 if (chapters.isEmpty()) loadTitle()
                 val ch = chapters.firstOrNull { it.id == target.chapterId }
                     ?: error(appString(R.string.error_chapter_not_found))
@@ -350,8 +363,9 @@ class NovelReaderViewModel(
                     saved != null && !saved.completed -> NovelAnchor(ch.id, saved.pageIndex, saved.pageOffset)
                     else -> NovelAnchor(ch.id, 0, 0f)
                 }
-                chapter to start.copy(block = start.block.coerceIn(0, chapter.blocks.size - 1))
-            }.onSuccess { (first, start) ->
+                Triple(chapter, start.copy(block = start.block.coerceIn(0, chapter.blocks.size - 1)), lastRead)
+            }.onSuccess { (first, start, lastRead) ->
+                recap = null
                 translation.onListReset()
                 loaded = listOf(first)
                 items = buildNovelItems(loaded)
@@ -366,6 +380,7 @@ class NovelReaderViewModel(
                 session++
                 loading = false
                 if (items.size - 1 - novelItemIndex(items, start) <= APPEND_WHEN_REMAINING) appendNextChapter()
+                if (lastRead != null) viewModelScope.launch { runCatching { buildRecap(first, start, lastRead) } }
             }.onFailure { e ->
                 if (e is CancellationException) throw e
                 loading = false
@@ -450,6 +465,141 @@ class NovelReaderViewModel(
         done.forEach(::markFinished)
 
         if (items.size - 1 - lastVisibleIndex <= APPEND_WHEN_REMAINING) appendNextChapter()
+    }
+
+    // ---- Story lookup and recap -----------------------------------------------------------
+
+    private val storyLookup = StoryLookup(app, book.storyIndex)
+
+    /** The lookup sheet: null while closed. */
+    var lookupState by mutableStateOf<LookupState?>(null)
+        private set
+
+    /** Where the pressed paragraph is: mentions after it are left out of the lookup. */
+    private var lookupAnchor: NovelAnchor = anchor
+    private var lookupJob: Job? = null
+
+    /**
+     * Opens the lookup for the word at [offset] of the pressed block's shown text. When no word
+     * can be made out, [onNoTerm] gets the paragraph's original (only for a translated block), so
+     * the long press still shows what it used to.
+     */
+    fun lookup(chapterId: String, block: Int, offset: Int?, onNoTerm: (String) -> Unit) {
+        val lc = loaded.firstOrNull { it.chapter.id == chapterId }
+        val shown = lc?.blocks?.getOrNull(block)?.originalText()
+        val original = lc?.original?.getOrNull(block)?.originalText()
+        lookupJob?.cancel()
+        lookupJob = viewModelScope.launch {
+            val term = if (shown != null && offset != null) {
+                val known = knownTerms(dao.glossaryOnce(sourceId, titleId), dao.codexOnce(sourceId, titleId))
+                termAt(shown, offset, known)?.let { shown.substring(it.first, it.last + 1) }
+            } else {
+                null
+            }
+            if (term == null) {
+                original?.let(onNoTerm)
+                return@launch
+            }
+            lookupAnchor = NovelAnchor(chapterId, block, 0f)
+            search(term, original)
+        }
+    }
+
+    /** Searches [term] typed into the sheet's field. */
+    fun lookupTerm(term: String) {
+        val t = term.trim()
+        if (t.isEmpty()) return
+        lookupJob?.cancel()
+        lookupJob = viewModelScope.launch { search(t, lookupState?.original) }
+    }
+
+    private suspend fun search(term: String, original: String?) {
+        lookupState = LookupState(term, busy = true, context = null, original = original)
+        val result = runCatching {
+            // Downloaded chapters that were never opened are indexed first.
+            storyLookup.backfill(sourceId, titleId, chapters, lookupAnchor)
+            storyLookup.lookup(
+                sourceId, titleId, term, chapters, lookupAnchor,
+                dao.glossaryOnce(sourceId, titleId), dao.codexOnce(sourceId, titleId),
+            )
+        }.getOrElse { if (it is CancellationException) throw it else null }
+        lookupState = LookupState(term, busy = false, context = result, original = original)
+    }
+
+    /** The paragraphs around a mention, for expanding its snippet. */
+    suspend fun mentionContext(mention: StoryMention) = storyLookup.context(sourceId, titleId, mention)
+
+    /** Saves (or changes) a codex entry of this title, then looks the term up again so the sheet shows it. */
+    fun saveCodex(existing: CodexEntryEntity?, name: String, kind: String, note: String, aliases: List<String>) {
+        val term = lookupState?.term
+        viewModelScope.launch {
+            saveCodexEntry(dao, sourceId, titleId, existing, name, kind, note, aliases)
+            if (term != null) lookupTerm(name.takeIf { term.equals(existing?.name, true) || existing == null } ?: term)
+        }
+    }
+
+    fun deleteCodex(entry: CodexEntryEntity) {
+        val term = lookupState?.term
+        viewModelScope.launch {
+            dao.deleteCodexEntry(entry.id)
+            if (term != null) lookupTerm(term)
+        }
+    }
+
+    /** Drops this title's stored text and indexes the chapters on screen again; the rest comes back on the next lookup. */
+    fun rebuildIndexForTitle() {
+        val state = lookupState ?: return
+        lookupJob?.cancel()
+        lookupJob = viewModelScope.launch {
+            lookupState = state.copy(busy = true)
+            runCatching {
+                book.storyIndex.clearTitle(sourceId, titleId)
+                loaded.forEach { book.storyIndex.index(sourceId, titleId, it) }
+            }.onFailure { if (it is CancellationException) throw it }
+            search(state.term, state.original)
+        }
+    }
+
+    fun dismissLookup() {
+        lookupJob?.cancel()
+        lookupState = null
+    }
+
+    /** The paragraphs before the spot the reader comes back to; null when there is nothing to recall. */
+    var recap by mutableStateOf<List<RecapParagraph>?>(null)
+        private set
+
+    fun dismissRecap() {
+        recap = null
+    }
+
+    /**
+     * Sets [recap] when the title was last read [lastRead] long enough ago (the setting): the last
+     * paragraphs before [start], with the previous chapter's end when this chapter has too few.
+     * Always in the original language: the recap isn't translated, because chapter translations are
+     * cached per whole chapter and a few paragraphs on their own would be a new engine request.
+     */
+    private suspend fun buildRecap(first: LoadedNovelChapter, start: NovelAnchor, lastRead: Long) {
+        val hours = app.prefs.recapAfterHours.value
+        if (hours <= 0 || app.prefs.incognito.value) return
+        if (System.currentTimeMillis() - lastRead < hours * MS_PER_HOUR) return
+        val current = (first.original ?: first.blocks).map { it.originalText().orEmpty() }
+        var paragraphs = recapBlocks(current, start.block, start.fraction, emptyList())
+        if (paragraphs.size < RECAP_PARAGRAPHS) {
+            val tail = previousChapterTail(first.chapter)
+            if (tail.isNotEmpty()) paragraphs = recapBlocks(current, start.block, start.fraction, tail)
+        }
+        // The reader may have moved on or opened another chapter while this was read.
+        if (paragraphs.isNotEmpty() && currentChapterId == start.chapterId) recap = paragraphs
+    }
+
+    /** The last paragraphs of the chapter before [chapter]: from the story index, else from the chapter itself. */
+    private suspend fun previousChapterTail(chapter: Chapter): List<String> {
+        val previous = chapterNeighbours(chapters, chapter.id).previous ?: return emptyList()
+        val stored = dao.chapterTail(sourceId, titleId, previous.id, RECAP_TAIL_BLOCKS).map { it.text }
+        if (stored.isNotEmpty()) return stored
+        val lc = runCatching { book.loadChapter(previous) }.getOrNull() ?: return emptyList()
+        return (lc.original ?: lc.blocks).mapNotNull { it.originalText() }.takeLast(RECAP_TAIL_BLOCKS)
     }
 
     // ---- Reading statistics ---------------------------------------------------------------
@@ -548,6 +698,11 @@ class NovelReaderViewModel(
         const val KEY_BLOCK = "novel.block"
         const val KEY_FRACTION = "novel.fraction"
         const val SAVE_DEBOUNCE_MS = 400L
+        const val MS_PER_HOUR = 3_600_000L
+
+        /** The recap wants this many paragraphs; fewer in the chapter so far are topped up from the one before. */
+        const val RECAP_PARAGRAPHS = 4
+        const val RECAP_TAIL_BLOCKS = 6
 
         /** Load the next chapter when this many rows or fewer are left below the screen. */
         const val APPEND_WHEN_REMAINING = 15

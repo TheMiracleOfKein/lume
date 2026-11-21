@@ -269,6 +269,8 @@ class AppPreferences(
     private val secureScreenKey = booleanPreferencesKey("secure_screen")
     private val dohKey = stringPreferencesKey("dns_over_https")
     private val translateLabelsKey = booleanPreferencesKey("translate_chapter_labels")
+    private val storyIndexKey = booleanPreferencesKey("story_index")
+    private val recapAfterHoursKey = intPreferencesKey("recap_after_hours")
     private val autoBackupDaysKey = intPreferencesKey("auto_backup_days")
     private val autoBackupKeepKey = intPreferencesKey("auto_backup_keep")
     private val folderScanHoursKey = intPreferencesKey("folder_scan_hours")
@@ -373,6 +375,20 @@ class AppPreferences(
 
     /** Russian-only chapter labels ("Том 1 Глава 5") are shown in the app language. */
     val translateChapterLabels: StateFlow<Boolean> = state { it[translateLabelsKey] ?: true }
+
+    /** Chapters read or downloaded are indexed for name lookup. */
+    val storyIndex: StateFlow<Boolean> = state { it[storyIndexKey] ?: true }
+
+    /** "Previously..." recap after this many hours away from a title (0 = off). */
+    val recapAfterHours: StateFlow<Int> = state { it[recapAfterHoursKey] ?: 24 }
+
+    suspend fun setStoryIndex(value: Boolean) {
+        context.appDataStore.edit { it[storyIndexKey] = value }
+    }
+
+    suspend fun setRecapAfterHours(value: Int) {
+        context.appDataStore.edit { it[recapAfterHoursKey] = value }
+    }
 
     suspend fun setIncognito(value: Boolean) {
         context.appDataStore.edit { it[incognitoKey] = value }

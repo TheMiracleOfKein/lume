@@ -1458,4 +1458,63 @@
     <string name="glossary_copy_all">Скопировать все термины</string>
     <string name="glossary_new_term">Новый термин</string>
     <string name="glossary_edit_term">Изменить термин</string>
+
+    <!-- Story lookup, codex and recap -->
+    <string name="lookup_term_hint">Имя или термин</string>
+    <string name="lookup_glossary_translation">Глоссарий: %1$s</string>
+    <string name="lookup_codex_save">Сохранить в кодекс</string>
+    <string name="lookup_codex_edit">Изменить</string>
+    <string name="lookup_first_appeared">Впервые появляется: %1$s</string>
+    <plurals name="lookup_mentioned_in">
+        <item quantity="one">Упоминается в %d главе</item>
+        <item quantity="few">Упоминается в %d главах</item>
+        <item quantity="many">Упоминается в %d главах</item>
+        <item quantity="other">Упоминается в %d главы</item>
+    </plurals>
+    <string name="lookup_recent">Последние упоминания</string>
+    <string name="lookup_coverage">Просмотрено глав: %1$d из %2$d до этого места</string>
+    <string name="lookup_not_found">В просмотренных главах не найдено</string>
+    <string name="lookup_show_original">Показать оригинал</string>
+    <string name="lookup_all_entries">Все записи</string>
+    <string name="lookup_rebuild">Перестроить для этого тайтла</string>
+    <string name="lookup_more">Ещё</string>
+    <string name="codex_title">Кодекс</string>
+    <string name="codex_open">Кодекс имён</string>
+    <string name="codex_new">Новая запись</string>
+    <string name="codex_edit">Изменить запись</string>
+    <string name="codex_add">Добавить запись</string>
+    <string name="codex_name">Имя</string>
+    <string name="codex_kind">Тип</string>
+    <string name="codex_aliases">Другие написания через запятую</string>
+    <string name="codex_note">Заметка</string>
+    <string name="codex_search">Поиск по именам и заметкам</string>
+    <string name="codex_empty">Сохранённых имён пока нет. Удерживайте имя в читалке, чтобы найти его и сохранить.</string>
+    <plurals name="codex_count">
+        <item quantity="one">%d запись</item>
+        <item quantity="few">%d записи</item>
+        <item quantity="many">%d записей</item>
+        <item quantity="other">%d записи</item>
+    </plurals>
+    <string name="codex_kind_character">Персонаж</string>
+    <string name="codex_kind_place">Место</string>
+    <string name="codex_kind_group">Группа</string>
+    <string name="codex_kind_item">Предмет</string>
+    <string name="codex_kind_term">Термин</string>
+    <string name="codex_kind_other">Другое</string>
+    <string name="recap_title">Ранее…</string>
+    <string name="recap_previous_chapter">Конец предыдущей главы</string>
+    <string name="recap_continue">Продолжить чтение</string>
+    <string name="settings_story_index">Индекс сюжета</string>
+    <string name="settings_story_index_hint">Хранит на телефоне текст прочитанных и скачанных глав, чтобы имя, на которое вы нажали, можно было найти без сети. В режиме инкогнито ничего не сохраняется.</string>
+    <string name="settings_story_recap">Напоминание «Ранее…»</string>
+    <string name="settings_story_recap_hint">Когда вы возвращаетесь к тайтлу после перерыва, показывает последние абзацы перед вашим местом.</string>
+    <string name="settings_story_recap_off">Выкл.</string>
+    <string name="settings_story_recap_6h">Через 6 часов</string>
+    <string name="settings_story_recap_1d">Через 1 день</string>
+    <string name="settings_story_recap_3d">Через 3 дня</string>
+    <string name="settings_story_index_size">Индекс сюжета: блоков %1$d, около %2$s</string>
+    <string name="settings_story_index_clear">Очистить индекс сюжета</string>
+    <string name="settings_story_index_clear_hint">Удаляет сохранённый текст глав. Он восстановится по мере чтения. Сохранённые имена кодекса останутся.</string>
+    <string name="settings_story_index_cleared">Индекс сюжета очищен</string>
+    <string name="settings_kw_story">имена, персонажи, поиск, икс-рэй, кодекс, ранее, напоминание, пересказ</string>
 </resources>

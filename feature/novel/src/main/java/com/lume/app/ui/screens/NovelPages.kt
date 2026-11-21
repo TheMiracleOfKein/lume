@@ -100,16 +100,28 @@ fun pageOf(pages: List<NovelPage>, item: Int, line: Int): Int {
  * The row drawn [y] pixels below the top of [page] (slices stack with their gaps, as the page
  * draws them), or null in a gap or below the last slice. A picture fills the page.
  */
-fun sliceAt(page: NovelPage, measures: List<PageMeasure>, y: Float): Int? {
+fun sliceAt(page: NovelPage, measures: List<PageMeasure>, y: Float): Int? = sliceHit(page, measures, y)?.item
+
+/** A press on a row of a page: the row, and how far below the top of its whole text (not just the slice) it landed. */
+data class SliceHit(val item: Int, val yInText: Float)
+
+/**
+ * Like [sliceAt], and also says where in the row's whole text the press is: the slice shows the text
+ * shifted up by its first line, so that line's top is added. A picture has no text position (0).
+ * With this and the same layout the page measured, a character offset needs no mapping from slice to
+ * block, because a slice is only a window on the whole text.
+ */
+fun sliceHit(page: NovelPage, measures: List<PageMeasure>, y: Float): SliceHit? {
     var top = 0f
     for (slice in page.slices) {
         top += slice.gap
-        val height = when (val m = measures.getOrNull(slice.item)) {
+        val m = measures.getOrNull(slice.item)
+        val height = when (m) {
             is PageMeasure.Lines -> (m.lineBottoms[slice.to - 1] - m.lineTops[slice.from]).toFloat()
-            is PageMeasure.Whole -> return slice.item
+            is PageMeasure.Whole -> return SliceHit(slice.item, 0f)
             null -> return null
         }
-        if (y >= top && y < top + height) return slice.item
+        if (y >= top && y < top + height) return SliceHit(slice.item, y - top + (m as PageMeasure.Lines).lineTops[slice.from])
         top += height
     }
     return null

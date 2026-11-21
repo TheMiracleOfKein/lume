@@ -331,6 +331,35 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate18To19AddsTextIndexAndCodex() {
+        helper.createDatabase(dbName, 18).close()
+
+        val db = helper.runMigrationsAndValidate(dbName, 19, true, LumeDatabase.MIGRATION_18_19)
+
+        db.execSQL("INSERT INTO chapter_text (sourceId, titleId, chapterId, block, text) VALUES ('s', 't', 'c1', 0, 'Лин Фэн вошёл в зал')")
+        db.execSQL("INSERT INTO chapter_text (sourceId, titleId, chapterId, block, text) VALUES ('s', 't', 'c1', 1, 'Nothing here')")
+        db.query("SELECT t.block FROM chapter_text t JOIN chapter_text_fts f ON f.rowid = t.id WHERE f.text MATCH 'фэн'").use {
+            assertEquals(1, it.count)
+            it.moveToFirst()
+            assertEquals(0, it.getInt(0))
+        }
+        db.execSQL("DELETE FROM chapter_text WHERE chapterId = 'c1'")
+        db.query("SELECT COUNT(*) FROM chapter_text_fts WHERE chapter_text_fts MATCH 'фэн'").use {
+            it.moveToFirst()
+            assertEquals(0, it.getInt(0))
+        }
+
+        db.execSQL("PRAGMA foreign_keys = ON")
+        db.execSQL("INSERT INTO codex_entries (id, sourceId, titleId, name, kind, createdAt, updatedAt) VALUES (1, 's', 't', 'Lin Feng', 'character', 1, 1)")
+        db.execSQL("INSERT INTO codex_aliases (entryId, alias) VALUES (1, 'Feng')")
+        db.execSQL("DELETE FROM codex_entries WHERE id = 1")
+        db.query("SELECT COUNT(*) FROM codex_aliases").use {
+            it.moveToFirst()
+            assertEquals(0, it.getInt(0))
+        }
+    }
+
+    @Test
     fun freshDatabaseOpensWithAllMigrations() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         helper.createDatabase(dbName, 7).close()

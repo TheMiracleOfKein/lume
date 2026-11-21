@@ -1,8 +1,13 @@
 package com.lume.app.data.db
 
 import androidx.room.ColumnInfo
+import androidx.room.Embedded
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Fts4
+import androidx.room.FtsOptions
 import androidx.room.Index
+import androidx.room.Relation
 import androidx.room.PrimaryKey
 
 // Room entities and query rows of the library database.
@@ -347,3 +352,82 @@ data class ReadingSessionEntity(
 
 /** When a chapter was marked read, for the per-month and per-title chapter counts. */
 data class ChapterReadTime(val sourceId: String, val titleId: String, val readAt: Long)
+
+/**
+ * One block of a chapter's plain text in the original language, for finding where a name
+ * appears. [block] is the block's index in the reader, so a hit maps back to its place.
+ */
+@Entity(tableName = "chapter_text", indices = [Index("sourceId", "titleId", "chapterId")])
+data class ChapterTextEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val sourceId: String,
+    val titleId: String,
+    val chapterId: String,
+    val block: Int,
+    val text: String,
+)
+
+/** Full-text index over [ChapterTextEntity.text]; Room keeps it in sync with triggers. */
+@Entity(tableName = "chapter_text_fts")
+@Fts4(contentEntity = ChapterTextEntity::class, tokenizer = FtsOptions.TOKENIZER_UNICODE61)
+data class ChapterTextFts(val text: String)
+
+/** A saved name of a title (character, place, ...) with the user's note. */
+@Entity(
+    tableName = "codex_entries",
+    indices = [Index("sourceId", "titleId", "name", unique = true)],
+)
+data class CodexEntryEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val sourceId: String,
+    val titleId: String,
+    val name: String,
+    /** `character`, `place`, `group`, `item`, `term` or `other`. */
+    @ColumnInfo(defaultValue = "other") val kind: String = "other",
+    val note: String? = null,
+    /** Reserved for generated summaries; nothing writes these yet. */
+    val summary: String? = null,
+    val summaryOrigin: String? = null,
+    val summaryUpToChapterId: String? = null,
+    val createdAt: Long = 0L,
+    val updatedAt: Long = 0L,
+)
+
+/** Another spelling of a [CodexEntryEntity]; removed with its entry. */
+@Entity(
+    tableName = "codex_aliases",
+    primaryKeys = ["entryId", "alias"],
+    foreignKeys = [
+        ForeignKey(
+            entity = CodexEntryEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["entryId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class CodexAliasEntity(
+    val entryId: Long,
+    val alias: String,
+)
+
+/** A codex entry with its aliases. */
+data class CodexEntryWithAliases(
+    @Embedded val entry: CodexEntryEntity,
+    @Relation(parentColumn = "id", entityColumn = "entryId")
+    val aliases: List<CodexAliasEntity>,
+)
+
+/** A chapter's matches for a search: first and last matching block, and how many blocks match. */
+data class ChapterMention(
+    val chapterId: String,
+    val firstBlock: Int,
+    val lastBlock: Int,
+    val hits: Int,
+)
+
+/** A block of a chapter with its plain text. */
+data class BlockText(val block: Int, val text: String)
+
+/** How much the text index holds. */
+data class TextIndexSize(val blocks: Int, val chars: Long)

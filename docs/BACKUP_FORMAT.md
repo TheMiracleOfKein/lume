@@ -29,7 +29,7 @@ loads one saved sample file per version from `core/data/src/test/resources/backu
 
 | Field | Type | Since | Notes |
 | --- | --- | --- | --- |
-| `version` | int | 1 | Format version, currently **6**. Always written since v0.9.10; files from before that often leave it out, and a missing value reads as the current version. |
+| `version` | int | 1 | Format version, currently **7**. Always written since v0.9.10; files from before that often leave it out, and a missing value reads as the current version. |
 | `createdAt` | long | 1 | When the backup was made, in milliseconds since 1970 (UTC). Always written since v0.9.10. |
 | `bookmarks` | list | 1 | Titles in the library. |
 | `progress` | list | 1 | The "Continue" point of each title. |
@@ -44,6 +44,7 @@ loads one saved sample file per version from `core/data/src/test/resources/backu
 | `titleSources` | list | 4 | Other sources of a title. |
 | `readingSessions` | list | 5 | Reading time for the statistics. |
 | `glossaryTerms` | list | 6 | Per-title glossary of chapter translation. |
+| `codexEntries` | list | 7 | Saved names of a title (characters, places, terms) with notes and aliases. |
 
 Every list may be missing or empty. A title is always named by `sourceId` (Lume's source id, for
 example `mangadex`) and `titleId` (the source's own id for the title). A chapter adds `chapterId`.
@@ -101,13 +102,19 @@ come and go between versions: a key Lume no longer knows is stored but has no ef
 **`glossaryTerms`**: `sourceId`, `titleId`, `source` (the term as written in the original),
 `target` (how it must read in the translation), `updatedAt?` (0).
 
+**`codexEntries`**: `sourceId`, `titleId`, `name`, `kind?` (`other`; one of `character`, `place`,
+`group`, `item`, `term`, `other`), `note?` (null), `aliases?` (`[]`, other spellings of the name),
+`createdAt?` (0), `updatedAt?` (0). Restoring overwrites the entry of the same name unless the
+phone's copy is newer. The searchable chapter text behind story lookup is not backed up: it is
+rebuilt as chapters are read or downloaded.
+
 ## Example
 
-A small version 6 file:
+A small version 7 file:
 
 ```json
 {
-  "version": 6,
+  "version": 7,
   "createdAt": 1762000000000,
   "bookmarks": [
     { "sourceId": "mangadex", "titleId": "t1", "titleName": "First Title", "categoryIdsJson": "[1]" }
@@ -128,6 +135,7 @@ A small version 6 file:
 | 4 | several sources per title | `titleSources` |
 | 5 | v0.9.6 | `readingSessions` |
 | 6 | v1.7.0 | `glossaryTerms`, `titlePrefs.novelTranslateTo` |
+| 7 | v1.8.0 | `codexEntries` |
 
 Some optional fields inside the lists (for example `titlePrefs.branch`, `showDuplicates` and
 `autoDownload`) came between version bumps. Following rule 1, older files without them load with
