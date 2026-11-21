@@ -1416,7 +1416,7 @@
     </plurals>
     <string name="lookup_recent">Recent mentions</string>
     <string name="lookup_coverage">Searched %1$d of %2$d chapters up to here</string>
-    <string name="lookup_not_found">Not found in chapters read so far</string>
+    <string name="lookup_not_found">Not found in the searched chapters</string>
     <string name="lookup_show_original">Show original</string>
     <string name="lookup_all_entries">All entries</string>
     <string name="lookup_rebuild">Rebuild for this title</string>

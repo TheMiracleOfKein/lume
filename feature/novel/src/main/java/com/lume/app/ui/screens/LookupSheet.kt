@@ -13,6 +13,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
@@ -112,7 +117,15 @@ internal fun LookupSheet(
                 },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { onSearch(field) }),
-                modifier = Modifier.weight(1f),
+                // A hardware Enter skips the IME action.
+                modifier = Modifier.weight(1f).onPreviewKeyEvent { e ->
+                    if (e.key == Key.Enter && e.type == KeyEventType.KeyUp) {
+                        onSearch(field)
+                        true
+                    } else {
+                        e.key == Key.Enter
+                    }
+                },
             )
             Box {
                 IconButton(onClick = { menuOpen = true }) {

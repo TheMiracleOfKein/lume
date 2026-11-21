@@ -144,8 +144,11 @@ fun CodexScreen(nav: NavHostController, sourceId: String, titleId: String, title
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Text(
-                        if (entries.isEmpty()) stringResource(R.string.codex_empty)
-                        else pluralStringResource(R.plurals.codex_count, entries.size, entries.size),
+                        when {
+                            entries.isEmpty() -> stringResource(R.string.codex_empty)
+                            shown.isEmpty() -> stringResource(R.string.library_no_results)
+                            else -> pluralStringResource(R.plurals.codex_count, shown.size, shown.size)
+                        },
                         color = AppColors.textSecondary,
                         fontSize = 13.sp,
                         modifier = Modifier.padding(vertical = 8.dp),

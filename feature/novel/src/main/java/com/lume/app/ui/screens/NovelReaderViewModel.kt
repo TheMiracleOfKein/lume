@@ -297,7 +297,7 @@ class NovelReaderViewModel(
         translation.currentChapterId = anchor.chapterId
         translation.start(loaded = { loaded }, anchorBlock = { anchor.block })
         book.listeningTransform = translation::forListening
-        load(anchor, explicit = savedChapter != null || routeHasTarget)
+        load(anchor, explicit = savedChapter != null || routeHasTarget, opening = true)
     }
 
     // ---- Read aloud -----------------------------------------------------------------------
@@ -340,16 +340,18 @@ class NovelReaderViewModel(
 
     /**
      * Opens [target]'s chapter as a fresh list. When [explicit] is false the chapter's own saved
-     * position is used, unless that chapter was finished (then it starts from the top).
+     * position is used, unless that chapter was finished (then it starts from the top). [opening] is
+     * the reader's first load (from Continue reading, the title or the chapter list): only then can
+     * a "Previously…" recap show.
      */
-    private fun load(target: NovelAnchor, explicit: Boolean) {
+    private fun load(target: NovelAnchor, explicit: Boolean, opening: Boolean = false) {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             loading = loaded.isEmpty()
             error = null
             runCatching {
                 // Before anything is saved for this visit: when the title was last read, for the recap.
-                val lastRead = if (explicit) null else dao.getProgress(sourceId, titleId)?.updatedAt
+                val lastRead = if (opening) dao.getProgress(sourceId, titleId)?.updatedAt else null
                 if (chapters.isEmpty()) loadTitle()
                 val ch = chapters.firstOrNull { it.id == target.chapterId }
                     ?: error(appString(R.string.error_chapter_not_found))

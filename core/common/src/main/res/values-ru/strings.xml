@@ -1473,7 +1473,7 @@
     </plurals>
     <string name="lookup_recent">Последние упоминания</string>
     <string name="lookup_coverage">Просмотрено глав: %1$d из %2$d до этого места</string>
-    <string name="lookup_not_found">В прочитанных главах не найдено</string>
+    <string name="lookup_not_found">В просмотренных главах не найдено</string>
     <string name="lookup_show_original">Показать оригинал</string>
     <string name="lookup_all_entries">Все записи</string>
     <string name="lookup_rebuild">Перестроить для этого тайтла</string>
