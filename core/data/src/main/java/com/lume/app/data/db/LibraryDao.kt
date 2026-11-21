@@ -261,6 +261,23 @@ interface LibraryDao {
     @Query("SELECT COUNT(*) AS blocks, COALESCE(SUM(LENGTH(text)), 0) AS chars FROM chapter_text")
     suspend fun textIndexSize(): TextIndexSize
 
+    /** A chapter's indexed text, block by block in order. */
+    @Query("SELECT block, text FROM chapter_text WHERE sourceId = :sourceId AND titleId = :titleId AND chapterId = :chapterId ORDER BY block")
+    suspend fun chapterBlocks(sourceId: String, titleId: String, chapterId: String): List<BlockText>
+
+    // AI chapter digests (rebuildable, not backed up)
+    @Query("SELECT * FROM chapter_digests WHERE sourceId = :sourceId AND titleId = :titleId AND lang = :lang AND chapterId IN (:chapterIds)")
+    suspend fun digests(sourceId: String, titleId: String, lang: String, chapterIds: List<String>): List<ChapterDigestEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertDigest(digest: ChapterDigestEntity)
+
+    @Query("DELETE FROM chapter_digests")
+    suspend fun deleteAllDigests()
+
+    @Query("SELECT COUNT(*) FROM chapter_digests")
+    suspend fun digestCount(): Int
+
     /** Per chapter: first and last block containing [query] (an FTS4 expression) and how many blocks do. */
     @Query(
         "SELECT t.chapterId AS chapterId, MIN(t.block) AS firstBlock, MAX(t.block) AS lastBlock, COUNT(*) AS hits " +

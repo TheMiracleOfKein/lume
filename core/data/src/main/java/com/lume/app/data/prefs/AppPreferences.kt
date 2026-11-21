@@ -274,6 +274,7 @@ class AppPreferences(
     private val translateLabelsKey = booleanPreferencesKey("translate_chapter_labels")
     private val storyIndexKey = booleanPreferencesKey("story_index")
     private val recapAfterHoursKey = intPreferencesKey("recap_after_hours")
+    private val aiRecapKey = booleanPreferencesKey("story_ai_recap")
     private val autoBackupDaysKey = intPreferencesKey("auto_backup_days")
     private val autoBackupKeepKey = intPreferencesKey("auto_backup_keep")
     private val folderScanHoursKey = intPreferencesKey("folder_scan_hours")
@@ -391,6 +392,16 @@ class AppPreferences(
 
     suspend fun setRecapAfterHours(value: Int) {
         context.appDataStore.edit { it[recapAfterHoursKey] = value }
+    }
+
+    /**
+     * AI recap: read chapters get a short digest from the AI translation service, and "Previously…"
+     * adds a summary of the story so far. Off by default: it sends chapter text to that service.
+     */
+    val aiRecap: StateFlow<Boolean> = state { it[aiRecapKey] ?: false }
+
+    suspend fun setAiRecap(value: Boolean) {
+        context.appDataStore.edit { it[aiRecapKey] = value }
     }
 
     suspend fun setIncognito(value: Boolean) {
