@@ -65,6 +65,7 @@ private fun StorySettings(vm: NovelReaderDefaultsViewModel) {
     val context = LocalContext.current
     val storyIndex by vm.storyIndex.collectAsState()
     val recapHours by vm.recapAfterHours.collectAsState()
+    val aiRecap by vm.aiRecap.collectAsState()
     var confirmClear by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) { vm.refreshIndexSize() }
     Spacer(Modifier.height(12.dp))
@@ -89,6 +90,14 @@ private fun StorySettings(vm: NovelReaderDefaultsViewModel) {
                 }
             }
             SettingsNote(stringResource(R.string.settings_story_recap_hint), Modifier.padding(top = 8.dp))
+        }
+        SettingItem("story_ai_recap") {
+            SwitchRow(
+                label = stringResource(R.string.settings_story_ai_recap),
+                hint = stringResource(R.string.settings_story_ai_recap_hint),
+                checked = aiRecap,
+                onCheckedChange = vm::setAiRecap,
+            )
         }
         SettingItem("story_index_clear") {
             vm.indexSize?.let { size ->
@@ -133,6 +142,11 @@ private const val BYTES_PER_CHAR = 2L
 internal class NovelReaderDefaultsViewModel(private val app: AppContainer) : ViewModel() {
     val storyIndex = app.prefs.storyIndex
     val recapAfterHours = app.prefs.recapAfterHours
+    val aiRecap = app.prefs.aiRecap
+
+    fun setAiRecap(on: Boolean) {
+        viewModelScope.launch { app.prefs.setAiRecap(on) }
+    }
 
     /** What the story index holds; null until read. */
     var indexSize by mutableStateOf<TextIndexSize?>(null)
@@ -153,6 +167,7 @@ internal class NovelReaderDefaultsViewModel(private val app: AppContainer) : Vie
     fun clearIndex() {
         viewModelScope.launch {
             app.dao.deleteAllText()
+            app.dao.deleteAllDigests()
             indexSize = app.dao.textIndexSize()
         }
     }

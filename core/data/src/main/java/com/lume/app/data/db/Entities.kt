@@ -385,6 +385,22 @@ data class ChapterTextEntity(
 @Fts4(contentEntity = ChapterTextEntity::class, tokenizer = FtsOptions.TOKENIZER_UNICODE61)
 data class ChapterTextFts(val text: String)
 
+/**
+ * A short AI-written digest of one chapter in [lang], for the AI recap and later story summaries.
+ * Made from the chapter's text only, so it never tells more than that chapter. [model] is the
+ * service and model that wrote it. Rebuildable, so not in backups or sync.
+ */
+@Entity(tableName = "chapter_digests", primaryKeys = ["sourceId", "titleId", "chapterId", "lang"])
+data class ChapterDigestEntity(
+    val sourceId: String,
+    val titleId: String,
+    val chapterId: String,
+    val lang: String,
+    val text: String,
+    val model: String,
+    val createdAt: Long,
+)
+
 /** A saved name of a title (character, place, ...) with the user's note. */
 @Entity(
     tableName = "codex_entries",

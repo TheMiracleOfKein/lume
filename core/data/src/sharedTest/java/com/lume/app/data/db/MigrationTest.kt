@@ -383,6 +383,22 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate20To21AddsChapterDigests() {
+        helper.createDatabase(dbName, 20).close()
+
+        val db = helper.runMigrationsAndValidate(dbName, 21, true, LumeDatabase.MIGRATION_20_21)
+
+        db.execSQL("INSERT INTO chapter_digests (sourceId, titleId, chapterId, lang, text, model, createdAt) VALUES ('s', 't', 'c1', 'ru', 'Кирито вошёл в лабиринт.', 'openrouter:auto', 7)")
+        db.execSQL("INSERT OR REPLACE INTO chapter_digests (sourceId, titleId, chapterId, lang, text, model, createdAt) VALUES ('s', 't', 'c1', 'ru', 'Новый текст.', 'openrouter:auto', 8)")
+        db.query("SELECT text, createdAt FROM chapter_digests").use {
+            assertEquals(1, it.count)
+            it.moveToFirst()
+            assertEquals("Новый текст.", it.getString(0))
+            assertEquals(8L, it.getLong(1))
+        }
+    }
+
+    @Test
     fun freshDatabaseOpensWithAllMigrations() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         helper.createDatabase(dbName, 7).close()

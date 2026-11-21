@@ -12,7 +12,12 @@ import com.lume.app.AppContainer
 import com.lume.app.R
 import com.lume.app.data.db.CodexEntryEntity
 import com.lume.app.data.db.TitlePrefsEntity
+import com.lume.app.data.story.AiRecap
+import com.lume.app.data.story.AiRecapState
 import com.lume.app.data.story.RecapParagraph
+import com.lume.app.llm.LlmClient
+import com.lume.app.translate.llmConfig
+import java.util.Locale
 import com.lume.app.data.story.StoryLookup
 import com.lume.app.data.story.StoryMention
 import com.lume.app.data.story.knownTerms
@@ -365,7 +370,7 @@ class NovelReaderViewModel(
                 }
                 Triple(chapter, start.copy(block = start.block.coerceIn(0, chapter.blocks.size - 1)), lastRead)
             }.onSuccess { (first, start, lastRead) ->
-                recap = null
+                dismissRecap()
                 translation.onListReset()
                 loaded = listOf(first)
                 items = buildNovelItems(loaded)
@@ -571,6 +576,64 @@ class NovelReaderViewModel(
 
     fun dismissRecap() {
         recap = null
+        aiRecapJob?.cancel()
+        aiRecap = null
+    }
+
+    private val aiRecapper = AiRecap(app, sourceId, titleId)
+
+    /** The AI summary shown above the recap's paragraphs; null when the AI recap is off or not set up. */
+    var aiRecap by mutableStateOf<AiRecapState?>(null)
+        private set
+    private var aiRecapJob: Job? = null
+
+    /** The language AI recaps are written in: the title's translation language, else the app's. */
+    private suspend fun recapLanguage(): String =
+        dao.getTitlePrefs(sourceId, titleId)?.novelTranslateTo ?: Locale.getDefault().language
+
+    /** A chapter's paragraphs in the original: from the story index, the loaded list, or loaded now. */
+    private suspend fun chapterText(chapter: Chapter): List<String>? {
+        val stored = dao.chapterBlocks(sourceId, titleId, chapter.id).map { it.text }
+        if (stored.isNotEmpty()) return stored
+        val lc = loaded.firstOrNull { it.chapter.id == chapter.id }
+            ?: runCatching { book.loadChapter(chapter) }.getOrNull()
+            ?: return null
+        return (lc.original ?: lc.blocks).mapNotNull { it.originalText() }
+    }
+
+    /** Starts the AI summary for a reader coming back to [start] in [first] (the AI recap setting). */
+    private fun startAiRecap(first: LoadedNovelChapter, start: NovelAnchor, current: List<String>) {
+        if (!app.prefs.aiRecap.value) return
+        val config = llmConfig(app) ?: return
+        val upto = if (start.fraction > 0f) start.block + 1 else start.block
+        val soFar = current.take(upto.coerceIn(0, current.size))
+        aiRecapJob?.cancel()
+        aiRecap = AiRecapState.Loading
+        aiRecapJob = viewModelScope.launch {
+            aiRecap = try {
+                aiRecapper.recap(LlmClient(app.http.okHttp, config), chapters, first.chapter, soFar, recapLanguage(), ::chapterText)
+                    ?.let { AiRecapState.Ready(it) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AiRecapState.Failed(e.message ?: e.toString())
+            }
+        }
+    }
+
+    /** A finished chapter gets its digest now, so the next recap only has to join digests. */
+    private fun digestFinished(chapterId: String) {
+        if (!app.prefs.aiRecap.value) return
+        val config = llmConfig(app) ?: return
+        val chapter = chapters.firstOrNull { it.id == chapterId } ?: return
+        val lc = loaded.firstOrNull { it.chapter.id == chapterId }
+        app.appScope.launch {
+            runCatching {
+                aiRecapper.digest(LlmClient(app.http.okHttp, config), chapter, recapLanguage()) {
+                    lc?.let { (it.original ?: it.blocks).mapNotNull { b -> b.originalText() } } ?: chapterText(chapter)
+                }
+            }
+        }
     }
 
     /**
@@ -590,7 +653,10 @@ class NovelReaderViewModel(
             if (tail.isNotEmpty()) paragraphs = recapBlocks(current, start.block, start.fraction, tail)
         }
         // The reader may have moved on or opened another chapter while this was read.
-        if (paragraphs.isNotEmpty() && currentChapterId == start.chapterId) recap = paragraphs
+        if (paragraphs.isNotEmpty() && currentChapterId == start.chapterId) {
+            recap = paragraphs
+            startAiRecap(first, start, current)
+        }
     }
 
     /** The last paragraphs of the chapter before [chapter]: from the story index, else from the chapter itself. */
@@ -625,6 +691,7 @@ class NovelReaderViewModel(
         // Left behind at its end: reopening it from the list starts from the top.
         val leftBehind = loaded.firstOrNull { it.chapter.id == chapterId }?.takeIf { it.chapter.id != anchor.chapterId }
         book.markRead(chapterId, chapters, leftBehind)
+        digestFinished(chapterId)
     }
 
     /** Save now, in a scope that survives this ViewModel (Back, stop, process going away). */
