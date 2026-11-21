@@ -286,6 +286,18 @@ The headphones button on the bottom bar reads the chapter aloud with Android's o
 - It needs no Google services: any installed engine works (Google, Samsung, RHVoice, eSpeak…). If the phone has none, Lume says so and opens Android's text-to-speech settings, where you can install one or download voices.
 - Paused for 10 minutes, read aloud turns itself off.
 
+### Translating chapters
+
+English titles (Royal Road, Scribble Hub, English books you imported) can be read in Russian. The translation is made on the phone, offline, with the open-source models Firefox uses. It needs no Google services and sends no chapter text anywhere.
+
+- Tap the translate button in the reader's top bar. The first time, it offers **Install Lume Translate**: a small separate app (about 8 MB) from the same Lume release. Android asks you to confirm the install. Only Lume can use it; it has no icon of its own.
+- Then **Download language pack** fetches the English → Russian model (about 24 MB) from Mozilla's model storage. After that, translation works without internet. **Delete language pack** frees the space again.
+- **Read in Russian** is saved for the title. The chapter appears in English first and turns into Russian from the paragraph you're on; the top bar shows how far it has got. Translated chapters are kept for a while, so going back is instant.
+- Long-press a paragraph to see the original. The original can be selected and copied, and **Add to glossary** adds a name or term from it.
+- **Glossary**: names and terms that must read the same in every chapter of this title, for example "Shirou → Широ" or "mana core → ядро маны". The glossary fixes the spelling; word endings stay as the translation has them. It is part of backups and sync.
+- Read aloud reads the translated text, with a Russian voice when the engine has one.
+- Machine translation makes mistakes, mostly with genders and slang. The original is a long press away.
+
 ### Progress and history
 
 Lume remembers the paragraph you stopped at, also after rotating the phone or when Android closes the app. **Continue reading** on the title and in History opens the book at that place. A book in History opens in the text reader straight after a start of the app.

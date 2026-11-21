@@ -22,6 +22,8 @@ Lume connects only to these services, and only when you use the feature:
 | Lume starts (**Check for updates automatically** is on by default; Settings → About) or you tap **Check for updates** | api.github.com (the releases of TheMiracleOfKein/lume) | One request for the latest release, at most once every 6 hours when automatic. It carries Lume's name and version, like a browser's user agent, and no account or library data. Turn the setting off and Lume checks only when you tap the button. |
 | You tap **Download** on an update | github.com (the release assets of TheMiracleOfKein/lume; GitHub may pass the file on to its own download servers) | A request for the APK. Lume checks its size and checksum before it offers to install it. |
 | You check packs for updates | raw.githubusercontent.com (or the catalogue address you set) | A request for the pack catalogue. |
+| You tap **Install Lume Translate** in the text reader's translation sheet | api.github.com and github.com (the releases of TheMiracleOfKein/lume) | The same requests as an update: the latest release, then the add-on's APK, checked by size and checksum before Android's installer opens. |
+| You download a language pack in the translation sheet | storage.googleapis.com (Mozilla's Firefox Translations model storage) | Requests for the model files of that language pair, made by the Lume Translate add-on. They carry no account or library data. Each file is checked against a checksum fixed in the add-on. Translating itself happens on the phone; chapter text never leaves it. |
 
 Each of these services has its own privacy policy.
 
@@ -37,7 +39,9 @@ Each of these services has its own privacy policy.
 - **Internet, network state:** to load sources and check whether you are online.
 - **Local network** (Android 17 and later): to reach a server on your home network, and for sending downloads to a nearby phone. Android asks the first time you use either.
 - **Notifications:** library updates and download progress.
-- **Install packages:** only to install a Lume update that you downloaded, when you tap install. Android then asks you to confirm. Lume installs nothing by itself and nothing else.
+- **Install packages:** only to install a Lume update or the Lume Translate add-on that you downloaded, when you tap install. Android then asks you to confirm. Lume installs nothing by itself and nothing else.
 - **Foreground service (data sync):** downloads keep running while the app is in the background.
+
+The optional **Lume Translate** add-on is a separate app with one permission, internet, used only for language pack downloads. Only apps signed with Lume's key can use its translation service.
 
 Lume doesn't ask for storage, contacts, location, camera or microphone access. Files are picked through the Android file picker.
