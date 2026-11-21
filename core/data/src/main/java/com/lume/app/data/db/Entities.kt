@@ -401,6 +401,26 @@ data class ChapterDigestEntity(
     val createdAt: Long,
 )
 
+/**
+ * How [fromName] relates to [toName] in a title ("sister", "member of", "rival"), as the AI saw
+ * it reading up to [upToChapterId]. By name rather than entry id, so it survives an entry being
+ * renamed or saved again, and [toName] may be a name the codex doesn't have yet. Shown only to a
+ * reader at or after [upToChapterId]. Rebuildable, so not in backups or sync.
+ */
+@Entity(tableName = "codex_relations", indices = [Index("sourceId", "titleId")])
+data class CodexRelationEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val sourceId: String,
+    val titleId: String,
+    val fromName: String,
+    val toName: String,
+    val label: String,
+    val upToChapterId: String,
+    /** `llm:<service>:<model>`. */
+    val origin: String,
+    val createdAt: Long,
+)
+
 /** A saved name of a title (character, place, ...) with the user's note. */
 @Entity(
     tableName = "codex_entries",

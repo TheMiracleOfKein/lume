@@ -1555,6 +1555,17 @@
     <string name="recap_ai_label">Сюжет до сих пор (ИИ)</string>
     <string name="recap_last_paragraphs">Где вы остановились</string>
     <string name="recap_ai_failed">Нет ИИ-пересказа: %1$s</string>
+    <string name="codex_summarize">Описать с помощью ИИ</string>
+    <string name="codex_summarize_again">Обновить описание до этого места</string>
+    <string name="codex_summary_writing">Пишу описание по прочитанному…</string>
+    <string name="codex_summary_label">Описание (ИИ)</string>
+    <string name="codex_summary_label_upto">Описание (ИИ), до «%1$s»</string>
+    <string name="codex_summary_hidden">Есть описание из дальнейших глав. Здесь оно скрыто, чтобы не было спойлеров.</string>
+    <string name="codex_summary_failed">Нет описания: %1$s</string>
+    <string name="codex_relations">Связи (ИИ)</string>
+    <string name="codex_relation">%1$s: %2$s</string>
+    <string name="codex_relation_reverse">%2$s для: %1$s</string>
+    <string name="codex_relation_remove">Убрать связь</string>
     <string name="settings_story_index_cleared">Индекс сюжета очищен</string>
     <string name="settings_kw_story">имена, персонажи, поиск, икс-рэй, кодекс, ранее, напоминание, пересказ</string>
 </resources>

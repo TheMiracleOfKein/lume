@@ -1492,6 +1492,17 @@
     <string name="recap_ai_label">The story so far (AI)</string>
     <string name="recap_last_paragraphs">Where you stopped</string>
     <string name="recap_ai_failed">No AI summary: %1$s</string>
+    <string name="codex_summarize">Summarize with AI</string>
+    <string name="codex_summarize_again">Update summary up to here</string>
+    <string name="codex_summary_writing">Writing a summary from what you’ve read…</string>
+    <string name="codex_summary_label">Summary (AI)</string>
+    <string name="codex_summary_label_upto">Summary (AI), up to “%1$s”</string>
+    <string name="codex_summary_hidden">There is a summary from further on in the story. It stays hidden here so it can’t spoil anything.</string>
+    <string name="codex_summary_failed">No summary: %1$s</string>
+    <string name="codex_relations">Relations (AI)</string>
+    <string name="codex_relation">%1$s: %2$s</string>
+    <string name="codex_relation_reverse">%2$s of %1$s</string>
+    <string name="codex_relation_remove">Remove relation</string>
     <string name="settings_story_index_cleared">Story index cleared</string>
     <string name="settings_kw_story">names, characters, lookup, x-ray, codex, previously, recap, summary</string>
 </resources>

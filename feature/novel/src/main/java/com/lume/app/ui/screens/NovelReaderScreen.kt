@@ -313,6 +313,8 @@ fun NovelReaderScreen(
                 loadContext = vm::mentionContext,
                 onSaveCodex = vm::saveCodex,
                 onDeleteCodex = vm::deleteCodex,
+                onSummarize = vm::summarizeEntry,
+                onDeleteRelation = vm::deleteRelation,
                 onShowOriginal = state.original?.let { text ->
                     {
                         vm.dismissLookup()

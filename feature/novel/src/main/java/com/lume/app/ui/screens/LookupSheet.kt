@@ -20,6 +20,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
@@ -57,6 +58,7 @@ import com.lume.app.R
 import com.lume.app.data.db.BlockText
 import com.lume.app.data.db.CodexEntryEntity
 import com.lume.app.data.db.CodexEntryWithAliases
+import com.lume.app.data.db.CodexRelationEntity
 import com.lume.app.data.story.AiRecapState
 import com.lume.app.data.story.RecapParagraph
 import com.lume.app.data.story.StoryContext
@@ -77,6 +79,22 @@ data class LookupState(
     val busy: Boolean,
     val context: StoryContext?,
     val original: String?,
+    /** AI notes on the found codex entry; null when the term has no entry. */
+    val knowledge: CodexKnowledge? = null,
+)
+
+/**
+ * The AI part of a codex entry for a reader at the lookup spot. [summary] and [relations] are only
+ * what was written up to this spot; [summaryHidden] says there is one from further on.
+ */
+data class CodexKnowledge(
+    val summary: String?,
+    val summaryChapter: String?,
+    val summaryHidden: Boolean,
+    val relations: List<CodexRelationEntity>,
+    val canSummarize: Boolean,
+    val busy: Boolean = false,
+    val error: String? = null,
 )
 
 /**
@@ -94,6 +112,8 @@ internal fun LookupSheet(
     onShowOriginal: (() -> Unit)?,
     onAllEntries: () -> Unit,
     onRebuild: () -> Unit,
+    onSummarize: () -> Unit = {},
+    onDeleteRelation: (CodexRelationEntity) -> Unit = {},
 ) {
     val context = state.context
     var field by rememberSaveable(state.term) { mutableStateOf(state.term) }
@@ -174,7 +194,7 @@ internal fun LookupSheet(
         if (!state.busy) {
             val entry = context?.codexEntry
             if (entry != null) {
-                CodexCard(entry, onEdit = { editing = true })
+                CodexCard(entry, state.knowledge, onEdit = { editing = true }, onSummarize = onSummarize, onDeleteRelation = onDeleteRelation)
             } else {
                 TextButton(onClick = { editing = true }) { Text(stringResource(R.string.lookup_codex_save)) }
             }
@@ -236,7 +256,13 @@ internal fun LookupSheet(
 }
 
 @Composable
-private fun CodexCard(entry: CodexEntryWithAliases, onEdit: () -> Unit) {
+private fun CodexCard(
+    entry: CodexEntryWithAliases,
+    knowledge: CodexKnowledge?,
+    onEdit: () -> Unit,
+    onSummarize: () -> Unit,
+    onDeleteRelation: (CodexRelationEntity) -> Unit,
+) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -264,7 +290,56 @@ private fun CodexCard(entry: CodexEntryWithAliases, onEdit: () -> Unit) {
             Text(entry.aliases.joinToString(", ") { it.alias }, color = AppColors.textSecondary, fontSize = 13.sp)
         }
         entry.entry.note?.let { Text(it, color = AppColors.textPrimary, fontSize = 14.sp) }
+        if (knowledge != null) CodexKnowledgePart(entry.entry.name, knowledge, onSummarize, onDeleteRelation)
     }
+}
+
+/** The AI summary and relations of a codex entry, with the button that writes them. */
+@Composable
+private fun CodexKnowledgePart(
+    name: String,
+    k: CodexKnowledge,
+    onSummarize: () -> Unit,
+    onDeleteRelation: (CodexRelationEntity) -> Unit,
+) {
+    k.summary?.let {
+        Text(
+            k.summaryChapter?.let { c -> stringResource(R.string.codex_summary_label_upto, c) } ?: stringResource(R.string.codex_summary_label),
+            color = AppColors.textTertiary,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+        Text(it, color = AppColors.textPrimary, fontSize = 14.sp, lineHeight = 20.sp)
+    }
+    if (k.summaryHidden && k.summary == null) {
+        Text(stringResource(R.string.codex_summary_hidden), color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+    }
+    if (k.relations.isNotEmpty()) {
+        Text(stringResource(R.string.codex_relations), color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+        k.relations.forEach { r ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val line = if (r.fromName.equals(name, true)) {
+                    stringResource(R.string.codex_relation, r.toName, r.label)
+                } else {
+                    stringResource(R.string.codex_relation_reverse, r.fromName, r.label)
+                }
+                Text(line, color = AppColors.textPrimary, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                IconButton(onClick = { onDeleteRelation(r) }) {
+                    Icon(Icons.Outlined.Close, stringResource(R.string.codex_relation_remove), tint = AppColors.textTertiary)
+                }
+            }
+        }
+    }
+    when {
+        k.busy -> {
+            Text(stringResource(R.string.codex_summary_writing), color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+        }
+        k.canSummarize -> TextButton(onClick = onSummarize) {
+            Text(stringResource(if (k.summary == null) R.string.codex_summarize else R.string.codex_summarize_again))
+        }
+    }
+    k.error?.let { Text(stringResource(R.string.codex_summary_failed, it), color = AppColors.textTertiary, fontSize = 12.sp) }
 }
 
 /**

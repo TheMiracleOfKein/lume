@@ -314,6 +314,7 @@ After a break (Settings → Reader → **"Previously…" recap**: after 6 hours,
 - **AI recap** (Settings → Reader, off by default) adds **The story so far**: a short summary written by the AI service you set up in the translation sheet ("AI (your key)"), in the title's translation language or else the app's language.
 - For it, each chapter you finish gets a brief summary from that service, stored on the phone. "Previously…" joins the summaries of the last four chapters with the text of the current chapter up to your spot, so it never tells what comes after. A chapter without a summary yet gets one when the recap is made.
 - Chapter text is sent to the AI service for this. Nothing is sent in incognito. **Clear story index** also removes the stored summaries.
+- **Summarize with AI** on a saved name in the lookup sheet (long press on a name) describes the character, place or organization and lists its relations to other names. Everything comes from what you have read up to that spot. Someone reading further back never sees it: a summary from further on stays hidden and can be written again up to where you are. Relations can be removed one by one. It uses the same AI service.
 
 ### Progress and history
 
