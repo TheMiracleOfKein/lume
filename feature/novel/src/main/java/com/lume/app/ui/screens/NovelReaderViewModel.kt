@@ -14,6 +14,10 @@ import com.lume.app.data.db.CodexEntryEntity
 import com.lume.app.data.db.TitlePrefsEntity
 import com.lume.app.data.story.AiRecap
 import com.lume.app.data.story.AiRecapState
+import com.lume.app.data.story.StoryKnowledge
+import com.lume.app.data.story.visibleAt
+import com.lume.app.data.db.CodexEntryWithAliases
+import com.lume.app.data.db.CodexRelationEntity
 import com.lume.app.data.story.RecapParagraph
 import com.lume.app.llm.LlmClient
 import com.lume.app.translate.llmConfig
@@ -528,7 +532,59 @@ class NovelReaderViewModel(
                 dao.glossaryOnce(sourceId, titleId), dao.codexOnce(sourceId, titleId),
             )
         }.getOrElse { if (it is CancellationException) throw it else null }
-        lookupState = LookupState(term, busy = false, context = result, original = original)
+        val knowledge = result?.codexEntry?.let { codexKnowledge(it) }
+        lookupState = LookupState(term, busy = false, context = result, original = original, knowledge = knowledge)
+    }
+
+    private val storyKnowledge = StoryKnowledge(app, sourceId, titleId)
+
+    /** The AI summary and relations of [entry] that a reader at the lookup spot may see. */
+    private suspend fun codexKnowledge(entry: CodexEntryWithAliases): CodexKnowledge {
+        val at = lookupAnchor.chapterId
+        val e = entry.entry
+        val summaryVisible = e.summary != null && visibleAt(e.summaryUpToChapterId, chapters, at)
+        val relations = dao.relationsOf(sourceId, titleId, e.name).filter { visibleAt(it.upToChapterId, chapters, at) }
+        return CodexKnowledge(
+            summary = e.summary.takeIf { summaryVisible },
+            summaryChapter = chapters.firstOrNull { it.id == e.summaryUpToChapterId }?.title?.takeIf { summaryVisible },
+            summaryHidden = e.summary != null && !summaryVisible,
+            relations = relations,
+            canSummarize = !app.prefs.incognito.value && llmConfig(app) != null,
+        )
+    }
+
+    /** Writes the looked-up codex entry's AI summary and relations from what was read up to the lookup spot. */
+    fun summarizeEntry() {
+        val state = lookupState ?: return
+        val context = state.context ?: return
+        val entry = context.codexEntry ?: return
+        val config = llmConfig(app) ?: return
+        val current = chapters.firstOrNull { it.id == lookupAnchor.chapterId } ?: return
+        lookupJob?.cancel()
+        lookupJob = viewModelScope.launch {
+            lookupState = state.copy(knowledge = state.knowledge?.copy(busy = true, error = null))
+            val error = try {
+                storyKnowledge.summarize(
+                    LlmClient(app.http.okHttp, config), entry, dao.codexOnce(sourceId, titleId), chapters, current,
+                    listOfNotNull(context.firstMention) + context.recentMentions, recapLanguage(), ::chapterText,
+                )
+                null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                e.message ?: e.toString()
+            }
+            search(state.term, state.original)
+            if (error != null) lookupState = lookupState?.let { it.copy(knowledge = it.knowledge?.copy(error = error)) }
+        }
+    }
+
+    fun deleteRelation(relation: CodexRelationEntity) {
+        val term = lookupState?.term ?: return
+        viewModelScope.launch {
+            dao.deleteRelation(relation.id)
+            lookupTerm(term)
+        }
     }
 
     /** The paragraphs around a mention, for expanding its snippet. */
