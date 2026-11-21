@@ -254,6 +254,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v1.7.0: chapter translation** ✅ released 2026-11-21 ([notes](releases/v1.7.0.md), [device check](releases/v1.7.0-check.md)): English chapters read in Russian and Russian ones in English, with Google Translate, DeepL (own key) or offline on the phone through the Lume Translate add-on (Firefox Translations models); the original on a long press; a per-title glossary with its own screen, in backups and sync; read aloud goes on in the translation.
 
+**v1.8.0: story lookup** ([notes](releases/v1.8.0.md), [device check](releases/v1.8.0-check.md)): a long press on a name shows where it first appeared and its latest mentions, offline and without spoilers, from an on-device index of read and downloaded chapters; a per-title codex of names with notes and other spellings (in backups); a "Previously…" recap after a break.
+
 **v1.6.0: read aloud** ✅ released 2026-11-21 ([notes](releases/v1.6.0.md), [device check](releases/v1.6.0-check.md)): the text reader reads chapters aloud with Android's text-to-speech, on to the next chapter, with the screen off and from the notification and lock screen; the spoken sentence is highlighted and followed; speed, voice, engine and a sleep timer.
 
 **v1.5.6: guided zoom fix** ✅ released 2026-11-21 ([notes](releases/v1.5.6.md), [device check](releases/v1.5.6-check.md)): with guided panel view on, a page you arrive on (going back, seekbar jump) shows whole instead of zoomed into the panel last seen.
