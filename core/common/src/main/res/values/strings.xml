@@ -1381,6 +1381,36 @@
     <string name="translate_deepl_key">DeepL API key</string>
     <string name="translate_deepl_key_about">Create a free DeepL API account at deepl.com/pro-api and paste its key here. It is stored encrypted on this phone and is never part of backups.</string>
     <string name="translate_deepl_key_saved">A key is saved. Enter another one to replace it.</string>
+    <string name="translate_engine_llm">AI (your key)</string>
+    <string name="translate_engine_llm_hint">Online, with a language model and your own key: OpenRouter, OpenAI, DeepSeek, Gemini or your own server. Best for names and style; it costs what the service charges. Chapter text is sent to the service you pick.</string>
+    <string name="translate_needs_llm">Set up the AI service below first: a key and a model.</string>
+    <string name="translate_llm_about">Pick a service and paste its API key. OpenRouter gives one key for many models. The key is stored encrypted on this phone and is never part of backups or sync.</string>
+    <string name="translate_llm_custom">Other (URL)</string>
+    <string name="translate_llm_url">API address (OpenAI-compatible)</string>
+    <string name="translate_llm_model">Model</string>
+    <string name="translate_llm_choose">Choose…</string>
+    <string name="translate_llm_choose_title">Choose a model</string>
+    <string name="translate_llm_key">API key</string>
+    <string name="translate_llm_key_none">No key is saved for this service yet.</string>
+    <string name="translate_llm_key_saved">A key is saved for this service. Enter another one to replace it.</string>
+    <string name="translate_llm_get_key">Get a key at openrouter.ai</string>
+    <string name="translate_llm_free">Free</string>
+    <string name="translate_llm_price">$%1$s in / $%2$s out per million tokens</string>
+    <string name="translate_style">Style note</string>
+    <string name="translate_style_hint">For this title only, for example: “keep -san and -sama”, “informal tone between the friends”. AI translation follows it.</string>
+    <string name="translate_again">Translate this chapter again</string>
+    <plurals name="glossary_suggested_waiting">
+        <item quantity="one">AI translation suggested %d new name: check it in the glossary.</item>
+        <item quantity="other">AI translation suggested %d new names: check them in the glossary.</item>
+    </plurals>
+    <plurals name="glossary_suggested_title">
+        <item quantity="one">Suggested (%d)</item>
+        <item quantity="other">Suggested (%d)</item>
+    </plurals>
+    <string name="glossary_suggested_hint">Names AI translation met for the first time, with the translation it used. They are already used, so every chapter writes them the same way. Accept, edit or reject them; accepted characters, places, groups and items are added to the codex too.</string>
+    <string name="glossary_accept">Accept</string>
+    <string name="glossary_accept_all">Accept all</string>
+    <string name="glossary_reject">Reject</string>
     <string name="glossary_open">Open glossary</string>
     <plurals name="glossary_open_count">
         <item quantity="one">Open glossary (%d term)</item>

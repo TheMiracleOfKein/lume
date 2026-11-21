@@ -30,11 +30,17 @@ class ChapterTranslator(private val context: Context) {
     suspend fun cached(blocks: List<NovelBlock>, route: TranslationRoute, glossary: List<GlossaryEntry>): List<NovelBlock>? =
         withContext(Dispatchers.IO) {
             val file = cacheFile(blocks, route, glossary)
-            val raw = runCatching { json.decodeFromString(listSerializer, file.readText()) }.getOrNull() ?: return@withContext null
-            if (raw.size != blocks.size) return@withContext null
+            val stored = runCatching { json.decodeFromString(listSerializer, file.readText()) }.getOrNull() ?: return@withContext null
+            if (stored.size != blocks.size) return@withContext null
             file.setLastModified(System.currentTimeMillis())
+            val raw = if (route.provider.glossaryInCacheKey) stored else stored.map { it?.let { h -> TranslationMarkup.sourcesToMarks(h, glossary) } }
             render(blocks, raw, glossary)
         }
+
+    /** Drops this chapter's cached translation, so the next [translate] asks the engine again. */
+    suspend fun forget(blocks: List<NovelBlock>, route: TranslationRoute, glossary: List<GlossaryEntry>) {
+        withContext(Dispatchers.IO) { cacheFile(blocks, route, glossary).delete() }
+    }
 
     /**
      * Translates [blocks], nearest [start] first so the screen fills before the rest. [onPartial]
@@ -53,7 +59,7 @@ class ChapterTranslator(private val context: Context) {
         val order = readingOrderFrom(start.coerceIn(0, (blocks.size - 1).coerceAtLeast(0)), blocks.size).filter { inputs[it] != null }
         val current = blocks.toMutableList()
         var done = 0
-        for (run in runs(order, inputs)) {
+        for (run in runs(order, inputs, route.provider.firstRunChars, route.provider.runChars)) {
             val out = route.provider.translate(route.from, route.to, run.map { inputs[it]!! })
             run.forEachIndexed { k, i ->
                 raw[i] = out[k]
@@ -64,7 +70,8 @@ class ChapterTranslator(private val context: Context) {
         }
         withContext(Dispatchers.IO) {
             runCatching {
-                cacheFile(blocks, route, glossary).writeText(json.encodeToString(listSerializer, raw.toList()))
+                val stored = if (route.provider.glossaryInCacheKey) raw.toList() else raw.map { it?.let { h -> TranslationMarkup.marksToSources(h, glossary) } }
+                cacheFile(blocks, route, glossary).writeText(json.encodeToString(listSerializer, stored))
                 trimCache()
             }
         }
@@ -81,7 +88,8 @@ class ChapterTranslator(private val context: Context) {
         add("v1")
         add(route.provider.cacheId)
         add("${route.from}>${route.to}")
-        glossary.forEach { add(it.source.trim().lowercase()) }
+        // Engines that add terms themselves keep their cache when the glossary grows.
+        if (route.provider.glossaryInCacheKey) glossary.forEach { add(it.source.trim().lowercase()) }
         add("|")
         blocks.forEach { b ->
             when (b) {
@@ -107,22 +115,16 @@ class ChapterTranslator(private val context: Context) {
 
     private companion object {
         const val MAX_CACHED = 300
-
-        /** The first engine call: about a screen of text, so reading can start soon. */
-        const val FIRST_RUN_CHARS = 1_000
-
-        /** Later calls: larger, fewer round trips. */
-        const val RUN_CHARS = 3_000
     }
 
-    /** Consecutive pieces of [order]: a short first one, then about [RUN_CHARS] characters each. */
-    private fun runs(order: List<Int>, inputs: List<String?>): List<List<Int>> {
+    /** Consecutive pieces of [order]: a short first one ([firstChars]), then about [runChars] characters each. */
+    private fun runs(order: List<Int>, inputs: List<String?>, firstChars: Int, runChars: Int): List<List<Int>> {
         val out = mutableListOf<List<Int>>()
         var current = mutableListOf<Int>()
         var size = 0
         for (i in order) {
             val len = inputs[i]!!.length
-            val limit = if (out.isEmpty()) FIRST_RUN_CHARS else RUN_CHARS
+            val limit = if (out.isEmpty()) firstChars else runChars
             if (current.isNotEmpty() && size + len > limit) {
                 out += current
                 current = mutableListOf()

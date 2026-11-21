@@ -98,6 +98,7 @@ fun TranslateSheet(translation: ReaderTranslation, onOpenGlossary: () -> Unit, o
                     TranslationBlocker.AddonMissing -> stringResource(R.string.translate_needs_addon)
                     TranslationBlocker.PackMissing -> stringResource(R.string.translate_needs_pack)
                     TranslationBlocker.NoDeepLKey -> stringResource(R.string.translate_needs_deepl_key)
+                    TranslationBlocker.NoLlmSetup -> stringResource(R.string.translate_needs_llm)
                 },
                 checked = translation.target == to,
                 onCheckedChange = { on ->
@@ -136,6 +137,11 @@ fun TranslateSheet(translation: ReaderTranslation, onOpenGlossary: () -> Unit, o
             hint = stringResource(R.string.translate_engine_deepl_hint),
             selected = engine == TranslationEngine.DeepL,
         ) { translation.setEngine(TranslationEngine.DeepL) }
+        EngineRow(
+            title = stringResource(R.string.translate_engine_llm),
+            hint = stringResource(R.string.translate_engine_llm_hint),
+            selected = engine == TranslationEngine.Llm,
+        ) { translation.setEngine(TranslationEngine.Llm) }
 
         when (engine) {
             TranslationEngine.Offline -> when (val a = addon) {
@@ -159,6 +165,13 @@ fun TranslateSheet(translation: ReaderTranslation, onOpenGlossary: () -> Unit, o
                 }
             }
             TranslationEngine.DeepL -> DeepLKey(saved = deeplKey, onSave = translation::setDeepLKey)
+            TranslationEngine.Llm -> {
+                LlmSetup(onSave = translation::setLlmService)
+                StyleNote(saved = translation.style, onSave = translation::setStyleNote)
+                if (translation.target != null) {
+                    TextButton(onClick = translation::translateCurrentAgain) { Text(stringResource(R.string.translate_again)) }
+                }
+            }
             TranslationEngine.Google, null -> Unit
         }
 
@@ -169,6 +182,9 @@ fun TranslateSheet(translation: ReaderTranslation, onOpenGlossary: () -> Unit, o
             val n = translation.glossary.size
             Text(if (n == 0) stringResource(R.string.glossary_open) else pluralStringResource(R.plurals.glossary_open_count, n, n))
         }
+        translation.suggestedCount.takeIf { it > 0 }?.let { n ->
+            Hint(pluralStringResource(R.plurals.glossary_suggested_waiting, n, n))
+        }
         GlossaryAdd(onAdd = translation::addTerm)
     }
     // Keeps the add-on updater alive with the sheet.
@@ -176,7 +192,7 @@ fun TranslateSheet(translation: ReaderTranslation, onOpenGlossary: () -> Unit, o
 }
 
 @Composable
-private fun Hint(text: String) {
+internal fun Hint(text: String) {
     Text(text, color = AppColors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(vertical = 6.dp))
 }
 
