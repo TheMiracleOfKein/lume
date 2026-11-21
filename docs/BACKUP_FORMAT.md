@@ -43,7 +43,7 @@ loads one saved sample file per version from `core/data/src/test/resources/backu
 | `settings` | list | 3 | App settings. |
 | `titleSources` | list | 4 | Other sources of a title. |
 | `readingSessions` | list | 5 | Reading time for the statistics. |
-| `glossaryTerms` | list | 6 | Per-title glossary of the on-device translation. |
+| `glossaryTerms` | list | 6 | Per-title glossary of chapter translation. |
 
 Every list may be missing or empty. A title is always named by `sourceId` (Lume's source id, for
 example `mangadex`) and `titleId` (the source's own id for the title). A chapter adds `chapterId`.
@@ -127,7 +127,7 @@ A small version 6 file:
 | 3 | settings in backups | `settings` |
 | 4 | several sources per title | `titleSources` |
 | 5 | v0.9.6 | `readingSessions` |
-| 6 | on-device translation | `glossaryTerms`, `titlePrefs.novelTranslateTo` |
+| 6 | v1.7.0 | `glossaryTerms`, `titlePrefs.novelTranslateTo` |
 
 Some optional fields inside the lists (for example `titlePrefs.branch`, `showDuplicates` and
 `autoDownload`) came between version bumps. Following rule 1, older files without them load with
