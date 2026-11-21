@@ -252,7 +252,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
-**v1.6.0: read aloud** ([notes](releases/v1.6.0.md), [device check](releases/v1.6.0-check.md)): the text reader reads chapters aloud with Android's text-to-speech, on to the next chapter, with the screen off and from the notification and lock screen; the spoken sentence is highlighted and followed; speed, voice, engine and a sleep timer.
+**v1.6.0: read aloud** ✅ released 2026-11-21 ([notes](releases/v1.6.0.md), [device check](releases/v1.6.0-check.md)): the text reader reads chapters aloud with Android's text-to-speech, on to the next chapter, with the screen off and from the notification and lock screen; the spoken sentence is highlighted and followed; speed, voice, engine and a sleep timer.
 
 **v1.5.6: guided zoom fix** ✅ released 2026-11-21 ([notes](releases/v1.5.6.md), [device check](releases/v1.5.6-check.md)): with guided panel view on, a page you arrive on (going back, seekbar jump) shows whole instead of zoomed into the panel last seen.
 
