@@ -123,8 +123,8 @@ internal fun NovelPagedText(
     bottomPad: Dp,
     onTapCentre: () -> Unit,
     onTurned: () -> Unit,
-    /** A block was long-pressed (chapter id, block index). */
-    onLongPress: (String, Int) -> Unit = { _, _ -> },
+    /** A block was long-pressed (chapter id, block index, character offset in the block's text or null). */
+    onLongPress: (String, Int, Int?) -> Unit = { _, _, _ -> },
 ) {
     val settings = vm.settings
     val items = vm.items
@@ -171,6 +171,9 @@ internal fun NovelPagedText(
         val pagerState = rememberPagerState { currentPages.size }
         val currentMeasures by rememberUpdatedState(measures)
         val currentItems by rememberUpdatedState(items)
+        val currentRows by rememberUpdatedState(rows)
+        val currentTextWidth by rememberUpdatedState(textWidth)
+        val currentSidePx by rememberUpdatedState(sidePx)
         var restored by remember(session) { mutableStateOf(false) }
 
         // A new chapter list, other text settings, another screen size or text translated in place:
@@ -239,8 +242,20 @@ internal fun NovelPagedText(
                     detectTapGestures(
                         onLongPress = { at ->
                             val page = currentPages.getOrNull(pagerState.currentPage) ?: return@detectTapGestures
-                            val item = sliceAt(page, currentMeasures, at.y - pageTop.toPx())
-                            (currentItems.getOrNull(item ?: -1) as? NovelItem.Block)?.let { onLongPress(it.chapterId, it.index) }
+                            val hit = sliceHit(page, currentMeasures, at.y - pageTop.toPx()) ?: return@detectTapGestures
+                            val block = currentItems.getOrNull(hit.item) as? NovelItem.Block ?: return@detectTapGestures
+                            // The page measured this row at the text width; measuring it again the same way
+                            // gives the layout the slice was cut from, so the press maps to the block's text.
+                            val row = currentRows.getOrNull(hit.item) as? PagedRow.Text
+                            val offset = row?.let {
+                                val layout = measurer.measure(
+                                    it.text, it.style,
+                                    constraints = Constraints(minWidth = currentTextWidth, maxWidth = currentTextWidth),
+                                    density = density,
+                                )
+                                characterAt(layout, at.x - currentSidePx, hit.yInText)
+                            }
+                            onLongPress(block.chapterId, block.index, offset)
                         },
                     ) { tap ->
                         val third = size.width / 3f
