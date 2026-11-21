@@ -20,6 +20,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.selected
@@ -134,6 +135,7 @@ fun LumeRoot(contentScreens: List<ContentScreens> = emptyList()) {
     val nav = rememberNavController()
     var challengeUri by remember { mutableStateOf<URI?>(null) }
     val http = LocalAppContainer.current.http
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         http.challengeRequests.collect { challengeUri = it }
@@ -146,7 +148,14 @@ fun LumeRoot(contentScreens: List<ContentScreens> = emptyList()) {
             CloudflareChallengeOverlay(
                 uri = uri,
                 onDismiss = { challengeUri = null },
-                onSolved = { challengeUri = null },
+                onSolved = {
+                    challengeUri = null
+                    // Reload the catalogue only after the overlay (and its WebView) left composition.
+                    scope.launch {
+                        withFrameNanos { }
+                        http.syncWebViewCookies(uri.toString())
+                    }
+                },
             )
         }
     }
