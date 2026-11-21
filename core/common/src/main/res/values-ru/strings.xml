@@ -1548,7 +1548,13 @@
     <string name="settings_story_recap_3d">Через 3 дня</string>
     <string name="settings_story_index_size">Индекс сюжета: блоков %1$d, около %2$s</string>
     <string name="settings_story_index_clear">Очистить индекс сюжета</string>
-    <string name="settings_story_index_clear_hint">Удаляет сохранённый текст глав. Он восстановится по мере чтения. Сохранённые имена кодекса останутся.</string>
+    <string name="settings_story_index_clear_hint">Удаляет сохранённый текст глав и ИИ-пересказы глав. Они восстановятся по мере чтения. Сохранённые имена кодекса останутся.</string>
+    <string name="settings_story_ai_recap">ИИ-пересказ</string>
+    <string name="settings_story_ai_recap_hint">Добавляет в «Ранее…» краткий пересказ сюжета. Каждая дочитанная глава получает короткий пересказ от ИИ-сервиса, настроенного в листе перевода, поэтому её текст отправляется туда. Используются только главы до вашего места. Не в режиме инкогнито.</string>
+    <string name="recap_ai_writing">Пишу пересказ…</string>
+    <string name="recap_ai_label">Сюжет до сих пор (ИИ)</string>
+    <string name="recap_last_paragraphs">Где вы остановились</string>
+    <string name="recap_ai_failed">Нет ИИ-пересказа: %1$s</string>
     <string name="settings_story_index_cleared">Индекс сюжета очищен</string>
     <string name="settings_kw_story">имена, персонажи, поиск, икс-рэй, кодекс, ранее, напоминание, пересказ</string>
 </resources>

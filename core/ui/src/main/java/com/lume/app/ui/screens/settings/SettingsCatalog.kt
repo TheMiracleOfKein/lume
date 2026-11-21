@@ -110,6 +110,7 @@ object SettingsCatalog {
         SettingInfo("novel_theme", SettingsPage.Reader, R.string.novel_theme, keywordsRes = R.string.settings_kw_novel_theme, modes = NOVEL_ONLY),
         SettingInfo("story_index", SettingsPage.Reader, R.string.settings_story_index, R.string.settings_story_index_hint, R.string.settings_kw_story, modes = NOVEL_ONLY),
         SettingInfo("story_recap", SettingsPage.Reader, R.string.settings_story_recap, R.string.settings_story_recap_hint, R.string.settings_kw_story, modes = NOVEL_ONLY),
+        SettingInfo("story_ai_recap", SettingsPage.Reader, R.string.settings_story_ai_recap, R.string.settings_story_ai_recap_hint, R.string.settings_kw_story, modes = NOVEL_ONLY),
         SettingInfo("story_index_clear", SettingsPage.Reader, R.string.settings_story_index_clear, R.string.settings_story_index_clear_hint, R.string.settings_kw_story, modes = NOVEL_ONLY),
 
         SettingInfo("library_check", SettingsPage.Library, R.string.settings_library_auto_check, R.string.settings_library_auto_check_hint, R.string.settings_kw_library_check),

@@ -338,6 +338,7 @@ fun NovelReaderScreen(
         LumeBottomSheet(onDismissRequest = vm::dismissRecap, sheetState = sheetState) {
             RecapSheet(
                 paragraphs = paragraphs,
+                ai = vm.aiRecap,
                 onContinue = { scope.launch { sheetState.hide() }.invokeOnCompletion { vm.dismissRecap() } },
             )
         }

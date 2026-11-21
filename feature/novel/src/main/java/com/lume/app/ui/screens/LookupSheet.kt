@@ -27,8 +27,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,6 +57,7 @@ import com.lume.app.R
 import com.lume.app.data.db.BlockText
 import com.lume.app.data.db.CodexEntryEntity
 import com.lume.app.data.db.CodexEntryWithAliases
+import com.lume.app.data.story.AiRecapState
 import com.lume.app.data.story.RecapParagraph
 import com.lume.app.data.story.StoryContext
 import com.lume.app.data.story.StoryMention
@@ -311,7 +314,7 @@ private fun highlighted(text: String, ranges: List<IntRange>): AnnotatedString =
 
 /** The content of the "Previously…" sheet: the paragraphs before the spot, and a button to go on. */
 @Composable
-internal fun RecapSheet(paragraphs: List<RecapParagraph>, onContinue: () -> Unit) {
+internal fun RecapSheet(paragraphs: List<RecapParagraph>, ai: AiRecapState?, onContinue: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -321,6 +324,20 @@ internal fun RecapSheet(paragraphs: List<RecapParagraph>, onContinue: () -> Unit
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         SheetHeader(stringResource(R.string.recap_title))
+        when (ai) {
+            null -> Unit
+            AiRecapState.Loading -> {
+                Text(stringResource(R.string.recap_ai_writing), color = AppColors.textTertiary, fontSize = 12.sp)
+                LinearProgressIndicator(Modifier.fillMaxWidth())
+            }
+            is AiRecapState.Ready -> {
+                Text(stringResource(R.string.recap_ai_label), color = AppColors.textTertiary, fontSize = 12.sp)
+                Text(ai.text, color = AppColors.textPrimary, fontSize = 15.sp, lineHeight = 22.sp)
+                HorizontalDivider(color = AppColors.textTertiary.copy(alpha = 0.3f))
+                Text(stringResource(R.string.recap_last_paragraphs), color = AppColors.textTertiary, fontSize = 12.sp)
+            }
+            is AiRecapState.Failed -> Text(stringResource(R.string.recap_ai_failed, ai.message), color = AppColors.textTertiary, fontSize = 12.sp)
+        }
         if (paragraphs.firstOrNull()?.fromPreviousChapter == true) {
             Text(stringResource(R.string.recap_previous_chapter), color = AppColors.textTertiary, fontSize = 12.sp)
         }
