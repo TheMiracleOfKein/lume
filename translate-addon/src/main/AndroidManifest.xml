@@ -4,12 +4,26 @@
     <!-- Only for downloading language packs from Mozilla's model storage, when Lume asks. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- No launcher icon: the add-on is used from Lume's text reader. -->
+    <!-- The "Open Lume" button (Android 11+ package visibility). -->
+    <queries>
+        <package android:name="com.lume.app" />
+    </queries>
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:supportsRtl="true">
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.DeviceDefault">
+        <!-- A visible icon and screen: what the add-on is, its language packs, and Lume. -->
+        <activity
+            android:name=".AddonActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
         <service
             android:name=".TranslateService"
             android:exported="true"

@@ -290,7 +290,7 @@ The headphones button on the bottom bar reads the chapter aloud with Android's o
 
 English titles (Royal Road, Scribble Hub, English books you imported) can be read in Russian. The translation is made on the phone, offline, with the open-source models Firefox uses. It needs no Google services and sends no chapter text anywhere.
 
-- Tap the translate button in the reader's top bar. The first time, it offers **Install Lume Translate**: a small separate app (about 8 MB) from the same Lume release. Android asks you to confirm the install. Only Lume can use it; it has no icon of its own.
+- Tap the translate button in the reader's top bar. The first time, it offers **Install Lume Translate**: a small separate app (about 8 MB) from the same Lume release. Android asks you to confirm the install. Only Lume can use it. Its own icon opens a short page with the downloaded language packs and a button back to Lume.
 - Then **Download language pack** fetches the English → Russian model (about 24 MB) from Mozilla's model storage. After that, translation works without internet. **Delete language pack** frees the space again.
 - **Read in Russian** is saved for the title. The chapter appears in English first and turns into Russian from the paragraph you're on; the top bar shows how far it has got. Translated chapters are kept for a while, so going back is instant.
 - Long-press a paragraph to see the original. The original can be selected and copied, and **Add to glossary** adds a name or term from it.
