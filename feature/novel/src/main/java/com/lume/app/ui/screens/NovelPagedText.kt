@@ -123,6 +123,8 @@ internal fun NovelPagedText(
     bottomPad: Dp,
     onTapCentre: () -> Unit,
     onTurned: () -> Unit,
+    /** A block was long-pressed (chapter id, block index). */
+    onLongPress: (String, Int) -> Unit = { _, _ -> },
 ) {
     val settings = vm.settings
     val items = vm.items
@@ -149,7 +151,8 @@ internal fun NovelPagedText(
                 when (row) {
                     is PagedRow.Picture -> PageMeasure.Whole(breakBefore)
                     is PagedRow.Text -> {
-                        val known = cache.getOrPut(items[i].key) {
+                        // Keyed by the words too: a translation replaces a block's text in place.
+                        val known = cache.getOrPut("${items[i].key}:${row.text.hashCode()}") {
                             val layout = measurer.measure(row.text, row.style, constraints = Constraints(minWidth = textWidth, maxWidth = textWidth), density = density)
                             PageMeasure.Lines(
                                 top = with(density) { row.top.roundToPx() },
@@ -170,8 +173,9 @@ internal fun NovelPagedText(
         val currentItems by rememberUpdatedState(items)
         var restored by remember(session) { mutableStateOf(false) }
 
-        // A new chapter list, other text settings or another screen size: back to the same spot.
-        LaunchedEffect(session, settings, textWidth, pageHeightPx) {
+        // A new chapter list, other text settings, another screen size or text translated in place:
+        // back to the same spot.
+        LaunchedEffect(session, settings, textWidth, pageHeightPx, vm.textVersion) {
             restored = false
             val target = anchorPage(currentItems, currentMeasures, currentPages, vm.anchor)
             if (target in 0 until pagerState.pageCount) pagerState.scrollToPage(target)
@@ -232,7 +236,13 @@ internal fun NovelPagedText(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(pagerState) {
-                    detectTapGestures { tap ->
+                    detectTapGestures(
+                        onLongPress = { at ->
+                            val page = currentPages.getOrNull(pagerState.currentPage) ?: return@detectTapGestures
+                            val item = sliceAt(page, currentMeasures, at.y - pageTop.toPx())
+                            (currentItems.getOrNull(item ?: -1) as? NovelItem.Block)?.let { onLongPress(it.chapterId, it.index) }
+                        },
+                    ) { tap ->
                         val third = size.width / 3f
                         val turns = tap.x < third || tap.x > 2 * third
                         if (turns && vm.readAloud != null) vm.changeFollowVoice(false)

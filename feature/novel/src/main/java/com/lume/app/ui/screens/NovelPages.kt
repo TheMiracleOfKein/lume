@@ -96,6 +96,25 @@ fun pageOf(pages: List<NovelPage>, item: Int, line: Int): Int {
     return best
 }
 
+/**
+ * The row drawn [y] pixels below the top of [page] (slices stack with their gaps, as the page
+ * draws them), or null in a gap or below the last slice. A picture fills the page.
+ */
+fun sliceAt(page: NovelPage, measures: List<PageMeasure>, y: Float): Int? {
+    var top = 0f
+    for (slice in page.slices) {
+        top += slice.gap
+        val height = when (val m = measures.getOrNull(slice.item)) {
+            is PageMeasure.Lines -> (m.lineBottoms[slice.to - 1] - m.lineTops[slice.from]).toFloat()
+            is PageMeasure.Whole -> return slice.item
+            null -> return null
+        }
+        if (y >= top && y < top + height) return slice.item
+        top += height
+    }
+    return null
+}
+
 /** After a restore the restored page is not reported; every page is once the reader has moved off it. */
 fun shouldReportPage(moved: Boolean, restoredPage: Int, page: Int): Boolean = moved || page != restoredPage
 

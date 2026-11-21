@@ -1384,4 +1384,35 @@
     <string name="nearby_declined_by_sender">Отправитель отменил передачу</string>
     <string name="nearby_try_again">Повторить</string>
     <string name="nearby_permission_denied">Без доступа к локальной сети телефоны не найдут друг друга.</string>
+
+    <!-- Перевод на телефоне (текстовая читалка, дополнение Lume Translate) -->
+    <string name="translate_title">Перевод</string>
+    <string name="translate_addon_about">Главы переводятся на телефоне, без интернета, открытыми моделями, которые использует Firefox. Для этого нужно бесплатное дополнение Lume Translate (около 8 МБ) — отдельное приложение из того же выпуска, что и Lume. Языковые пакеты скачиваются потом, по одному на язык.</string>
+    <string name="translate_addon_outdated">Установленный Lume Translate не подходит к этой версии Lume. Обновите его, чтобы переводить.</string>
+    <string name="translate_addon_wrong_signature">Установленный Lume Translate подписан другим ключом, чем Lume, поэтому Lume не может его использовать. Удалите его и установите заново отсюда.</string>
+    <string name="translate_addon_install">Установить Lume Translate</string>
+    <string name="translate_addon_update">Обновить Lume Translate</string>
+    <string name="translate_addon_uninstall">Удалить Lume Translate</string>
+    <string name="translate_addon_downloading">Скачивается Lume Translate…</string>
+    <string name="translate_addon_open_installer">Открыть установщик</string>
+    <string name="translate_addon_not_in_release">В последнем выпуске пока нет Lume Translate.</string>
+    <string name="translate_pair">%1$s → %2$s</string>
+    <string name="translate_pack_about">Языковой пакет (%1$s) скачивается из хранилища моделей Mozilla (storage.googleapis.com). После этого перевод работает без интернета.</string>
+    <string name="translate_pack_download">Скачать языковой пакет (%1$s)</string>
+    <string name="translate_pack_failed">Не удалось скачать: %1$s</string>
+    <string name="translate_pack_delete">Удалить языковой пакет (%1$s)</string>
+    <string name="translate_switch">Читать на языке: %1$s</string>
+    <string name="translate_switch_hint">Для этого тайтла. Долгое нажатие на абзац покажет оригинал.</string>
+    <string name="translate_progress">Перевод: %1$d из %2$d абзацев</string>
+    <string name="translate_failed">Не удалось перевести: %1$s</string>
+    <string name="translate_glossary">Глоссарий</string>
+    <string name="translate_glossary_hint">Имена и термины, которые должны звучать одинаково во всех главах. Глоссарий исправляет написание; окончания остаются такими, как в переводе.</string>
+    <string name="translate_glossary_term">%1$s → %2$s</string>
+    <string name="translate_glossary_remove">Убрать %1$s</string>
+    <string name="translate_glossary_source">Оригинал</string>
+    <string name="translate_glossary_target">Перевод</string>
+    <string name="translate_glossary_add">Добавить</string>
+    <string name="translate_glossary_add_term">В глоссарий</string>
+    <string name="translate_original">Оригинал</string>
+    <string name="translate_working">Перевод…</string>
 </resources>

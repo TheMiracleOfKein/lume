@@ -1335,4 +1335,35 @@
     <string name="nearby_declined_by_sender">The sender cancelled</string>
     <string name="nearby_try_again">Try again</string>
     <string name="nearby_permission_denied">Without local network access the phones can\'t find each other.</string>
+
+    <!-- On-device translation (text reader, Lume Translate add-on) -->
+    <string name="translate_title">Translate</string>
+    <string name="translate_addon_about">Chapters are translated on your phone, offline, with the open-source models Firefox uses. This needs the free Lume Translate add-on (about 8 MB), a separate app from the same release as Lume. Language packs download later, one per language.</string>
+    <string name="translate_addon_outdated">The installed Lume Translate doesn\'t match this version of Lume. Update it to translate.</string>
+    <string name="translate_addon_wrong_signature">The installed Lume Translate is signed with a different key than Lume, so Lume can\'t use it. Uninstall it, then install it again from here.</string>
+    <string name="translate_addon_install">Install Lume Translate</string>
+    <string name="translate_addon_update">Update Lume Translate</string>
+    <string name="translate_addon_uninstall">Uninstall Lume Translate</string>
+    <string name="translate_addon_downloading">Downloading Lume Translate…</string>
+    <string name="translate_addon_open_installer">Open the installer</string>
+    <string name="translate_addon_not_in_release">The latest release has no Lume Translate yet.</string>
+    <string name="translate_pair">%1$s → %2$s</string>
+    <string name="translate_pack_about">The language pack (%1$s) downloads from Mozilla\'s model storage (storage.googleapis.com). After that, translation works without internet.</string>
+    <string name="translate_pack_download">Download language pack (%1$s)</string>
+    <string name="translate_pack_failed">Download failed: %1$s</string>
+    <string name="translate_pack_delete">Delete language pack (%1$s)</string>
+    <string name="translate_switch">Read in %1$s</string>
+    <string name="translate_switch_hint">For this title. Long-press a paragraph to see the original.</string>
+    <string name="translate_progress">Translating: %1$d of %2$d paragraphs</string>
+    <string name="translate_failed">Translation failed: %1$s</string>
+    <string name="translate_glossary">Glossary</string>
+    <string name="translate_glossary_hint">Names and terms that must read the same in every chapter. It fixes the spelling; word endings stay as the translation has them.</string>
+    <string name="translate_glossary_term">%1$s → %2$s</string>
+    <string name="translate_glossary_remove">Remove %1$s</string>
+    <string name="translate_glossary_source">Original</string>
+    <string name="translate_glossary_target">Translation</string>
+    <string name="translate_glossary_add">Add</string>
+    <string name="translate_glossary_add_term">Add to glossary</string>
+    <string name="translate_original">Original</string>
+    <string name="translate_working">Translating…</string>
 </resources>

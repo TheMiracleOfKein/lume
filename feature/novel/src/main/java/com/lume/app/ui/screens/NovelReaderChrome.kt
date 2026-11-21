@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.outlined.Headphones
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.SkipPrevious
+import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -75,6 +76,12 @@ internal fun NovelTopBar(
     /** The team that translated this chapter; null when there is no other translation to pick. */
     translation: String? = null,
     onTranslation: () -> Unit = {},
+    /** Opens the on-device translation sheet; null hides the button (no model for this title's language). */
+    onTranslate: (() -> Unit)? = null,
+    /** The chapter is shown translated (the button is highlighted). */
+    translated: Boolean = false,
+    /** "Translating: 3 of 40 paragraphs" while it runs. */
+    translateStatus: String? = null,
 ) {
     Box(
         modifier = modifier
@@ -131,6 +138,24 @@ internal fun NovelTopBar(
                         )
                         Icon(Icons.Outlined.ArrowDropDown, null, tint = palette.accent, modifier = Modifier.size(18.dp))
                     }
+                }
+                if (translateStatus != null) {
+                    Text(
+                        text = translateStatus,
+                        color = palette.accent,
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            if (onTranslate != null) {
+                IconButton(onClick = onTranslate) {
+                    Icon(
+                        Icons.Outlined.Translate,
+                        stringResource(R.string.translate_title),
+                        tint = if (translated) palette.accent else palette.text,
+                    )
                 }
             }
         }
