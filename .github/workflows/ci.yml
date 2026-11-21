@@ -31,7 +31,7 @@ jobs:
       # Live catalogue tests stay off (no -Plume.live; see live-sources.yml). The Room migration
       # test runs here on Robolectric; on Windows it only runs on a device.
       - name: Build, test and lint
-        run: ./gradlew --no-configuration-cache :core:model:test :core:common:testDebugUnitTest :core:common:lintDebug :core:data:testDebugUnitTest :core:data:lintDebug :core:ui:testDebugUnitTest :core:ui:lintDebug :feature:comics:testDebugUnitTest :feature:comics:lintDebug :feature:novel:testDebugUnitTest :feature:novel:lintDebug :app:assembleDebug :app:testFullDebugUnitTest :app:testMangaDebugUnitTest :app:testRanobeDebugUnitTest :app:lintFullDebug :app:lintMangaDebug :app:lintRanobeDebug :core:translate:testDebugUnitTest :core:translate:lintDebug :translate-addon:testDebugUnitTest :translate-addon:lintDebug
+        run: ./gradlew --no-configuration-cache --stacktrace :core:model:test :core:common:testDebugUnitTest :core:common:lintDebug :core:data:testDebugUnitTest :core:data:lintDebug :core:ui:testDebugUnitTest :core:ui:lintDebug :feature:comics:testDebugUnitTest :feature:comics:lintDebug :feature:novel:testDebugUnitTest :feature:novel:lintDebug :app:assembleDebug :app:testFullDebugUnitTest :app:testMangaDebugUnitTest :app:testRanobeDebugUnitTest :app:lintFullDebug :app:lintMangaDebug :app:lintRanobeDebug :core:translate:testDebugUnitTest :core:translate:lintDebug :translate-addon:testDebugUnitTest :translate-addon:lintDebug
 
       # Screenshot tests: the screens are rendered again and compared with the golden images in
       # core/ui/src/test/screenshots and feature/comics/src/test/screenshots (docs/ARCHITECTURE.md,
