@@ -71,6 +71,11 @@ fun TranslateSheet(translation: ReaderTranslation, onOpenGlossary: () -> Unit, o
     val scope = rememberCoroutineScope()
     val engineId by container.prefs.translationEngine.collectAsStateWithLifecycle()
     val deeplKey by container.prefs.deeplKey.collectAsStateWithLifecycle()
+    // Read so the switches' hints recompose as soon as the AI service is saved in this sheet.
+    val llmPreset by container.prefs.llmPreset.collectAsStateWithLifecycle()
+    val llmUrl by container.prefs.llmBaseUrl.collectAsStateWithLifecycle()
+    val llmModel by container.prefs.llmModel.collectAsStateWithLifecycle()
+    val llmKeys by container.prefs.llmKeys.collectAsStateWithLifecycle()
     val addon by TranslateAddon.state.collectAsStateWithLifecycle()
     val engine = TranslationEngine.fromId(engineId)
     // Back from the system installer (or app info): look at the add-on again.
@@ -89,7 +94,7 @@ fun TranslateSheet(translation: ReaderTranslation, onOpenGlossary: () -> Unit, o
         // ---- Read in … ----
         // The sheet recomposes when the add-on state or the DeepL key changes (both collected above).
         for (to in translation.targets) {
-            val blocker = translation.blocker(engine, to)
+            val blocker = remember(engine, to, deeplKey, addon, llmPreset, llmUrl, llmModel, llmKeys) { translation.blocker(engine, to) }
             SwitchRow(
                 label = stringResource(R.string.translate_switch, languageName(to)),
                 hint = when (blocker) {
