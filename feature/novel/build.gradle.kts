@@ -76,6 +76,9 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.coil.compose)
     implementation(libs.jsoup)
+    // Read aloud: a media session (notification, lock screen, headset buttons) around Android's TTS.
+    implementation(libs.media3.session)
+    implementation(libs.media3.common)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)

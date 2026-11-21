@@ -252,6 +252,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
+**v1.6.0: read aloud** ([notes](releases/v1.6.0.md), [device check](releases/v1.6.0-check.md)): the text reader reads chapters aloud with Android's text-to-speech, on to the next chapter, with the screen off and from the notification and lock screen; the spoken sentence is highlighted and followed; speed, voice, engine and a sleep timer.
+
 **v1.5.6: guided zoom fix** ✅ released 2026-11-21 ([notes](releases/v1.5.6.md), [device check](releases/v1.5.6-check.md)): with guided panel view on, a page you arrive on (going back, seekbar jump) shows whole instead of zoomed into the panel last seen.
 
 **v1.5.5: guided panels** ✅ released 2026-11-21 ([notes](releases/v1.5.5.md), [device check](releases/v1.5.5-check.md)): guided panel view no longer stops responding after an interrupted animation; a panel order setting (right to left by default, separate from the page-turn direction); the page around the panel in focus is dimmed; panels include bubbles and art that break out of their frames.
@@ -382,6 +384,7 @@ Sync moves your library and progress, never the downloaded pages. This moves the
   - **RanobeDB**: a light novel database with a public API; check what its user lists allow before planning sign-in.
   - **MangaUpdates novels**: its database has a "Novel" type, so it can serve Ranobe mode with the same account once its search keeps only novels.
   - Not planned: Kitsu (few novels, entries mixed with manga).
+- ✅ **Read aloud** (L): Android's own text-to-speech reads the chapter and goes on to the next one. It keeps playing with the screen off, as a media session with notification and lock-screen controls, highlights and follows the spoken sentence, and saves the spot as reading progress. It has speed, voice and engine choice and a sleep timer (end of chapter or minutes), works offline, and needs no Google services. In v1.6.0. Not yet tried: a real headset's buttons with the screen off (on the emulator, keys injected with the screen off didn't arrive).
 - ✅ **Ranobe build** (S): `ranobe` flavor, novel mode only, without the comics code; `lume-vX.Y.Z-ranobe.apk` on every release. In v1.3.0.
 
 ## Every release

@@ -274,6 +274,18 @@ The text scrolls vertically.
 
 The settings panel has **Text size**, **Line spacing**, **Side margins**, **Paragraph spacing**, **Font** (serif or sans-serif), **Justify text** (long words are hyphenated so lines don't get wide gaps) and **Reader theme** (**App**, **Light**, **Sepia**, **Dark**, **Black**). **Page by page** turns the text into pages: swipe sideways, or tap the right or left edge, to turn them; a paragraph goes on over the next page, and each chapter starts on a new one. Changes show at once.
 
+### Read aloud
+
+The headphones button on the bottom bar reads the chapter aloud with Android's own text-to-speech, starting at the text on screen. When the chapter ends, it goes on with the next one.
+
+- It keeps playing with the screen off and after you leave the reader. The notification and the lock screen have play/pause and back / forward one paragraph, and headphone buttons work too. Unplugging headphones pauses it, and so does a phone call.
+- The sentence being read is highlighted, and the text scrolls (or turns pages) along with it. If you scroll away by hand, the text stays where you put it; **Back to the voice** returns to the sentence being read.
+- The panel above the bottom bar has back / forward one paragraph, play/pause, the read aloud settings and stop.
+- The settings have **Speed**, **Sleep timer** (**End of chapter**, or 15, 30, 45 or 60 minutes), **Voice** and, when the phone has more than one, **Engine**. **Default for the text's language** picks a Russian voice for Russian text and an English one for English text when the engine has them. Voices marked **Needs internet** stream from the engine's servers; the others work offline.
+- The spot being read is saved like normal reading progress, so **Continue reading** opens the book at the sentence where it stopped. A chapter read to its end is marked read.
+- It needs no Google services: any installed engine works (Google, Samsung, RHVoice, eSpeak…). If the phone has none, Lume says so and opens Android's text-to-speech settings, where you can install one or download voices.
+- Paused for 10 minutes, read aloud turns itself off.
+
 ### Progress and history
 
 Lume remembers the paragraph you stopped at, also after rotating the phone or when Android closes the app. **Continue reading** on the title and in History opens the book at that place. A book in History opens in the text reader straight after a start of the app.

@@ -200,6 +200,9 @@ class AppPreferences(
     private val novelJustifyKey = booleanPreferencesKey("novel_justify")
     private val novelThemeKey = intPreferencesKey("novel_theme")
     private val novelPagedKey = booleanPreferencesKey("novel_paged")
+    private val readAloudSpeedKey = doublePreferencesKey("read_aloud_speed")
+    private val readAloudVoiceKey = stringPreferencesKey("read_aloud_voice")
+    private val readAloudEngineKey = stringPreferencesKey("read_aloud_engine")
     private val libraryIntervalKey = intPreferencesKey("library_update_interval_hours")
     private val libraryWifiOnlyKey = booleanPreferencesKey("library_update_wifi_only")
     private val librarySkipCompletedKey = booleanPreferencesKey("library_update_skip_completed")
@@ -478,6 +481,15 @@ class AppPreferences(
             justify = prefs[novelJustifyKey] ?: defaults.justify,
             theme = NovelTheme.entries.getOrElse(prefs[novelThemeKey] ?: -1) { defaults.theme },
             paged = prefs[novelPagedKey] ?: defaults.paged,
+        ).clamped()
+    }
+
+    /** Speed, voice and engine of read aloud in the text reader. */
+    val readAloudSettings: StateFlow<ReadAloudSettings> = state { prefs ->
+        ReadAloudSettings(
+            speed = (prefs[readAloudSpeedKey] ?: 1.0).toFloat(),
+            voiceName = prefs[readAloudVoiceKey],
+            engine = prefs[readAloudEngineKey],
         ).clamped()
     }
 
@@ -861,6 +873,15 @@ class AppPreferences(
             it[novelJustifyKey] = s.justify
             it[novelThemeKey] = s.theme.ordinal
             it[novelPagedKey] = s.paged
+        }
+    }
+
+    suspend fun setReadAloudSettings(settings: ReadAloudSettings) {
+        val s = settings.clamped()
+        context.appDataStore.edit {
+            it[readAloudSpeedKey] = s.speed.toDouble()
+            if (s.voiceName != null) it[readAloudVoiceKey] = s.voiceName else it.remove(readAloudVoiceKey)
+            if (s.engine != null) it[readAloudEngineKey] = s.engine else it.remove(readAloudEngineKey)
         }
     }
 

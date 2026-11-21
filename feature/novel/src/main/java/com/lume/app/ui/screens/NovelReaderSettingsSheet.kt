@@ -223,7 +223,7 @@ private fun themeLabel(theme: NovelTheme): Int = when (theme) {
 }
 
 @Composable
-private fun SliderRow(
+internal fun SliderRow(
     label: String,
     valueText: String,
     value: Float,

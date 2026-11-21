@@ -18,6 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.Hyphens
@@ -42,8 +43,11 @@ internal fun NovelTextList(
     listState: LazyListState,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
+    /** The sentence read aloud is on, highlighted. */
+    spoken: SpokenRange? = null,
 ) {
     val body = novelBodyStyle(settings, palette)
+    val spokenColor = spokenColor(palette)
     LazyColumn(
         state = listState,
         contentPadding = contentPadding,
@@ -64,7 +68,9 @@ internal fun NovelTextList(
                         .padding(start = settings.sideMargin.dp, end = settings.sideMargin.dp, top = 28.dp, bottom = 20.dp)
                         .semantics { heading() },
                 )
-                is NovelItem.Block -> NovelBlockView(item.block, settings, palette, body)
+                is NovelItem.Block -> NovelBlockView(item.block, settings, palette, body) {
+                    it.withSpoken(spoken, item.chapterId, item.index, spokenColor)
+                }
             }
         }
     }
@@ -83,19 +89,25 @@ internal fun novelBodyStyle(settings: NovelReaderSettings, palette: NovelPalette
 )
 
 @Composable
-private fun NovelBlockView(block: NovelBlock, settings: NovelReaderSettings, palette: NovelPalette, body: TextStyle) {
+private fun NovelBlockView(
+    block: NovelBlock,
+    settings: NovelReaderSettings,
+    palette: NovelPalette,
+    body: TextStyle,
+    marked: (AnnotatedString) -> AnnotatedString,
+) {
     val side = settings.sideMargin.dp
     val after = settings.paragraphSpacing.dp
     when (block) {
         is NovelBlock.Paragraph -> Text(
-            text = block.spans.toAnnotatedString(),
+            text = marked(block.spans.toAnnotatedString()),
             style = body,
             modifier = Modifier.fillMaxWidth().padding(start = side, end = side, bottom = after),
         )
         is NovelBlock.Heading -> {
             val scale = headingScale(block.level)
             Text(
-                text = block.spans.toAnnotatedString(),
+                text = marked(block.spans.toAnnotatedString()),
                 style = body.copy(
                     fontSize = (settings.fontSize * scale).sp,
                     lineHeight = (settings.fontSize * scale * settings.lineHeight).sp,

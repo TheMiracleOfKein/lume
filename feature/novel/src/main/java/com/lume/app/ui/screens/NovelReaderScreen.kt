@@ -5,14 +5,21 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.lume.app.readaloud.textLength
 import androidx.compose.material3.ExperimentalMaterial3Api
 import com.lume.app.ui.components.LumeBottomSheet
 import com.lume.app.ui.components.rememberEasyDismissSheetState
@@ -29,6 +36,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
@@ -37,6 +45,9 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.lume.app.readaloud.ReadAloud
+import com.lume.app.readaloud.ReadAloudProblem
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -60,7 +71,10 @@ private data class Viewport(val index: Int, val offset: Int, val size: Int, val 
 /** Fraction of the viewport a tap on the top or bottom third scrolls. */
 private const val TAP_SCROLL_FRACTION = 0.9f
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Room for the read aloud panel (its buttons and one line of messages) below the text. */
+private val READ_ALOUD_PANEL_SPACE = 112.dp
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun NovelReaderScreen(
     nav: NavHostController,
@@ -88,7 +102,10 @@ fun NovelReaderScreen(
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var chaptersOpen by rememberSaveable { mutableStateOf(false) }
     var translationsOpen by rememberSaveable { mutableStateOf(false) }
+    var readAloudOpen by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val readAloud = vm.readAloud
 
     // Reading: the screen stays on, and the system bars hide with the reader's own bars.
     val view = LocalView.current
@@ -100,7 +117,7 @@ fun NovelReaderScreen(
     val window = activity?.window
     val insetsController = remember(window, view) { window?.let { WindowCompat.getInsetsController(it, view) } }
     val exiting = LocalNavExiting.current
-    val hideSystemBars = !chromeVisible && !settingsOpen && !chaptersOpen && !translationsOpen && !exiting
+    val hideSystemBars = !chromeVisible && !settingsOpen && !chaptersOpen && !translationsOpen && !readAloudOpen && !exiting
     LaunchedEffect(insetsController, hideSystemBars) {
         insetsController?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         if (hideSystemBars) {
@@ -168,22 +185,41 @@ fun NovelReaderScreen(
                 ) {
                     topBar(Modifier)
                 }
-                AnimatedVisibility(
-                    visible = chromeVisible,
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    enter = Motion.barEnterFromBottom,
-                    exit = Motion.barExitToBottom,
-                ) {
-                    NovelBottomBar(
-                        percent = vm.percent,
-                        hasPrev = vm.neighbours.previous != null,
-                        hasNext = vm.neighbours.next != null,
-                        palette = palette,
-                        onPrev = { vm.goChapter(-1) },
-                        onNext = { vm.goChapter(1) },
-                        onChapters = { chaptersOpen = true },
-                        onSettings = { settingsOpen = true },
-                    )
+                Column(Modifier.align(Alignment.BottomCenter)) {
+                    // Read aloud's controls stay on screen when the bars hide.
+                    if (readAloud != null) {
+                        ReadAloudPanel(
+                            state = readAloud,
+                            following = vm.followVoice,
+                            palette = palette,
+                            onFollow = { vm.changeFollowVoice(true) },
+                            onSettings = { readAloudOpen = true },
+                            modifier = if (chromeVisible) {
+                                Modifier
+                            } else {
+                                Modifier.windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility.only(WindowInsetsSides.Bottom))
+                            },
+                        )
+                    }
+                    AnimatedVisibility(
+                        visible = chromeVisible,
+                        enter = Motion.barEnterFromBottom,
+                        exit = Motion.barExitToBottom,
+                    ) {
+                        NovelBottomBar(
+                            percent = vm.percent,
+                            hasPrev = vm.neighbours.previous != null,
+                            hasNext = vm.neighbours.next != null,
+                            palette = palette,
+                            onPrev = { vm.goChapter(-1) },
+                            onNext = { vm.goChapter(1) },
+                            onChapters = { chaptersOpen = true },
+                            onSettings = { settingsOpen = true },
+                            onReadAloud = {
+                                if (readAloud != null) readAloudOpen = true else vm.startReadAloud(context)
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -217,6 +253,21 @@ fun NovelReaderScreen(
             )
         }
     }
+    if (readAloudOpen && readAloud != null) {
+        val sheetState = rememberEasyDismissSheetState()
+        val readAloudSettings by container.prefs.readAloudSettings.collectAsStateWithLifecycle()
+        LumeBottomSheet(onDismissRequest = { readAloudOpen = false }, sheetState = sheetState) {
+            ReadAloudSheet(
+                state = readAloud,
+                settings = readAloudSettings,
+                onSettings = ReadAloud::updateSettings,
+                onClose = { scope.launch { sheetState.hide() }.invokeOnCompletion { readAloudOpen = false } },
+            )
+        }
+    }
+    if (readAloud?.problem == ReadAloudProblem.NoEngine) {
+        NoEngineDialog(onDismiss = ReadAloud::stop)
+    }
     if (translationsOpen) {
         TranslationPickerSheet(
             copies = vm.translations,
@@ -241,7 +292,9 @@ private fun NovelReaderContent(
     onScrolled: () -> Unit,
 ) {
     val topPad = WindowInsets.statusBarsIgnoringVisibility.let { with(LocalDensity.current) { it.getTop(this).toDp() } }
-    val bottomPad = WindowInsets.navigationBarsIgnoringVisibility.let { with(LocalDensity.current) { it.getBottom(this).toDp() } }
+    // While reading aloud its panel stays at the bottom: the text ends above it.
+    val panelPad = if (vm.readAloud != null) READ_ALOUD_PANEL_SPACE else 0.dp
+    val bottomPad = WindowInsets.navigationBarsIgnoringVisibility.let { with(LocalDensity.current) { it.getBottom(this).toDp() } } + panelPad
     if (vm.settings.paged) {
         NovelPagedText(vm, palette, topPad, bottomPad, onTapCentre = onTapCentre, onTurned = onScrolled)
         return
@@ -283,6 +336,18 @@ private fun NovelReaderContent(
     LaunchedEffect(session, listState) {
         snapshotFlow { restored && listState.isScrollInProgress }.filter { it }.collect { onScrolled() }
     }
+    // Read aloud: the spoken sentence stays in view until the reader scrolls away by hand.
+    LaunchedEffect(listState) {
+        listState.interactionSource.interactions.collect {
+            if (it is DragInteraction.Start && vm.readAloud != null) vm.changeFollowVoice(false)
+        }
+    }
+    LaunchedEffect(session, listState) {
+        snapshotFlow { vm.readAloud?.takeIf { restored && vm.followVoice }?.let { SpokenRange(it.chapterId, it.block, it.start, it.end) } }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .collect { followSpoken(listState, vm.items, it) }
+    }
 
     Box(
         Modifier
@@ -291,6 +356,8 @@ private fun NovelReaderContent(
                 detectTapGestures { tap ->
                     val third = size.height / 3f
                     val delta = listState.layoutInfo.viewportSize.height * TAP_SCROLL_FRACTION
+                    val scrolls = tap.y < third || tap.y > 2 * third
+                    if (scrolls && vm.readAloud != null) vm.changeFollowVoice(false)
                     when {
                         tap.y < third -> scope.launch { listState.animateScrollBy(-delta, Motion.medium()) }
                         tap.y > 2 * third -> scope.launch { listState.animateScrollBy(delta, Motion.medium()) }
@@ -305,6 +372,32 @@ private fun NovelReaderContent(
             palette = palette,
             listState = listState,
             contentPadding = PaddingValues(top = topPad + 16.dp, bottom = bottomPad + 48.dp),
+            spoken = vm.spoken,
         )
     }
+}
+
+/**
+ * Scrolls so the spoken sentence sits in the upper part of the screen; does nothing while it is
+ * already well in view, so the text doesn't jump with every sentence.
+ */
+private suspend fun followSpoken(state: LazyListState, items: List<NovelItem>, spoken: SpokenRange) {
+    val index = if (spoken.block < 0) {
+        chapterStartIndex(items, spoken.chapterId)
+    } else {
+        items.indexOfFirst { it is NovelItem.Block && it.chapterId == spoken.chapterId && it.index == spoken.block }
+    }
+    if (index < 0) return
+    val length = (items[index] as? NovelItem.Block)?.block?.textLength() ?: 0
+    val fraction = if (length > 0) spoken.start.toFloat() / length else 0f
+    fun sentenceY(): Float? {
+        val info = state.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index } ?: return null
+        return info.offset + fraction * info.size
+    }
+    val viewport = state.layoutInfo.viewportSize.height.toFloat()
+    val y = sentenceY()
+    if (y != null && y in viewport * 0.12f..viewport * 0.7f) return
+    if (y == null) state.animateScrollToItem(index)
+    val target = sentenceY() ?: return
+    if (target !in viewport * 0.12f..viewport * 0.7f) state.animateScrollBy(target - viewport * 0.25f, Motion.medium())
 }
