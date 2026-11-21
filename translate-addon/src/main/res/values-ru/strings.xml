@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="addon_about">Перевод без интернета для текстовой читалки Lume, открытыми моделями, которые использует Firefox. Включается из главы в Lume: кнопка перевода в верхней панели читалки. Языковые пакеты скачиваются у Mozilla, только когда вы попросите; текст глав не покидает телефон.</string>
+    <string name="addon_packs">ЯЗЫКОВЫЕ ПАКЕТЫ</string>
+    <string name="addon_no_packs">Пока ничего не скачано.</string>
+    <string name="addon_delete_pack">Удалить</string>
+    <string name="addon_open_lume">Открыть Lume</string>
+    <string name="addon_no_lume">Lume не установлен</string>
+</resources>

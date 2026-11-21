@@ -252,6 +252,8 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
+**v1.7.0: chapter translation** ([notes](releases/v1.7.0.md), [device check](releases/v1.7.0-check.md)): English chapters read in Russian and Russian ones in English, with Google Translate, DeepL (own key) or offline on the phone through the Lume Translate add-on (Firefox Translations models); the original on a long press; a per-title glossary with its own screen, in backups and sync; read aloud goes on in the translation.
+
 **v1.6.0: read aloud** ✅ released 2026-11-21 ([notes](releases/v1.6.0.md), [device check](releases/v1.6.0-check.md)): the text reader reads chapters aloud with Android's text-to-speech, on to the next chapter, with the screen off and from the notification and lock screen; the spoken sentence is highlighted and followed; speed, voice, engine and a sleep timer.
 
 **v1.5.6: guided zoom fix** ✅ released 2026-11-21 ([notes](releases/v1.5.6.md), [device check](releases/v1.5.6-check.md)): with guided panel view on, a page you arrive on (going back, seekbar jump) shows whole instead of zoomed into the panel last seen.
@@ -385,6 +387,12 @@ Sync moves your library and progress, never the downloaded pages. This moves the
   - **MangaUpdates novels**: its database has a "Novel" type, so it can serve Ranobe mode with the same account once its search keeps only novels.
   - Not planned: Kitsu (few novels, entries mixed with manga).
 - ✅ **Read aloud** (L): Android's own text-to-speech reads the chapter and goes on to the next one. It keeps playing with the screen off, as a media session with notification and lock-screen controls, highlights and follows the spoken sentence, and saves the spot as reading progress. It has speed, voice and engine choice and a sleep timer (end of chapter or minutes), works offline, and needs no Google services. In v1.6.0. Not yet tried: a real headset's buttons with the screen off (on the emulator, keys injected with the screen off didn't arrive).
+- 🟡 **Translating chapters** (L): in v1.7.0. English chapters (Royal Road, Scribble Hub, imported books) read in Russian, Russian ones (RanobeLib) in English. Three engines behind one `TranslationProvider` seam:
+  - Google Translate's free web endpoint (online, no key);
+  - DeepL with the user's own key;
+  - offline on the phone with the Firefox Translations models (Bergamot), no Google services. That engine lives in an optional add-on app, **Lume Translate** (`lume-vX.Y.Z-translate.apk`, `arm64-v8a` and `x86_64`), installed from the reader through the update code, so Lume's own APKs stay small. Language packs (English → Russian, about 24 MB) download from Mozilla on request.
+
+  A per-title glossary keeps names the same in every chapter (its own screen with search, paste and copy; in backups and sync). A long press shows the original paragraph, and read aloud goes on in the translation. Still open: an LLM API as a fourth engine, the chapter title row (it stays in the original), more offline language pairs, offline speed measured on more arm64 phones.
 - ✅ **Ranobe build** (S): `ranobe` flavor, novel mode only, without the comics code; `lume-vX.Y.Z-ranobe.apk` on every release. In v1.3.0.
 
 ## Every release

@@ -65,8 +65,16 @@ class AppUpdater(
     private val scope: CoroutineScope,
     /** This build's flavor (`full`, `manga`, …): only that flavor's APK is offered. */
     private val flavor: String = "full",
+    /**
+     * The installed version to compare with, or null when the app isn't installed (then any
+     * release is offered). Lume's own version by default; the translation add-on passes its own.
+     */
+    private val currentVersion: () -> String? = { BuildConfig.VERSION_NAME },
+    prefsName: String = "app_updates",
+    /** Folder under `cache/shared` for the downloaded APK; each updater has its own. */
+    private val downloadDir: String = "update",
 ) {
-    private val prefs = app.getSharedPreferences("app_updates", Context.MODE_PRIVATE)
+    private val prefs = app.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
 
     private val _state = MutableStateFlow<UpdateState>(UpdateState.Idle)
@@ -105,7 +113,8 @@ class AppUpdater(
             _state.value = try {
                 val release = withContext(Dispatchers.IO) { fetchLatest() }
                 prefs.edit { putLong(KEY_LAST_CHECK, System.currentTimeMillis()) }
-                if (release != null && isNewer(release.version, BuildConfig.VERSION_NAME)) UpdateState.Available(release, manual)
+                val current = currentVersion()
+                if (release != null && (current == null || isNewer(release.version, current))) UpdateState.Available(release, manual)
                 else UpdateState.UpToDate
             } catch (e: CancellationException) {
                 throw e
@@ -173,9 +182,9 @@ class AppUpdater(
 
     private suspend fun downloadApk(url: String, release: AppRelease): File {
         if (!isTrustedApkUrl(url)) throw IOException("Unexpected download address")
-        val dir = File(app.cacheDir, "shared/update").apply { mkdirs() }
+        val dir = File(app.cacheDir, "shared/$downloadDir").apply { mkdirs() }
         dir.listFiles()?.forEach { it.delete() }
-        val target = File(dir, "lume-${release.version}.apk")
+        val target = File(dir, "lume-${release.version}-$flavor.apk")
         val part = File(dir, "${target.name}.part")
         val request = Request.Builder().url(url).header("User-Agent", "Lume/${BuildConfig.VERSION_NAME}").build()
         val ctx = kotlin.coroutines.coroutineContext
@@ -231,8 +240,11 @@ class AppUpdater(
     }
 }
 
-/** Builds Lume is published as; each release asset is `lume-v<version>-<flavor>.apk`. */
-internal val APP_FLAVORS = setOf("full", "manga", "ranobe")
+/**
+ * Builds Lume is published as; each release asset is `lume-v<version>-<flavor>.apk`. `translate`
+ * is the optional translation add-on, a separate app next to them.
+ */
+internal val APP_FLAVORS = setOf("full", "manga", "ranobe", "translate")
 
 /** The flavor an asset name is for, or null for a plain `lume-v<version>.apk` (releases before 1.0). */
 internal fun apkFlavor(name: String): String? =

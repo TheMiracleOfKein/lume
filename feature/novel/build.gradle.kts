@@ -63,6 +63,8 @@ roborazzi {
 
 dependencies {
     implementation(project(":core:ui"))
+    // The contract with the optional Lume Translate add-on (no engine inside).
+    implementation(project(":core:translate"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

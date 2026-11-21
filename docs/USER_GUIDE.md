@@ -286,6 +286,23 @@ The headphones button on the bottom bar reads the chapter aloud with Android's o
 - It needs no Google services: any installed engine works (Google, Samsung, RHVoice, eSpeak…). If the phone has none, Lume says so and opens Android's text-to-speech settings, where you can install one or download voices.
 - Paused for 10 minutes, read aloud turns itself off.
 
+### Translating chapters
+
+English titles (Royal Road, Scribble Hub, English books you imported) can be read in Russian, and Russian ones (RanobeLib) in English. Tap the translate button in the reader's top bar and pick **How to translate**:
+
+- **Google Translate**: online, free, nothing to set up. The chapter text goes to Google.
+- **DeepL**: online, with your own key from a free DeepL API account (500,000 characters a month). The key is stored encrypted and never leaves the phone in a backup.
+- **On the phone**: offline and private, with the open-source models Firefox uses (English → Russian for now). It needs no Google services and sends no chapter text anywhere. The steps below set it up.
+
+- With **On the phone**, the first time it offers **Install Lume Translate**: a small separate app (about 8 MB) from the same Lume release. Android asks you to confirm the install. Only Lume can use it. Its own icon opens a short page with the downloaded language packs and a button back to Lume.
+- Then **Download language pack** fetches the English → Russian model (about 24 MB) from Mozilla's model storage. After that, translation works without internet. **Delete language pack** frees the space again.
+- **Read in Russian** is saved for the title. The chapter appears in English first and turns into Russian from the paragraph you're on; the top bar shows how far it has got. Translated chapters are kept for a while, so going back is instant.
+- Long-press a paragraph to see the original. The original can be selected and copied, and **Add to glossary** adds a name or term from it.
+- **Glossary**: names and terms that must read the same in every chapter of this title, for example "Shirou → Широ" or "mana core → ядро маны". It works with every engine. The glossary fixes the spelling; word endings stay as the translation has them. It is part of backups and sync.
+- **Open glossary** shows all of a title's terms on their own screen: search, sort by name or newest, tap a term to edit or delete it, **+** to add one, paste a whole list ("Shirou = Широ", one per line) and copy all terms to share them.
+- Read aloud reads the translated text, with a Russian voice when the engine has one.
+- Machine translation makes mistakes, mostly with genders and slang. The original is a long press away.
+
 ### Progress and history
 
 Lume remembers the paragraph you stopped at, also after rotating the phone or when Android closes the app. **Continue reading** on the title and in History opens the book at that place. A book in History opens in the text reader straight after a start of the app.

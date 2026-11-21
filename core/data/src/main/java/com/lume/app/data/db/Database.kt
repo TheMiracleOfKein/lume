@@ -25,8 +25,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WatchedFolderEntity::class,
         ImportedFileEntity::class,
         ReadingSessionEntity::class,
+        GlossaryTermEntity::class,
     ],
-    version = 17,
+    version = 18,
     exportSchema = true,
 )
 abstract class LumeDatabase : RoomDatabase() {
@@ -258,10 +259,29 @@ abstract class LumeDatabase : RoomDatabase() {
             }
         }
 
+        /** Per-title translation language and glossary of the Lume Translate add-on. Additive. */
+        val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE title_prefs ADD COLUMN novelTranslateTo TEXT")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS glossary_terms (
+                        sourceId TEXT NOT NULL,
+                        titleId TEXT NOT NULL,
+                        source TEXT NOT NULL,
+                        target TEXT NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        PRIMARY KEY(sourceId, titleId, source)
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
         val MIGRATIONS: Array<Migration> get() = arrayOf(
             MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
             MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
-            MIGRATION_16_17,
+            MIGRATION_16_17, MIGRATION_17_18,
         )
     }
 }

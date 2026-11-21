@@ -1,0 +1,4 @@
+[submodule "translate-addon/third_party/bergamot-translator"]
+	path = translate-addon/third_party/bergamot-translator
+	url = https://github.com/browsermt/bergamot-translator.git
+	shallow = true

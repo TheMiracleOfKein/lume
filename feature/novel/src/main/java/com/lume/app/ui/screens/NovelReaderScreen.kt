@@ -59,6 +59,13 @@ import com.lume.app.ui.components.TranslationPickerSheet
 import com.lume.app.ui.components.translationLabel
 import com.lume.app.ui.nav.openTitleFromReader
 import com.lume.app.ui.theme.Motion
+import androidx.compose.ui.res.stringResource
+import com.lume.app.R
+import com.lume.app.translate.OriginalDialog
+import com.lume.app.translate.TranslateSheet
+import com.lume.app.translate.glossaryRoute
+import com.lume.app.translate.TranslationProgress
+import com.lume.app.translate.originalText
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.filter
@@ -103,6 +110,9 @@ fun NovelReaderScreen(
     var chaptersOpen by rememberSaveable { mutableStateOf(false) }
     var translationsOpen by rememberSaveable { mutableStateOf(false) }
     var readAloudOpen by rememberSaveable { mutableStateOf(false) }
+    var translateOpen by rememberSaveable { mutableStateOf(false) }
+    /** The original shown for a long-pressed translated paragraph. */
+    var originalText by rememberSaveable { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val readAloud = vm.readAloud
@@ -117,7 +127,7 @@ fun NovelReaderScreen(
     val window = activity?.window
     val insetsController = remember(window, view) { window?.let { WindowCompat.getInsetsController(it, view) } }
     val exiting = LocalNavExiting.current
-    val hideSystemBars = !chromeVisible && !settingsOpen && !chaptersOpen && !translationsOpen && !readAloudOpen && !exiting
+    val hideSystemBars = !chromeVisible && !settingsOpen && !chaptersOpen && !translationsOpen && !readAloudOpen && !translateOpen && !exiting
     LaunchedEffect(insetsController, hideSystemBars) {
         insetsController?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         if (hideSystemBars) {
@@ -156,7 +166,16 @@ fun NovelReaderScreen(
             modifier = modifier,
             translation = vm.currentChapter?.takeIf { vm.translations.isNotEmpty() }?.let(::translationLabel),
             onTranslation = { translationsOpen = true },
+            onTranslate = { translateOpen = true }.takeIf { vm.translation.targets.isNotEmpty() },
+            translated = vm.translation.target != null,
+            translateStatus = (vm.translation.progress as? TranslationProgress.Working)?.let {
+                stringResource(R.string.translate_progress, it.done, it.total)
+            },
         )
+    }
+    val longPress = { chapterId: String, index: Int ->
+        vm.originalOf(chapterId, index)?.originalText()?.let { originalText = it }
+        Unit
     }
 
     Box(Modifier.fillMaxSize().background(palette.background)) {
@@ -176,6 +195,7 @@ fun NovelReaderScreen(
                     palette = palette,
                     onTapCentre = { chromeVisible = !chromeVisible },
                     onScrolled = { chromeVisible = false },
+                    onLongPress = longPress,
                 )
                 AnimatedVisibility(
                     visible = chromeVisible,
@@ -268,6 +288,22 @@ fun NovelReaderScreen(
     if (readAloud?.problem == ReadAloudProblem.NoEngine) {
         NoEngineDialog(onDismiss = ReadAloud::stop)
     }
+    if (translateOpen) {
+        val sheetState = rememberEasyDismissSheetState()
+        LumeBottomSheet(onDismissRequest = { translateOpen = false }, sheetState = sheetState) {
+            TranslateSheet(
+                translation = vm.translation,
+                onOpenGlossary = {
+                    translateOpen = false
+                    nav.navigate(glossaryRoute(sourceId, titleId, vm.titleName))
+                },
+                onClose = { scope.launch { sheetState.hide() }.invokeOnCompletion { translateOpen = false } },
+            )
+        }
+    }
+    originalText?.let { text ->
+        OriginalDialog(text = text, onAddTerm = vm.translation::addTerm, onDismiss = { originalText = null })
+    }
     if (translationsOpen) {
         TranslationPickerSheet(
             copies = vm.translations,
@@ -290,13 +326,15 @@ private fun NovelReaderContent(
     palette: NovelPalette,
     onTapCentre: () -> Unit,
     onScrolled: () -> Unit,
+    /** A block was long-pressed (chapter id, block index). */
+    onLongPress: (String, Int) -> Unit = { _, _ -> },
 ) {
     val topPad = WindowInsets.statusBarsIgnoringVisibility.let { with(LocalDensity.current) { it.getTop(this).toDp() } }
     // While reading aloud its panel stays at the bottom: the text ends above it.
     val panelPad = if (vm.readAloud != null) READ_ALOUD_PANEL_SPACE else 0.dp
     val bottomPad = WindowInsets.navigationBarsIgnoringVisibility.let { with(LocalDensity.current) { it.getBottom(this).toDp() } } + panelPad
     if (vm.settings.paged) {
-        NovelPagedText(vm, palette, topPad, bottomPad, onTapCentre = onTapCentre, onTurned = onScrolled)
+        NovelPagedText(vm, palette, topPad, bottomPad, onTapCentre = onTapCentre, onTurned = onScrolled, onLongPress = onLongPress)
         return
     }
     val session = vm.session
@@ -353,7 +391,16 @@ private fun NovelReaderContent(
         Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectTapGestures { tap ->
+                detectTapGestures(
+                    onLongPress = { at ->
+                        // The list fills this box; item offsets start after its top padding
+                        // (viewportStartOffset is minus that padding).
+                        val info = listState.layoutInfo
+                        val y = at.y.toInt() + info.viewportStartOffset
+                        val row = info.visibleItemsInfo.firstOrNull { y in it.offset until it.offset + it.size }
+                        (row?.let { vm.items.getOrNull(it.index) } as? NovelItem.Block)?.let { onLongPress(it.chapterId, it.index) }
+                    },
+                ) { tap ->
                     val third = size.height / 3f
                     val delta = listState.layoutInfo.viewportSize.height * TAP_SCROLL_FRACTION
                     val scrolls = tap.y < third || tap.y > 2 * third

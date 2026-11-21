@@ -21,6 +21,18 @@ class NovelPagesTest {
     )
 
     @Test
+    fun longPressFindsTheRowUnderTheFinger() {
+        val measures = listOf(text(2, bottom = 5), text(3, top = 4))
+        val page = paginate(measures, pageHeight = 100).single()
+        // Row 0: 0..20, gap 9, row 1: 29..59.
+        assertEquals(0, sliceAt(page, measures, 5f))
+        assertEquals(null, sliceAt(page, measures, 25f))
+        assertEquals(1, sliceAt(page, measures, 30f))
+        assertEquals(null, sliceAt(page, measures, 80f))
+        assertEquals(0, sliceAt(NovelPage(listOf(PageSlice(0, 0, 1, 0))), listOf(PageMeasure.Whole(false)), 500f))
+    }
+
+    @Test
     fun rowsShareAPageWithTheSpaceBetweenThem() {
         val pages = paginate(listOf(text(2, bottom = 5), text(3, top = 4)), pageHeight = 100)
         assertEquals(listOf(NovelPage(listOf(PageSlice(0, 0, 2, 0), PageSlice(1, 0, 3, 9)))), pages)

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Lume Translate</string>
+    <color name="ic_launcher_background">#121212</color>
+    <string name="addon_about">Offline translation for Lume\'s text reader, with the open-source models Firefox uses. Turn it on from a chapter in Lume: the translate button in the reader\'s top bar. Language packs download from Mozilla only when you ask; chapter text never leaves the phone.</string>
+    <string name="addon_packs">LANGUAGE PACKS</string>
+    <string name="addon_no_packs">None downloaded yet.</string>
+    <string name="addon_delete_pack">Delete</string>
+    <string name="addon_open_lume">Open Lume</string>
+    <string name="addon_no_lume">Lume isn\'t installed</string>
+</resources>

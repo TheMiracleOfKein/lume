@@ -17,6 +17,9 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+        with:
+          # The translation add-on builds bergamot-translator from its pinned submodule.
+          submodules: recursive
 
       - uses: actions/setup-java@v6
         with:
@@ -28,7 +31,7 @@ jobs:
       # Live catalogue tests stay off (no -Plume.live; see live-sources.yml). The Room migration
       # test runs here on Robolectric; on Windows it only runs on a device.
       - name: Build, test and lint
-        run: ./gradlew --no-configuration-cache :core:model:test :core:common:testDebugUnitTest :core:common:lintDebug :core:data:testDebugUnitTest :core:data:lintDebug :core:ui:testDebugUnitTest :core:ui:lintDebug :feature:comics:testDebugUnitTest :feature:comics:lintDebug :feature:novel:testDebugUnitTest :feature:novel:lintDebug :app:assembleDebug :app:testFullDebugUnitTest :app:testMangaDebugUnitTest :app:testRanobeDebugUnitTest :app:lintFullDebug :app:lintMangaDebug :app:lintRanobeDebug
+        run: ./gradlew --no-configuration-cache --stacktrace :core:model:test :core:common:testDebugUnitTest :core:common:lintDebug :core:data:testDebugUnitTest :core:data:lintDebug :core:ui:testDebugUnitTest :core:ui:lintDebug :feature:comics:testDebugUnitTest :feature:comics:lintDebug :feature:novel:testDebugUnitTest :feature:novel:lintDebug :app:assembleDebug :app:testFullDebugUnitTest :app:testMangaDebugUnitTest :app:testRanobeDebugUnitTest :app:lintFullDebug :app:lintMangaDebug :app:lintRanobeDebug :core:translate:testDebugUnitTest :core:translate:lintDebug :translate-addon:testDebugUnitTest :translate-addon:lintDebug
 
       # Screenshot tests: the screens are rendered again and compared with the golden images in
       # core/ui/src/test/screenshots and feature/comics/src/test/screenshots (docs/ARCHITECTURE.md,
@@ -56,7 +59,7 @@ jobs:
       # The R8-shrunk release builds of every flavor (unsigned here), so a missing keep rule fails
       # the PR rather than the release.
       - name: Release build (R8)
-        run: ./gradlew --no-configuration-cache :app:assembleFullRelease :app:assembleMangaRelease :app:assembleRanobeRelease
+        run: ./gradlew --no-configuration-cache :app:assembleFullRelease :app:assembleMangaRelease :app:assembleRanobeRelease :translate-addon:assembleRelease
 
       - name: APK sizes
         run: |

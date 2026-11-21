@@ -45,6 +45,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: refs/tags/${{ env.TAG }}
+          # The translation add-on builds bergamot-translator from its pinned submodule.
+          submodules: recursive
 
       - name: Check the signing secrets
         env:
@@ -106,7 +108,7 @@ jobs:
           ORG_GRADLE_PROJECT_LUME_STORE_PASSWORD: ${{ secrets.LUME_STORE_PASSWORD }}
           ORG_GRADLE_PROJECT_LUME_KEY_ALIAS: ${{ secrets.LUME_KEY_ALIAS }}
           ORG_GRADLE_PROJECT_LUME_KEY_PASSWORD: ${{ secrets.LUME_KEY_PASSWORD }}
-        run: ./gradlew --no-configuration-cache :app:clean :app:assembleFullRelease :app:assembleMangaRelease :app:assembleRanobeRelease
+        run: ./gradlew --no-configuration-cache :app:clean :app:assembleFullRelease :app:assembleMangaRelease :app:assembleRanobeRelease :translate-addon:clean :translate-addon:assembleRelease
 
       - name: Remove the keystore and app keys
         if: always()
@@ -135,6 +137,18 @@ jobs:
             cat "dist/$name.sha256"
             echo "$name: $(stat -c %s "dist/$name") bytes"
           done
+          # The optional translation add-on (com.lume.translate): same key and version name.
+          apk="translate-addon/build/outputs/apk/release/translate-addon-release.apk"
+          [ -f "$apk" ] || { echo "::error::No signed translate add-on APK (only an unsigned one?)"; exit 1; }
+          certs=$("$bt/apksigner" verify --print-certs -v "$apk")
+          echo "$certs" | grep -q "^Verifies" || { echo "::error::apksigner does not verify the add-on APK"; exit 1; }
+          echo "$certs" | grep -qi "SHA-256 digest: $CERT_SHA256" || { echo "::error::The add-on APK is signed with another certificate"; exit 1; }
+          "$bt/aapt2" dump badging "$apk" | grep -q "versionName='${TAG#v}'" || { echo "::error::The add-on APK has another version"; exit 1; }
+          name="lume-$TAG-translate.apk"
+          cp "$apk" "dist/$name"
+          (cd dist && sha256sum "$name" > "$name.sha256")
+          cat "dist/$name.sha256"
+          echo "$name: $(stat -c %s "dist/$name") bytes"
 
       - uses: actions/upload-artifact@v7
         with:
@@ -156,4 +170,5 @@ jobs:
           gh release create "$TAG" "dist/lume-$TAG-full.apk" "dist/lume-$TAG-full.apk.sha256" \
             --title "Lume ${TAG#v}" --notes-file "$notes" --verify-tag --latest
           gh release upload "$TAG" "dist/lume-$TAG-manga.apk" "dist/lume-$TAG-manga.apk.sha256" \
-            "dist/lume-$TAG-ranobe.apk" "dist/lume-$TAG-ranobe.apk.sha256"
+            "dist/lume-$TAG-ranobe.apk" "dist/lume-$TAG-ranobe.apk.sha256" \
+            "dist/lume-$TAG-translate.apk" "dist/lume-$TAG-translate.apk.sha256"

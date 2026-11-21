@@ -308,6 +308,29 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate17To18AddsTranslateColumnAndGlossary() {
+        helper.createDatabase(dbName, 17).apply {
+            execSQL("INSERT INTO title_prefs (sourceId, titleId, readerMode, chapterFilter, chapterSortAsc, showDuplicates, autoDownload) VALUES ('s', 't', 2, 0, 0, 0, 0)")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(dbName, 18, true, LumeDatabase.MIGRATION_17_18)
+
+        db.query("SELECT readerMode, novelTranslateTo FROM title_prefs").use {
+            it.moveToFirst()
+            assertEquals(2, it.getInt(0))
+            assertTrue(it.isNull(1))
+        }
+        db.execSQL("INSERT INTO glossary_terms (sourceId, titleId, source, target, updatedAt) VALUES ('s', 't', 'Kirito', 'Кирито', 5)")
+        db.query("SELECT source, target, updatedAt FROM glossary_terms").use {
+            it.moveToFirst()
+            assertEquals("Kirito", it.getString(0))
+            assertEquals("Кирито", it.getString(1))
+            assertEquals(5L, it.getLong(2))
+        }
+    }
+
+    @Test
     fun freshDatabaseOpensWithAllMigrations() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         helper.createDatabase(dbName, 7).close()

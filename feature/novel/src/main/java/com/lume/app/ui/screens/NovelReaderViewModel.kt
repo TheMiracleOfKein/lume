@@ -24,6 +24,8 @@ import com.lume.app.domain.chapterTranslations
 import com.lume.app.readaloud.ReadAloud
 import com.lume.app.readaloud.ReadAloudState
 import com.lume.app.readaloud.ReadAloudStatus
+import com.lume.app.data.novel.NovelBlock
+import com.lume.app.translate.ReaderTranslation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -222,6 +224,30 @@ class NovelReaderViewModel(
     var followVoice by mutableStateOf(true)
         private set
 
+    // ---- Translation (declared before init, which starts it) -----------------------------
+
+    /** On-device translation through the Lume Translate add-on; inert when no model fits the title. */
+    val translation = ReaderTranslation(app, viewModelScope, sourceId, titleId) { chapterId, blocks, original ->
+        replaceBlocks(chapterId, blocks, original)
+    }
+
+    /** A chapter's text changed in place (translated, or back to the original): same blocks, new words. */
+    private fun replaceBlocks(chapterId: String, blocks: List<NovelBlock>, original: List<NovelBlock>?) {
+        val i = loaded.indexOfFirst { it.chapter.id == chapterId }
+        if (i < 0 || loaded[i].let { (it.original ?: it.blocks).size } != blocks.size) return
+        loaded = loaded.toMutableList().also { it[i] = LoadedNovelChapter(it[i].chapter, blocks, original) }
+        items = buildNovelItems(loaded)
+        textVersion++
+    }
+
+    /** Bumped when text changes in place (a translation batch): the paged reader re-finds its page. */
+    var textVersion by mutableIntStateOf(0)
+        private set
+
+    /** The source text of a translated block, for the long press; null when it isn't translated. */
+    fun originalOf(chapterId: String, index: Int): NovelBlock? =
+        loaded.firstOrNull { it.chapter.id == chapterId }?.original?.getOrNull(index)
+
     // ---- Saving ---------------------------------------------------------------------------
     private val pendingSave = MutableStateFlow<NovelAnchor?>(null)
     private var dirty = false
@@ -259,6 +285,9 @@ class NovelReaderViewModel(
                 if (mine != null && followVoice) followChapter(mine)
             }
         }
+        translation.currentChapterId = anchor.chapterId
+        translation.start(loaded = { loaded }, anchorBlock = { anchor.block })
+        book.listeningTransform = translation::forListening
         load(anchor, explicit = savedChapter != null || routeHasTarget)
     }
 
@@ -323,10 +352,13 @@ class NovelReaderViewModel(
                 }
                 chapter to start.copy(block = start.block.coerceIn(0, chapter.blocks.size - 1))
             }.onSuccess { (first, start) ->
+                translation.onListReset()
                 loaded = listOf(first)
                 items = buildNovelItems(loaded)
                 anchor = start
                 currentChapterId = start.chapterId
+                translation.currentChapterId = start.chapterId
+                translation.onChapterLoaded(first)
                 translations = chapterTranslations(allCopies, first.chapter)
                 currentBlock = start.block
                 atChapterEnd = false
@@ -371,6 +403,7 @@ class NovelReaderViewModel(
                         if (forSession != session) return@onSuccess
                         loaded = loaded + chapter
                         items = buildNovelItems(loaded)
+                        translation.onChapterLoaded(chapter)
                     }
                     .onFailure { e ->
                         if (e is CancellationException) throw e
@@ -398,6 +431,7 @@ class NovelReaderViewModel(
         dirty = true
         if (chapterChanged) {
             currentChapterId = next.chapterId
+            translation.currentChapterId = next.chapterId
             translations = currentChapter?.let { chapterTranslations(allCopies, it) }.orEmpty()
         }
         if (currentBlock != next.block) currentBlock = next.block

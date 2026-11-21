@@ -293,7 +293,8 @@ object ReadAloud {
 private class BookStore(private val app: AppContainer, private val book: NovelBook) : ReadAloudStore {
     override val incognito: Boolean get() = app.prefs.incognito.value
 
-    override suspend fun loadChapter(chapter: Chapter): LoadedNovelChapter = book.loadChapter(chapter)
+    // Translated when the reader shows this title translated, so the voice goes on in that language.
+    override suspend fun loadChapter(chapter: Chapter): LoadedNovelChapter = book.loadChapterForListening(chapter)
 
     override fun saveProgress(anchor: NovelAnchor, chapter: LoadedNovelChapter) {
         app.appScope.launch { book.saveProgress(anchor, chapter, completed = false) }

@@ -83,6 +83,19 @@ class NovelBook(private val app: AppContainer, val sourceId: String, val titleId
         return LoadedNovelChapter(ch, blocks)
     }
 
+    /**
+     * Applied to chapters read aloud: the reader sets it while the title is shown translated, so
+     * read aloud's next chapters are translated too. Null reads the original.
+     */
+    var listeningTransform: (suspend (LoadedNovelChapter) -> LoadedNovelChapter)? = null
+
+    /** [loadChapter], then [listeningTransform]; a failed translation falls back to the original. */
+    suspend fun loadChapterForListening(ch: Chapter): LoadedNovelChapter {
+        val lc = loadChapter(ch)
+        val transform = listeningTransform ?: return lc
+        return runCatching { transform(lc) }.getOrElse { if (it is kotlinx.coroutines.CancellationException) throw it else lc }
+    }
+
     /** The chapter's own saved spot, or null. */
     suspend fun chapterProgress(chapterId: String) = dao.getChapterProgress(sourceId, titleId, chapterId)
 

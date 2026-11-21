@@ -7,8 +7,11 @@ import kotlin.math.roundToInt
 /** A spot in a chapter: the [block] at the top of the screen and how far [fraction] (0..1) it is scrolled. */
 data class NovelAnchor(val chapterId: String, val block: Int, val fraction: Float)
 
-/** A chapter whose text is loaded into the reader. */
-class LoadedNovelChapter(val chapter: Chapter, val blocks: List<NovelBlock>)
+/**
+ * A chapter whose text is loaded into the reader. When it is shown translated, [blocks] are the
+ * translation and [original] the source text, block for block (same count).
+ */
+class LoadedNovelChapter(val chapter: Chapter, val blocks: List<NovelBlock>, val original: List<NovelBlock>? = null)
 
 /** One row of the reader's list: a chapter's title, or one of its blocks. */
 sealed interface NovelItem {
@@ -43,7 +46,8 @@ fun startsWithOwnTitle(chapter: Chapter, blocks: List<NovelBlock>): Boolean {
 fun buildNovelItems(loaded: List<LoadedNovelChapter>): List<NovelItem> {
     val out = ArrayList<NovelItem>(loaded.sumOf { it.blocks.size + 1 })
     for (lc in loaded) {
-        if (!startsWithOwnTitle(lc.chapter, lc.blocks)) out += NovelItem.Header(lc.chapter)
+        // Decided on the original text, so the title row doesn't come and go as a translation arrives.
+        if (!startsWithOwnTitle(lc.chapter, lc.original ?: lc.blocks)) out += NovelItem.Header(lc.chapter)
         lc.blocks.forEachIndexed { i, block -> out += NovelItem.Block(lc.chapter.id, i, block) }
     }
     return out

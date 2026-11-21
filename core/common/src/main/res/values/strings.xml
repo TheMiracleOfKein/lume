@@ -1335,4 +1335,72 @@
     <string name="nearby_declined_by_sender">The sender cancelled</string>
     <string name="nearby_try_again">Try again</string>
     <string name="nearby_permission_denied">Without local network access the phones can\'t find each other.</string>
+
+    <!-- On-device translation (text reader, Lume Translate add-on) -->
+    <string name="translate_title">Translate</string>
+    <string name="translate_addon_about">Chapters are translated on your phone, offline, with the open-source models Firefox uses. This needs the free Lume Translate add-on (about 8 MB), a separate app from the same release as Lume. Language packs download later, one per language.</string>
+    <string name="translate_addon_outdated">The installed Lume Translate doesn\'t match this version of Lume. Update it to translate.</string>
+    <string name="translate_addon_wrong_signature">The installed Lume Translate is signed with a different key than Lume, so Lume can\'t use it. Uninstall it, then install it again from here.</string>
+    <string name="translate_addon_install">Install Lume Translate</string>
+    <string name="translate_addon_update">Update Lume Translate</string>
+    <string name="translate_addon_uninstall">Uninstall Lume Translate</string>
+    <string name="translate_addon_downloading">Downloading Lume Translate…</string>
+    <string name="translate_addon_open_installer">Open the installer</string>
+    <string name="translate_addon_not_in_release">The latest release has no Lume Translate yet.</string>
+    <string name="translate_pair">%1$s → %2$s</string>
+    <string name="translate_pack_about">The language pack (%1$s) downloads from Mozilla\'s model storage (storage.googleapis.com). After that, translation works without internet.</string>
+    <string name="translate_pack_download">Download language pack (%1$s)</string>
+    <string name="translate_pack_failed">Download failed: %1$s</string>
+    <string name="translate_pack_delete">Delete language pack (%1$s)</string>
+    <string name="translate_switch">Read in %1$s</string>
+    <string name="translate_switch_hint">For this title. Long-press a paragraph to see the original.</string>
+    <string name="translate_progress">Translating: %1$d of %2$d paragraphs</string>
+    <string name="translate_failed">Translation failed: %1$s</string>
+    <string name="translate_glossary">Glossary</string>
+    <string name="translate_glossary_hint">Names and terms that must read the same in every chapter. It fixes the spelling; word endings stay as the translation has them.</string>
+    <string name="translate_glossary_term">%1$s → %2$s</string>
+    <string name="translate_glossary_remove">Remove %1$s</string>
+    <string name="translate_glossary_source">Original</string>
+    <string name="translate_glossary_target">Translation</string>
+    <string name="translate_glossary_add">Add</string>
+    <string name="translate_glossary_add_term">Add to glossary</string>
+    <string name="translate_original">Original</string>
+    <string name="translate_working">Translating…</string>
+    <string name="translate_pick_engine">Pick how to translate below first.</string>
+    <string name="translate_needs_addon">Install Lume Translate below, or pick an online engine.</string>
+    <string name="translate_needs_pack">Download the language pack below, or pick an online engine.</string>
+    <string name="translate_needs_deepl_key">Enter your DeepL API key below first.</string>
+    <string name="translate_engine">How to translate</string>
+    <string name="translate_engine_offline">On the phone</string>
+    <string name="translate_engine_offline_hint">Lume Translate add-on and a language pack. Private, works without internet.</string>
+    <string name="translate_engine_offline_none">No offline model for this language yet.</string>
+    <string name="translate_engine_google">Google Translate</string>
+    <string name="translate_engine_google_hint">Online, free, nothing to set up. Chapter text is sent to Google.</string>
+    <string name="translate_engine_deepl">DeepL</string>
+    <string name="translate_engine_deepl_hint">Online, with your own DeepL API key (the free plan has 500,000 characters a month). Chapter text is sent to DeepL.</string>
+    <string name="translate_deepl_key">DeepL API key</string>
+    <string name="translate_deepl_key_about">Create a free DeepL API account at deepl.com/pro-api and paste its key here. It is stored encrypted on this phone and is never part of backups.</string>
+    <string name="translate_deepl_key_saved">A key is saved. Enter another one to replace it.</string>
+    <string name="glossary_open">Open glossary</string>
+    <plurals name="glossary_open_count">
+        <item quantity="one">Open glossary (%d term)</item>
+        <item quantity="other">Open glossary (%d terms)</item>
+    </plurals>
+    <plurals name="glossary_count">
+        <item quantity="one">%d term</item>
+        <item quantity="other">%d terms</item>
+    </plurals>
+    <string name="glossary_empty">No terms yet. Add one with +, paste a list, or long-press a paragraph in the reader.</string>
+    <string name="glossary_search">Search terms</string>
+    <string name="glossary_sort_name">Sort by name</string>
+    <string name="glossary_sort_newest">Sort by newest</string>
+    <string name="glossary_import">Paste terms</string>
+    <string name="glossary_import_hint">One term per line: \"Shirou = Широ\", \"mana core → ядро маны\" or two columns separated by a tab. A term that is already there is replaced.</string>
+    <plurals name="glossary_import_count">
+        <item quantity="one">Add %d term</item>
+        <item quantity="other">Add %d terms</item>
+    </plurals>
+    <string name="glossary_copy_all">Copy all terms</string>
+    <string name="glossary_new_term">New term</string>
+    <string name="glossary_edit_term">Edit term</string>
 </resources>

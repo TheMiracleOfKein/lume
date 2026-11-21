@@ -74,7 +74,7 @@ class BackupPayloadTest {
         val text = BackupPayload.json.encodeToString(BackupPayload.serializer(), payload)
         val back = BackupPayload.parse(text)
         assertEquals(payload.readingSessions, back.readingSessions)
-        assertEquals(5, back.version)
+        assertEquals(BackupPayload.CURRENT_VERSION, back.version)
     }
 
     @Test

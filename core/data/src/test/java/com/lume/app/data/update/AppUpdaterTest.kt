@@ -93,6 +93,15 @@ class AppUpdaterTest {
         val onlyFull = listOf("lume-v1.0.1-full.apk", "lume-v1.0.1-full.apk.sha256")
         assertNull(pickApk(onlyFull, "manga"))
         assertNull(pickApk(onlyFull, "ranobe"))
+        assertNull(pickApk(onlyFull, "translate"))
+    }
+
+    @Test
+    fun theTranslateAddonIsItsOwnAsset() {
+        val names = listOf("lume-v1.7.0-full.apk", "lume-v1.7.0-manga.apk", "lume-v1.7.0-ranobe.apk", "lume-v1.7.0-translate.apk")
+        assertEquals(3, pickApk(names, "translate"))
+        assertEquals(0, pickApk(names, "full"))
+        assertEquals(2, pickApk(names, "ranobe"))
     }
 
     @Test
