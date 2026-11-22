@@ -55,7 +55,7 @@ fun CloudflareChallengeOverlay(
     fun finish() {
         if (finished.value) return
         finished.value = true
-        http.syncWebViewCookies(uri.toString())
+        // The host dismisses the overlay first and syncs cookies / reloads once the WebView has left composition.
         onSolved()
     }
     val hint = if (siteReady.value) {
@@ -99,7 +99,8 @@ fun CloudflareChallengeOverlay(
                 .fillMaxWidth()
                 .padding(top = 8.dp),
             onRelease = {
-                web = null
+                it.stopLoading()
+                it.webViewClient = WebViewClient()
                 it.destroy()
             },
             factory = { context ->

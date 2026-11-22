@@ -332,6 +332,18 @@ Two phones on the same Wi-Fi, one with a few downloaded titles (one stored as CB
 - [ ] A backup holds the codex (restore on a clean install brings the entries and aliases back) and not the chapter text.
 - [ ] Sheets: the lookup and recap sheets close by dragging and the status bar behaves as with the other reader sheets.
 
+## v1.9.0: AI translation, recap and codex summaries
+
+- [ ] With a real OpenRouter key: AI (your key) → paste the key → Save → "Choose…" lists models with prices → turn on "Read in Russian" on a Royal Road chapter. The chapter turns Russian from the paragraph you're on, with bold and italic kept.
+- [ ] Names: after the first chapter, the glossary shows "Suggested (N)" with source → target and a kind. The next chapter writes those names the same way. Accept one character: it is in the codex with the translation as another spelling. Reject one: it goes away and isn't suggested again. Accept all empties the section.
+- [ ] Adding suggestions doesn't restart a chapter that is being translated; editing a term's target re-renders without a new request (no new cost on OpenRouter's activity page).
+- [ ] Style note: save "keep -san", and chapters are translated again with it. "Translate this chapter again" asks the model again for the current chapter.
+- [ ] Other (URL) with a local Ollama (`http://<computer>:11434/v1`, no key): a model from "Choose…" translates.
+- [ ] Errors: a wrong key says the key was refused; no credits says so; the original stays readable and Retry works.
+- [ ] AI recap: turn it on in Settings → Reader and finish two chapters (OpenRouter's activity page shows one small request each). Set the title's last-read time back past the recap setting, then reopen: "Previously…" shows "Writing a summary…", then "The story so far" above the paragraphs, in Russian for a title read in Russian. Nothing is sent in incognito.
+- [ ] Summarize with AI on a saved name: a description and relations appear, marked as up to the current chapter. Open an earlier chapter and look the name up: the summary is hidden ("from further on"). Removing a relation removes it from both names.
+- [ ] Update from v1.8.0 with glossaries and codex entries: everything is kept, old terms count as your own, a backup restores as format 8, and a v1.8.0 backup still loads.
+
 ## Performance
 
 - [ ] Run `StartupBenchmark` on a real phone (`./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`) and note the startup time with and without the baseline profile.

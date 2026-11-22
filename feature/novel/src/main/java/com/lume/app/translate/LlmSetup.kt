@@ -14,7 +14,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -146,15 +150,21 @@ internal fun LlmSetup(onSave: (preset: String, baseUrl: String?, model: String?,
 internal fun StyleNote(saved: String?, onSave: (String) -> Unit) {
     var text by rememberSaveable(saved) { mutableStateOf(saved.orEmpty()) }
     Hint(stringResource(R.string.translate_style_hint))
+    // Save sits inside the field: a button below it would be under the keyboard while typing.
+    val changed = text.trim() != saved.orEmpty()
     OutlinedTextField(
         value = text,
         onValueChange = { text = it.take(500) },
         label = { Text(stringResource(R.string.translate_style)) },
         minLines = 2,
         maxLines = 5,
+        trailingIcon = {
+            IconButton(enabled = changed, onClick = { onSave(text) }) {
+                Icon(Icons.Outlined.Check, stringResource(R.string.action_save), tint = if (changed) AppColors.accent else AppColors.textTertiary)
+            }
+        },
         modifier = Modifier.fillMaxWidth(),
     )
-    TextButton(enabled = text.trim() != saved.orEmpty(), onClick = { onSave(text) }) { Text(stringResource(R.string.action_save)) }
 }
 
 /** The service's models with a search field; prices per million tokens where the service says them. */
