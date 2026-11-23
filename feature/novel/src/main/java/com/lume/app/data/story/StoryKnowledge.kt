@@ -5,6 +5,7 @@ import com.lume.app.data.db.CodexEntryWithAliases
 import com.lume.app.data.db.CodexRelationEntity
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.inReadingOrder
+import com.lume.app.llm.AiFeature
 import com.lume.app.llm.LlmClient
 import com.lume.app.llm.extractJsonObject
 import kotlinx.coroutines.CancellationException
@@ -48,23 +49,25 @@ class StoryKnowledge(app: AppContainer, private val sourceId: String, private va
         val ordered = chapters.inReadingOrder()
         val at = ordered.indexOfFirst { it.id == current.id }
         val before = if (at <= 0) emptyList() else ordered.subList(0, at)
-        // The last few chapters get a digest now if they have none; older ones count only when they have one.
-        for (ch in before.takeLast(AiRecap.RECAP_CHAPTERS)) {
-            try {
-                recap.digest(client, ch, lang) { text(ch) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                // A gap in the digests still leaves the mentions.
-            }
+        // The last few chapters get a digest now if they have none (in one request); older ones count only when they have one.
+        try {
+            recap.digests(client, before.takeLast(AiRecap.RECAP_CHAPTERS), lang, text)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // A gap in the digests still leaves the mentions.
         }
-        val byId = dao.titleDigests(sourceId, titleId, lang).associateBy { it.chapterId }
-        val digests = before.mapNotNull { ch -> byId[ch.id]?.let { ch.title.ifBlank { ch.id } to it.text } }.takeLast(MAX_DIGESTS)
+        val byId = dao.titleDigestsAnyLang(sourceId, titleId).groupBy { it.chapterId }
+            .mapValues { (_, list) -> (list.firstOrNull { it.lang == lang } ?: list.maxBy { it.createdAt }).text }
+        val all = before.mapNotNull { ch -> byId[ch.id]?.let { ch.title.ifBlank { ch.id } to it } }
+        val digests = relevantDigests(all, listOf(entry.entry.name) + entry.aliases.map { it.alias })
         if (digests.isEmpty() && mentions.isEmpty()) throw IOException("Nothing read about this name yet")
         val others = codex.filter { it.entry.id != entry.entry.id }.map { it.entry.name }
         val answer = client.chat(
             knowledgeSystemPrompt(lang),
             knowledgeUserPrompt(entry, others, digests, mentions.map { it.chapter.title.ifBlank { it.chapter.id } to it.text }),
+            maxTokens = SUMMARY_TOKENS,
+            feature = AiFeature.Summary,
         )
         val knowledge = parseKnowledge(answer.content, entry)
         val now = System.currentTimeMillis()
@@ -84,9 +87,27 @@ class StoryKnowledge(app: AppContainer, private val sourceId: String, private va
     }
 
     private companion object {
-        /** Older chapters than this many digests back are left out, so the request stays small. */
-        const val MAX_DIGESTS = 30
+        /** Room for the summary and up to 8 relations. */
+        const val SUMMARY_TOKENS = 700
     }
+}
+
+/** Older chapters than this many digests back are left out, so the request stays small. */
+private const val MAX_DIGESTS = 30
+
+/** The last digests, kept for context even when they don't name the entry. */
+private const val CONTEXT_DIGESTS = 4
+
+/**
+ * The digests a summary of a name needs, from [all] (chapter label to digest, in reading order):
+ * those that mention one of [names], plus the last [CONTEXT_DIGESTS] for where the story is now,
+ * at most [MAX_DIGESTS]. A minor character then costs a few digests, not the whole book.
+ */
+internal fun relevantDigests(all: List<Pair<String, String>>, names: List<String>): List<Pair<String, String>> {
+    val needles = names.map { it.trim() }.filter { it.length >= 2 }
+    val lastStart = (all.size - CONTEXT_DIGESTS).coerceAtLeast(0)
+    return all.filterIndexed { i, (_, digest) -> i >= lastStart || needles.any { digest.contains(it, ignoreCase = true) } }
+        .takeLast(MAX_DIGESTS)
 }
 
 /**

@@ -278,6 +278,14 @@ interface LibraryDao {
     @Query("SELECT COUNT(*) FROM chapter_digests")
     suspend fun digestCount(): Int
 
+    /** Digests of [chapterIds] in any language (a summary can read one in another language). */
+    @Query("SELECT * FROM chapter_digests WHERE sourceId = :sourceId AND titleId = :titleId AND chapterId IN (:chapterIds)")
+    suspend fun digestsAnyLang(sourceId: String, titleId: String, chapterIds: List<String>): List<ChapterDigestEntity>
+
+    /** Digests of the title's chapters in any language. */
+    @Query("SELECT * FROM chapter_digests WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun titleDigestsAnyLang(sourceId: String, titleId: String): List<ChapterDigestEntity>
+
     /** Digests of the title's chapters in [lang], any chapter. */
     @Query("SELECT * FROM chapter_digests WHERE sourceId = :sourceId AND titleId = :titleId AND lang = :lang")
     suspend fun titleDigests(sourceId: String, titleId: String, lang: String): List<ChapterDigestEntity>

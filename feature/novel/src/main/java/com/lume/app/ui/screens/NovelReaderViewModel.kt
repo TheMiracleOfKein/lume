@@ -19,7 +19,7 @@ import com.lume.app.data.story.visibleAt
 import com.lume.app.data.db.CodexEntryWithAliases
 import com.lume.app.data.db.CodexRelationEntity
 import com.lume.app.data.story.RecapParagraph
-import com.lume.app.llm.LlmClient
+import com.lume.app.llm.AiServices
 import com.lume.app.translate.llmConfig
 import java.util.Locale
 import com.lume.app.data.story.StoryLookup
@@ -565,7 +565,7 @@ class NovelReaderViewModel(
             lookupState = state.copy(knowledge = state.knowledge?.copy(busy = true, error = null))
             val error = try {
                 storyKnowledge.summarize(
-                    LlmClient(app.http.okHttp, config), entry, dao.codexOnce(sourceId, titleId), chapters, current,
+                    AiServices.client(app, config), entry, dao.codexOnce(sourceId, titleId), chapters, current,
                     listOfNotNull(context.firstMention) + context.recentMentions, recapLanguage(), ::chapterText,
                 )
                 null
@@ -703,7 +703,7 @@ class NovelReaderViewModel(
         aiRecap = AiRecapState.Loading
         aiRecapJob = viewModelScope.launch {
             aiRecap = try {
-                aiRecapper.recap(LlmClient(app.http.okHttp, config), chapters, first.chapter, soFar, recapLanguage(), ::chapterText)
+                aiRecapper.recap(AiServices.client(app, config), chapters, first.chapter, soFar, recapLanguage(), ::chapterText)
                     ?.let { AiRecapState.Ready(it) }
             } catch (e: CancellationException) {
                 throw e
@@ -721,7 +721,7 @@ class NovelReaderViewModel(
         val lc = loaded.firstOrNull { it.chapter.id == chapterId }
         app.appScope.launch {
             runCatching {
-                aiRecapper.digest(LlmClient(app.http.okHttp, config), chapter, recapLanguage()) {
+                aiRecapper.digest(AiServices.client(app, config), chapter, recapLanguage()) {
                     lc?.let { (it.original ?: it.blocks).mapNotNull { b -> b.originalText() } } ?: chapterText(chapter)
                 }
             }
