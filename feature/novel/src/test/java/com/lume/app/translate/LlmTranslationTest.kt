@@ -25,8 +25,10 @@ class LlmTranslationTest {
         val c = LlmConfig.from("openrouter", null, null, mapOf("openrouter" to "k"))!!
         assertEquals("https://openrouter.ai/api/v1", c.baseUrl)
         assertEquals("openrouter/auto", c.model)
-        // OpenAI has no default model: one must be typed.
-        assertNull(LlmConfig.from("openai", null, null, mapOf("openai" to "k")))
+        // Without a picked model, a service uses its first automatic preference.
+        assertEquals("gpt-5-mini", LlmConfig.from("openai", null, null, mapOf("openai" to "k"))!!.model)
+        // A custom server has no automatic model before a check.
+        assertNull(LlmConfig.from("custom", "http://10.0.0.1/v1", null, emptyMap()))
         assertEquals("gpt-x", LlmConfig.from("openai", null, " gpt-x ", mapOf("openai" to "k"))!!.model)
     }
 

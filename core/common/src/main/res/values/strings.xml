@@ -1353,9 +1353,8 @@
     <string name="translate_pack_failed">Download failed: %1$s</string>
     <string name="translate_pack_delete">Delete language pack (%1$s)</string>
     <string name="translate_switch">Read in %1$s</string>
-    <string name="translate_switch_hint">For this title. Long-press a paragraph to see the original.</string>
+    <string name="translate_switch_hint">Off each time you open the reader; back within 15 minutes, it stays on. Translated chapters are kept, so turning it on again is instant. Long-press a paragraph to see the original.</string>
     <string name="translate_progress">Translating: %1$d of %2$d paragraphs</string>
-    <string name="translate_failed">Translation failed: %1$s</string>
     <string name="translate_glossary">Glossary</string>
     <string name="translate_glossary_hint">Names and terms that must read the same in every chapter. It fixes the spelling; word endings stay as the translation has them.</string>
     <string name="translate_glossary_term">%1$s → %2$s</string>
@@ -1369,7 +1368,7 @@
     <string name="translate_pick_engine">Pick how to translate below first.</string>
     <string name="translate_needs_addon">Install Lume Translate below, or pick an online engine.</string>
     <string name="translate_needs_pack">Download the language pack below, or pick an online engine.</string>
-    <string name="translate_needs_deepl_key">Enter your DeepL API key below first.</string>
+    <string name="translate_needs_deepl_key">Add your DeepL key in Settings → AI and translation first.</string>
     <string name="translate_engine">How to translate</string>
     <string name="translate_engine_offline">On the phone</string>
     <string name="translate_engine_offline_hint">Lume Translate add-on and a language pack. Private, works without internet.</string>
@@ -1379,21 +1378,14 @@
     <string name="translate_engine_deepl">DeepL</string>
     <string name="translate_engine_deepl_hint">Online, with your own DeepL API key (the free plan has 500,000 characters a month). Chapter text is sent to DeepL.</string>
     <string name="translate_deepl_key">DeepL API key</string>
-    <string name="translate_deepl_key_about">Create a free DeepL API account at deepl.com/pro-api and paste its key here. It is stored encrypted on this phone and is never part of backups.</string>
-    <string name="translate_deepl_key_saved">A key is saved. Enter another one to replace it.</string>
     <string name="translate_engine_llm">AI (your key)</string>
     <string name="translate_engine_llm_hint">Online, with a language model and your own key: OpenRouter, OpenAI, DeepSeek, Gemini or your own server. Best for names and style; it costs what the service charges. Chapter text is sent to the service you pick.</string>
-    <string name="translate_needs_llm">Set up the AI service below first: a key and a model.</string>
-    <string name="translate_llm_about">Pick a service and paste its API key. OpenRouter gives one key for many models. The key is stored encrypted on this phone and is never part of backups or sync.</string>
-    <string name="translate_llm_custom">Other (URL)</string>
+    <string name="translate_needs_llm">Set up an AI service first: add its key in Settings → AI and translation.</string>
+    <string name="translate_llm_custom">Own server</string>
     <string name="translate_llm_url">API address (OpenAI-compatible)</string>
     <string name="translate_llm_model">Model</string>
-    <string name="translate_llm_choose">Choose…</string>
     <string name="translate_llm_choose_title">Choose a model</string>
     <string name="translate_llm_key">API key</string>
-    <string name="translate_llm_key_none">No key is saved for this service yet.</string>
-    <string name="translate_llm_key_saved">A key is saved for this service. Enter another one to replace it.</string>
-    <string name="translate_llm_get_key">Get a key at openrouter.ai</string>
     <string name="translate_llm_free">Free</string>
     <string name="translate_llm_price">$%1$s in / $%2$s out per million tokens</string>
     <string name="translate_style">Style note</string>
@@ -1478,7 +1470,7 @@
     <string name="settings_story_index">Story index</string>
     <string name="settings_story_index_hint">Keeps the text of chapters you read or download on this phone, so a long-pressed name can be looked up offline. Nothing is stored in incognito.</string>
     <string name="settings_story_recap">“Previously…” recap</string>
-    <string name="settings_story_recap_hint">When you return to a title after a break, shows the last paragraphs before your spot.</string>
+    <string name="settings_story_recap_hint">When you return to a title after a break, the reader offers a recap of the last paragraphs before your spot; it opens only if you tap it. The ⟲ button in the reader shows it any time.</string>
     <string name="settings_story_recap_off">Off</string>
     <string name="settings_story_recap_6h">After 6 hours</string>
     <string name="settings_story_recap_1d">After 1 day</string>
@@ -1487,7 +1479,7 @@
     <string name="settings_story_index_clear">Clear story index</string>
     <string name="settings_story_index_clear_hint">Removes the stored chapter text and AI chapter summaries. They are rebuilt as you read. Saved codex names stay.</string>
     <string name="settings_story_ai_recap">AI recap</string>
-    <string name="settings_story_ai_recap_hint">Adds a short summary of the story so far to “Previously…”. Each chapter you finish gets a brief summary from the AI service set up in the translation sheet, so its text is sent there. Only chapters up to your spot are used. Not in incognito.</string>
+    <string name="settings_story_ai_recap_hint">Adds a short summary of the story so far to “Previously…”. Each chapter you finish gets a brief summary from the active AI service (Settings → AI and translation), so its text is sent there. Only chapters up to your spot are used. Not in incognito.</string>
     <string name="recap_ai_writing">Writing a summary…</string>
     <string name="recap_ai_label">The story so far (AI)</string>
     <string name="recap_last_paragraphs">Where you stopped</string>
@@ -1505,4 +1497,64 @@
     <string name="codex_relation_remove">Remove relation</string>
     <string name="settings_story_index_cleared">Story index cleared</string>
     <string name="settings_kw_story">names, characters, lookup, x-ray, codex, previously, recap, summary</string>
+
+    <!-- Settings → AI and translation -->
+    <string name="settings_section_ai">AI and translation</string>
+    <string name="settings_summary_ai">Service, model, API keys</string>
+    <string name="settings_kw_ai">ai, llm, openrouter, openai, deepseek, gemini, deepl, api key, model, translation, recap</string>
+    <string name="ai_settings_note">One AI service is active at a time. Translation, the recap and codex summaries all use it with its model; switching it here or in the reader\'s translate sheet switches it everywhere.</string>
+    <string name="ai_active_service">Active AI service</string>
+    <string name="ai_active_service_hint">Pick a service, then add its key below. The status under each name shows whether its key was checked and works.</string>
+    <string name="ai_model_settings_hint">Automatic picks a good model of the service for you; pick another one any time and go back with one tap.</string>
+    <string name="ai_deepl_hint">For the DeepL translation engine. The free plan has 500,000 characters a month.</string>
+    <string name="ai_keys_private">Keys are stored encrypted on this phone. They are never part of backups or sync, and are only sent to their own service.</string>
+    <string name="ai_custom_hint">An OpenAI-compatible address, for example a local Ollama or LM Studio. A key is optional.</string>
+    <string name="ai_service">Service</string>
+    <string name="ai_none_set_up">No AI service is set up yet. Add a key in Settings → AI and translation; here you then only pick the service and model.</string>
+    <string name="ai_set_up">Open AI settings</string>
+    <string name="ai_open_settings">AI and translation settings</string>
+    <string name="ai_active_not_set_up">%1$s, the active service, has no key yet. Pick a set-up service above, or add the key in the settings.</string>
+    <string name="ai_model_auto">Automatic</string>
+    <string name="ai_model_auto_named">Automatic (%1$s)</string>
+    <string name="ai_model_other">Other model…</string>
+    <string name="ai_model_picked_hint">Your pick for this service. Tap Automatic to go back.</string>
+    <string name="ai_model_auto_openrouter">OpenRouter picks a suitable model for each request.</string>
+    <string name="ai_model_auto_hint">Lume uses %1$s, a fast and inexpensive model of this service. Checking the key updates the choice.</string>
+    <string name="ai_model_auto_custom">The first model your server lists. Check the server to find it.</string>
+    <string name="ai_model_choose">Choose a model…</string>
+    <string name="ai_model_back_to_auto">Back to automatic</string>
+    <string name="ai_model_needs_key">The model list needs the service\'s key.</string>
+    <string name="ai_status_no_key">No key yet</string>
+    <string name="ai_status_saved">Key saved, not checked yet</string>
+    <string name="ai_status_checking">Checking…</string>
+    <string name="ai_status_ok">Key works · %1$d models available · checked %2$s</string>
+    <string name="ai_status_ok_quota">Key works · %1$s of %2$s characters used this month · checked %3$s</string>
+    <string name="ai_status_ok_plain">Key works · checked %1$s</string>
+    <string name="ai_status_model_missing">Key works, but the service doesn\'t offer %1$s; pick another model · checked %2$s</string>
+    <string name="ai_status_refused">The service refused this key · checked %1$s</string>
+    <string name="ai_status_credits">Key works, but no credits or quota are left · checked %1$s</string>
+    <string name="ai_status_unreachable">No answer from the service (internet or address) · checked %1$s</string>
+    <string name="ai_status_failed">Check failed: %1$s · checked %2$s</string>
+    <string name="ai_key_saved_masked">Key saved: ••••%1$s</string>
+    <string name="ai_key_replace">Replace the key</string>
+    <string name="ai_key_remove">Remove the key</string>
+    <string name="ai_get_key">Get a key at %1$s</string>
+    <string name="ai_check">Check now</string>
+
+    <!-- Translation progress -->
+    <string name="translate_service_offline">Lume Translate</string>
+    <string name="translate_status_waiting">Waiting for %1$s… %2$d s</string>
+    <string name="translate_status_failed">Translation failed · tap for details</string>
+    <string name="translate_waiting">Sent to %1$s, waiting for the first answer… %2$d s</string>
+    <string name="translate_waiting_slow">Big models can take a minute for the first part. The original stays readable meanwhile.</string>
+    <string name="translate_stop">Stop translating</string>
+    <string name="translate_working_with">%1$s: %2$d of %3$d paragraphs</string>
+    <string name="translate_failed_with">Translation with %1$s failed</string>
+
+    <!-- Recap on demand -->
+    <string name="recap_open">Previously… (recap)</string>
+    <string name="recap_offer">Back after a break. Recall where you stopped?</string>
+    <string name="recap_offer_show">Recap</string>
+    <string name="recap_ai_needs_setup">The AI summary needs an AI service with a key.</string>
+    <string name="recap_empty">Nothing to recall yet: you are at the start.</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.lume.app.translate
 
 import android.content.Context
+import com.lume.app.llm.ServiceHttpException
 import com.lume.translate.ModelCatalog
 import com.lume.translate.ModelPair
 import kotlinx.coroutines.Dispatchers
@@ -116,12 +117,7 @@ class DeepLProvider(private val http: OkHttpClient, private val key: String) : T
                 .post(deeplBody(from, to, batch).toRequestBody("application/json".toMediaType()))
                 .build()
             http.newCall(request).execute().use { response ->
-                when (response.code) {
-                    403 -> throw IOException("DeepL refused the key; check it in the translation sheet")
-                    456 -> throw IOException("This month's DeepL quota is used up")
-                    429 -> throw IOException("DeepL is limiting requests right now; try again later")
-                }
-                if (!response.isSuccessful) throw IOException("DeepL: HTTP ${response.code}")
+                if (!response.isSuccessful) throw deeplError(response.code)
                 val translated = parseDeepL(response.body.string())
                 if (translated.size != batch.size) throw IOException("DeepL answered ${translated.size} of ${batch.size} paragraphs")
                 out += translated
@@ -129,6 +125,39 @@ class DeepLProvider(private val http: OkHttpClient, private val key: String) : T
         }
         out
     }
+}
+
+internal fun deeplError(code: Int): ServiceHttpException = ServiceHttpException(
+    code,
+    when (code) {
+        401, 403 -> "DeepL refused the key; check it in Settings → AI and translation"
+        456 -> "This month's DeepL quota is used up"
+        429 -> "DeepL is limiting requests right now; try again later"
+        else -> "DeepL: HTTP $code"
+    },
+)
+
+/** What a DeepL key has used this month: characters used and the limit. */
+data class DeepLUsage(val used: Long, val limit: Long)
+
+/** Asks DeepL for [key]'s usage: proves the key works and shows the quota. */
+suspend fun deeplUsage(http: OkHttpClient, key: String): DeepLUsage = withContext(Dispatchers.IO) {
+    val request = Request.Builder()
+        .url(deeplUrl(key).replace("/v2/translate", "/v2/usage"))
+        .header("Authorization", "DeepL-Auth-Key ${key.trim()}")
+        .get()
+        .build()
+    http.newCall(request).execute().use { response ->
+        if (!response.isSuccessful) throw deeplError(response.code)
+        parseDeepLUsage(response.body.string())
+    }
+}
+
+internal fun parseDeepLUsage(body: String): DeepLUsage {
+    val root = runCatching { json.parseToJsonElement(body).jsonObject }.getOrNull()
+        ?: throw IOException("DeepL sent an unexpected answer")
+    fun long(name: String) = (root[name] as? JsonPrimitive)?.contentOrNull?.toLongOrNull() ?: 0L
+    return DeepLUsage(long("character_count"), long("character_limit"))
 }
 
 private const val GOOGLE_BATCH_CHARS = 5_000
