@@ -53,6 +53,13 @@ class ShellGraph internal constructor(private val builder: NavGraphBuilder) {
     fun readerSettings(kind: MediaKind, content: @Composable () -> Unit) {
         readerSettings[kind] = content
     }
+
+    internal val settingsPages = mutableMapOf<String, @Composable () -> Unit>()
+
+    /** The content of a settings page the module owns (`SettingsPage.Ai`), by its page key. */
+    fun settingsPage(key: String, content: @Composable () -> Unit) {
+        settingsPages[key] = content
+    }
 }
 
 /**

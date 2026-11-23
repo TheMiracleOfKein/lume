@@ -63,7 +63,7 @@ import kotlinx.coroutines.delay
 
 /** Sections, grouped the way the main settings page shows them. */
 private val SECTION_GROUPS = listOf(
-    listOf(SettingsPage.Appearance, SettingsPage.Reader),
+    listOf(SettingsPage.Appearance, SettingsPage.Reader, SettingsPage.Ai),
     listOf(SettingsPage.Library, SettingsPage.Downloads, SettingsPage.Sources, SettingsPage.Trackers),
     listOf(SettingsPage.Sync, SettingsPage.Backup, SettingsPage.Privacy, SettingsPage.Network),
     listOf(SettingsPage.About),
@@ -164,6 +164,8 @@ fun SettingsPageScreen(
     focus: String?,
     /** Reader defaults of the content modules, by mode; comics use [ReaderDefaultsSettings]. */
     readerSettings: Map<MediaKind, @Composable () -> Unit> = emptyMap(),
+    /** Pages whose content a content module supplies (AI and translation), by page key. */
+    featurePages: Map<String, @Composable () -> Unit> = emptyMap(),
 ) {
     val page = SettingsPage.fromKey(pageKey) ?: SettingsPage.Appearance
     val container = LocalAppContainer.current
@@ -184,6 +186,7 @@ fun SettingsPageScreen(
             when (page) {
                 SettingsPage.Appearance -> AppearanceSettings(vm)
                 SettingsPage.Reader -> readerSettings[mode]?.invoke() ?: ReaderDefaultsSettings(vm)
+                SettingsPage.Ai -> featurePages[page.key]?.invoke()
                 SettingsPage.Library -> LibrarySettingsPage(nav, vm)
                 SettingsPage.Downloads -> DownloadSettings(nav, vm)
                 SettingsPage.Sources -> SourcesSettings(nav, vm)

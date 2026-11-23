@@ -250,6 +250,7 @@ fun AppShell(nav: NavHostController, contentScreens: List<ContentScreens> = empt
                     pageKey = entry.arguments!!.getString("page")!!,
                     focus = entry.arguments!!.getString("focus"),
                     readerSettings = graph.readerSettings,
+                    featurePages = graph.settingsPages,
                 )
             }
             lumeComposable(Routes.Downloads) { DownloadsScreen(nav) }
