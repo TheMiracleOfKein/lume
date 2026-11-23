@@ -12,7 +12,7 @@
     "Referer": "https://slashlib.me/"
   },
   "engineConfig": {
-    "apiBase": "https://api.cdnlibs.org/api",
+    "apiBase": "https://api.lib.social/api",
     "siteId": "2"
   }
 }

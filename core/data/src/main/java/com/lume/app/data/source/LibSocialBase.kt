@@ -30,7 +30,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.net.URI
 
 /**
- * The MangaLib-family API (`api.cdnlibs.org`) shared by every Lib site, whatever it serves:
+ * The MangaLib-family API (`api.lib.social`) shared by every Lib site, whatever it serves:
  * catalogue, search and filters, title details, chapters with their teams, bookmarks and links.
  * The sites differ by `engineConfig.siteId` (1 MangaLib, 2 SlashLib / YaoiLib, 3 RanobeLib, 4 HentaiLib)
  * and `engineConfig.webPath` (`manga`, or `book` on RanobeLib). Subclasses add the chapter
@@ -43,7 +43,7 @@ abstract class LibSocialBase(
     protected val json: Json = Json { ignoreUnknownKeys = true; isLenient = true },
 ) : CatalogSource, LibBookmarkSource {
     protected val apiBase: URI
-        get() = URI(manifest.configString("apiBase") ?: "https://api.cdnlibs.org/api")
+        get() = URI(manifest.configString("apiBase") ?: "https://api.lib.social/api")
 
     protected val apiRoot: String
         get() = apiBase.toString().trimEnd('/')
