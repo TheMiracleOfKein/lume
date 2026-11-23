@@ -9,7 +9,10 @@ import com.lume.app.data.db.ChapterProgressEntity
 import com.lume.app.data.db.ChapterReadEntity
 import com.lume.app.data.db.LibraryDao
 import com.lume.app.data.db.PageBookmarkEntity
+import com.lume.app.data.db.ChapterDigestEntity
 import com.lume.app.data.db.CodexEntryEntity
+import com.lume.app.data.db.CodexFactEntity
+import com.lume.app.data.db.CodexRelationEntity
 import com.lume.app.data.db.GlossaryTermEntity
 import com.lume.app.data.db.ReadingSessionEntity
 import com.lume.app.data.db.ProgressEntity
@@ -46,7 +49,9 @@ import java.util.Locale
  * Version 2 adds per-chapter progress, page bookmarks and read marks; version 3 adds settings;
  * version 4 adds the other sources of each title; version 5 adds reading sessions;
  * version 6 adds the per-title translation language and glossary; version 7 adds the codex;
- * version 8 adds glossary term status and kind (AI suggestions) and the per-title style note.
+ * version 8 adds glossary term status and kind (AI suggestions) and the per-title style note;
+ * version 9 adds AI story knowledge: codex entry origin, first chapter and summary, chapter
+ * digests, facts per name and chapter, and relations.
  * Older files still load: the new lists default to empty.
  */
 @OptIn(ExperimentalSerializationApi::class)
@@ -69,9 +74,12 @@ data class BackupPayload(
     val readingSessions: List<ReadingSessionDto> = emptyList(),
     val glossaryTerms: List<GlossaryTermDto> = emptyList(),
     val codexEntries: List<CodexEntryDto> = emptyList(),
+    val chapterDigests: List<ChapterDigestDto> = emptyList(),
+    val codexFacts: List<CodexFactDto> = emptyList(),
+    val codexRelations: List<CodexRelationDto> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 8
+        const val CURRENT_VERSION = 9
 
         val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
@@ -230,6 +238,50 @@ data class CodexEntryDto(
     val aliases: List<String> = emptyList(),
     val createdAt: Long = 0L,
     val updatedAt: Long = 0L,
+    /** `user`, `ai` (found by AI story notes) or `ignored` (removed by the reader); files before version 9 have only `user`. */
+    val origin: String = "user",
+    val firstChapterId: String? = null,
+    val summary: String? = null,
+    val summaryOrigin: String? = null,
+    val summaryUpToChapterId: String? = null,
+)
+
+/** An AI digest of one chapter (version 9): it costs a request to write again. */
+@Serializable
+data class ChapterDigestDto(
+    val sourceId: String,
+    val titleId: String,
+    val chapterId: String,
+    val lang: String,
+    val text: String,
+    val model: String = "",
+    val createdAt: Long = 0L,
+)
+
+/** What one chapter showed about a name, from AI story notes (version 9). */
+@Serializable
+data class CodexFactDto(
+    val sourceId: String,
+    val titleId: String,
+    val nameKey: String,
+    val chapterId: String,
+    val lang: String,
+    val text: String,
+    val origin: String = "",
+    val createdAt: Long = 0L,
+)
+
+/** A relation between two codex names, as the AI saw it up to a chapter (version 9). */
+@Serializable
+data class CodexRelationDto(
+    val sourceId: String,
+    val titleId: String,
+    val fromName: String,
+    val toName: String,
+    val label: String,
+    val upToChapterId: String,
+    val origin: String = "",
+    val createdAt: Long = 0L,
 )
 
 @Serializable
@@ -454,8 +506,16 @@ class BackupRepository(
             codexEntries = dao.allCodexEntries().let { entries ->
                 val aliases = dao.allCodexAliases().groupBy({ it.entryId }, { it.alias })
                 entries.map {
-                    CodexEntryDto(it.sourceId, it.titleId, it.name, it.kind, it.note, aliases[it.id].orEmpty().sorted(), it.createdAt, it.updatedAt)
+                    CodexEntryDto(
+                        it.sourceId, it.titleId, it.name, it.kind, it.note, aliases[it.id].orEmpty().sorted(), it.createdAt, it.updatedAt,
+                        it.origin, it.firstChapterId, it.summary, it.summaryOrigin, it.summaryUpToChapterId,
+                    )
                 }
+            },
+            chapterDigests = dao.allDigests().map { ChapterDigestDto(it.sourceId, it.titleId, it.chapterId, it.lang, it.text, it.model, it.createdAt) },
+            codexFacts = dao.allFacts().map { CodexFactDto(it.sourceId, it.titleId, it.nameKey, it.chapterId, it.lang, it.text, it.origin, it.createdAt) },
+            codexRelations = dao.allRelations().map {
+                CodexRelationDto(it.sourceId, it.titleId, it.fromName, it.toName, it.label, it.upToChapterId, it.origin, it.createdAt)
             },
         )
         return json.encodeToString(payload)
@@ -849,7 +909,7 @@ class BackupRepository(
             val name = c.name.trim()
             if (name.isEmpty()) continue
             val existing = codexByTitle.getOrPut(c.sourceId to c.titleId) {
-                dao.codexOnce(c.sourceId, c.titleId).associate { it.entry.name to it.entry }
+                dao.codexWithIgnored(c.sourceId, c.titleId).associate { it.entry.name to it.entry }
             }[name]
             if (existing != null && existing.updatedAt > c.updatedAt) continue
             dao.saveCodexEntry(
@@ -860,14 +920,38 @@ class BackupRepository(
                     name = name,
                     kind = c.kind,
                     note = c.note,
-                    summary = existing?.summary,
-                    summaryOrigin = existing?.summaryOrigin,
-                    summaryUpToChapterId = existing?.summaryUpToChapterId,
+                    summary = c.summary ?: existing?.summary,
+                    summaryOrigin = if (c.summary != null) c.summaryOrigin else existing?.summaryOrigin,
+                    summaryUpToChapterId = if (c.summary != null) c.summaryUpToChapterId else existing?.summaryUpToChapterId,
                     createdAt = existing?.createdAt ?: c.createdAt,
                     updatedAt = c.updatedAt,
+                    origin = c.origin,
+                    firstChapterId = c.firstChapterId ?: existing?.firstChapterId,
                 ),
                 c.aliases,
             )
+        }
+        // AI story knowledge: digests and facts replace the phone's for the same chapter; relations are added once.
+        if (payload.chapterDigests.isNotEmpty()) {
+            dao.upsertDigests(payload.chapterDigests.map { ChapterDigestEntity(it.sourceId, it.titleId, it.chapterId, it.lang, it.text, it.model, it.createdAt) })
+        }
+        if (payload.codexFacts.isNotEmpty()) {
+            dao.upsertFacts(payload.codexFacts.map { CodexFactEntity(it.sourceId, it.titleId, it.nameKey, it.chapterId, it.lang, it.text, it.origin, it.createdAt) })
+        }
+        for ((title, relations) in payload.codexRelations.groupBy { it.sourceId to it.titleId }) {
+            val seen = dao.titleRelations(title.first, title.second)
+                .mapTo(HashSet()) { Triple(it.fromName.lowercase(), it.toName.lowercase(), it.label.lowercase()) }
+            val fresh = relations.filter { seen.add(Triple(it.fromName.lowercase(), it.toName.lowercase(), it.label.lowercase())) }
+            if (fresh.isNotEmpty()) {
+                dao.insertRelations(
+                    fresh.map {
+                        CodexRelationEntity(
+                            sourceId = it.sourceId, titleId = it.titleId, fromName = it.fromName, toName = it.toName,
+                            label = it.label, upToChapterId = it.upToChapterId, origin = it.origin, createdAt = it.createdAt,
+                        )
+                    },
+                )
+            }
         }
         for (l in payload.trackerLinks) {
             dao.upsertTrackerLink(

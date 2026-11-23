@@ -1,0 +1,51 @@
+{
+  "version": 9,
+  "createdAt": 1764000000000,
+  "bookmarks": [
+    {"sourceId": "mangadex", "titleId": "t1", "titleName": "First Title", "coverUrl": "https://example.org/c1.jpg", "typeLabel": "Manga", "createdAt": 1690000000000, "categoryIdsJson": "[1]"}
+  ],
+  "progress": [
+    {"sourceId": "mangadex", "titleId": "t1", "titleName": "First Title", "coverUrl": "https://example.org/c1.jpg", "typeLabel": "Manga", "chapterId": "c3", "chapterName": "Chapter 3", "chapterUrl": "/chapter/c3", "pageIndex": 4, "pageCount": 20, "updatedAt": 1761000000000, "pageOffset": 0.25}
+  ],
+  "categories": [{"id": 1, "name": "Reading", "sortOrder": 0}],
+  "sourcePacks": [{"id": "pack.example", "json": "{\"id\":\"pack.example\"}", "installedAt": 1680000000000}],
+  "titlePrefs": [
+    {"sourceId": "mangadex", "titleId": "t1", "readerMode": 2, "readerTheme": 1, "gap": 4.0, "chapterFilter": 0, "chapterSortAsc": false, "branch": null, "showDuplicates": false, "autoDownload": false, "novelTranslateTo": "ru", "translateStyle": "Keep -san and -sama"}
+  ],
+  "trackerLinks": [
+    {"sourceId": "mangadex", "titleId": "t1", "tracker": "anilist", "remoteId": "12345", "remoteUrl": null, "status": "CURRENT", "score": null, "lastSync": 0}
+  ],
+  "chapterProgress": [
+    {"sourceId": "mangadex", "titleId": "t1", "chapterId": "c3", "pageIndex": 4, "pageOffset": 0.25, "pageCount": 20, "completed": false, "pageAspectsJson": "[]", "updatedAt": 1761000000000}
+  ],
+  "pageBookmarks": [
+    {"sourceId": "mangadex", "titleId": "t1", "chapterId": "c2", "chapterName": "Chapter 2", "pageIndex": 7, "pageOffset": 0.0, "pageImageUrl": "https://example.org/p7.jpg", "note": null, "createdAt": 1760000000000}
+  ],
+  "chapterRead": [{"sourceId": "mangadex", "titleId": "t1", "chapterId": "c1", "readAt": 1759000000000}],
+  "settings": [{"key": "reader_mode", "type": "int", "value": "2"}],
+  "titleSources": [
+    {"sourceId": "mangadex", "titleId": "t1", "linkSourceId": "mangakatana", "linkTitleId": "first-title", "linkTitleName": "First Title", "coverUrl": null, "state": "linked", "priority": 0, "addedAt": 1729000000000}
+  ],
+  "readingSessions": [
+    {"sourceId": "mangadex", "titleId": "t1", "titleName": "First Title", "chapterId": "c3", "startedAt": 1761000000000, "durationMs": 600000, "pagesRead": 12}
+  ],
+  "glossaryTerms": [
+    {"sourceId": "mangadex", "titleId": "t1", "source": "Kirito", "target": "Кирито", "updatedAt": 1762500000000, "status": "confirmed", "kind": "character"},
+    {"sourceId": "mangadex", "titleId": "t1", "source": "Aincrad", "target": "Айнкрад", "updatedAt": 1763700000000, "status": "suggested", "kind": "place"}
+  ],
+  "codexEntries": [
+    {"sourceId": "mangadex", "titleId": "t1", "name": "Kirito", "kind": "character", "note": "The Black Swordsman", "aliases": ["Kirigaya", "Кирито"], "createdAt": 1762600000000, "updatedAt": 1762700000000, "summary": "Кирито — мечник, попавший в Айнкрад.", "summaryOrigin": "facts:openrouter:deepseek/deepseek-v4-flash", "summaryUpToChapterId": "c2"},
+    {"sourceId": "mangadex", "titleId": "t1", "name": "Asuna", "kind": "character", "aliases": ["Асуна"], "createdAt": 1763900000000, "updatedAt": 1763900000000, "origin": "ai", "firstChapterId": "c2"},
+    {"sourceId": "mangadex", "titleId": "t1", "name": "Klein", "kind": "character", "createdAt": 1763900000000, "updatedAt": 1763950000000, "origin": "ignored", "firstChapterId": "c1"}
+  ],
+  "chapterDigests": [
+    {"sourceId": "mangadex", "titleId": "t1", "chapterId": "c1", "lang": "ru", "text": "Кирито входит в Айнкрад и узнаёт, что выйти нельзя.", "model": "openrouter:deepseek/deepseek-v4-flash", "createdAt": 1763850000000}
+  ],
+  "codexFacts": [
+    {"sourceId": "mangadex", "titleId": "t1", "nameKey": "kirito", "chapterId": "c1", "lang": "ru", "text": "Узнаёт, что из игры нельзя выйти.", "origin": "openrouter:deepseek/deepseek-v4-flash", "createdAt": 1763850000000},
+    {"sourceId": "mangadex", "titleId": "t1", "nameKey": "asuna", "chapterId": "c2", "lang": "ru", "text": "Сражается рядом с Кирито на первом этаже.", "origin": "openrouter:deepseek/deepseek-v4-flash", "createdAt": 1763900000000}
+  ],
+  "codexRelations": [
+    {"sourceId": "mangadex", "titleId": "t1", "fromName": "Asuna", "toName": "Kirito", "label": "напарник", "upToChapterId": "c2", "origin": "notes:openrouter:deepseek/deepseek-v4-flash", "createdAt": 1763900000000}
+  ]
+}

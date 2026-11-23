@@ -45,6 +45,9 @@ loads one saved sample file per version from `core/data/src/test/resources/backu
 | `readingSessions` | list | 5 | Reading time for the statistics. |
 | `glossaryTerms` | list | 6 | Per-title glossary of chapter translation. |
 | `codexEntries` | list | 7 | Saved names of a title (characters, places, terms) with notes and aliases. |
+| `chapterDigests` | list | 9 | AI summaries of read chapters (story notes). |
+| `codexFacts` | list | 9 | What each chapter showed about a name (story notes). |
+| `codexRelations` | list | 9 | Relations between codex names, as the AI saw them up to a chapter. |
 
 Every list may be missing or empty. A title is always named by `sourceId` (Lume's source id, for
 example `mangadex`) and `titleId` (the source's own id for the title). A chapter adds `chapterId`.
@@ -109,9 +112,23 @@ proposed again), `kind?` (null; a codex kind when AI translation named one). Fil
 
 **`codexEntries`**: `sourceId`, `titleId`, `name`, `kind?` (`other`; one of `character`, `place`,
 `group`, `item`, `term`, `other`), `note?` (null), `aliases?` (`[]`, other spellings of the name),
-`createdAt?` (0), `updatedAt?` (0). Restoring overwrites the entry of the same name unless the
-phone's copy is newer. The searchable chapter text behind story lookup is not backed up: it is
-rebuilt as chapters are read or downloaded.
+`createdAt?` (0), `updatedAt?` (0). Version 9 adds `origin?` (`user`; `ai` for a name AI story
+notes added, `ignored` for one of those the reader removed, which is hidden and not added again),
+`firstChapterId?` (null; the chapter an `ai` entry was first seen in, so a reader before it doesn't
+see it), and the AI summary: `summary?`, `summaryOrigin?` and `summaryUpToChapterId?` (all null).
+Restoring overwrites the entry of the same name unless the phone's copy is newer. The searchable
+chapter text behind story lookup is not backed up: it is rebuilt as chapters are read or downloaded.
+
+**AI story knowledge** (version 9). It costs requests to write again, so it is kept:
+
+- **`chapterDigests`**: `sourceId`, `titleId`, `chapterId`, `lang`, `text`, `model?` (`""`),
+  `createdAt?` (0). One per chapter and language; restoring replaces the phone's.
+- **`codexFacts`**: `sourceId`, `titleId`, `nameKey` (the name in its normalized form: lower case,
+  without honorifics or possessives), `chapterId`, `lang`, `text`, `origin?` (`""`), `createdAt?`
+  (0). One per name and chapter; restoring replaces the phone's.
+- **`codexRelations`**: `sourceId`, `titleId`, `fromName`, `toName`, `label`, `upToChapterId`,
+  `origin?` (`""`; `notes:…` from story notes, `llm:…` from a summary), `createdAt?` (0). Restoring
+  adds the ones the phone doesn't have.
 
 ## Example
 
@@ -142,6 +159,7 @@ A small version 7 file:
 | 6 | v1.7.0 | `glossaryTerms`, `titlePrefs.novelTranslateTo` |
 | 7 | v1.8.0 | `codexEntries` |
 | 8 | v1.9.0 | `glossaryTerms.status`, `glossaryTerms.kind`, `titlePrefs.translateStyle` |
+| 9 | v1.12.0 | `codexEntries.origin`, `firstChapterId` and summary fields, `chapterDigests`, `codexFacts`, `codexRelations` |
 
 Some optional fields inside the lists (for example `titlePrefs.branch`, `showDuplicates` and
 `autoDownload`) came between version bumps. Following rule 1, older files without them load with
