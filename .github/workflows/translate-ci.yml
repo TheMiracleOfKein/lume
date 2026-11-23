@@ -1,0 +1,56 @@
+name: Translate CI
+
+# The Lume Translate add-on (translate-addon/, with the bergamot-translator submodule and the NDK
+# build) is checked only when it, its contract with Lume (core/translate) or the build changes.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "translate-addon/**"
+      - "core/translate/**"
+      - "gradle/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+      - ".gitmodules"
+      - ".github/workflows/translate-ci.yml"
+  pull_request:
+    paths:
+      - "translate-addon/**"
+      - "core/translate/**"
+      - "gradle/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+      - ".gitmodules"
+      - ".github/workflows/translate-ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: translate-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Add-on build, unit tests, lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # Includes the R8-shrunk release build (unsigned here), so a missing keep rule fails the PR.
+      - name: Build, test and lint
+        run: ./gradlew --no-configuration-cache --stacktrace :core:translate:testDebugUnitTest :translate-addon:testDebugUnitTest :translate-addon:lintDebug :translate-addon:assembleRelease
+
+      - name: APK size
+        run: |
+          apk=translate-addon/build/outputs/apk/release/translate-addon-release-unsigned.apk
+          [ -f "$apk" ] || apk=translate-addon/build/outputs/apk/release/translate-addon-release.apk
+          echo "- \`$(basename "$apk")\`: $(stat -c %s "$apk") bytes" >> "$GITHUB_STEP_SUMMARY"

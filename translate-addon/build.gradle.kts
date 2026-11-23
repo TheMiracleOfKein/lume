@@ -1,6 +1,7 @@
 // "Lume Translate": the optional add-on app with the offline translation engine (bergamot-translator,
 // Firefox Translations models). Lume binds to its service; Lume's own APKs carry no engine. Its
-// own versionCode, Lume's versionName, the same signing key (the signature permission needs it).
+// own versionCode and versionName (released apart from Lume, tag translate-v<versionName>), the same
+// signing key (the signature permission needs it).
 plugins {
     alias(libs.plugins.android.application)
 }
@@ -15,7 +16,7 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = providers.gradleProperty("lume.translateVersionCode").get().toInt()
-        versionName = providers.gradleProperty("lume.versionName").get()
+        versionName = providers.gradleProperty("lume.translateVersionName").get()
 
         ndk {
             // 64-bit phones and the emulator / x86 Chromebooks.
