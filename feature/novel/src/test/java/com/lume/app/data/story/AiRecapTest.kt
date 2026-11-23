@@ -50,9 +50,19 @@ class AiRecapTest {
     }
 
     @Test
-    fun digestsAreReadByChapter() {
-        val answer = "```json\n{\"chapters\":[{\"id\":\"1\",\"digest\":\"Первая.\"},{\"id\":2,\"digest\":\"Вторая.\"},{\"id\":\"3\"}]}\n```"
-        assertEquals(mapOf("1" to "Первая.", "2" to "Вторая."), parseDigests(answer))
+    fun notesAreReadByChapter() {
+        val answer = "```json\n{\"chapters\":[" +
+            "{\"id\":\"1\",\"summary\":\"Первая.\",\"names\":[{\"name\":\"Lin Feng\",\"variants\":[\"Lin-san\"],\"kind\":\"Character\",\"fact\":\"Входит в секту.\"}]," +
+            "\"relations\":[{\"a\":\"Lin Feng\",\"b\":\"Iron Sect\",\"label\":\"секта\"},{\"a\":\"x\"}]}," +
+            "{\"id\":2,\"digest\":\"Вторая.\"},{\"id\":\"3\"}]}\n```"
+        val notes = parseChapterNotes(answer)
+        assertEquals("Первая.", notes.getValue("1").summary)
+        assertEquals(listOf(NoteName("Lin Feng", listOf("Lin-san"), null, "character", "Входит в секту.")), notes.getValue("1").names)
+        assertEquals(listOf(NoteRelation("Lin Feng", "Iron Sect", "секта")), notes.getValue("1").relations)
+        // An older answer shape ("digest") still reads; a chapter without anything is empty.
+        assertEquals("Вторая.", notes.getValue("2").summary)
+        assertTrue(notes.getValue("3").isEmpty)
+        assertTrue(digestSystemPrompt("ru").contains("\"names\""))
         val p = Json.parseToJsonElement(digestUserPrompt(listOf("1" to "Text one", "2" to "Text two"))).jsonObject
         assertEquals(listOf("1", "2"), p["chapters"]!!.jsonArray.map { it.jsonObject["id"]!!.jsonPrimitive.content })
     }

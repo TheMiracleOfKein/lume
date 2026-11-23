@@ -35,6 +35,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,10 +54,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
+import com.lume.app.data.db.CODEX_AI
 import com.lume.app.data.db.CodexEntryWithAliases
 import com.lume.app.data.story.CODEX_KINDS
+import com.lume.app.data.story.entryVisible
 import com.lume.app.data.story.parseAliases
+import com.lume.app.data.story.removeCodexEntry
 import com.lume.app.data.story.saveCodexEntry
+import com.lume.app.data.story.summaryVisible
 import com.lume.app.ui.components.BackButton
 import com.lume.app.ui.components.ChoiceChip
 import com.lume.app.ui.components.LumeInsets
@@ -88,7 +93,18 @@ internal fun codexKindLabel(kind: String): Int = when (kind) {
 @Composable
 fun CodexScreen(nav: NavHostController, sourceId: String, titleId: String, titleName: String) {
     val app = LocalAppContainer.current
-    val entries by remember(sourceId, titleId) { app.dao.codexFor(sourceId, titleId) }.collectAsStateWithLifecycle(emptyList())
+    val all by remember(sourceId, titleId) { app.dao.codexFor(sourceId, titleId) }.collectAsStateWithLifecycle(emptyList())
+    // The reading spot and chapter order: entries the AI found further on, and summaries from
+    // further on, stay hidden. Without them, AI entries stay hidden.
+    var spot by remember { mutableStateOf<Pair<String, List<com.lume.app.domain.Chapter>>?>(null) }
+    LaunchedEffect(sourceId, titleId) {
+        val at = app.dao.getProgress(sourceId, titleId)?.chapterId
+        val chapters = app.offlineCache.get(sourceId, titleId)?.chapters
+        if (at != null && chapters != null) spot = at to chapters
+    }
+    val entries = all.filter { e ->
+        spot?.let { (at, chapters) -> entryVisible(e.entry, chapters, at) } ?: (e.entry.origin != CODEX_AI)
+    }
     var query by rememberSaveable { mutableStateOf("") }
     var byName by rememberSaveable { mutableStateOf(true) }
     var editing by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -170,11 +186,14 @@ fun CodexScreen(nav: NavHostController, sourceId: String, titleId: String, title
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(e.entry.name, color = AppColors.textPrimary, fontSize = 15.sp, modifier = Modifier.weight(1f, fill = false))
                         Text(stringResource(codexKindLabel(e.entry.kind)), color = AppColors.accentText, fontSize = 12.sp)
+                        if (e.entry.origin == CODEX_AI) Text(stringResource(R.string.codex_ai_badge), color = AppColors.textTertiary, fontSize = 12.sp)
                     }
                     if (e.aliases.isNotEmpty()) {
                         Text(e.aliases.joinToString(", ") { it.alias }, color = AppColors.textSecondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     e.entry.note?.let { Text(it, color = AppColors.textSecondary, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+                    val summary = spot?.let { (at, chapters) -> e.entry.summary?.takeIf { summaryVisible(e.entry, chapters, at) } }
+                    summary?.let { Text(it, color = AppColors.textSecondary, fontSize = 13.sp, maxLines = 3, overflow = TextOverflow.Ellipsis) }
                 }
             }
             item(key = "end") { Spacer(Modifier.padding(bottom = 88.dp)) }
@@ -191,7 +210,7 @@ fun CodexScreen(nav: NavHostController, sourceId: String, titleId: String, title
                 adding = false
                 editing = null
             },
-            onDelete = current?.let { c -> { scope.launch { app.dao.deleteCodexEntry(c.entry.id) }; editing = null } },
+            onDelete = current?.let { c -> { scope.launch { removeCodexEntry(app.dao, c.entry) }; editing = null } },
             onDismiss = {
                 adding = false
                 editing = null

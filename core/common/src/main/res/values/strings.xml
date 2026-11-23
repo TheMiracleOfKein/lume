@@ -1481,8 +1481,12 @@
     <string name="settings_story_index_size">Story index: %1$d blocks, about %2$s</string>
     <string name="settings_story_index_clear">Clear story index</string>
     <string name="settings_story_index_clear_hint">Removes the stored chapter text and AI chapter summaries. They are rebuilt as you read. Saved codex names stay.</string>
-    <string name="settings_story_ai_recap">AI recap</string>
-    <string name="settings_story_ai_recap_hint">Adds a short summary of the story so far to “Previously…”. Each chapter you finish gets a brief summary from the active AI service (Settings → AI and translation), so its text is sent there. Only chapters up to your spot are used. Not in incognito.</string>
+    <string name="settings_story_ai_recap">AI story notes</string>
+    <string name="settings_story_ai_recap_hint">With story notes on, the active AI service (Settings → AI and translation) writes a short summary of each chapter you read, finds the characters, places and groups in it with a fact about each, and adds them to the codex. “Previously…” then gets a summary of the story so far. Off: nothing is sent.</string>
+    <string name="settings_story_notes_finished">After each chapter</string>
+    <string name="settings_story_notes_needed">When needed</string>
+    <string name="settings_story_notes_finished_hint">Each chapter you finish is sent to the active AI service once, in one request that brings its summary, names and facts, so the recap and the codex are ready at once. With AI translation the notes come with the translation, without another request. Only chapters up to your spot are used. Not in incognito.</string>
+    <string name="settings_story_notes_needed_hint">Nothing is sent while you read. When you open the recap or summarize a name, the chapters before your spot that have no notes yet are sent then, several in one request. With AI translation the notes come with the translation, without another request. Not in incognito.</string>
     <string name="recap_ai_writing">Writing a summary…</string>
     <string name="recap_ai_label">The story so far (AI)</string>
     <string name="recap_last_paragraphs">Where you stopped</string>
@@ -1495,6 +1499,11 @@
     <string name="codex_summary_hidden">There is a summary from further on in the story. It stays hidden here so it can’t spoil anything.</string>
     <string name="codex_summary_failed">No summary: %1$s</string>
     <string name="codex_relations">Relations (AI)</string>
+    <string name="codex_facts">Seen in earlier chapters (AI)</string>
+    <string name="codex_fact">%1$s: %2$s</string>
+    <string name="codex_facts_all">Show all %1$d</string>
+    <string name="codex_found_by_ai">Added by AI story notes. Edit it to make it yours; remove it and it won’t be added again.</string>
+    <string name="codex_ai_badge">AI</string>
     <string name="codex_relation">%1$s: %2$s</string>
     <string name="codex_relation_reverse">%2$s of %1$s</string>
     <string name="codex_relation_remove">Remove relation</string>

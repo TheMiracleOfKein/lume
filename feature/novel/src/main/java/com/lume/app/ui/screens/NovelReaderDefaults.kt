@@ -26,6 +26,9 @@ import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.db.TextIndexSize
 import com.lume.app.data.prefs.NovelReaderSettings
+import com.lume.app.data.prefs.STORY_NOTES_FINISHED
+import com.lume.app.data.prefs.STORY_NOTES_NEEDED
+import com.lume.app.data.prefs.STORY_NOTES_OFF
 import com.lume.app.ui.components.ChoiceChip
 import com.lume.app.ui.components.ConfirmDialog
 import com.lume.app.ui.components.ResetReaderSettingsButton
@@ -65,7 +68,7 @@ private fun StorySettings(vm: NovelReaderDefaultsViewModel) {
     val context = LocalContext.current
     val storyIndex by vm.storyIndex.collectAsState()
     val recapHours by vm.recapAfterHours.collectAsState()
-    val aiRecap by vm.aiRecap.collectAsState()
+    val storyNotes by vm.storyNotes.collectAsState()
     var confirmClear by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) { vm.refreshIndexSize() }
     Spacer(Modifier.height(12.dp))
@@ -92,11 +95,21 @@ private fun StorySettings(vm: NovelReaderDefaultsViewModel) {
             SettingsNote(stringResource(R.string.settings_story_recap_hint), Modifier.padding(top = 8.dp))
         }
         SettingItem("story_ai_recap") {
-            SwitchRow(
-                label = stringResource(R.string.settings_story_ai_recap),
-                hint = stringResource(R.string.settings_story_ai_recap_hint),
-                checked = aiRecap,
-                onCheckedChange = vm::setAiRecap,
+            SettingsLabel(stringResource(R.string.settings_story_ai_recap))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                STORY_NOTES_CHOICES.forEach { (mode, label) ->
+                    ChoiceChip(label = stringResource(label), selected = mode == storyNotes, onClick = { vm.setStoryNotes(mode) })
+                }
+            }
+            SettingsNote(
+                stringResource(
+                    when (storyNotes) {
+                        STORY_NOTES_FINISHED -> R.string.settings_story_notes_finished_hint
+                        STORY_NOTES_NEEDED -> R.string.settings_story_notes_needed_hint
+                        else -> R.string.settings_story_ai_recap_hint
+                    },
+                ),
+                Modifier.padding(top = 8.dp),
             )
         }
         SettingItem("story_index_clear") {
@@ -136,16 +149,23 @@ private val RECAP_CHOICES = listOf(
     72 to R.string.settings_story_recap_3d,
 )
 
+/** The AI story notes modes and the label of each. */
+private val STORY_NOTES_CHOICES = listOf(
+    STORY_NOTES_OFF to R.string.settings_story_recap_off,
+    STORY_NOTES_FINISHED to R.string.settings_story_notes_finished,
+    STORY_NOTES_NEEDED to R.string.settings_story_notes_needed,
+)
+
 /** Text is stored as UTF-16 in the database file's estimate: about two bytes a character. */
 private const val BYTES_PER_CHAR = 2L
 
 internal class NovelReaderDefaultsViewModel(private val app: AppContainer) : ViewModel() {
     val storyIndex = app.prefs.storyIndex
     val recapAfterHours = app.prefs.recapAfterHours
-    val aiRecap = app.prefs.aiRecap
+    val storyNotes = app.prefs.storyNotes
 
-    fun setAiRecap(on: Boolean) {
-        viewModelScope.launch { app.prefs.setAiRecap(on) }
+    fun setStoryNotes(mode: String) {
+        viewModelScope.launch { app.prefs.setStoryNotes(mode) }
     }
 
     /** What the story index holds; null until read. */

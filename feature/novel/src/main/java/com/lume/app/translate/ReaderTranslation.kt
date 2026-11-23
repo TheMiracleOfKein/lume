@@ -7,6 +7,8 @@ import com.lume.app.AppContainer
 import com.lume.app.data.db.GLOSSARY_SUGGESTED
 import com.lume.app.data.db.GlossaryTermEntity
 import com.lume.app.data.db.TitlePrefsEntity
+import com.lume.app.data.prefs.STORY_NOTES_OFF
+import com.lume.app.data.story.StoryNotes
 import com.lume.app.llm.AiServices
 import com.lume.app.llm.LlmConfig
 import com.lume.app.llm.LlmPreset
@@ -145,11 +147,30 @@ class ReaderTranslation(
             TranslationEngine.Google -> GoogleProvider(app.http.okHttp)
             TranslationEngine.DeepL -> app.prefs.deeplKey.value?.takeIf { it.isNotBlank() }?.let { DeepLProvider(app.http.okHttp, it) }
             TranslationEngine.Llm -> llmConfig(app)?.let { config ->
-                LlmProvider(AiServices.client(app, config), glossary, knownSources, style, ::saveSuggestions)
+                val notes = app.prefs.storyNotes.value != STORY_NOTES_OFF && !app.prefs.incognito.value
+                LlmProvider(AiServices.client(app, config), glossary, knownSources, style, notes, ::saveSuggestions)
             }
             null -> null
         } ?: return null
         return TranslationRoute(provider, from, to)
+    }
+
+    /** The reading order of the title's chapters (id to place), for story notes; set by the reader. */
+    var chapterOrder: () -> Map<String, Int> = { emptyMap() }
+
+    private val storyNotes = StoryNotes(dao, sourceId, titleId)
+
+    /**
+     * Story notes that came with the translation of [chapterId] go to the codex and the digests.
+     * Notes of only part of the chapter (the rest was cached from an earlier try) give facts but
+     * no digest, so the recap still gets a whole one from the story pass.
+     */
+    private suspend fun saveNotes(chapterId: String, provider: LlmProvider, original: List<NovelBlock>, lang: String) {
+        val (notes, covered) = provider.takeNotes() ?: return
+        val total = original.count { it is NovelBlock.Paragraph || it is NovelBlock.Heading }.coerceAtLeast(1)
+        runCatching {
+            storyNotes.save(chapterId, lang, provider.model, notes, chapterOrder(), digest = covered * 10 >= total * 6)
+        }
     }
 
     /** New terms from AI translation go to the glossary as suggestions, used from the next chapter part on. */
@@ -334,6 +355,7 @@ class ReaderTranslation(
                     }
                     replace(id, result, original)
                     if (id == currentChapterId) progress = TranslationProgress.Idle
+                    (route.provider as? LlmProvider)?.let { saveNotes(id, it, original, route.to) }
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {

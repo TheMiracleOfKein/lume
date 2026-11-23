@@ -1544,8 +1544,12 @@
     <string name="settings_story_index_size">Индекс сюжета: блоков %1$d, около %2$s</string>
     <string name="settings_story_index_clear">Очистить индекс сюжета</string>
     <string name="settings_story_index_clear_hint">Удаляет сохранённый текст глав и ИИ-пересказы глав. Они восстановятся по мере чтения. Сохранённые имена кодекса останутся.</string>
-    <string name="settings_story_ai_recap">ИИ-пересказ</string>
-    <string name="settings_story_ai_recap_hint">Добавляет в «Ранее…» краткий пересказ сюжета. Каждая дочитанная глава получает короткий пересказ от активного ИИ-сервиса (Настройки → ИИ и перевод), поэтому её текст отправляется туда. Используются только главы до вашего места. Не в режиме инкогнито.</string>
+    <string name="settings_story_ai_recap">ИИ-заметки о сюжете</string>
+    <string name="settings_story_ai_recap_hint">Когда заметки включены, активный ИИ-сервис (Настройки → ИИ и перевод) пишет краткий пересказ каждой прочитанной главы, находит в ней персонажей, места и группы с фактом о каждом и добавляет их в кодекс. «Ранее…» тогда получает пересказ сюжета. Выкл.: ничего не отправляется.</string>
+    <string name="settings_story_notes_finished">После каждой главы</string>
+    <string name="settings_story_notes_needed">Когда нужно</string>
+    <string name="settings_story_notes_finished_hint">Каждая дочитанная глава один раз отправляется активному ИИ-сервису, одним запросом за пересказом, именами и фактами, так что пересказ и кодекс готовы сразу. При ИИ-переводе заметки приходят вместе с переводом, без лишнего запроса. Используются только главы до вашего места. Не в режиме инкогнито.</string>
+    <string name="settings_story_notes_needed_hint">Пока вы читаете, ничего не отправляется. Когда вы открываете пересказ или описание имени, главы до вашего места, у которых ещё нет заметок, отправляются тогда, по нескольку за запрос. При ИИ-переводе заметки приходят вместе с переводом, без лишнего запроса. Не в режиме инкогнито.</string>
     <string name="recap_ai_writing">Пишу пересказ…</string>
     <string name="recap_ai_label">Сюжет до сих пор (ИИ)</string>
     <string name="recap_last_paragraphs">Где вы остановились</string>
@@ -1558,6 +1562,11 @@
     <string name="codex_summary_hidden">Есть описание из дальнейших глав. Здесь оно скрыто, чтобы не было спойлеров.</string>
     <string name="codex_summary_failed">Нет описания: %1$s</string>
     <string name="codex_relations">Связи (ИИ)</string>
+    <string name="codex_facts">В прошлых главах (ИИ)</string>
+    <string name="codex_fact">%1$s: %2$s</string>
+    <string name="codex_facts_all">Показать все (%1$d)</string>
+    <string name="codex_found_by_ai">Добавлено ИИ-заметками о сюжете. Измените запись, чтобы она стала вашей; удалённая не добавится снова.</string>
+    <string name="codex_ai_badge">ИИ</string>
     <string name="codex_relation">%1$s: %2$s</string>
     <string name="codex_relation_reverse">%2$s для: %1$s</string>
     <string name="codex_relation_remove">Убрать связь</string>

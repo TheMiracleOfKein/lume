@@ -1,6 +1,10 @@
 package com.lume.app.translate
 
 import com.lume.app.data.db.GlossaryTermEntity
+import com.lume.app.data.story.ChapterNotes
+import com.lume.app.data.story.intakeNames
+import com.lume.app.data.story.notesInstructions
+import com.lume.app.data.story.parseNotes
 import com.lume.app.llm.AiFeature
 import com.lume.app.llm.LlmClient
 import com.lume.app.llm.baseName
@@ -37,12 +41,17 @@ data class SuggestedTerm(val source: String, val target: String, val kind: Strin
  * [glossary] must be in the same order as the entries the input HTML was marked with, because the
  * `data-g` numbers point into it. [knownSources] are every glossary source of the title, rejected
  * ones included, so those aren't proposed again.
+ *
+ * With [notes] on, each answer also brings story notes on its paragraphs (a summary, the names in
+ * them with a fact each, relations), in the target language: the chapter's digest and codex
+ * knowledge come with the translation, without a request of their own. [takeNotes] hands them over.
  */
 class LlmProvider(
     private val client: LlmClient,
     glossary: List<GlossaryTermEntity>,
     knownSources: Collection<String>,
     private val style: String?,
+    private val notes: Boolean = false,
     private val onTerms: suspend (List<SuggestedTerm>) -> Unit = {},
 ) : TranslationProvider {
     // The style note shapes the whole text, so another note is another cache entry.
@@ -60,6 +69,28 @@ class LlmProvider(
     private val known = (knownSources + glossary.map { it.source }).map(::nameKey).toMutableSet()
     private val previous = ArrayDeque<String>()
     private val lock = Mutex()
+
+    /** The service and model, for what the notes were written by. */
+    val model: String get() = client.config.cacheId
+
+    /** Where in the chapter the next [translate] call's paragraphs start; set by [ChapterTranslator], orders the notes. */
+    internal var position: Int = 0
+
+    /** Notes of the parts translated so far: their position in the chapter, how many paragraphs, the notes. */
+    private val partNotes = mutableListOf<Triple<Int, Int, ChapterNotes>>()
+
+    /**
+     * The notes of everything translated since the last call, as one in chapter order, and how many
+     * paragraphs they cover; null when there are none. Names get their glossary translation.
+     */
+    fun takeNotes(): Pair<ChapterNotes, Int>? {
+        if (partNotes.isEmpty()) return null
+        val parts = partNotes.sortedBy { it.first }
+        partNotes.clear()
+        val targets = terms.associate { nameKey(it.source) to it.target }
+        val joined = ChapterNotes.join(parts.map { it.third })
+        return joined.copy(names = joined.names.map { n -> n.copy(target = n.target ?: targets[nameKey(n.name)]) }) to parts.sumOf { it.second }
+    }
 
     override suspend fun translate(from: String, to: String, html: List<String>): List<String> = lock.withLock {
         val out = arrayOfNulls<String>(html.size)
@@ -83,9 +114,9 @@ class LlmProvider(
         val parts = ids.map { html[it] }
         val plainText = parts.joinToString("\n") { plain(it) }
         val answer = client.chat(
-            systemPrompt(from, to, style),
+            systemPrompt(from, to, style, notes),
             userPrompt(ids.map { it to html[it] }, glossaryFor(parts, plainText), previous.toList()),
-            maxTokens = answerTokens(parts.sumOf { it.length }),
+            maxTokens = answerTokens(parts.sumOf { it.length }) + if (notes) NOTES_TOKENS else 0,
             feature = AiFeature.Translation,
         )
         if (answer.truncated) {
@@ -97,6 +128,10 @@ class LlmProvider(
         val parsed = parseLlmTranslation(answer.content)
         for ((id, text) in parsed.paragraphs) if (id in ids && text.isNotBlank()) out[id] = text
         intake(parsed.terms, plainText)
+        // A second try for missed paragraphs would only repeat notes the first answer gave.
+        if (notes && !retried && !parsed.notes.isEmpty) {
+            partNotes += Triple(position + ids.min(), ids.size, parsed.notes.copy(names = intakeNames(parsed.notes.names, plainText)))
+        }
         val missing = ids.filter { out[it] == null }
         if (missing.isEmpty()) return
         if (retried) throw IOException("The AI answered ${ids.size - missing.size} of ${ids.size} paragraphs")
@@ -128,6 +163,9 @@ class LlmProvider(
         private const val PREVIOUS_PARAGRAPHS = 3
         private const val PREVIOUS_CHARS = 400
         private val GLOSSARY_MARK = Regex("""data-g="(\d+)"""")
+
+        /** Answer room for a part's notes. */
+        private const val NOTES_TOKENS = 800
     }
 }
 
@@ -154,17 +192,24 @@ private fun promptLanguageName(code: String): String = when (code.lowercase()) {
     else -> code
 }
 
-internal fun systemPrompt(from: String, to: String, style: String?): String = buildString {
+internal fun systemPrompt(from: String, to: String, style: String?, notes: Boolean = false): String = buildString {
     append("You translate web novels from ${promptLanguageName(from)} into ${promptLanguageName(to)}. ")
     append("Write natural, fluent ${promptLanguageName(to)} prose that keeps the meaning, tone and voice of the original. ")
     append("Keep names and terms consistent with the glossary and with the previous paragraphs.\n")
     append("Rules:\n")
-    append("- Each input paragraph has an id. Return exactly one translated paragraph per id. Never merge, split, skip or add paragraphs, and add no notes.\n")
+    append("- Each input paragraph has an id. Return exactly one translated paragraph per id. Never merge, split, skip or add paragraphs, and add no comments of your own to them.\n")
     append("- Keep the HTML tags <b> and <i> around the same words. Keep every <span data-g=\"N\">…</span> element with the same number N, and write glossary item N's target inside it.\n")
     append("- The glossary maps N to [source, target]. Write every glossary source as its target, with grammatical endings where the language needs them.\n")
     append("- In \"terms\", list the proper names and special terms in these paragraphs that are not in the glossary (characters, places, groups and organizations, items, techniques, titles), each with the translation you used and a kind: character, place, group, item or term. Give each name once, in its base form without honorifics or possessive endings (\"Yu San A\", not \"Yu San A-san\" or \"Yu San A's\"). Leave out ordinary words.\n")
+    if (notes) {
+        append("- In \"notes\", for the reader's story notes on these paragraphs: ")
+        append(notesInstructions(promptLanguageName(to), "what happens in these paragraphs, 1 to 3 sentences"))
+        append("\n")
+    }
     if (!style.isNullOrBlank()) append("Style notes from the reader: ${style.trim()}\n")
-    append("Answer with only this JSON object: {\"paragraphs\":[{\"id\":0,\"html\":\"…\"}],\"terms\":[{\"source\":\"…\",\"target\":\"…\",\"kind\":\"character\"}]}")
+    append("Answer with only this JSON object: {\"paragraphs\":[{\"id\":0,\"html\":\"…\"}],\"terms\":[{\"source\":\"…\",\"target\":\"…\",\"kind\":\"character\"}]")
+    if (notes) append(",\"notes\":{\"summary\":\"…\",\"names\":[],\"relations\":[]}")
+    append("}")
 }
 
 /** The request: only the [glossary] items it needs, by their `data-g` number, as `"N":[source, target]`. */
@@ -180,8 +225,8 @@ internal fun userPrompt(paragraphs: List<Pair<Int, String>>, glossary: Map<Int, 
     }
 }.toString()
 
-/** What the model answered: translated paragraphs by id, and the new terms it listed. */
-internal data class LlmTranslation(val paragraphs: Map<Int, String>, val terms: List<SuggestedTerm>)
+/** What the model answered: translated paragraphs by id, the new terms it listed, and its story notes (if asked). */
+internal data class LlmTranslation(val paragraphs: Map<Int, String>, val terms: List<SuggestedTerm>, val notes: ChapterNotes = ChapterNotes())
 
 internal fun parseLlmTranslation(text: String): LlmTranslation {
     val root = extractJsonObject(text)
@@ -197,7 +242,7 @@ internal fun parseLlmTranslation(text: String): LlmTranslation {
         val target = (o["target"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
         SuggestedTerm(source, target, (o["kind"] as? JsonPrimitive)?.contentOrNull)
     }.orEmpty()
-    return LlmTranslation(paragraphs, terms)
+    return LlmTranslation(paragraphs, terms, parseNotes(root["notes"] as? JsonObject))
 }
 
 private val SUGGESTION_KINDS = setOf("character", "place", "group", "item", "term")

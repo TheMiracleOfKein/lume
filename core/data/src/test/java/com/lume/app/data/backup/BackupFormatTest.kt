@@ -119,6 +119,26 @@ class BackupFormatTest {
     }
 
     @Test
+    fun `version 9 adds AI story knowledge`() {
+        val p = load(9)
+        val kirito = p.codexEntries.single { it.name == "Kirito" }
+        assertEquals("user", kirito.origin)
+        assertEquals("c2", kirito.summaryUpToChapterId)
+        val asuna = p.codexEntries.single { it.name == "Asuna" }
+        assertEquals("ai", asuna.origin)
+        assertEquals("c2", asuna.firstChapterId)
+        assertEquals("ignored", p.codexEntries.single { it.name == "Klein" }.origin)
+        assertEquals("c1", p.chapterDigests.single().chapterId)
+        assertEquals(setOf("kirito", "asuna"), p.codexFacts.map { it.nameKey }.toSet())
+        assertEquals("напарник", p.codexRelations.single().label)
+        // Older files: every entry is the reader's own, with no AI knowledge.
+        val old = load(8)
+        assertEquals("user", old.codexEntries.single().origin)
+        assertNull(old.codexEntries.single().summary)
+        assertTrue(old.chapterDigests.isEmpty() && old.codexFacts.isEmpty() && old.codexRelations.isEmpty())
+    }
+
+    @Test
     fun `the newest saved file round-trips unchanged`() {
         val p = load(BackupPayload.CURRENT_VERSION)
         val again = BackupPayload.parse(BackupPayload.json.encodeToString(BackupPayload.serializer(), p))
@@ -150,6 +170,9 @@ class BackupFormatTest {
             ReadingSessionDto.serializer().descriptor,
             GlossaryTermDto.serializer().descriptor,
             CodexEntryDto.serializer().descriptor,
+            ChapterDigestDto.serializer().descriptor,
+            CodexFactDto.serializer().descriptor,
+            CodexRelationDto.serializer().descriptor,
         ).joinToString("\n") { describe(it) }
         assertEquals(FORMAT, actual)
     }
@@ -164,7 +187,7 @@ class BackupFormatTest {
 
     private companion object {
         val FORMAT = """
-            BackupPayload: version?, createdAt?, bookmarks?, progress?, categories?, sourcePacks?, titlePrefs?, trackerLinks?, chapterProgress?, pageBookmarks?, chapterRead?, settings?, titleSources?, readingSessions?, glossaryTerms?, codexEntries?
+            BackupPayload: version?, createdAt?, bookmarks?, progress?, categories?, sourcePacks?, titlePrefs?, trackerLinks?, chapterProgress?, pageBookmarks?, chapterRead?, settings?, titleSources?, readingSessions?, glossaryTerms?, codexEntries?, chapterDigests?, codexFacts?, codexRelations?
             BookmarkEntityDto: sourceId, titleId, titleName, coverUrl?, typeLabel?, createdAt?, categoryIdsJson?, genresJson?, mediaKind?
             ProgressEntityDto: sourceId, titleId, titleName, coverUrl?, typeLabel?, chapterId, chapterName, chapterUrl, pageIndex?, pageCount?, updatedAt?, pageOffset?, mediaKind?
             CategoryEntityDto: id?, name, sortOrder?
@@ -178,7 +201,10 @@ class BackupFormatTest {
             TitleSourceDto: sourceId, titleId, linkSourceId, linkTitleId, linkTitleName, coverUrl?, state?, priority?, addedAt?
             ReadingSessionDto: sourceId, titleId, titleName?, chapterId, startedAt, durationMs?, pagesRead?
             GlossaryTermDto: sourceId, titleId, source, target, updatedAt?, status?, kind?
-            CodexEntryDto: sourceId, titleId, name, kind?, note?, aliases?, createdAt?, updatedAt?
+            CodexEntryDto: sourceId, titleId, name, kind?, note?, aliases?, createdAt?, updatedAt?, origin?, firstChapterId?, summary?, summaryOrigin?, summaryUpToChapterId?
+            ChapterDigestDto: sourceId, titleId, chapterId, lang, text, model?, createdAt?
+            CodexFactDto: sourceId, titleId, nameKey, chapterId, lang, text, origin?, createdAt?
+            CodexRelationDto: sourceId, titleId, fromName, toName, label, upToChapterId, origin?, createdAt?
         """.trimIndent()
     }
 }

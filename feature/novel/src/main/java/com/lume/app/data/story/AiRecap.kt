@@ -1,7 +1,6 @@
 package com.lume.app.data.story
 
 import com.lume.app.AppContainer
-import com.lume.app.data.db.ChapterDigestEntity
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.inReadingOrder
 import com.lume.app.llm.AiFeature
@@ -42,23 +41,32 @@ sealed interface AiRecapState {
 class AiRecap(app: AppContainer, private val sourceId: String, private val titleId: String) {
     private val dao = app.dao
     private val cacheDir = File(app.app.cacheDir, "ai-recap")
+    private val notes = StoryNotes(app.dao, sourceId, titleId)
 
     /**
-     * The digest of [chapter]: a stored one in any language, or a new one in [lang] from [text]
-     * (the chapter's paragraphs; null when its text can't be had). Null when there is nothing to digest.
+     * The digest of [chapter]: a stored one in any language, or new story notes in [lang] from
+     * [text] (the chapter's paragraphs; null when its text can't be had), which also bring its
+     * names into the codex. Null when there is nothing to digest. [order] is the reading order of
+     * the title's chapters (see [StoryNotes.save]).
      */
-    suspend fun digest(client: LlmClient, chapter: Chapter, lang: String, text: suspend () -> List<String>?): String? =
-        digests(client, listOf(chapter), lang) { text() }[chapter.id]
+    suspend fun digest(
+        client: LlmClient,
+        chapter: Chapter,
+        lang: String,
+        order: Map<String, Int> = emptyMap(),
+        text: suspend () -> List<String>?,
+    ): String? = digests(client, listOf(chapter), lang, order) { text() }[chapter.id]
 
     /**
-     * Digests of [chapters] by chapter id: the stored ones, and the missing ones written now, several
-     * chapters per request (up to [BATCH_CHARS] of text). Chapters whose text can't be had, or that
-     * a request failed for, are left out.
+     * Digests of [chapters] by chapter id: the stored ones, and the missing ones written now as
+     * story notes, several chapters per request (up to [BATCH_CHARS] of text). Chapters whose text
+     * can't be had, or that a request failed for, are left out.
      */
     suspend fun digests(
         client: LlmClient,
         chapters: List<Chapter>,
         lang: String,
+        order: Map<String, Int> = emptyMap(),
         text: suspend (Chapter) -> List<String>?,
     ): Map<String, String> {
         if (chapters.isEmpty()) return emptyMap()
@@ -71,7 +79,7 @@ class AiRecap(app: AppContainer, private val sourceId: String, private val title
             val inputs = missing.filter { it.id !in again }.mapNotNull { ch ->
                 text(ch)?.let(::digestInput)?.takeIf { it.isNotBlank() }?.let { ch to it }
             }
-            again + writeDigests(client, inputs, lang)
+            again + writeNotes(client, inputs, lang, order)
         }
         return stored + made
     }
@@ -82,7 +90,13 @@ class AiRecap(app: AppContainer, private val sourceId: String, private val title
             .groupBy { it.chapterId }
             .mapValues { (_, list) -> (list.firstOrNull { it.lang == lang } ?: list.maxBy { it.createdAt }).text }
 
-    private suspend fun writeDigests(client: LlmClient, inputs: List<Pair<Chapter, String>>, lang: String): Map<String, String> {
+    /** Story notes of [inputs] (chapter and its text) in batches; their digests by chapter id. */
+    private suspend fun writeNotes(
+        client: LlmClient,
+        inputs: List<Pair<Chapter, String>>,
+        lang: String,
+        order: Map<String, Int>,
+    ): Map<String, String> {
         val out = HashMap<String, String>()
         for (batch in digestBatches(inputs.map { it.second.length }, BATCH_CHARS)) {
             val part = batch.map { inputs[it] }
@@ -90,13 +104,14 @@ class AiRecap(app: AppContainer, private val sourceId: String, private val title
                 val answer = client.chat(
                     digestSystemPrompt(lang),
                     digestUserPrompt(part.mapIndexed { i, (_, t) -> (i + 1).toString() to t }),
-                    maxTokens = DIGEST_TOKENS * part.size + 200,
-                    feature = AiFeature.Recap,
+                    maxTokens = NOTES_TOKENS * part.size + 200,
+                    feature = AiFeature.Notes,
                 )
-                val texts = parseDigests(answer.content)
-                part.forEachIndexed { i, (ch, _) ->
-                    val digest = texts[(i + 1).toString()]?.trim()?.take(MAX_DIGEST_CHARS)?.takeIf { it.isNotEmpty() } ?: return@forEachIndexed
-                    dao.upsertDigest(ChapterDigestEntity(sourceId, titleId, ch.id, lang, digest, client.config.cacheId, System.currentTimeMillis()))
+                val parsed = parseChapterNotes(answer.content)
+                part.forEachIndexed { i, (ch, text) ->
+                    val chapterNotes = parsed[(i + 1).toString()] ?: return@forEachIndexed
+                    val digest = chapterNotes.summary?.trim()?.take(MAX_DIGEST_CHARS)?.takeIf { it.isNotEmpty() } ?: return@forEachIndexed
+                    notes.save(ch.id, lang, client.config.cacheId, chapterNotes.copy(summary = digest), order, original = text)
                     out[ch.id] = digest
                 }
             } catch (e: CancellationException) {
@@ -127,7 +142,7 @@ class AiRecap(app: AppContainer, private val sourceId: String, private val title
         val at = ordered.indexOfFirst { it.id == current.id }
         val before = if (at <= 0) emptyList() else ordered.subList((at - RECAP_CHAPTERS).coerceAtLeast(0), at)
         val found = try {
-            digests(client, before, lang, text)
+            digests(client, before, lang, ordered.withIndex().associate { (i, c) -> c.id to i }, text)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -170,8 +185,8 @@ class AiRecap(app: AppContainer, private val sourceId: String, private val title
         /** Chapter text per digest request; a longer single chapter still goes alone. */
         internal const val BATCH_CHARS = 40_000
 
-        /** Answer room per digest (about 120 words in any script) and for the summary. */
-        private const val DIGEST_TOKENS = 350
+        /** Answer room per chapter's notes (a summary of about 120 words, 8 names with a fact, 5 relations) and for the recap. */
+        private const val NOTES_TOKENS = 1_100
         private const val RECAP_TOKENS = 500
 
         /** Paragraphs a reader may move and still get the same summary. */
@@ -229,24 +244,25 @@ private fun langName(code: String): String = when (code.lowercase()) {
 }
 
 internal fun digestSystemPrompt(lang: String): String =
-    "You summarize chapters of a novel for a reader who has already read them. For each chapter, " +
-        "write in ${langName(lang)}, 3 to 6 sentences, under 120 words, plain text without headings or lists. " +
-        "Name the characters involved and say what happened, what changed, and any open question the chapter ends on. " +
-        "Use only what is in that chapter; don't guess what comes later. Write names as the text has them, translated to ${langName(lang)} where the reader would expect it. " +
-        "Answer with only this JSON object: {\"chapters\":[{\"id\":\"1\",\"digest\":\"…\"}]}"
+    "You write story notes on chapters of a novel for a reader who has already read them. For each chapter, by its id, give: " +
+        notesInstructions(
+            langName(lang),
+            "what happened in the chapter, who was involved, what changed and any open question it ends on, 3 to 6 sentences, under 120 words",
+        ) +
+        " Each chapter's notes use only that chapter. In the summary and facts, write names as a ${langName(lang)} reader would expect them. " +
+        "Answer with only this JSON object: {\"chapters\":[{\"id\":\"1\",\"summary\":\"…\",\"names\":[],\"relations\":[]}]}"
 
 internal fun digestUserPrompt(chapters: List<Pair<String, String>>): String = buildJsonObject {
     putJsonArray("chapters") { chapters.forEach { (id, text) -> addJsonObject { put("id", id); put("text", text) } } }
 }.toString()
 
-/** Digest text by chapter id from the model's answer. */
-internal fun parseDigests(text: String): Map<String, String> {
+/** Story notes by chapter id from the model's answer. */
+internal fun parseChapterNotes(text: String): Map<String, ChapterNotes> {
     val root = extractJsonObject(text)
     return (root["chapters"] as? JsonArray)?.mapNotNull { el ->
         val o = el as? JsonObject ?: return@mapNotNull null
         val id = (o["id"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
-        val digest = (o["digest"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
-        id to digest
+        id to parseNotes(o)
     }?.toMap().orEmpty()
 }
 

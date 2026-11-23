@@ -76,6 +76,8 @@ class ChapterTranslator(private val context: Context) {
         var done = total - order.size
         if (done > 0) onPartial(current.toList(), done, total)
         for (run in runs(order, inputs, route.provider.firstRunChars, route.provider.runChars)) {
+            // Notes of the parts are put in chapter order, whichever part was translated first.
+            (route.provider as? LlmProvider)?.position = run.min()
             val out = route.provider.translate(route.from, route.to, run.map { inputs[it]!! })
             run.forEachIndexed { k, i ->
                 raw[i] = out[k]

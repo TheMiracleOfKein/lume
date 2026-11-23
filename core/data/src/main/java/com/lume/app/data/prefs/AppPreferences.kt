@@ -275,6 +275,7 @@ class AppPreferences(
     private val storyIndexKey = booleanPreferencesKey("story_index")
     private val recapAfterHoursKey = intPreferencesKey("recap_after_hours")
     private val aiRecapKey = booleanPreferencesKey("story_ai_recap")
+    private val storyNotesKey = stringPreferencesKey("story_notes_mode")
     private val aiUsageKey = stringPreferencesKey("ai_usage")
     private val autoBackupDaysKey = intPreferencesKey("auto_backup_days")
     private val autoBackupKeepKey = intPreferencesKey("auto_backup_keep")
@@ -396,13 +397,24 @@ class AppPreferences(
     }
 
     /**
-     * AI recap: read chapters get a short digest from the AI translation service, and "Previously…"
-     * adds a summary of the story so far. Off by default: it sends chapter text to that service.
+     * AI story notes: read chapters get a digest, the names in them and a fact about each from the
+     * active AI service, for "Previously…" and the codex. [STORY_NOTES_OFF] by default, as it sends
+     * chapter text there; [STORY_NOTES_FINISHED] writes them as each chapter is finished,
+     * [STORY_NOTES_NEEDED] only when the recap or the codex needs them, several chapters per
+     * request. Up to v1.11.0 a switch, "AI recap"; on counts as [STORY_NOTES_FINISHED].
      */
-    val aiRecap: StateFlow<Boolean> = state { it[aiRecapKey] ?: false }
+    val storyNotes: StateFlow<String> = state { storyNotesOf(it) }
 
-    suspend fun setAiRecap(value: Boolean) {
-        context.appDataStore.edit { it[aiRecapKey] = value }
+    /** Whether AI story notes are on in either mode (the AI recap with them). */
+    val aiRecap: StateFlow<Boolean> = state { storyNotesOf(it) != STORY_NOTES_OFF }
+
+    private fun storyNotesOf(prefs: Preferences): String =
+        prefs[storyNotesKey]?.takeIf { it in STORY_NOTES_MODES }
+            ?: if (prefs[aiRecapKey] == true) STORY_NOTES_FINISHED else STORY_NOTES_OFF
+
+    suspend fun setStoryNotes(mode: String) {
+        if (mode !in STORY_NOTES_MODES) return
+        context.appDataStore.edit { it[storyNotesKey] = mode }
     }
 
     suspend fun setIncognito(value: Boolean) {
@@ -1122,3 +1134,14 @@ class AppPreferences(
         private val prefsJson = Json { ignoreUnknownKeys = true }
     }
 }
+
+/** AI story notes are off: nothing is sent. */
+const val STORY_NOTES_OFF = "off"
+
+/** AI story notes are written as each chapter is finished. */
+const val STORY_NOTES_FINISHED = "finished"
+
+/** AI story notes are written only when the recap or the codex needs them, several chapters per request. */
+const val STORY_NOTES_NEEDED = "needed"
+
+private val STORY_NOTES_MODES = setOf(STORY_NOTES_OFF, STORY_NOTES_FINISHED, STORY_NOTES_NEEDED)

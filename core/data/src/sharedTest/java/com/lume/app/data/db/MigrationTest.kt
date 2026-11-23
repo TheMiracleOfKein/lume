@@ -417,6 +417,38 @@ class MigrationTest {
     }
 
     @Test
+    fun migrate22To23AddsStoryNotes() {
+        helper.createDatabase(dbName, 22).use { db ->
+            db.execSQL(
+                "INSERT INTO codex_entries (sourceId, titleId, name, kind, note, createdAt, updatedAt) " +
+                    "VALUES ('s', 't', 'Kirito', 'character', 'hero', 1, 2)",
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(dbName, 23, true, LumeDatabase.MIGRATION_22_23)
+
+        // Entries saved before are the reader's own.
+        db.query("SELECT origin, firstChapterId FROM codex_entries WHERE name = 'Kirito'").use {
+            it.moveToFirst()
+            assertEquals("user", it.getString(0))
+            assertTrue(it.isNull(1))
+        }
+        db.execSQL(
+            "INSERT INTO codex_facts (sourceId, titleId, nameKey, chapterId, lang, text, origin, createdAt) " +
+                "VALUES ('s', 't', 'kirito', 'c1', 'ru', 'Входит в Айнкрад.', 'openrouter:x', 3)",
+        )
+        db.execSQL(
+            "INSERT OR REPLACE INTO codex_facts (sourceId, titleId, nameKey, chapterId, lang, text, origin, createdAt) " +
+                "VALUES ('s', 't', 'kirito', 'c1', 'ru', 'Новый факт.', 'openrouter:x', 4)",
+        )
+        db.query("SELECT text FROM codex_facts").use {
+            assertEquals(1, it.count)
+            it.moveToFirst()
+            assertEquals("Новый факт.", it.getString(0))
+        }
+    }
+
+    @Test
     fun freshDatabaseOpensWithAllMigrations() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         helper.createDatabase(dbName, 7).close()

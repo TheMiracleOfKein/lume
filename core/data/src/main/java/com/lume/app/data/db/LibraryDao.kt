@@ -290,20 +290,54 @@ interface LibraryDao {
     @Query("SELECT * FROM chapter_digests WHERE sourceId = :sourceId AND titleId = :titleId AND lang = :lang")
     suspend fun titleDigests(sourceId: String, titleId: String, lang: String): List<ChapterDigestEntity>
 
-    // Codex relations (AI-proposed, rebuildable, not backed up)
+    @Query("SELECT * FROM chapter_digests")
+    suspend fun allDigests(): List<ChapterDigestEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertDigests(digests: List<ChapterDigestEntity>)
+
+    // Codex facts (AI story notes: what each chapter shows about a name)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertFacts(facts: List<CodexFactEntity>)
+
+    @Query("SELECT * FROM codex_facts WHERE sourceId = :sourceId AND titleId = :titleId AND nameKey IN (:keys)")
+    suspend fun factsFor(sourceId: String, titleId: String, keys: List<String>): List<CodexFactEntity>
+
+    /** Facts of [fromKey] become facts of [toKey] (entries merged or renamed); a chapter [toKey] already has keeps its own. */
+    @Query("UPDATE OR IGNORE codex_facts SET nameKey = :toKey WHERE sourceId = :sourceId AND titleId = :titleId AND nameKey = :fromKey")
+    suspend fun moveFacts(sourceId: String, titleId: String, fromKey: String, toKey: String)
+
+    @Query("SELECT * FROM codex_facts")
+    suspend fun allFacts(): List<CodexFactEntity>
+
+    /** Chapter ids of the title that have a digest in any language. */
+    @Query("SELECT DISTINCT chapterId FROM chapter_digests WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun digestedChapters(sourceId: String, titleId: String): List<String>
+
+    // Codex relations (AI-proposed: from story notes, `notes:` origin, or from a summary, `llm:` origin)
     @Query(
         "SELECT * FROM codex_relations WHERE sourceId = :sourceId AND titleId = :titleId " +
             "AND (fromName = :name COLLATE NOCASE OR toName = :name COLLATE NOCASE) ORDER BY createdAt",
     )
     suspend fun relationsOf(sourceId: String, titleId: String, name: String): List<CodexRelationEntity>
 
-    @Query("DELETE FROM codex_relations WHERE sourceId = :sourceId AND titleId = :titleId AND fromName = :fromName COLLATE NOCASE")
+    /** Relations from [fromName] that a summary wrote; those from story notes stay. */
+    @Query(
+        "DELETE FROM codex_relations WHERE sourceId = :sourceId AND titleId = :titleId AND fromName = :fromName COLLATE NOCASE " +
+            "AND origin NOT LIKE 'notes:%'",
+    )
     suspend fun deleteRelationsFrom(sourceId: String, titleId: String, fromName: String)
 
     @Insert
     suspend fun insertRelations(relations: List<CodexRelationEntity>)
 
-    /** The relations [fromName] has, replaced by [relations] (a new summary sees the story anew). */
+    @Query("SELECT * FROM codex_relations WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun titleRelations(sourceId: String, titleId: String): List<CodexRelationEntity>
+
+    @Query("SELECT * FROM codex_relations")
+    suspend fun allRelations(): List<CodexRelationEntity>
+
+    /** The relations [fromName]'s summary wrote, replaced by [relations] (a new summary sees the story anew). */
     @Transaction
     suspend fun replaceRelationsFrom(sourceId: String, titleId: String, fromName: String, relations: List<CodexRelationEntity>) {
         deleteRelationsFrom(sourceId, titleId, fromName)
@@ -355,13 +389,19 @@ interface LibraryDao {
     suspend fun chapterTail(sourceId: String, titleId: String, chapterId: String, n: Int): List<BlockText>
 
     // Codex
+    // Ignored entries (AI entries the reader removed) are left out; they only stop the name coming back.
     @Transaction
-    @Query("SELECT * FROM codex_entries WHERE sourceId = :sourceId AND titleId = :titleId ORDER BY name COLLATE NOCASE")
+    @Query("SELECT * FROM codex_entries WHERE sourceId = :sourceId AND titleId = :titleId AND origin != 'ignored' ORDER BY name COLLATE NOCASE")
     fun codexFor(sourceId: String, titleId: String): Flow<List<CodexEntryWithAliases>>
 
     @Transaction
-    @Query("SELECT * FROM codex_entries WHERE sourceId = :sourceId AND titleId = :titleId ORDER BY name COLLATE NOCASE")
+    @Query("SELECT * FROM codex_entries WHERE sourceId = :sourceId AND titleId = :titleId AND origin != 'ignored' ORDER BY name COLLATE NOCASE")
     suspend fun codexOnce(sourceId: String, titleId: String): List<CodexEntryWithAliases>
+
+    /** Every entry of the title, ignored ones included, for adding names found by AI. */
+    @Transaction
+    @Query("SELECT * FROM codex_entries WHERE sourceId = :sourceId AND titleId = :titleId")
+    suspend fun codexWithIgnored(sourceId: String, titleId: String): List<CodexEntryWithAliases>
 
     @Query("SELECT * FROM codex_entries")
     suspend fun allCodexEntries(): List<CodexEntryEntity>
