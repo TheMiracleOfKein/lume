@@ -26,21 +26,55 @@ import java.util.concurrent.TimeUnit
  * A service that speaks the OpenAI chat-completions API with the user's own key. [baseUrl] is null
  * for [Custom], where the user types it (a local Ollama or LM Studio, another provider).
  */
-enum class LlmPreset(val id: String, val label: String, val baseUrl: String?, val defaultModel: String?) {
-    OpenRouter("openrouter", "OpenRouter", "https://openrouter.ai/api/v1", "openrouter/auto"),
-    OpenAI("openai", "OpenAI", "https://api.openai.com/v1", null),
-    DeepSeek("deepseek", "DeepSeek", "https://api.deepseek.com/v1", "deepseek-chat"),
-    Gemini("gemini", "Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", null),
-    Custom("custom", "", null, null),
+enum class LlmPreset(
+    val id: String,
+    val label: String,
+    val baseUrl: String?,
+    /** The models "Automatic" prefers, best first; the first is used until a check has seen the service's list. */
+    val autoModels: List<String>,
+    /** Where the user gets a key. */
+    val keyUrl: String?,
+) {
+    OpenRouter("openrouter", "OpenRouter", "https://openrouter.ai/api/v1", listOf("openrouter/auto"), "https://openrouter.ai/keys"),
+    OpenAI("openai", "OpenAI", "https://api.openai.com/v1", listOf("gpt-5-mini", "gpt-4.1-mini", "gpt-4o-mini"), "https://platform.openai.com/api-keys"),
+    DeepSeek("deepseek", "DeepSeek", "https://api.deepseek.com/v1", listOf("deepseek-chat"), "https://platform.deepseek.com/api_keys"),
+    Gemini(
+        "gemini", "Gemini", "https://generativelanguage.googleapis.com/v1beta/openai",
+        listOf("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"), "https://aistudio.google.com/apikey",
+    ),
+    Custom("custom", "", null, emptyList(), null),
     ;
 
     /** A local server usually has no key. */
     val needsKey: Boolean get() = this != Custom
 
+    /** The automatic model before any check; null for [Custom], where the server's list decides. */
+    val defaultModel: String? get() = autoModels.firstOrNull()
+
+    /**
+     * The model "Automatic" uses given the service's [available] model ids (null: not checked yet):
+     * the first preferred one the service has, else a close match, else the first preferred one.
+     */
+    fun autoModel(available: List<String>?): String? {
+        if (available.isNullOrEmpty()) return defaultModel
+        val ids = available.map { it.removePrefix("models/") }
+        autoModels.firstOrNull { it in ids }?.let { return it }
+        val fallback = when (this) {
+            OpenAI -> ids.filter { it.startsWith("gpt-") && it.contains("mini") && NOT_CHAT.none(it::contains) }.maxOrNull()
+            Gemini -> ids.filter { Regex("""gemini-[\d.]+-flash""").matches(it) }.maxOrNull()
+            Custom -> ids.firstOrNull { NOT_CHAT.none(it::contains) } ?: ids.first()
+            else -> null
+        }
+        return fallback ?: defaultModel
+    }
+
     companion object {
         val DEFAULT = OpenRouter
 
         fun fromId(id: String?): LlmPreset = entries.firstOrNull { it.id == id } ?: DEFAULT
+
+        /** Parts of model ids that aren't text chat models. */
+        private val NOT_CHAT = listOf("audio", "realtime", "transcribe", "tts", "search", "image", "embed", "moderation", "whisper", "dall-e")
     }
 }
 
@@ -85,13 +119,25 @@ class LlmClient(http: OkHttpClient, val config: LlmConfig) {
             }
         }
 
-    /** The service's models, for the picker. */
+    /** The service's models, for the picker and the key check; a short wait, as nothing is generated. */
     suspend fun models(): List<LlmModel> = withContext(Dispatchers.IO) {
         val request = Request.Builder().url("${config.baseUrl}/models").get().auth().build()
-        http.newCall(request).execute().use { response ->
+        val quick = http.newBuilder().connectTimeout(15, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).callTimeout(45, TimeUnit.SECONDS).build()
+        quick.newCall(request).execute().use { response ->
             val body = response.body.string()
             if (!response.isSuccessful) throw llmError(response.code, body)
             parseModels(body)
+        }
+    }
+
+    /** OpenRouter only: checks the key (its model list is public) and returns the dollars left, null without a limit. */
+    suspend fun openRouterCreditsLeft(): Double? = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url("${config.baseUrl}/key").get().auth().build()
+        val quick = http.newBuilder().connectTimeout(15, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).callTimeout(45, TimeUnit.SECONDS).build()
+        quick.newCall(request).execute().use { response ->
+            val body = response.body.string()
+            if (!response.isSuccessful) throw llmError(response.code, body)
+            parseOpenRouterKey(body)
         }
     }
 
@@ -163,19 +209,25 @@ internal fun parseModels(body: String): List<LlmModel> {
 
 private fun errorMessage(error: JsonObject): String? = (error["message"] as? JsonPrimitive)?.contentOrNull?.take(200)
 
-internal fun llmError(code: Int, body: String): IOException {
+/** An error answer of an online service, with its HTTP [code], so callers can tell a refused key from a busy service. */
+class ServiceHttpException(val code: Int, message: String) : IOException(message) {
+    /** The user can fix it in the settings: the key, the account or the model. */
+    val needsSettings: Boolean get() = code in setOf(401, 402, 403, 404, 456)
+}
+
+internal fun llmError(code: Int, body: String): ServiceHttpException {
     val detail = runCatching {
         (json.parseToJsonElement(body).jsonObject["error"] as? JsonObject)?.let(::errorMessage)
     }.getOrNull()
     val text = when (code) {
-        401, 403 -> "The AI service refused the key; check it in the translation sheet"
+        401, 403 -> "The AI service refused the key; check it in Settings → AI and translation"
         402 -> "The AI service account has no credits left"
         404 -> "The AI service doesn't know this model; pick another one"
         408, 504 -> "The AI service took too long; try again"
         429 -> "The AI service is limiting requests right now; try again later"
         else -> "AI service: HTTP $code"
     }
-    return IOException(if (detail != null && code !in setOf(401, 403)) "$text ($detail)" else text)
+    return ServiceHttpException(code, if (detail != null && code !in setOf(401, 403)) "$text ($detail)" else text)
 }
 
 /**

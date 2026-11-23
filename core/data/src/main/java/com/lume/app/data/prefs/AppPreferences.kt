@@ -925,20 +925,68 @@ class AppPreferences(
 
     suspend fun setDeeplKey(key: String?) = putSecret(deeplKeySecret, key?.trim())
 
-    /** AI translation: which OpenAI-compatible service (`openrouter`, `openai`, ...); null = the default. */
+    /** The AI service (`openrouter`, `openai`, ...) translation, the recap and codex summaries use; null = the default. */
     val llmPreset: StateFlow<String?> = state { it[llmPresetKey] }
 
     /** AI translation: the base URL for the `custom` service (for example a local Ollama). */
     val llmBaseUrl: StateFlow<String?> = state { it[llmBaseUrlKey]?.takeIf(String::isNotBlank) }
 
-    /** AI translation: the model id; null = the service's default. */
-    val llmModel: StateFlow<String?> = state { it[llmModelKey]?.takeIf(String::isNotBlank) }
+    /**
+     * AI: the model picked for each service id; a service without an entry uses its automatic
+     * model. Up to v1.9.0 one model was kept for the active service only; it still counts for it.
+     */
+    val llmModels: StateFlow<Map<String, String>> = state { prefs ->
+        val perService = prefs.asMap().mapNotNull { (k, v) ->
+            if (!k.name.startsWith(LLM_MODEL_PREFIX) || v !is String || v.isBlank()) return@mapNotNull null
+            k.name.removePrefix(LLM_MODEL_PREFIX) to v
+        }.toMap()
+        val legacy = prefs[llmModelKey]?.takeIf(String::isNotBlank)
+        val active = prefs[llmPresetKey] ?: LLM_DEFAULT_PRESET
+        if (legacy != null && active !in perService) perService + (active to legacy) else perService
+    }
 
-    suspend fun setLlmService(preset: String, baseUrl: String?, model: String?) {
-        context.appDataStore.edit {
-            it[llmPresetKey] = preset
-            if (baseUrl.isNullOrBlank()) it.remove(llmBaseUrlKey) else it[llmBaseUrlKey] = baseUrl.trim()
-            if (model.isNullOrBlank()) it.remove(llmModelKey) else it[llmModelKey] = model.trim()
+    /** Makes [preset] the AI service that translation, the recap and codex summaries use. */
+    suspend fun setLlmPreset(preset: String) {
+        context.appDataStore.edit { prefs ->
+            // The old single model belongs to the service that was active; keep it there.
+            prefs[llmModelKey]?.takeIf(String::isNotBlank)?.let { legacy ->
+                val owner = prefs[llmPresetKey] ?: LLM_DEFAULT_PRESET
+                val key = stringPreferencesKey(LLM_MODEL_PREFIX + owner)
+                if (prefs[key].isNullOrBlank()) prefs[key] = legacy
+                prefs.remove(llmModelKey)
+            }
+            prefs[llmPresetKey] = preset
+        }
+    }
+
+    suspend fun setLlmBaseUrl(url: String?) {
+        context.appDataStore.edit { if (url.isNullOrBlank()) it.remove(llmBaseUrlKey) else it[llmBaseUrlKey] = url.trim() }
+    }
+
+    /** The model for [preset]; null goes back to the service's automatic model. */
+    suspend fun setLlmModel(preset: String, model: String?) {
+        context.appDataStore.edit { prefs ->
+            val key = stringPreferencesKey(LLM_MODEL_PREFIX + preset)
+            if (model.isNullOrBlank()) prefs.remove(key) else prefs[key] = model.trim()
+            if ((prefs[llmPresetKey] ?: LLM_DEFAULT_PRESET) == preset) prefs.remove(llmModelKey)
+        }
+    }
+
+    /**
+     * The last check of each AI service and of DeepL (`deepl`), as the feature encodes it. Kept
+     * in the private store: it is about this phone's keys and isn't backed up or synced.
+     */
+    val aiChecks: StateFlow<Map<String, String>> = privateState { prefs ->
+        prefs.asMap().mapNotNull { (k, v) ->
+            if (!k.name.startsWith(AI_CHECK_PREFIX) || v !is String) return@mapNotNull null
+            k.name.removePrefix(AI_CHECK_PREFIX) to v
+        }.toMap()
+    }
+
+    suspend fun setAiCheck(id: String, value: String?) {
+        context.privateDataStore.edit {
+            val key = stringPreferencesKey(AI_CHECK_PREFIX + id)
+            if (value == null) it.remove(key) else it[key] = value
         }
     }
 
@@ -1051,6 +1099,10 @@ class AppPreferences(
         // "secret" in the name keeps these keys private and encrypted.
         private const val LLM_KEY_PREFIX = "translate_llm_"
         private const val LLM_KEY_SUFFIX = "_secret"
+        private const val LLM_MODEL_PREFIX = "ai_model_"
+        private const val AI_CHECK_PREFIX = "ai_check_"
+        /** The service used before the user picks one (`LlmPreset.DEFAULT` in the novel module). */
+        private const val LLM_DEFAULT_PRESET = "openrouter"
         const val DEFAULT_PACK_INDEX = "https://raw.githubusercontent.com/TheMiracleOfKein/lume/main/docs/packs/index.json"
         private val prefsJson = Json { ignoreUnknownKeys = true }
     }

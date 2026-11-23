@@ -8,7 +8,10 @@ import com.lume.app.data.db.GLOSSARY_SUGGESTED
 import com.lume.app.data.db.GlossaryTermEntity
 import com.lume.app.data.db.TitlePrefsEntity
 import com.lume.app.llm.LlmClient
+import com.lume.app.llm.AiServices
 import com.lume.app.llm.LlmConfig
+import com.lume.app.llm.LlmPreset
+import com.lume.app.llm.ServiceHttpException
 import com.lume.app.data.novel.NovelBlock
 import com.lume.app.ui.screens.LoadedNovelChapter
 import com.lume.translate.ModelPair
@@ -27,16 +30,25 @@ import kotlinx.coroutines.sync.withLock
 /** How the current chapter's translation is going. */
 sealed interface TranslationProgress {
     data object Idle : TranslationProgress
-    data class Working(val done: Int, val total: Int) : TranslationProgress
-    data class Failed(val message: String) : TranslationProgress
+
+    /** Sent, no answer yet (the first part of a chapter), since [since] (epoch ms). */
+    data class Waiting(val service: TranslationService, val since: Long) : TranslationProgress
+
+    data class Working(val done: Int, val total: Int, val service: TranslationService) : TranslationProgress
+
+    /** [fixInSettings]: the key, the account or the model is the problem, so the settings can fix it. */
+    data class Failed(val message: String, val service: TranslationService?, val fixInSettings: Boolean) : TranslationProgress
 }
+
+/** Who translates: the engine and, for AI, the service and model; shown with the progress. */
+data class TranslationService(val engine: TranslationEngine, val service: String? = null, val model: String? = null)
 
 /** Why translation can't run right now with the chosen engine. */
 enum class TranslationBlocker { NoEngine, AddonMissing, PackMissing, NoDeepLKey, NoLlmSetup }
 
 /**
  * Translation for one open title in the text reader. The title's language comes from its source;
- * the target language is saved per title, the engine (on the phone, Google, DeepL) for the app.
+ * each reader opens in the original (see [TranslationSession]); the engine and AI service are app settings.
  * Loaded chapters are translated block for block, nearest the reading spot first, and handed
  * back through [replace]; the originals stay on each chapter for the long press and "off".
  */
@@ -117,6 +129,15 @@ class ReaderTranslation(
         TranslationEngine.Llm -> if (llmConfig(app) == null) TranslationBlocker.NoLlmSetup else null
     }
 
+    /** Who translates now, for the progress line; null when nothing can. */
+    fun service(): TranslationService? = when (val e = engine) {
+        null -> null
+        TranslationEngine.Llm -> llmConfig(app)?.let { c ->
+            TranslationService(e, c.preset.label.ifEmpty { c.baseUrl.substringAfter("://").substringBefore('/') }, c.model)
+        }
+        else -> TranslationService(e)
+    }
+
     private fun route(): TranslationRoute? {
         val from = sourceLanguage ?: return null
         val to = target ?: return null
@@ -140,7 +161,10 @@ class ReaderTranslation(
         )
     }
 
-    /** Reads the saved language, follows the glossary and the engine setting. Call once. */
+    /**
+     * Follows the glossary and the engine setting. Call once. The reader opens in the original;
+     * only a reader back within [TranslationSession.RESUME_MS] of leaving this title translated reads on translated.
+     */
     fun start(loaded: () -> List<LoadedNovelChapter>, anchorBlock: () -> Int) {
         this.loaded = loaded
         this.anchorBlock = anchorBlock
@@ -148,10 +172,10 @@ class ReaderTranslation(
             val prefs = dao.getTitlePrefs(sourceId, titleId)
             style = prefs?.translateStyle
             knownSources = dao.glossarySources(sourceId, titleId)
-            val saved = prefs?.novelTranslateTo
-            if (saved != null && saved in targets) {
+            val resume = TranslationSession.resume(sourceId, titleId, System.currentTimeMillis())
+            if (resume != null && resume in targets && target == null) {
                 if (engine == TranslationEngine.Offline) TranslateAddon.refresh(app.app)
-                target = saved
+                target = resume
                 translateAll()
             }
         }
@@ -167,10 +191,21 @@ class ReaderTranslation(
         // Another engine (or DeepL key, AI service or model) picked while reading: translate again with it.
         scope.launch { app.prefs.translationEngine.drop(1).collect { if (target != null) retranslate() } }
         scope.launch {
-            combine(app.prefs.llmPreset, app.prefs.llmBaseUrl, app.prefs.llmModel, app.prefs.llmKeys) { _, _, _, _ -> llmConfig(app) }
+            combine(app.prefs.llmPreset, app.prefs.llmBaseUrl, app.prefs.llmModels, app.prefs.llmKeys, app.prefs.aiChecks) { _, _, _, _, _ ->
+                llmConfig(app)
+            }
                 .distinctUntilChanged().drop(1)
                 .collect { if (target != null && engine == TranslationEngine.Llm) retranslate() }
         }
+        scope.launch {
+            app.prefs.deeplKey.drop(1).distinctUntilChanged()
+                .collect { if (target != null && engine == TranslationEngine.DeepL) retranslate() }
+        }
+    }
+
+    /** The reader is closing: a translated title remembers it for a short return. */
+    fun close() {
+        TranslationSession.leave(sourceId, titleId, target, System.currentTimeMillis())
     }
 
     /**
@@ -194,10 +229,9 @@ class ReaderTranslation(
         retranslate()
     }
 
-    /** Back to the original text, saved for the title. */
+    /** Back to the original text. */
     fun disable() {
         target = null
-        save(null)
         cancelAll()
         progress = TranslationProgress.Idle
         for (lc in loaded()) lc.original?.let { replace(lc.chapter.id, it, null) }
@@ -207,18 +241,15 @@ class ReaderTranslation(
         scope.launch { app.prefs.setTranslationEngine(engine.id) }
     }
 
-    fun setDeepLKey(key: String) {
-        scope.launch {
-            app.prefs.setDeeplKey(key)
-            if (target != null && engine == TranslationEngine.DeepL) retranslate()
-        }
+    /** Makes [preset] the active AI service (for the recap and codex too); a running translation starts again with it. */
+    fun setLlmPreset(preset: LlmPreset) {
+        scope.launch { app.prefs.setLlmPreset(preset.id) }
     }
 
-    fun setLlmService(preset: String, baseUrl: String?, model: String?, key: String?) {
-        scope.launch {
-            app.prefs.setLlmService(preset, baseUrl, model)
-            if (key != null) app.prefs.setLlmKey(preset, key)
-        }
+    /** The model of the active AI service; null goes back to automatic. */
+    fun setLlmModel(model: String?) {
+        val preset = AiServices.activePreset(app)
+        scope.launch { app.prefs.setLlmModel(preset.id, model) }
     }
 
     /** Saves the title's style note for AI translation; chapters are translated again with it. */
@@ -285,25 +316,30 @@ class ReaderTranslation(
         }
         val original = lc.original ?: lc.blocks
         val glossaryNow = entries
+        val service = service()
         jobs[id] = scope.launch {
             // A chapter in the cache shows at once; others wait their turn.
             translator.cached(original, route, glossaryNow)?.let {
                 replace(id, it, original)
+                if (id == currentChapterId) progress = TranslationProgress.Idle
                 return@launch
             }
+            if (id == currentChapterId && service != null) progress = TranslationProgress.Waiting(service, System.currentTimeMillis())
             queue.withLock {
                 try {
                     val start = if (id == currentChapterId) anchorBlock() else 0
                     val result = translator.translate(original, route, glossaryNow, start) { partial, done, total ->
                         replace(id, partial, original)
-                        if (id == currentChapterId) progress = TranslationProgress.Working(done, total)
+                        if (id == currentChapterId && service != null) progress = TranslationProgress.Working(done, total, service)
                     }
                     replace(id, result, original)
                     if (id == currentChapterId) progress = TranslationProgress.Idle
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    if (id == currentChapterId) progress = TranslationProgress.Failed(e.message ?: e.toString())
+                    if (id == currentChapterId) {
+                        progress = TranslationProgress.Failed(e.message ?: e.toString(), service, (e as? ServiceHttpException)?.needsSettings == true)
+                    }
                 }
             }
         }
@@ -339,9 +375,31 @@ class ReaderTranslation(
     }
 }
 
-/** The AI translation service from the settings, or null when its key, URL or model is missing. */
-fun llmConfig(app: AppContainer): LlmConfig? =
-    LlmConfig.from(app.prefs.llmPreset.value, app.prefs.llmBaseUrl.value, app.prefs.llmModel.value, app.prefs.llmKeys.value)
+/** The active AI service from the settings, or null when its key, URL or model is missing. */
+fun llmConfig(app: AppContainer): LlmConfig? = AiServices.config(app)
+
+/**
+ * The last title left while translated, kept in memory: coming back to it within [RESUME_MS]
+ * (a call, a look at the chapter list) reads on translated; otherwise the reader opens in the original.
+ */
+internal object TranslationSession {
+    const val RESUME_MS = 15 * 60_000L
+
+    private var left: Triple<String, String, String>? = null
+    private var leftAt = 0L
+
+    fun leave(sourceId: String, titleId: String, target: String?, now: Long) {
+        left = target?.let { Triple(sourceId, titleId, it) }
+        leftAt = now
+    }
+
+    /** The language to read on in, or null to open in the original. Used once. */
+    fun resume(sourceId: String, titleId: String, now: Long): String? {
+        val l = left?.takeIf { it.first == sourceId && it.second == titleId } ?: return null
+        left = null
+        return l.third.takeIf { now - leftAt in 0..RESUME_MS }
+    }
+}
 
 /** Adds or replaces a glossary term of a title (blank parts are ignored). */
 fun saveTerm(app: AppContainer, sourceId: String, titleId: String, source: String, target: String) {

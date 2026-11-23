@@ -5,11 +5,14 @@ import androidx.navigation.navArgument
 import com.lume.app.domain.MediaKind
 import com.lume.app.translate.GLOSSARY_ROUTE
 import com.lume.app.translate.GlossaryScreen
+import com.lume.app.translate.AiSettingsScreen
+import com.lume.app.ui.screens.settings.SettingsPage
 import com.lume.app.ui.shell.ContentScreens
 
-/** The novel reader, opened for titles of novel sources, its defaults in Settings → Reader, the translation glossary and the codex. */
+/** The novel reader, opened for titles of novel sources, its defaults in Settings → Reader, Settings → AI and translation, the glossary and the codex. */
 val NovelScreens = ContentScreens { graph, nav ->
     graph.readerSettings(MediaKind.Novel) { NovelReaderDefaults() }
+    graph.settingsPage(SettingsPage.Ai.key) { AiSettingsScreen() }
     graph.reader(MediaKind.Novel) { navController, args ->
         NovelReaderScreen(
             nav = navController,

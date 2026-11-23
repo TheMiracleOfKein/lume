@@ -1402,9 +1402,8 @@
     <string name="translate_pack_failed">Не удалось скачать: %1$s</string>
     <string name="translate_pack_delete">Удалить языковой пакет (%1$s)</string>
     <string name="translate_switch">Читать на языке: %1$s</string>
-    <string name="translate_switch_hint">Для этого тайтла. Долгое нажатие на абзац покажет оригинал.</string>
+    <string name="translate_switch_hint">Выключается при каждом открытии читалки; если вернуться в течение 15 минут, остаётся включённым. Переведённые главы сохраняются, так что повторное включение мгновенное. Долгое нажатие на абзац покажет оригинал.</string>
     <string name="translate_progress">Перевод: %1$d из %2$d абзацев</string>
-    <string name="translate_failed">Не удалось перевести: %1$s</string>
     <string name="translate_glossary">Глоссарий</string>
     <string name="translate_glossary_hint">Имена и термины, которые должны звучать одинаково во всех главах. Глоссарий исправляет написание; окончания остаются такими, как в переводе.</string>
     <string name="translate_glossary_term">%1$s → %2$s</string>
@@ -1418,7 +1417,7 @@
     <string name="translate_pick_engine">Сначала выберите ниже, чем переводить.</string>
     <string name="translate_needs_addon">Установите Lume Translate ниже или выберите онлайн-переводчик.</string>
     <string name="translate_needs_pack">Скачайте языковой пакет ниже или выберите онлайн-переводчик.</string>
-    <string name="translate_needs_deepl_key">Сначала введите ниже ключ DeepL API.</string>
+    <string name="translate_needs_deepl_key">Сначала добавьте ключ DeepL в Настройки → ИИ и перевод.</string>
     <string name="translate_engine">Чем переводить</string>
     <string name="translate_engine_offline">На телефоне</string>
     <string name="translate_engine_offline_hint">Дополнение Lume Translate и языковой пакет. Приватно, работает без интернета.</string>
@@ -1428,21 +1427,14 @@
     <string name="translate_engine_deepl">DeepL</string>
     <string name="translate_engine_deepl_hint">Онлайн, с вашим ключом DeepL API (бесплатный тариф — 500 000 символов в месяц). Текст глав отправляется в DeepL.</string>
     <string name="translate_deepl_key">Ключ DeepL API</string>
-    <string name="translate_deepl_key_about">Создайте бесплатный аккаунт DeepL API на deepl.com/pro-api и вставьте его ключ сюда. Он хранится на телефоне в зашифрованном виде и не попадает в резервные копии.</string>
-    <string name="translate_deepl_key_saved">Ключ сохранён. Введите другой, чтобы заменить его.</string>
     <string name="translate_engine_llm">ИИ (ваш ключ)</string>
     <string name="translate_engine_llm_hint">Онлайн, языковой моделью с вашим ключом: OpenRouter, OpenAI, DeepSeek, Gemini или ваш сервер. Лучше всего с именами и стилем; стоит столько, сколько берёт сервис. Текст глав отправляется в выбранный сервис.</string>
-    <string name="translate_needs_llm">Сначала настройте ИИ-сервис ниже: ключ и модель.</string>
-    <string name="translate_llm_about">Выберите сервис и вставьте его ключ API. OpenRouter даёт один ключ для многих моделей. Ключ хранится на телефоне в зашифрованном виде и не попадает в резервные копии и синхронизацию.</string>
-    <string name="translate_llm_custom">Другой (адрес)</string>
+    <string name="translate_needs_llm">Сначала настройте ИИ-сервис: добавьте его ключ в Настройки → ИИ и перевод.</string>
+    <string name="translate_llm_custom">Свой сервер</string>
     <string name="translate_llm_url">Адрес API (совместимый с OpenAI)</string>
     <string name="translate_llm_model">Модель</string>
-    <string name="translate_llm_choose">Выбрать…</string>
     <string name="translate_llm_choose_title">Выбор модели</string>
     <string name="translate_llm_key">Ключ API</string>
-    <string name="translate_llm_key_none">Для этого сервиса ключ ещё не сохранён.</string>
-    <string name="translate_llm_key_saved">Ключ для этого сервиса сохранён. Введите другой, чтобы заменить его.</string>
-    <string name="translate_llm_get_key">Получить ключ на openrouter.ai</string>
     <string name="translate_llm_free">Бесплатно</string>
     <string name="translate_llm_price">$%1$s ввод / $%2$s вывод за миллион токенов</string>
     <string name="translate_style">Заметка о стиле</string>
@@ -1541,7 +1533,7 @@
     <string name="settings_story_index">Индекс сюжета</string>
     <string name="settings_story_index_hint">Хранит на телефоне текст прочитанных и скачанных глав, чтобы имя, на которое вы нажали, можно было найти без сети. В режиме инкогнито ничего не сохраняется.</string>
     <string name="settings_story_recap">Напоминание «Ранее…»</string>
-    <string name="settings_story_recap_hint">Когда вы возвращаетесь к тайтлу после перерыва, показывает последние абзацы перед вашим местом.</string>
+    <string name="settings_story_recap_hint">Когда вы возвращаетесь к тайтлу после перерыва, читалка предлагает напомнить последние абзацы перед вашим местом; напоминание откроется, только если нажать. Кнопка ⟲ в читалке показывает его в любой момент.</string>
     <string name="settings_story_recap_off">Выкл.</string>
     <string name="settings_story_recap_6h">Через 6 часов</string>
     <string name="settings_story_recap_1d">Через 1 день</string>
@@ -1550,7 +1542,7 @@
     <string name="settings_story_index_clear">Очистить индекс сюжета</string>
     <string name="settings_story_index_clear_hint">Удаляет сохранённый текст глав и ИИ-пересказы глав. Они восстановятся по мере чтения. Сохранённые имена кодекса останутся.</string>
     <string name="settings_story_ai_recap">ИИ-пересказ</string>
-    <string name="settings_story_ai_recap_hint">Добавляет в «Ранее…» краткий пересказ сюжета. Каждая дочитанная глава получает короткий пересказ от ИИ-сервиса, настроенного в листе перевода, поэтому её текст отправляется туда. Используются только главы до вашего места. Не в режиме инкогнито.</string>
+    <string name="settings_story_ai_recap_hint">Добавляет в «Ранее…» краткий пересказ сюжета. Каждая дочитанная глава получает короткий пересказ от активного ИИ-сервиса (Настройки → ИИ и перевод), поэтому её текст отправляется туда. Используются только главы до вашего места. Не в режиме инкогнито.</string>
     <string name="recap_ai_writing">Пишу пересказ…</string>
     <string name="recap_ai_label">Сюжет до сих пор (ИИ)</string>
     <string name="recap_last_paragraphs">Где вы остановились</string>
@@ -1568,4 +1560,64 @@
     <string name="codex_relation_remove">Убрать связь</string>
     <string name="settings_story_index_cleared">Индекс сюжета очищен</string>
     <string name="settings_kw_story">имена, персонажи, поиск, икс-рэй, кодекс, ранее, напоминание, пересказ</string>
+
+    <!-- Настройки → ИИ и перевод -->
+    <string name="settings_section_ai">ИИ и перевод</string>
+    <string name="settings_summary_ai">Сервис, модель, API-ключи</string>
+    <string name="settings_kw_ai">ии, ai, llm, openrouter, openai, deepseek, gemini, deepl, ключ, api, модель, перевод, напоминание</string>
+    <string name="ai_settings_note">Активен один ИИ-сервис. Перевод, напоминание «Ранее…» и пересказы в кодексе используют его и его модель; смена здесь или в листе перевода в читалке меняет его везде.</string>
+    <string name="ai_active_service">Активный ИИ-сервис</string>
+    <string name="ai_active_service_hint">Выберите сервис и добавьте ниже его ключ. Строка под названием показывает, проверен ли ключ и работает ли он.</string>
+    <string name="ai_model_settings_hint">«Автоматически» подбирает хорошую модель сервиса; можно выбрать другую и вернуться одним нажатием.</string>
+    <string name="ai_deepl_hint">Для переводчика DeepL. Бесплатный план — 500 000 символов в месяц.</string>
+    <string name="ai_keys_private">Ключи хранятся зашифрованными на этом телефоне. Они не попадают в резервные копии и синхронизацию и отправляются только своему сервису.</string>
+    <string name="ai_custom_hint">Адрес, совместимый с OpenAI, например локальный Ollama или LM Studio. Ключ не обязателен.</string>
+    <string name="ai_service">Сервис</string>
+    <string name="ai_none_set_up">ИИ-сервис ещё не настроен. Добавьте ключ в Настройки → ИИ и перевод; здесь потом остаётся только выбрать сервис и модель.</string>
+    <string name="ai_set_up">Открыть настройки ИИ</string>
+    <string name="ai_open_settings">Настройки ИИ и перевода</string>
+    <string name="ai_active_not_set_up">У активного сервиса %1$s ещё нет ключа. Выберите настроенный сервис выше или добавьте ключ в настройках.</string>
+    <string name="ai_model_auto">Автоматически</string>
+    <string name="ai_model_auto_named">Автоматически (%1$s)</string>
+    <string name="ai_model_other">Другая модель…</string>
+    <string name="ai_model_picked_hint">Ваш выбор для этого сервиса. Нажмите «Автоматически», чтобы вернуться.</string>
+    <string name="ai_model_auto_openrouter">OpenRouter сам подбирает подходящую модель для каждого запроса.</string>
+    <string name="ai_model_auto_hint">Lume использует %1$s — быструю и недорогую модель этого сервиса. Проверка ключа обновляет выбор.</string>
+    <string name="ai_model_auto_custom">Первая модель из списка вашего сервера. Проверьте сервер, чтобы её найти.</string>
+    <string name="ai_model_choose">Выбрать модель…</string>
+    <string name="ai_model_back_to_auto">Вернуть автоматически</string>
+    <string name="ai_model_needs_key">Для списка моделей нужен ключ сервиса.</string>
+    <string name="ai_status_no_key">Ключа пока нет</string>
+    <string name="ai_status_saved">Ключ сохранён, ещё не проверен</string>
+    <string name="ai_status_checking">Проверка…</string>
+    <string name="ai_status_ok">Ключ работает · доступно моделей: %1$d · проверено %2$s</string>
+    <string name="ai_status_ok_quota">Ключ работает · в этом месяце использовано %1$s из %2$s символов · проверено %3$s</string>
+    <string name="ai_status_ok_plain">Ключ работает · проверено %1$s</string>
+    <string name="ai_status_model_missing">Ключ работает, но сервис не предлагает %1$s; выберите другую модель · проверено %2$s</string>
+    <string name="ai_status_refused">Сервис отклонил этот ключ · проверено %1$s</string>
+    <string name="ai_status_credits">Ключ работает, но кредиты или лимит закончились · проверено %1$s</string>
+    <string name="ai_status_unreachable">Сервис не ответил (интернет или адрес) · проверено %1$s</string>
+    <string name="ai_status_failed">Проверка не удалась: %1$s · проверено %2$s</string>
+    <string name="ai_key_saved_masked">Ключ сохранён: ••••%1$s</string>
+    <string name="ai_key_replace">Заменить ключ</string>
+    <string name="ai_key_remove">Удалить ключ</string>
+    <string name="ai_get_key">Получить ключ на %1$s</string>
+    <string name="ai_check">Проверить</string>
+
+    <!-- Ход перевода -->
+    <string name="translate_service_offline">Lume Translate</string>
+    <string name="translate_status_waiting">Ждём ответа %1$s… %2$d с</string>
+    <string name="translate_status_failed">Перевод не удался · нажмите для подробностей</string>
+    <string name="translate_waiting">Отправлено в %1$s, ждём первый ответ… %2$d с</string>
+    <string name="translate_waiting_slow">Большим моделям на первую часть может понадобиться минута. Оригинал пока можно читать.</string>
+    <string name="translate_stop">Остановить перевод</string>
+    <string name="translate_working_with">%1$s: %2$d из %3$d абзацев</string>
+    <string name="translate_failed_with">Перевод через %1$s не удался</string>
+
+    <!-- Напоминание по запросу -->
+    <string name="recap_open">Ранее… (напоминание)</string>
+    <string name="recap_offer">Вы вернулись после перерыва. Напомнить, где остановились?</string>
+    <string name="recap_offer_show">Напомнить</string>
+    <string name="recap_ai_needs_setup">Для ИИ-пересказа нужен ИИ-сервис с ключом.</string>
+    <string name="recap_empty">Пока нечего напомнить: вы в самом начале.</string>
 </resources>

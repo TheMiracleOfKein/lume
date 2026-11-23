@@ -33,7 +33,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -43,6 +42,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
 import com.lume.app.data.update.UpdateState
+import com.lume.app.llm.AiServices
+import com.lume.app.llm.ServiceCheck
 import com.lume.app.ui.components.SettingsSection
 import com.lume.app.ui.components.SheetHeader
 import com.lume.app.ui.components.SwitchRow
@@ -62,20 +63,22 @@ internal fun languageName(code: String): String {
 
 /**
  * Everything about translating this title, in one place: the language to read in, the engine
- * (on the phone with the add-on, Google or DeepL online) and its setup, and the glossary.
+ * (on the phone with the add-on, Google, DeepL or AI online), the AI service and model, and the
+ * glossary. Keys live in Settings → AI and translation; the sheet links there.
  */
 @Composable
-fun TranslateSheet(translation: ReaderTranslation, onOpenGlossary: () -> Unit, onClose: () -> Unit) {
+fun TranslateSheet(translation: ReaderTranslation, onOpenGlossary: () -> Unit, onOpenSettings: () -> Unit, onClose: () -> Unit) {
     val context = LocalContext.current
     val container = LocalAppContainer.current
     val scope = rememberCoroutineScope()
     val engineId by container.prefs.translationEngine.collectAsStateWithLifecycle()
     val deeplKey by container.prefs.deeplKey.collectAsStateWithLifecycle()
-    // Read so the switches' hints recompose as soon as the AI service is saved in this sheet.
+    // Read so the switches' hints recompose when the AI service or model changes.
     val llmPreset by container.prefs.llmPreset.collectAsStateWithLifecycle()
     val llmUrl by container.prefs.llmBaseUrl.collectAsStateWithLifecycle()
-    val llmModel by container.prefs.llmModel.collectAsStateWithLifecycle()
+    val llmModel by container.prefs.llmModels.collectAsStateWithLifecycle()
     val llmKeys by container.prefs.llmKeys.collectAsStateWithLifecycle()
+    val checks by container.prefs.aiChecks.collectAsStateWithLifecycle()
     val addon by TranslateAddon.state.collectAsStateWithLifecycle()
     val engine = TranslationEngine.fromId(engineId)
     // Back from the system installer (or app info): look at the add-on again.
@@ -94,7 +97,7 @@ fun TranslateSheet(translation: ReaderTranslation, onOpenGlossary: () -> Unit, o
         // ---- Read in … ----
         // The sheet recomposes when the add-on state or the DeepL key changes (both collected above).
         for (to in translation.targets) {
-            val blocker = remember(engine, to, deeplKey, addon, llmPreset, llmUrl, llmModel, llmKeys) { translation.blocker(engine, to) }
+            val blocker = remember(engine, to, deeplKey, addon, llmPreset, llmUrl, llmModel, llmKeys, checks) { translation.blocker(engine, to) }
             SwitchRow(
                 label = stringResource(R.string.translate_switch, languageName(to)),
                 hint = when (blocker) {
@@ -111,17 +114,12 @@ fun TranslateSheet(translation: ReaderTranslation, onOpenGlossary: () -> Unit, o
                 },
             )
         }
-        when (val p = translation.progress) {
-            is TranslationProgress.Working -> {
-                Hint(stringResource(R.string.translate_progress, p.done, p.total))
-                LinearProgressIndicator(progress = { if (p.total > 0) p.done.toFloat() / p.total else 0f }, modifier = Modifier.fillMaxWidth())
-            }
-            is TranslationProgress.Failed -> {
-                Hint(stringResource(R.string.translate_failed, p.message))
-                TextButton(onClick = translation::retry) { Text(stringResource(R.string.action_retry)) }
-            }
-            TranslationProgress.Idle -> Unit
-        }
+        TranslationStatusPanel(
+            progress = translation.progress,
+            onStop = translation::disable,
+            onRetry = translation::retry,
+            onOpenSettings = onOpenSettings,
+        )
 
         // ---- Engine ----
         SettingsSection(stringResource(R.string.translate_engine))
@@ -169,9 +167,16 @@ fun TranslateSheet(translation: ReaderTranslation, onOpenGlossary: () -> Unit, o
                     }
                 }
             }
-            TranslationEngine.DeepL -> DeepLKey(saved = deeplKey, onSave = translation::setDeepLKey)
+            TranslationEngine.DeepL -> {
+                Hint(checkLine(ServiceCheck.decode(checks[AiServices.DEEPL]), hasKey = !deeplKey.isNullOrBlank()))
+                if (deeplKey.isNullOrBlank()) {
+                    OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.ai_set_up)) }
+                } else {
+                    TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.ai_open_settings)) }
+                }
+            }
             TranslationEngine.Llm -> {
-                LlmSetup(onSave = translation::setLlmService)
+                LlmQuickChoice(onPreset = translation::setLlmPreset, onModel = translation::setLlmModel, onOpenSettings = onOpenSettings)
                 StyleNote(saved = translation.style, onSave = translation::setStyleNote)
                 if (translation.target != null) {
                     TextButton(onClick = translation::translateCurrentAgain) { Text(stringResource(R.string.translate_again)) }
@@ -215,26 +220,6 @@ private fun EngineRow(title: String, hint: String, selected: Boolean, enabled: B
             Text(title, color = if (enabled) AppColors.textPrimary else AppColors.textSecondary, fontSize = 15.sp)
             Text(hint, color = AppColors.textSecondary, fontSize = 12.sp)
         }
-    }
-}
-
-@Composable
-private fun DeepLKey(saved: String?, onSave: (String) -> Unit) {
-    var key by rememberSaveable { mutableStateOf("") }
-    Hint(stringResource(if (saved.isNullOrBlank()) R.string.translate_deepl_key_about else R.string.translate_deepl_key_saved))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(
-            value = key,
-            onValueChange = { key = it },
-            label = { Text(stringResource(R.string.translate_deepl_key)) },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.weight(1f),
-        )
-        TextButton(enabled = key.isNotBlank(), onClick = {
-            onSave(key)
-            key = ""
-        }) { Text(stringResource(R.string.action_save)) }
     }
 }
 

@@ -4,6 +4,7 @@ import android.content.res.Resources
 import android.os.Build
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.Download
@@ -39,6 +40,7 @@ enum class SettingsPage(
 ) {
     Appearance("appearance", R.string.settings_section_appearance, R.string.settings_summary_appearance, Icons.Outlined.Palette),
     Reader("reader", R.string.settings_section_reader, R.string.settings_summary_reader, Icons.AutoMirrored.Outlined.MenuBook, novelSummaryRes = R.string.settings_summary_reader_novel),
+    Ai("ai", R.string.settings_section_ai, R.string.settings_summary_ai, Icons.Outlined.AutoAwesome, NOVEL_ONLY),
     Library("library", R.string.settings_section_library_updates, R.string.settings_summary_library, Icons.AutoMirrored.Outlined.LibraryBooks),
     Downloads("downloads", R.string.settings_section_downloads, R.string.settings_summary_downloads, Icons.Outlined.Download, COMICS_ONLY),
     Sources("sources", R.string.settings_section_sources, R.string.settings_summary_sources, Icons.Outlined.Explore),
@@ -112,6 +114,10 @@ object SettingsCatalog {
         SettingInfo("story_recap", SettingsPage.Reader, R.string.settings_story_recap, R.string.settings_story_recap_hint, R.string.settings_kw_story, modes = NOVEL_ONLY),
         SettingInfo("story_ai_recap", SettingsPage.Reader, R.string.settings_story_ai_recap, R.string.settings_story_ai_recap_hint, R.string.settings_kw_story, modes = NOVEL_ONLY),
         SettingInfo("story_index_clear", SettingsPage.Reader, R.string.settings_story_index_clear, R.string.settings_story_index_clear_hint, R.string.settings_kw_story, modes = NOVEL_ONLY),
+
+        SettingInfo("ai_service", SettingsPage.Ai, R.string.ai_active_service, R.string.ai_active_service_hint, R.string.settings_kw_ai),
+        SettingInfo("ai_model", SettingsPage.Ai, R.string.translate_llm_model, R.string.ai_model_settings_hint, R.string.settings_kw_ai),
+        SettingInfo("deepl_key", SettingsPage.Ai, R.string.translate_deepl_key, R.string.ai_deepl_hint, R.string.settings_kw_ai),
 
         SettingInfo("library_check", SettingsPage.Library, R.string.settings_library_auto_check, R.string.settings_library_auto_check_hint, R.string.settings_kw_library_check),
         SettingInfo("library_interval", SettingsPage.Library, R.string.settings_library_interval, keywordsRes = R.string.settings_kw_interval),
