@@ -99,8 +99,20 @@ object AiServices {
     /** True when [preset] uses its automatic model. */
     fun isAuto(app: AppContainer, preset: LlmPreset): Boolean = app.prefs.llmModels.value[preset.id].isNullOrBlank()
 
-    /** The automatic model of [preset]: what its last check picked, else its first preference. */
-    fun autoModel(app: AppContainer, preset: LlmPreset): String? = check(app, preset.id)?.autoModel ?: preset.defaultModel
+    /**
+     * The automatic model of [preset]: what its last check picked, else its first preference.
+     * Checks before v1.11.0 picked OpenRouter's own router, which can choose expensive models;
+     * those give way to the cheaper preferences until the next check.
+     */
+    fun autoModel(app: AppContainer, preset: LlmPreset): String? =
+        check(app, preset.id)?.autoModel?.takeUnless { preset == LlmPreset.OpenRouter && it == LEGACY_OPENROUTER_AUTO }
+            ?: preset.defaultModel
+
+    private const val LEGACY_OPENROUTER_AUTO = "openrouter/auto"
+
+    /** A client for [config] whose token use is added to the usage totals. */
+    fun client(app: AppContainer, config: LlmConfig): LlmClient =
+        LlmClient(app.http.okHttp, config) { feature, usage -> AiUsage.record(app, feature, usage) }
 
     /** The model [preset] uses now: the picked one, else the automatic one. */
     fun model(app: AppContainer, preset: LlmPreset): String? =

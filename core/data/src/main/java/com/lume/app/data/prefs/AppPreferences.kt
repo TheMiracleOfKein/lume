@@ -275,6 +275,7 @@ class AppPreferences(
     private val storyIndexKey = booleanPreferencesKey("story_index")
     private val recapAfterHoursKey = intPreferencesKey("recap_after_hours")
     private val aiRecapKey = booleanPreferencesKey("story_ai_recap")
+    private val aiUsageKey = stringPreferencesKey("ai_usage")
     private val autoBackupDaysKey = intPreferencesKey("auto_backup_days")
     private val autoBackupKeepKey = intPreferencesKey("auto_backup_keep")
     private val folderScanHoursKey = intPreferencesKey("folder_scan_hours")
@@ -987,6 +988,20 @@ class AppPreferences(
         context.privateDataStore.edit {
             val key = stringPreferencesKey(AI_CHECK_PREFIX + id)
             if (value == null) it.remove(key) else it[key] = value
+        }
+    }
+
+    /**
+     * AI usage totals (tokens and cost per month and feature) as the feature encodes them. Kept in
+     * the private store: it is about this phone's requests and isn't backed up or synced.
+     */
+    val aiUsage: StateFlow<String?> = privateState { it[aiUsageKey] }
+
+    /** Replaces the usage totals with [transform] of the current ones, atomically. */
+    suspend fun updateAiUsage(transform: (String?) -> String?) {
+        context.privateDataStore.edit { prefs ->
+            val next = transform(prefs[aiUsageKey])
+            if (next == null) prefs.remove(aiUsageKey) else prefs[aiUsageKey] = next
         }
     }
 

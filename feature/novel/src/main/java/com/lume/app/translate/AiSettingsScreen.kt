@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
@@ -42,8 +43,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lume.app.AppContainer
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
+import com.lume.app.llm.AiFeature
 import com.lume.app.llm.AiServices
+import com.lume.app.llm.AiUsage
 import com.lume.app.llm.LlmClient
+import com.lume.app.llm.UsageTotals
 import com.lume.app.llm.LlmConfig
 import com.lume.app.llm.LlmPreset
 import com.lume.app.llm.ServiceCheck
@@ -147,7 +151,7 @@ internal fun AiSettingsScreen() {
                 app = app,
                 preset = active,
                 picked = models[active.id]?.takeIf { it.isNotBlank() },
-                auto = check?.autoModel ?: active.defaultModel,
+                auto = AiServices.autoModel(app, active),
                 canList = ready,
                 onModel = { model ->
                     scope.launch {
@@ -157,6 +161,18 @@ internal fun AiSettingsScreen() {
                     }
                 },
             )
+        }
+    }
+    Spacer(Modifier.height(12.dp))
+
+    // ---- What AI requests used this month ----
+    val usageText by app.prefs.aiUsage.collectAsStateWithLifecycle()
+    val usage = remember(usageText) { AiUsage.month(usageText) }
+    SettingsGroup {
+        SettingItem("ai_usage") {
+            SettingsLabel(stringResource(R.string.ai_usage))
+            UsageLines(usage)
+            SettingsNote(stringResource(R.string.ai_usage_hint), Modifier.padding(top = 4.dp))
         }
     }
     Spacer(Modifier.height(12.dp))
@@ -184,6 +200,51 @@ internal fun AiSettingsScreen() {
 
 /** A day: older checks run again when the page opens. */
 private const val RECHECK_MS = 24 * 60 * 60_000L
+
+/** This month's AI use per feature, and the cost where the service reported it. */
+@Composable
+private fun UsageLines(usage: Map<String, UsageTotals>) {
+    val total = usage.values.fold(UsageTotals()) { a, b -> a + b }
+    if (total.requests == 0L) {
+        Text(stringResource(R.string.ai_usage_none), color = AppColors.textSecondary, fontSize = 13.sp)
+        return
+    }
+    val names = listOf(
+        AiFeature.Translation to R.string.ai_usage_translation,
+        AiFeature.Recap to R.string.ai_usage_recap,
+        AiFeature.Notes to R.string.ai_usage_notes,
+        AiFeature.Summary to R.string.ai_usage_summary,
+        AiFeature.Other to R.string.ai_usage_other,
+    )
+    for ((feature, label) in names) {
+        val t = usage[feature.id] ?: continue
+        Text(
+            pluralStringResource(
+                R.plurals.ai_usage_line, t.requests.toInt(),
+                stringResource(label), t.requests.toInt(), formatTokens(t.promptTokens), formatTokens(t.completionTokens),
+            ),
+            color = AppColors.textPrimary, fontSize = 13.sp,
+        )
+    }
+    if (total.costRequests > 0) {
+        Text(
+            if (total.costComplete) stringResource(R.string.ai_usage_cost, formatDollars(total.cost))
+            else stringResource(R.string.ai_usage_cost_partial, formatDollars(total.cost), total.costRequests.toInt(), total.requests.toInt()),
+            color = AppColors.textPrimary, fontSize = 13.sp, modifier = Modifier.padding(top = 2.dp),
+        )
+    }
+}
+
+/** 950, 12.3k, 1.25M. */
+internal fun formatTokens(n: Long): String = when {
+    n < 1_000 -> n.toString()
+    n < 1_000_000 -> String.format(java.util.Locale.getDefault(), "%.1fk", n / 1_000.0)
+    else -> String.format(java.util.Locale.getDefault(), "%.2fM", n / 1_000_000.0)
+}
+
+/** Dollars with cents, or more digits for amounts under a cent. */
+internal fun formatDollars(d: Double): String =
+    String.format(java.util.Locale.getDefault(), if (d in 0.0..0.01 && d != 0.0) "%.4f" else "%.2f", d)
 
 @Composable
 private fun ServiceRow(name: String, status: String, selected: Boolean, onSelect: () -> Unit) {

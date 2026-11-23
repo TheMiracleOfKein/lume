@@ -17,7 +17,10 @@ import java.io.IOException
 class AiServicesTest {
     @Test
     fun autoModelPrefersTheListedFavourite() {
-        assertEquals("openrouter/auto", LlmPreset.OpenRouter.autoModel(null))
+        assertEquals("deepseek/deepseek-v4-flash", LlmPreset.OpenRouter.autoModel(null))
+        assertEquals("google/gemini-3.1-flash-lite", LlmPreset.OpenRouter.autoModel(listOf("openrouter/auto", "google/gemini-3.1-flash-lite")))
+        // OpenRouter's own router only when none of the cheap ones is offered.
+        assertEquals("openrouter/auto", LlmPreset.OpenRouter.autoModel(listOf("openrouter/auto", "x/y")))
         assertEquals("gpt-5-mini", LlmPreset.OpenAI.autoModel(null))
         assertEquals("gpt-4.1-mini", LlmPreset.OpenAI.autoModel(listOf("gpt-4o", "gpt-4.1-mini", "gpt-4o-mini")))
         // Gemini lists ids with a "models/" prefix.

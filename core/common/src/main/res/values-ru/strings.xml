@@ -1456,6 +1456,9 @@
     <string name="glossary_accept">Принять</string>
     <string name="glossary_accept_all">Принять все</string>
     <string name="glossary_reject">Отклонить</string>
+    <string name="glossary_duplicates_title">Одно имя в нескольких формах</string>
+    <string name="glossary_duplicates_hint">Эти термины похожи на одно имя (с суффиксом вежливости или притяжательным окончанием и без). «Объединить» оставляет первый и убирает остальные: в тексте первый уже их покрывает.</string>
+    <string name="glossary_merge">Объединить</string>
     <string name="glossary_open">Открыть глоссарий</string>
     <plurals name="glossary_open_count">
         <item quantity="one">Открыть глоссарий (%d термин)</item>
@@ -1571,6 +1574,22 @@
     <string name="ai_model_settings_hint">«Автоматически» подбирает хорошую модель сервиса; можно выбрать другую и вернуться одним нажатием.</string>
     <string name="ai_deepl_hint">Для переводчика DeepL. Бесплатный план — 500 000 символов в месяц.</string>
     <string name="ai_keys_private">Ключи хранятся зашифрованными на этом телефоне. Они не попадают в резервные копии и синхронизацию и отправляются только своему сервису.</string>
+    <string name="ai_usage">Расход в этом месяце</string>
+    <string name="ai_usage_none">В этом месяце запросов к ИИ ещё не было.</string>
+    <string name="ai_usage_hint">Считается на этом телефоне по ответам сервисов. OpenRouter сообщает и стоимость каждого запроса; другие сервисы показывают её на своих сайтах.</string>
+    <string name="ai_usage_translation">Перевод</string>
+    <string name="ai_usage_recap">Пересказ и сводки глав</string>
+    <string name="ai_usage_notes">Заметки о сюжете</string>
+    <string name="ai_usage_summary">Описания в кодексе</string>
+    <string name="ai_usage_other">Прочее</string>
+    <plurals name="ai_usage_line">
+        <item quantity="one">%1$s: %2$d запрос, токенов отправлено %3$s, получено %4$s</item>
+        <item quantity="few">%1$s: %2$d запроса, токенов отправлено %3$s, получено %4$s</item>
+        <item quantity="many">%1$s: %2$d запросов, токенов отправлено %3$s, получено %4$s</item>
+        <item quantity="other">%1$s: %2$d запроса, токенов отправлено %3$s, получено %4$s</item>
+    </plurals>
+    <string name="ai_usage_cost">Стоимость: $%1$s</string>
+    <string name="ai_usage_cost_partial">Стоимость: $%1$s за %2$d из %3$d запросов, по которым сервис её сообщил</string>
     <string name="ai_custom_hint">Адрес, совместимый с OpenAI, например локальный Ollama или LM Studio. Ключ не обязателен.</string>
     <string name="ai_service">Сервис</string>
     <string name="ai_none_set_up">ИИ-сервис ещё не настроен. Добавьте ключ в Настройки → ИИ и перевод; здесь потом остаётся только выбрать сервис и модель.</string>

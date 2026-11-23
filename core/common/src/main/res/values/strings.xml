@@ -1403,6 +1403,9 @@
     <string name="glossary_accept">Accept</string>
     <string name="glossary_accept_all">Accept all</string>
     <string name="glossary_reject">Reject</string>
+    <string name="glossary_duplicates_title">Same name, several forms</string>
+    <string name="glossary_duplicates_hint">These terms look like one name (with and without an honorific or a possessive). Merge keeps the first and drops the others; the first already covers them in the text.</string>
+    <string name="glossary_merge">Merge</string>
     <string name="glossary_open">Open glossary</string>
     <plurals name="glossary_open_count">
         <item quantity="one">Open glossary (%d term)</item>
@@ -1508,6 +1511,20 @@
     <string name="ai_model_settings_hint">Automatic picks a good model of the service for you; pick another one any time and go back with one tap.</string>
     <string name="ai_deepl_hint">For the DeepL translation engine. The free plan has 500,000 characters a month.</string>
     <string name="ai_keys_private">Keys are stored encrypted on this phone. They are never part of backups or sync, and are only sent to their own service.</string>
+    <string name="ai_usage">Used this month</string>
+    <string name="ai_usage_none">No AI requests this month yet.</string>
+    <string name="ai_usage_hint">Counted on this phone from the services’ answers. OpenRouter also reports what each request cost; other services show it on their own sites.</string>
+    <string name="ai_usage_translation">Translation</string>
+    <string name="ai_usage_recap">Recap and chapter digests</string>
+    <string name="ai_usage_notes">Story notes</string>
+    <string name="ai_usage_summary">Codex summaries</string>
+    <string name="ai_usage_other">Other</string>
+    <plurals name="ai_usage_line">
+        <item quantity="one">%1$s: %2$d request, %3$s tokens in, %4$s out</item>
+        <item quantity="other">%1$s: %2$d requests, %3$s tokens in, %4$s out</item>
+    </plurals>
+    <string name="ai_usage_cost">Cost: $%1$s</string>
+    <string name="ai_usage_cost_partial">Cost: $%1$s for the %2$d of %3$d requests whose service reported it</string>
     <string name="ai_custom_hint">An OpenAI-compatible address, for example a local Ollama or LM Studio. A key is optional.</string>
     <string name="ai_service">Service</string>
     <string name="ai_none_set_up">No AI service is set up yet. Add a key in Settings → AI and translation; here you then only pick the service and model.</string>
