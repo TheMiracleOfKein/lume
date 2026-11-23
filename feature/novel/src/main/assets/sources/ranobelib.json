@@ -11,7 +11,7 @@
     "Referer": "https://ranobelib.me/"
   },
   "engineConfig": {
-    "apiBase": "https://api.cdnlibs.org/api",
+    "apiBase": "https://api.lib.social/api",
     "siteId": "3",
     "webPath": "book"
   }

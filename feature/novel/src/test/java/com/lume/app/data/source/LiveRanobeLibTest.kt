@@ -26,7 +26,7 @@ class LiveRanobeLibTest {
         val manifest = Json { ignoreUnknownKeys = true }
             .decodeFromString(SourceManifest.serializer(), File("src/main/assets/sources/ranobelib.json").readText())
         val http = AppHttp(CookieJar.NO_COOKIES)
-        http.setRateLimit("api.cdnlibs.org", LIB_REQUESTS_PER_SECOND)
+        http.setRateLimit("api.lib.social", LIB_REQUESTS_PER_SECOND)
         val engine = RanobeLibEngine(manifest, http)
         val popular = try {
             engine.getPopular(1)
