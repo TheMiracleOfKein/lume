@@ -7,7 +7,6 @@ import com.lume.app.AppContainer
 import com.lume.app.data.db.GLOSSARY_SUGGESTED
 import com.lume.app.data.db.GlossaryTermEntity
 import com.lume.app.data.db.TitlePrefsEntity
-import com.lume.app.llm.LlmClient
 import com.lume.app.llm.AiServices
 import com.lume.app.llm.LlmConfig
 import com.lume.app.llm.LlmPreset
@@ -146,7 +145,7 @@ class ReaderTranslation(
             TranslationEngine.Google -> GoogleProvider(app.http.okHttp)
             TranslationEngine.DeepL -> app.prefs.deeplKey.value?.takeIf { it.isNotBlank() }?.let { DeepLProvider(app.http.okHttp, it) }
             TranslationEngine.Llm -> llmConfig(app)?.let { config ->
-                LlmProvider(LlmClient(app.http.okHttp, config), glossary, knownSources, style, ::saveSuggestions)
+                LlmProvider(AiServices.client(app, config), glossary, knownSources, style, ::saveSuggestions)
             }
             null -> null
         } ?: return null
@@ -171,6 +170,7 @@ class ReaderTranslation(
         scope.launch {
             val prefs = dao.getTitlePrefs(sourceId, titleId)
             style = prefs?.translateStyle
+            runCatching { tidyGlossary(dao, sourceId, titleId) }
             knownSources = dao.glossarySources(sourceId, titleId)
             val resume = TranslationSession.resume(sourceId, titleId, System.currentTimeMillis())
             if (resume != null && resume in targets && target == null) {

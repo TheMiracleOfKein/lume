@@ -39,7 +39,11 @@ class ChapterTranslator(private val context: Context) {
 
     /** Drops this chapter's cached translation, so the next [translate] asks the engine again. */
     suspend fun forget(blocks: List<NovelBlock>, route: TranslationRoute, glossary: List<GlossaryEntry>) {
-        withContext(Dispatchers.IO) { cacheFile(blocks, route, glossary).delete() }
+        withContext(Dispatchers.IO) {
+            val file = cacheFile(blocks, route, glossary)
+            file.delete()
+            File(cacheDir, file.name.removeSuffix(".json") + PART_SUFFIX).delete()
+        }
     }
 
     /**
@@ -55,10 +59,22 @@ class ChapterTranslator(private val context: Context) {
     ): List<NovelBlock> {
         cached(blocks, route, glossary)?.let { return it }
         val inputs = withContext(Dispatchers.Default) { blocks.map { TranslationMarkup.toHtml(it, glossary) } }
+        val file = cacheFile(blocks, route, glossary)
+        val partFile = File(cacheDir, file.name.removeSuffix(".json") + PART_SUFFIX)
         val raw = arrayOfNulls<String>(blocks.size)
-        val order = readingOrderFrom(start.coerceIn(0, (blocks.size - 1).coerceAtLeast(0)), blocks.size).filter { inputs[it] != null }
         val current = blocks.toMutableList()
-        var done = 0
+        // Parts that came back before an error (a timeout, a closed reader) aren't asked for again.
+        readStored(partFile, blocks.size, route, glossary)?.forEachIndexed { i, h ->
+            if (h != null && inputs[i] != null) {
+                raw[i] = h
+                current[i] = TranslationMarkup.fromHtml(blocks[i], h, glossary)
+            }
+        }
+        val total = inputs.count { it != null }
+        val order = readingOrderFrom(start.coerceIn(0, (blocks.size - 1).coerceAtLeast(0)), blocks.size)
+            .filter { inputs[it] != null && raw[it] == null }
+        var done = total - order.size
+        if (done > 0) onPartial(current.toList(), done, total)
         for (run in runs(order, inputs, route.provider.firstRunChars, route.provider.runChars)) {
             val out = route.provider.translate(route.from, route.to, run.map { inputs[it]!! })
             run.forEachIndexed { k, i ->
@@ -66,16 +82,34 @@ class ChapterTranslator(private val context: Context) {
                 current[i] = TranslationMarkup.fromHtml(blocks[i], out[k], glossary)
             }
             done += run.size
-            onPartial(current.toList(), done, order.size)
+            if (done < total) writeStored(partFile, raw, route, glossary)
+            onPartial(current.toList(), done, total)
         }
+        withContext(Dispatchers.IO) {
+            writeStored(file, raw, route, glossary)
+            partFile.delete()
+            runCatching { trimCache() }
+        }
+        return current
+    }
+
+    /** Engine output saved in [file] for [size] blocks, with glossary marks for the current [glossary]; null when missing or stale. */
+    private suspend fun readStored(file: File, size: Int, route: TranslationRoute, glossary: List<GlossaryEntry>): List<String?>? =
+        withContext(Dispatchers.IO) {
+            if (!file.exists()) return@withContext null
+            val stored = runCatching { json.decodeFromString(listSerializer, file.readText()) }.getOrNull() ?: return@withContext null
+            if (stored.size != size) return@withContext null
+            if (route.provider.glossaryInCacheKey) stored else stored.map { it?.let { h -> TranslationMarkup.sourcesToMarks(h, glossary) } }
+        }
+
+    /** Saves engine output [raw] to [file]; engines that don't key the cache by the glossary store sources, not mark numbers. */
+    private suspend fun writeStored(file: File, raw: Array<String?>, route: TranslationRoute, glossary: List<GlossaryEntry>) {
         withContext(Dispatchers.IO) {
             runCatching {
                 val stored = if (route.provider.glossaryInCacheKey) raw.toList() else raw.map { it?.let { h -> TranslationMarkup.marksToSources(h, glossary) } }
-                cacheFile(blocks, route, glossary).writeText(json.encodeToString(listSerializer, stored))
-                trimCache()
+                file.writeText(json.encodeToString(listSerializer, stored))
             }
         }
-        return current
     }
 
     /** Re-renders cached engine output with the current glossary targets. */
@@ -115,6 +149,9 @@ class ChapterTranslator(private val context: Context) {
 
     private companion object {
         const val MAX_CACHED = 300
+
+        /** A chapter translated part way: the parts done so far, the rest null. */
+        const val PART_SUFFIX = ".part.json"
     }
 
     /** Consecutive pieces of [order]: a short first one ([firstChars]), then about [runChars] characters each. */
