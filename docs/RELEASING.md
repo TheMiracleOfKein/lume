@@ -48,6 +48,32 @@ gh release upload vX.Y.Z lume-vX.Y.Z-manga.apk lume-vX.Y.Z-manga.apk.sha256 \
   lume-vX.Y.Z-ranobe.apk lume-vX.Y.Z-ranobe.apk.sha256
 ```
 
+## Lume Translate add-on
+
+The offline translation add-on (`com.lume.translate`, `translate-addon/`) has releases of its
+own, made only when it or `core/translate` changes. Lume releases don't carry it (up to v1.10.0
+they did). Its releases are never marked as the latest, so Lume's own updater, which reads the
+latest release, doesn't see them. Lume finds the add-on through the newest `translate-v*` tag.
+
+1. `lume.translateVersionCode` +1 and `lume.translateVersionName` in `gradle.properties`.
+   If the AIDL interface changed incompatibly, also raise `TranslateContract.API_VERSION` and
+   release Lume with the matching change.
+2. Notes in `docs/releases/translate-vX.Y.Z.md`.
+3. Merge to `main`, then tag: `git tag translate-vX.Y.Z <commit> && git push origin translate-vX.Y.Z`.
+   The **Translate release** workflow ([translate-release.yml](../.github/workflows/translate-release.yml))
+   builds and checks the add-on and publishes `lume-translate-vX.Y.Z.apk` with its `.sha256`,
+   titled `Lume Translate X.Y.Z`.
+
+A local build needs the bergamot-translator submodule (`git submodule update --init --recursive`):
+
+```bash
+./gradlew :translate-addon:clean :translate-addon:assembleRelease
+cp translate-addon/build/outputs/apk/release/translate-addon-release.apk lume-translate-vX.Y.Z.apk
+sha256sum lume-translate-vX.Y.Z.apk > lume-translate-vX.Y.Z.apk.sha256
+gh release create translate-vX.Y.Z lume-translate-vX.Y.Z.apk lume-translate-vX.Y.Z.apk.sha256 \
+  --title "Lume Translate X.Y.Z" --notes-file docs/releases/translate-vX.Y.Z.md --verify-tag --latest=false
+```
+
 ## Release workflow (optional)
 
 ### One-time setup
@@ -69,7 +95,7 @@ workflow warns about it.
 
 | Variable | Effect |
 | --- | --- |
-| `LUME_RELEASE_FROM_CI` | `true`: every pushed `v*` tag starts the workflow. Unset: only a manual run does. |
+| `LUME_RELEASE_FROM_CI` | `true`: every pushed `v*` tag starts the Release workflow and every `translate-v*` tag the Translate release one. Unset: only a manual run does. |
 | `LUME_CERT_SHA256` | Only if the signing key ever changes: the new certificate's SHA-256. |
 
 ### Running it

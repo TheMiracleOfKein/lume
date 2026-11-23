@@ -12,8 +12,14 @@ object TranslateContract {
     /** Characters per translate call, far below the 1 MB binder limit even as UTF-16 both ways. */
     const val MAX_BATCH_CHARS = 32_000
 
-    /** Name of the add-on APK asset on each release: `lume-v<version>-translate.apk`. */
+    /** The add-on's flavor name for the updater; never matches a Lume APK. */
     const val RELEASE_FLAVOR = "translate"
+
+    /**
+     * The add-on has releases of its own, apart from Lume's: tag `translate-v<version>`, asset
+     * `lume-translate-v<version>.apk`, never marked as the latest release.
+     */
+    const val RELEASE_TAG_PREFIX = "translate-v"
 }
 
 /** One model file: where it lives on Mozilla's storage and what it must hash to once unpacked. */
