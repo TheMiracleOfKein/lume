@@ -80,6 +80,7 @@ internal fun LlmQuickChoice(onPreset: (LlmPreset) -> Unit, onModel: (String?) ->
     }
     if (active !in ready) {
         Hint(stringResource(R.string.ai_active_not_set_up, presetName(active)))
+        TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.ai_open_settings)) }
         return
     }
     val check = ServiceCheck.decode(checks[active.id])
