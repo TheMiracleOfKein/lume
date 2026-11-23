@@ -24,9 +24,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.outlined.Headphones
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.SkipPrevious
 import androidx.compose.material.icons.outlined.Translate
@@ -35,6 +37,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -81,10 +86,12 @@ internal fun NovelTopBar(
     onTranslate: (() -> Unit)? = null,
     /** The chapter is shown translated (the button is highlighted). */
     translated: Boolean = false,
-    /** "Translating: 3 of 40 paragraphs" while it runs. */
+    /** "Waiting for OpenRouter… 12 s", "Translating: 3 of 40 paragraphs", "Translation failed"; tapping it opens the sheet. */
     translateStatus: String? = null,
     /** Opens the title's codex of saved names; null hides the button. */
     onCodex: (() -> Unit)? = null,
+    /** Shows "Previously…" for the reading spot now; null hides the button. */
+    onRecap: (() -> Unit)? = null,
 ) {
     Box(
         modifier = modifier
@@ -149,7 +156,13 @@ internal fun NovelTopBar(
                         fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = if (onTranslate != null) Modifier.clickable(role = Role.Button, onClick = onTranslate) else Modifier,
                     )
+                }
+            }
+            if (onRecap != null) {
+                IconButton(onClick = onRecap) {
+                    Icon(Icons.Outlined.History, stringResource(R.string.recap_open), tint = palette.text)
                 }
             }
             if (onCodex != null) {
@@ -166,6 +179,33 @@ internal fun NovelTopBar(
                     )
                 }
             }
+        }
+    }
+}
+
+/** "Back after a break? See where you stopped": a quiet offer of the recap, above the bottom bar. */
+@Composable
+internal fun RecapOffer(palette: NovelPalette, onShow: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .barSideInsets()
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(palette.bar)
+            .padding(start = 14.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Outlined.History, null, tint = palette.accent, modifier = Modifier.size(20.dp))
+        Text(
+            stringResource(R.string.recap_offer),
+            color = palette.text,
+            fontSize = 14.sp,
+            modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
+        )
+        TextButton(onClick = onShow) { Text(stringResource(R.string.recap_offer_show), color = palette.accent) }
+        IconButton(onClick = onDismiss) {
+            Icon(Icons.Outlined.Close, stringResource(R.string.action_close), tint = palette.textSecondary)
         }
     }
 }

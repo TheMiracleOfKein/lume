@@ -64,7 +64,9 @@ import com.lume.app.R
 import com.lume.app.translate.OriginalDialog
 import com.lume.app.translate.TranslateSheet
 import com.lume.app.translate.glossaryRoute
-import com.lume.app.translate.TranslationProgress
+import com.lume.app.translate.translationStatusLine
+import com.lume.app.ui.nav.Routes
+import com.lume.app.ui.screens.settings.SettingsPage
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.filter
@@ -171,9 +173,8 @@ fun NovelReaderScreen(
             onCodex = { nav.navigate(codexRoute(sourceId, titleId, vm.titleName)) },
             onTranslate = { translateOpen = true }.takeIf { vm.translation.targets.isNotEmpty() },
             translated = vm.translation.target != null,
-            translateStatus = (vm.translation.progress as? TranslationProgress.Working)?.let {
-                stringResource(R.string.translate_progress, it.done, it.total)
-            },
+            translateStatus = translationStatusLine(vm.translation.progress),
+            onRecap = vm::recapNow.takeIf { vm.currentChapter != null },
         )
     }
     // A long press looks the word up; with no word under it, a translated paragraph shows its original.
@@ -209,6 +210,24 @@ fun NovelReaderScreen(
                     topBar(Modifier)
                 }
                 Column(Modifier.align(Alignment.BottomCenter)) {
+                    // Back after a break: the recap is offered, not pushed; reading on hides the offer.
+                    AnimatedVisibility(visible = vm.recapOffered, enter = Motion.barEnterFromBottom, exit = Motion.barExitToBottom) {
+                        LaunchedEffect(Unit) {
+                            val at = vm.currentBlock
+                            snapshotFlow { vm.currentBlock }.first { it != at }
+                            vm.dismissRecapOffer()
+                        }
+                        RecapOffer(
+                            palette = palette,
+                            onShow = vm::showOfferedRecap,
+                            onDismiss = vm::dismissRecapOffer,
+                            modifier = if (chromeVisible) {
+                                Modifier
+                            } else {
+                                Modifier.windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility.only(WindowInsetsSides.Bottom))
+                            },
+                        )
+                    }
                     // Read aloud's controls stay on screen when the bars hide.
                     if (readAloud != null) {
                         ReadAloudPanel(
@@ -300,6 +319,10 @@ fun NovelReaderScreen(
                     translateOpen = false
                     nav.navigate(glossaryRoute(sourceId, titleId, vm.titleName))
                 },
+                onOpenSettings = {
+                    translateOpen = false
+                    nav.navigate(Routes.settingsPage(SettingsPage.Ai.key))
+                },
                 onClose = { scope.launch { sheetState.hide() }.invokeOnCompletion { translateOpen = false } },
             )
         }
@@ -342,6 +365,10 @@ fun NovelReaderScreen(
                 paragraphs = paragraphs,
                 ai = vm.aiRecap,
                 onContinue = { scope.launch { sheetState.hide() }.invokeOnCompletion { vm.dismissRecap() } },
+                onSetUpAi = {
+                    vm.dismissRecap()
+                    nav.navigate(Routes.settingsPage(SettingsPage.Ai.key))
+                }.takeIf { vm.aiRecapNeedsSetup },
             )
         }
     }

@@ -389,7 +389,13 @@ private fun highlighted(text: String, ranges: List<IntRange>): AnnotatedString =
 
 /** The content of the "Previously…" sheet: the paragraphs before the spot, and a button to go on. */
 @Composable
-internal fun RecapSheet(paragraphs: List<RecapParagraph>, ai: AiRecapState?, onContinue: () -> Unit) {
+internal fun RecapSheet(
+    paragraphs: List<RecapParagraph>,
+    ai: AiRecapState?,
+    onContinue: () -> Unit,
+    /** The AI recap is on but no AI service is set up: a link to the settings; null hides it. */
+    onSetUpAi: (() -> Unit)? = null,
+) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -412,6 +418,13 @@ internal fun RecapSheet(paragraphs: List<RecapParagraph>, ai: AiRecapState?, onC
                 Text(stringResource(R.string.recap_last_paragraphs), color = AppColors.textTertiary, fontSize = 12.sp)
             }
             is AiRecapState.Failed -> Text(stringResource(R.string.recap_ai_failed, ai.message), color = AppColors.textTertiary, fontSize = 12.sp)
+        }
+        if (onSetUpAi != null) {
+            Text(stringResource(R.string.recap_ai_needs_setup), color = AppColors.textTertiary, fontSize = 12.sp)
+            TextButton(onClick = onSetUpAi) { Text(stringResource(R.string.ai_set_up)) }
+        }
+        if (paragraphs.isEmpty() && ai == null) {
+            Text(stringResource(R.string.recap_empty), color = AppColors.textSecondary, fontSize = 14.sp)
         }
         if (paragraphs.firstOrNull()?.fromPreviousChapter == true) {
             Text(stringResource(R.string.recap_previous_chapter), color = AppColors.textTertiary, fontSize = 12.sp)

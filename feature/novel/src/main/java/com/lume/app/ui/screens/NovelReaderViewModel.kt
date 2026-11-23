@@ -634,7 +634,43 @@ class NovelReaderViewModel(
         recap = null
         aiRecapJob?.cancel()
         aiRecap = null
+        dismissRecapOffer()
     }
+
+    /** A recap ready for a reader back after a break; the reader offers it and shows it only on a tap. */
+    private var offeredRecap: OfferedRecap? = null
+
+    /** True while the "recap?" prompt shows. */
+    var recapOffered by mutableStateOf(false)
+        private set
+
+    fun dismissRecapOffer() {
+        offeredRecap = null
+        recapOffered = false
+    }
+
+    /** Opens the offered recap and starts its AI summary (only now, so a reader who skips it costs nothing). */
+    fun showOfferedRecap() {
+        val offer = offeredRecap ?: return
+        dismissRecapOffer()
+        recap = offer.paragraphs
+        startAiRecap(offer.first, offer.start, offer.current)
+    }
+
+    /** A recap of the story up to where the reader is now, any time (the top bar's button). */
+    fun recapNow() {
+        val at = anchor
+        val lc = loaded.firstOrNull { it.chapter.id == at.chapterId } ?: return
+        dismissRecapOffer()
+        viewModelScope.launch {
+            val (paragraphs, current) = recapParagraphs(lc, at)
+            recap = paragraphs
+            startAiRecap(lc, at, current)
+        }
+    }
+
+    /** Whether the AI recap is on but no AI service is set up, so the recap sheet can point to the settings. */
+    val aiRecapNeedsSetup: Boolean get() = app.prefs.aiRecap.value && llmConfig(app) == null
 
     private val aiRecapper = AiRecap(app, sourceId, titleId)
 
@@ -659,7 +695,7 @@ class NovelReaderViewModel(
 
     /** Starts the AI summary for a reader coming back to [start] in [first] (the AI recap setting). */
     private fun startAiRecap(first: LoadedNovelChapter, start: NovelAnchor, current: List<String>) {
-        if (!app.prefs.aiRecap.value) return
+        if (!app.prefs.aiRecap.value || app.prefs.incognito.value) return
         val config = llmConfig(app) ?: return
         val upto = if (start.fraction > 0f) start.block + 1 else start.block
         val soFar = current.take(upto.coerceIn(0, current.size))
@@ -702,18 +738,31 @@ class NovelReaderViewModel(
         val hours = app.prefs.recapAfterHours.value
         if (hours <= 0 || app.prefs.incognito.value) return
         if (System.currentTimeMillis() - lastRead < hours * MS_PER_HOUR) return
-        val current = (first.original ?: first.blocks).map { it.originalText().orEmpty() }
-        var paragraphs = recapBlocks(current, start.block, start.fraction, emptyList())
-        if (paragraphs.size < RECAP_PARAGRAPHS) {
-            val tail = previousChapterTail(first.chapter)
-            if (tail.isNotEmpty()) paragraphs = recapBlocks(current, start.block, start.fraction, tail)
-        }
+        val (paragraphs, current) = recapParagraphs(first, start)
         // The reader may have moved on or opened another chapter while this was read.
         if (paragraphs.isNotEmpty() && currentChapterId == start.chapterId) {
-            recap = paragraphs
-            startAiRecap(first, start, current)
+            offeredRecap = OfferedRecap(first, start, current, paragraphs)
+            recapOffered = true
         }
     }
+
+    /** The recap's paragraphs before [start] in [lc] (topped up from the chapter before), and the chapter's text. */
+    private suspend fun recapParagraphs(lc: LoadedNovelChapter, start: NovelAnchor): Pair<List<RecapParagraph>, List<String>> {
+        val current = (lc.original ?: lc.blocks).map { it.originalText().orEmpty() }
+        var paragraphs = recapBlocks(current, start.block, start.fraction, emptyList())
+        if (paragraphs.size < RECAP_PARAGRAPHS) {
+            val tail = previousChapterTail(lc.chapter)
+            if (tail.isNotEmpty()) paragraphs = recapBlocks(current, start.block, start.fraction, tail)
+        }
+        return paragraphs to current
+    }
+
+    private class OfferedRecap(
+        val first: LoadedNovelChapter,
+        val start: NovelAnchor,
+        val current: List<String>,
+        val paragraphs: List<RecapParagraph>,
+    )
 
     /** The last paragraphs of the chapter before [chapter]: from the story index, else from the chapter itself. */
     private suspend fun previousChapterTail(chapter: Chapter): List<String> {
@@ -807,6 +856,7 @@ class NovelReaderViewModel(
 
     override fun onCleared() {
         flush()
+        translation.close()
         // "Delete after reading": chapters finished in this session lose their download.
         if (app.prefs.deleteAfterRead.value && markedRead.isNotEmpty()) {
             val finished = markedRead.toList()
