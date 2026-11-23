@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -73,6 +74,11 @@ class AppUpdater(
     prefsName: String = "app_updates",
     /** Folder under `cache/shared` for the downloaded APK; each updater has its own. */
     private val downloadDir: String = "update",
+    /**
+     * Null: Lume's own releases (`releases/latest`, tags `v1.2.3`). Set (like `translate-v`): the
+     * newest release whose tag starts with it, published apart from Lume and never marked latest.
+     */
+    private val tagPrefix: String? = null,
 ) {
     private val prefs = app.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
@@ -168,15 +174,25 @@ class AppUpdater(
     }
 
     private fun fetchLatest(): AppRelease? {
+        val prefix = tagPrefix ?: return getJson(LATEST_URL)?.let { parseRelease(it.jsonObject, flavor) }
+        // The tags, not the release list: Lume releases after the last add-on one can't page it out.
+        val refs = getJson("$API_URL/git/matching-refs/tags/$prefix") as? JsonArray ?: return null
+        val tag = newestTag(refs.mapNotNull { (it as? JsonObject)?.get("ref")?.let { r -> (r as? JsonPrimitive)?.contentOrNull } }, prefix)
+            ?: return null
+        return getJson("$API_URL/releases/tags/$tag")?.let { parseRelease(it.jsonObject, flavor, prefix) }
+    }
+
+    /** A GitHub API answer, or null for 404 (no release yet). */
+    private fun getJson(url: String): JsonElement? {
         val request = Request.Builder()
-            .url(LATEST_URL)
+            .url(url)
             .header("Accept", "application/vnd.github+json")
             .header("User-Agent", "Lume/${BuildConfig.VERSION_NAME}")
             .build()
         http.okHttp.newCall(request).execute().use { response ->
             if (response.code == 404) return null
             if (!response.isSuccessful) throw IOException("GitHub: HTTP ${response.code}")
-            return parseRelease(json.parseToJsonElement(response.body.string()).jsonObject, flavor)
+            return json.parseToJsonElement(response.body.string())
         }
     }
 
@@ -231,7 +247,8 @@ class AppUpdater(
     }
 
     private companion object {
-        const val LATEST_URL = "https://api.github.com/repos/TheMiracleOfKein/lume/releases/latest"
+        const val API_URL = "https://api.github.com/repos/TheMiracleOfKein/lume"
+        const val LATEST_URL = "$API_URL/releases/latest"
         const val APK_MIME = "application/vnd.android.package-archive"
         const val KEY_AUTO = "auto_check"
         const val KEY_LAST_CHECK = "last_check"
@@ -242,7 +259,9 @@ class AppUpdater(
 
 /**
  * Builds Lume is published as; each release asset is `lume-v<version>-<flavor>.apk`. `translate`
- * is the optional translation add-on, a separate app next to them.
+ * is the optional translation add-on: on Lume releases up to 1.10.0, then on its own
+ * `translate-v*` releases as `lume-translate-v<version>.apk`. It stays here so a Lume build never
+ * picks an add-on APK.
  */
 internal val APP_FLAVORS = setOf("full", "manga", "ranobe", "translate")
 
@@ -261,16 +280,30 @@ internal fun pickApk(names: List<String>, flavor: String): Int? {
     return apks.takeIf { list -> list.none { apkFlavor(it.value) != null } }?.firstOrNull()?.index
 }
 
-/** Reads a GitHub `releases/latest` answer for this build's [flavor]. Null for drafts and pre-releases. */
-internal fun parseRelease(obj: JsonObject, flavor: String = "full"): AppRelease? {
+/**
+ * The newest tag among GitHub [refs] (`refs/tags/translate-v2.0.0`) that starts with [prefix],
+ * by version number; null when there is none.
+ */
+internal fun newestTag(refs: List<String>, prefix: String): String? =
+    refs.map { it.removePrefix("refs/tags/") }
+        .filter { it.startsWith(prefix) && it.length > prefix.length && it[prefix.length].isDigit() }
+        .reduceOrNull { best, tag -> if (isNewer(tag.removePrefix(prefix), best.removePrefix(prefix))) tag else best }
+
+/**
+ * Reads a GitHub release answer for this build's [flavor]. Null for drafts and pre-releases.
+ * [tagPrefix] is cut off the tag for the version (`translate-v2.0.0` → `2.0.0`); without it a
+ * leading `v` is.
+ */
+internal fun parseRelease(obj: JsonObject, flavor: String = "full", tagPrefix: String? = null): AppRelease? {
     fun JsonObject.str(key: String) = (this[key] as? JsonPrimitive)?.contentOrNull
     if ((obj["draft"] as? JsonPrimitive)?.booleanOrNull == true) return null
     if ((obj["prerelease"] as? JsonPrimitive)?.booleanOrNull == true) return null
     val tag = obj.str("tag_name") ?: return null
+    if (tagPrefix != null && !tag.startsWith(tagPrefix)) return null
     val assets = (obj["assets"] as? JsonArray)?.mapNotNull { it as? JsonObject }.orEmpty()
     val apk = pickApk(assets.map { it.str("name").orEmpty() }, flavor)?.let(assets::get)
     return AppRelease(
-        version = tag.removePrefix("v").removePrefix("V"),
+        version = if (tagPrefix != null) tag.removePrefix(tagPrefix) else tag.removePrefix("v").removePrefix("V"),
         notes = obj.str("body").orEmpty(),
         pageUrl = obj.str("html_url").orEmpty(),
         apkUrl = apk?.str("browser_download_url"),

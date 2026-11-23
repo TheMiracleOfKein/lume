@@ -60,7 +60,7 @@ object TranslateAddon {
     private var service: ILumeTranslator? = null
     private var connection: ServiceConnection? = null
 
-    /** Installs or updates the add-on from the latest Lume release. */
+    /** Installs or updates the add-on from its newest own release (`translate-v*`). */
     fun updater(app: AppContainer): AppUpdater {
         updater?.let { return it }
         val appContext = app.app
@@ -73,6 +73,7 @@ object TranslateAddon {
             currentVersion = { installedVersion(appContext) },
             prefsName = "translate_addon_updates",
             downloadDir = "translate-addon",
+            tagPrefix = TranslateContract.RELEASE_TAG_PREFIX,
         ).also { updater = it }
     }
 

@@ -105,6 +105,37 @@ class AppUpdaterTest {
     }
 
     @Test
+    fun picksTheNewestAddonTagByNumber() {
+        val refs = listOf(
+            "refs/tags/translate-v2.0.0",
+            "refs/tags/translate-v2.0.10",
+            "refs/tags/translate-v2.0.9",
+            "refs/tags/translate-vnext",
+            "refs/tags/v1.11.0",
+        )
+        assertEquals("translate-v2.0.10", newestTag(refs, "translate-v"))
+        assertNull(newestTag(listOf("refs/tags/v1.10.0"), "translate-v"))
+        assertNull(newestTag(emptyList(), "translate-v"))
+    }
+
+    @Test
+    fun readsAnAddonReleaseOfItsOwn() {
+        val base = "https://github.com/TheMiracleOfKein/lume/releases/download/translate-v2.0.0"
+        val release = json(
+            """{"tag_name":"translate-v2.0.0","assets":[
+            {"name":"lume-translate-v2.0.0.apk.sha256","browser_download_url":"$base/lume-translate-v2.0.0.apk.sha256","size":1},
+            {"name":"lume-translate-v2.0.0.apk","browser_download_url":"$base/lume-translate-v2.0.0.apk","size":40}]}""",
+        )
+        val parsed = parseRelease(release, "translate", "translate-v")!!
+        assertEquals("2.0.0", parsed.version)
+        assertEquals("$base/lume-translate-v2.0.0.apk", parsed.apkUrl)
+        assertTrue(isTrustedApkUrl(parsed.apkUrl!!))
+        assertTrue(isNewer(parsed.version, "1.10.0"))
+        // A Lume release is never read as an add-on one.
+        assertNull(parseRelease(json("""{"tag_name":"v1.11.0","assets":[]}"""), "translate", "translate-v"))
+    }
+
+    @Test
     fun aReleaseBeforeFlavorsOffersItsOnlyApk() {
         val legacy = listOf("lume-v0.9.16.apk.sha256", "lume-v0.9.16.apk")
         assertEquals(1, pickApk(legacy, "full"))
