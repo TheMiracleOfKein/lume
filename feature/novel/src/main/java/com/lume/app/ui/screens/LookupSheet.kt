@@ -85,7 +85,9 @@ data class LookupState(
 
 /**
  * The AI part of a codex entry for a reader at the lookup spot. [summary] and [relations] are only
- * what was written up to this spot; [summaryHidden] says there is one from further on.
+ * what was written up to this spot; [summaryHidden] says there is one from further on. [facts] are
+ * what story notes saw in each earlier chapter (chapter label to fact, in reading order).
+ * [foundByAi]: the AI added the entry while reading.
  */
 data class CodexKnowledge(
     val summary: String?,
@@ -95,6 +97,8 @@ data class CodexKnowledge(
     val canSummarize: Boolean,
     val busy: Boolean = false,
     val error: String? = null,
+    val facts: List<Pair<String, String>> = emptyList(),
+    val foundByAi: Boolean = false,
 )
 
 /**
@@ -314,6 +318,24 @@ private fun CodexKnowledgePart(
     if (k.summaryHidden && k.summary == null) {
         Text(stringResource(R.string.codex_summary_hidden), color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
     }
+    if (k.facts.isNotEmpty()) {
+        var all by remember { mutableStateOf(false) }
+        Text(stringResource(R.string.codex_facts), color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+        // The latest few first come last, as the story goes; older ones on a tap.
+        val shown = if (all) k.facts else k.facts.takeLast(FACTS_SHOWN)
+        if (shown.size < k.facts.size) {
+            TextButton(onClick = { all = true }) { Text(stringResource(R.string.codex_facts_all, k.facts.size)) }
+        }
+        shown.forEach { (chapter, fact) ->
+            Text(
+                stringResource(R.string.codex_fact, chapter, fact),
+                color = AppColors.textPrimary, fontSize = 14.sp, lineHeight = 20.sp,
+            )
+        }
+    }
+    if (k.foundByAi) {
+        Text(stringResource(R.string.codex_found_by_ai), color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+    }
     if (k.relations.isNotEmpty()) {
         Text(stringResource(R.string.codex_relations), color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
         k.relations.forEach { r ->
@@ -439,3 +461,6 @@ internal fun RecapSheet(
         ) { Text(stringResource(R.string.recap_continue)) }
     }
 }
+
+/** Facts shown before "show all": the latest ones. */
+private const val FACTS_SHOWN = 4

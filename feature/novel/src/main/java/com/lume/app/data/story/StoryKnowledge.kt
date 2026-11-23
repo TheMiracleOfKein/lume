@@ -5,9 +5,13 @@ import com.lume.app.data.db.CodexEntryWithAliases
 import com.lume.app.data.db.CodexRelationEntity
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.inReadingOrder
+import com.lume.app.data.db.CODEX_AI
+import com.lume.app.data.db.CodexEntryEntity
+import com.lume.app.data.db.CodexFactEntity
 import com.lume.app.llm.AiFeature
 import com.lume.app.llm.LlmClient
 import com.lume.app.llm.extractJsonObject
+import com.lume.app.llm.nameKey
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -33,8 +37,10 @@ class StoryKnowledge(app: AppContainer, private val sourceId: String, private va
     private val recap = AiRecap(app, sourceId, titleId)
 
     /**
-     * Writes [entry]'s summary and relations for a reader in [current] (of [chapters]) and saves
-     * them. [mentions] are the entry's mentions before the spot; [text] loads a chapter's paragraphs.
+     * Writes [entry]'s summary for a reader in [current] (of [chapters]) and saves it: from the
+     * name's story-note facts when it has any, else from digests and [mentions] (the entry's
+     * mentions before the spot), which also give relations. The last [fill] chapters before the
+     * spot get their story notes first if they have none; [text] loads a chapter's paragraphs.
      */
     suspend fun summarize(
         client: LlmClient,
@@ -44,18 +50,26 @@ class StoryKnowledge(app: AppContainer, private val sourceId: String, private va
         current: Chapter,
         mentions: List<StoryMention>,
         lang: String,
+        fill: Int = AiRecap.RECAP_CHAPTERS,
         text: suspend (Chapter) -> List<String>?,
     ) {
         val ordered = chapters.inReadingOrder()
+        val order = ordered.withIndex().associate { (i, c) -> c.id to i }
         val at = ordered.indexOfFirst { it.id == current.id }
         val before = if (at <= 0) emptyList() else ordered.subList(0, at)
-        // The last few chapters get a digest now if they have none (in one request); older ones count only when they have one.
+        // The last [fill] chapters get story notes now if they have none (several per request); older ones count only when they have them.
         try {
-            recap.digests(client, before.takeLast(AiRecap.RECAP_CHAPTERS), lang, text)
+            recap.digests(client, before.takeLast(fill), lang, order, text)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            // A gap in the digests still leaves the mentions.
+            // A gap in the notes still leaves the rest.
+        }
+        // Story notes already say what each chapter showed about the name: a summary of those is a small request.
+        val facts = factsBefore(dao.factsFor(sourceId, titleId, entryKeys(entry)), order, current.id)
+        if (facts.isNotEmpty()) {
+            summarizeFacts(client, entry, facts, ordered, lang)
+            return
         }
         val byId = dao.titleDigestsAnyLang(sourceId, titleId).groupBy { it.chapterId }
             .mapValues { (_, list) -> (list.firstOrNull { it.lang == lang } ?: list.maxBy { it.createdAt }).text }
@@ -86,11 +100,78 @@ class StoryKnowledge(app: AppContainer, private val sourceId: String, private va
         )
     }
 
+    /**
+     * The summary of [entry] from its [facts] (in reading order, all before the spot). Kept up to the
+     * chapter of the last fact, so a reader anywhere after it sees it; asking again with no newer
+     * facts costs nothing. Relations come from the story notes themselves.
+     */
+    private suspend fun summarizeFacts(
+        client: LlmClient,
+        entry: CodexEntryWithAliases,
+        facts: List<CodexFactEntity>,
+        ordered: List<Chapter>,
+        lang: String,
+    ) {
+        val upTo = facts.last().chapterId
+        val e = entry.entry
+        if (e.summary != null && e.summaryUpToChapterId == upTo && e.summaryOrigin?.startsWith(FACTS_ORIGIN) == true) return
+        val labels = ordered.associate { it.id to it.title.ifBlank { it.id } }
+        val answer = client.chat(
+            factsSystemPrompt(lang),
+            factsUserPrompt(entry, facts.map { (labels[it.chapterId] ?: it.chapterId) to it.text }),
+            maxTokens = FACTS_SUMMARY_TOKENS,
+            feature = AiFeature.Summary,
+        )
+        val summary = parseKnowledgeSummary(answer.content)
+        dao.updateCodexEntry(
+            e.copy(summary = summary, summaryOrigin = "$FACTS_ORIGIN${client.config.cacheId}", summaryUpToChapterId = upTo, updatedAt = System.currentTimeMillis()),
+        )
+    }
+
     private companion object {
         /** Room for the summary and up to 8 relations. */
         const val SUMMARY_TOKENS = 700
+        const val FACTS_SUMMARY_TOKENS = 350
+
+        /** Origin prefix of a summary written from story-note facts. */
+        const val FACTS_ORIGIN = "facts:"
     }
 }
+
+/** Keys of every spelling of [entry], for its facts. */
+internal fun entryKeys(entry: CodexEntryWithAliases): List<String> =
+    (listOf(entry.entry.name) + entry.aliases.map { it.alias }).map(::nameKey).distinct()
+
+/**
+ * [facts] a reader in [currentChapterId] may see, in reading order ([order]): only from chapters
+ * before the current one, as a chapter's notes cover all of it and the reader may be part way.
+ * Several spellings with a fact in one chapter give one fact each.
+ */
+internal fun factsBefore(facts: List<CodexFactEntity>, order: Map<String, Int>, currentChapterId: String): List<CodexFactEntity> {
+    val at = order[currentChapterId] ?: return emptyList()
+    return facts.filter { (order[it.chapterId] ?: Int.MAX_VALUE) < at }
+        .distinctBy { it.chapterId to it.text }
+        .sortedBy { order[it.chapterId] }
+}
+
+internal fun factsSystemPrompt(lang: String): String =
+    "You keep a reader's notes on a novel. From what each chapter showed about a name, describe it in ${langName(lang)} for a reader " +
+        "at this point of the story: who or what it is, its role, and what has happened with it so far, the latest last. " +
+        "2 to 5 sentences, under 100 words. Use only what is given; never guess what comes later. " +
+        "Answer with only this JSON object: {\"summary\":\"…\"}"
+
+internal fun factsUserPrompt(entry: CodexEntryWithAliases, facts: List<Pair<String, String>>): String = buildJsonObject {
+    put("name", entry.entry.name)
+    put("kind", entry.entry.kind)
+    if (entry.aliases.isNotEmpty()) putJsonArray("other_spellings") { entry.aliases.forEach { add(JsonPrimitive(it.alias)) } }
+    entry.entry.note?.let { put("reader_note", it) }
+    putJsonArray("facts") { facts.forEach { (c, t) -> addJsonObject { put("chapter", c); put("fact", t) } } }
+}.toString()
+
+/** The summary of a facts answer; required. */
+internal fun parseKnowledgeSummary(text: String): String =
+    (extractJsonObject(text)["summary"] as? JsonPrimitive)?.contentOrNull?.trim()?.takeIf { it.isNotEmpty() }?.take(1_200)
+        ?: throw IOException("The AI answer had no summary")
 
 /** Older chapters than this many digests back are left out, so the request stays small. */
 private const val MAX_DIGESTS = 30
@@ -122,6 +203,35 @@ fun visibleAt(upToChapterId: String?, chapters: List<Chapter>, currentChapterId:
     val current = ordered.indexOfFirst { it.id == currentChapterId }
     return upTo >= 0 && current >= 0 && upTo <= current
 }
+
+/**
+ * Like [visibleAt], but only for chapters before the reader's: for what story notes wrote about a
+ * whole chapter, which a reader part way through it may not have reached.
+ */
+fun visibleBefore(chapterId: String?, chapters: List<Chapter>, currentChapterId: String): Boolean {
+    if (chapterId == null) return false
+    val ordered = chapters.inReadingOrder()
+    val at = ordered.indexOfFirst { it.id == chapterId }
+    val current = ordered.indexOfFirst { it.id == currentChapterId }
+    return at >= 0 && current >= 0 && at < current
+}
+
+/** Whether a reader in [currentChapterId] may see [entry]: an entry the AI found only from the chapter it was first seen in. */
+fun entryVisible(entry: CodexEntryEntity, chapters: List<Chapter>, currentChapterId: String): Boolean =
+    entry.origin != CODEX_AI || entry.firstChapterId == null || visibleAt(entry.firstChapterId, chapters, currentChapterId)
+
+/** Whether a reader in [currentChapterId] may see [entry]'s summary: one from story-note facts only after its last chapter. */
+fun summaryVisible(entry: CodexEntryEntity, chapters: List<Chapter>, currentChapterId: String): Boolean =
+    entry.summary != null && if (entry.summaryOrigin?.startsWith("facts:") == true) {
+        visibleBefore(entry.summaryUpToChapterId, chapters, currentChapterId)
+    } else {
+        visibleAt(entry.summaryUpToChapterId, chapters, currentChapterId)
+    }
+
+/** Whether a reader in [currentChapterId] may see [relation]; one from story notes only after its chapter. */
+fun relationVisible(relation: CodexRelationEntity, chapters: List<Chapter>, currentChapterId: String): Boolean =
+    if (relation.origin.startsWith(StoryNotes.NOTES_ORIGIN)) visibleBefore(relation.upToChapterId, chapters, currentChapterId)
+    else visibleAt(relation.upToChapterId, chapters, currentChapterId)
 
 private fun langName(code: String): String = when (code.lowercase()) {
     "ru" -> "Russian"

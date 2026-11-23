@@ -15,7 +15,15 @@ import com.lume.app.data.db.TitlePrefsEntity
 import com.lume.app.data.story.AiRecap
 import com.lume.app.data.story.AiRecapState
 import com.lume.app.data.story.StoryKnowledge
-import com.lume.app.data.story.visibleAt
+import com.lume.app.data.story.entryKeys
+import com.lume.app.data.story.entryVisible
+import com.lume.app.data.story.factsBefore
+import com.lume.app.data.story.relationVisible
+import com.lume.app.data.story.summaryVisible
+import com.lume.app.data.db.CODEX_AI
+import com.lume.app.data.prefs.STORY_NOTES_FINISHED
+import com.lume.app.data.prefs.STORY_NOTES_NEEDED
+import com.lume.app.data.story.removeCodexEntry
 import com.lume.app.data.db.CodexEntryWithAliases
 import com.lume.app.data.db.CodexRelationEntity
 import com.lume.app.data.story.RecapParagraph
@@ -39,6 +47,7 @@ import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.ReadingSessionTracker
 import com.lume.app.domain.chapterNeighbours
 import com.lume.app.domain.chapterTranslations
+import com.lume.app.domain.inReadingOrder
 import com.lume.app.readaloud.ReadAloud
 import com.lume.app.readaloud.ReadAloudState
 import com.lume.app.readaloud.ReadAloudStatus
@@ -247,7 +256,10 @@ class NovelReaderViewModel(
     /** On-device translation through the Lume Translate add-on; inert when no model fits the title. */
     val translation = ReaderTranslation(app, viewModelScope, sourceId, titleId) { chapterId, blocks, original ->
         replaceBlocks(chapterId, blocks, original)
-    }
+    }.also { t -> t.chapterOrder = { chapterOrder() } }
+
+    /** The title's chapters by id, to their place in reading order. */
+    private fun chapterOrder(): Map<String, Int> = chapters.inReadingOrder().withIndex().associate { (i, c) -> c.id to i }
 
     /** A chapter's text changed in place (translated, or back to the original): same blocks, new words. */
     private fun replaceBlocks(chapterId: String, blocks: List<NovelBlock>, original: List<NovelBlock>?) {
@@ -390,6 +402,7 @@ class NovelReaderViewModel(
                 loading = false
                 if (items.size - 1 - novelItemIndex(items, start) <= APPEND_WHEN_REMAINING) appendNextChapter()
                 if (lastRead != null) viewModelScope.launch { runCatching { buildRecap(first, start, lastRead) } }
+                backfillNotes(first.chapter)
             }.onFailure { e ->
                 if (e is CancellationException) throw e
                 loading = false
@@ -500,7 +513,7 @@ class NovelReaderViewModel(
         lookupJob?.cancel()
         lookupJob = viewModelScope.launch {
             val term = if (shown != null && offset != null) {
-                val known = knownTerms(dao.glossaryOnce(sourceId, titleId), dao.codexOnce(sourceId, titleId))
+                val known = knownTerms(dao.glossaryOnce(sourceId, titleId), visibleCodex(chapterId))
                 termAt(shown, offset, known)?.let { shown.substring(it.first, it.last + 1) }
             } else {
                 null
@@ -529,7 +542,7 @@ class NovelReaderViewModel(
             storyLookup.backfill(sourceId, titleId, chapters, lookupAnchor)
             storyLookup.lookup(
                 sourceId, titleId, term, chapters, lookupAnchor,
-                dao.glossaryOnce(sourceId, titleId), dao.codexOnce(sourceId, titleId),
+                dao.glossaryOnce(sourceId, titleId), visibleCodex(lookupAnchor.chapterId),
             )
         }.getOrElse { if (it is CancellationException) throw it else null }
         val knowledge = result?.codexEntry?.let { codexKnowledge(it) }
@@ -538,18 +551,26 @@ class NovelReaderViewModel(
 
     private val storyKnowledge = StoryKnowledge(app, sourceId, titleId)
 
-    /** The AI summary and relations of [entry] that a reader at the lookup spot may see. */
+    /** The codex a reader in [chapterId] may see: entries the AI found further on stay hidden. */
+    private suspend fun visibleCodex(chapterId: String): List<CodexEntryWithAliases> =
+        dao.codexOnce(sourceId, titleId).filter { entryVisible(it.entry, chapters, chapterId) }
+
+    /** The AI summary, facts and relations of [entry] that a reader at the lookup spot may see. */
     private suspend fun codexKnowledge(entry: CodexEntryWithAliases): CodexKnowledge {
         val at = lookupAnchor.chapterId
         val e = entry.entry
-        val summaryVisible = e.summary != null && visibleAt(e.summaryUpToChapterId, chapters, at)
-        val relations = dao.relationsOf(sourceId, titleId, e.name).filter { visibleAt(it.upToChapterId, chapters, at) }
+        val visible = summaryVisible(e, chapters, at)
+        val relations = dao.relationsOf(sourceId, titleId, e.name).filter { relationVisible(it, chapters, at) }
+        val titles = chapters.associate { it.id to it.title.ifBlank { it.number?.let { n -> "#$n" } ?: it.id } }
+        val facts = factsBefore(dao.factsFor(sourceId, titleId, entryKeys(entry)), chapterOrder(), at)
         return CodexKnowledge(
-            summary = e.summary.takeIf { summaryVisible },
-            summaryChapter = chapters.firstOrNull { it.id == e.summaryUpToChapterId }?.title?.takeIf { summaryVisible },
-            summaryHidden = e.summary != null && !summaryVisible,
+            summary = e.summary.takeIf { visible },
+            summaryChapter = chapters.firstOrNull { it.id == e.summaryUpToChapterId }?.title?.takeIf { visible },
+            summaryHidden = e.summary != null && !visible,
             relations = relations,
             canSummarize = !app.prefs.incognito.value && llmConfig(app) != null,
+            facts = facts.map { (titles[it.chapterId] ?: it.chapterId) to it.text },
+            foundByAi = e.origin == CODEX_AI,
         )
     }
 
@@ -564,9 +585,11 @@ class NovelReaderViewModel(
         lookupJob = viewModelScope.launch {
             lookupState = state.copy(knowledge = state.knowledge?.copy(busy = true, error = null))
             val error = try {
+                // "When needed": the codex is where the notes are needed, so more chapters get them now.
+                val fill = if (app.prefs.storyNotes.value == STORY_NOTES_NEEDED) NEEDED_FILL_CHAPTERS else AiRecap.RECAP_CHAPTERS
                 storyKnowledge.summarize(
                     AiServices.client(app, config), entry, dao.codexOnce(sourceId, titleId), chapters, current,
-                    listOfNotNull(context.firstMention) + context.recentMentions, recapLanguage(), ::chapterText,
+                    listOfNotNull(context.firstMention) + context.recentMentions, recapLanguage(), fill, ::chapterText,
                 )
                 null
             } catch (e: CancellationException) {
@@ -602,7 +625,7 @@ class NovelReaderViewModel(
     fun deleteCodex(entry: CodexEntryEntity) {
         val term = lookupState?.term
         viewModelScope.launch {
-            dao.deleteCodexEntry(entry.id)
+            removeCodexEntry(dao, entry)
             if (term != null) lookupTerm(term)
         }
     }
@@ -713,17 +736,42 @@ class NovelReaderViewModel(
         }
     }
 
-    /** A finished chapter gets its digest now, so the next recap only has to join digests. */
+    /**
+     * A finished chapter gets its story notes now ("After each chapter"), so the next recap only
+     * joins digests and the codex has its names. A chapter AI-translated with notes already has them.
+     */
     private fun digestFinished(chapterId: String) {
-        if (!app.prefs.aiRecap.value) return
+        if (app.prefs.storyNotes.value != STORY_NOTES_FINISHED || app.prefs.incognito.value) return
         val config = llmConfig(app) ?: return
         val chapter = chapters.firstOrNull { it.id == chapterId } ?: return
         val lc = loaded.firstOrNull { it.chapter.id == chapterId }
+        val order = chapterOrder()
         app.appScope.launch {
             runCatching {
-                aiRecapper.digest(AiServices.client(app, config), chapter, recapLanguage()) {
+                aiRecapper.digest(AiServices.client(app, config), chapter, recapLanguage(), order) {
                     lc?.let { (it.original ?: it.blocks).mapNotNull { b -> b.originalText() } } ?: chapterText(chapter)
                 }
+            }
+        }
+    }
+
+    /**
+     * On opening a title ("After each chapter"): up to [BACKFILL_CHAPTERS] chapters before [current]
+     * without notes (read before the setting was on, or left before their end) get them, several
+     * per request.
+     */
+    private fun backfillNotes(current: Chapter) {
+        if (app.prefs.storyNotes.value != STORY_NOTES_FINISHED || app.prefs.incognito.value) return
+        val config = llmConfig(app) ?: return
+        val ordered = chapters.inReadingOrder()
+        val at = ordered.indexOfFirst { it.id == current.id }
+        if (at <= 0) return
+        val order = chapterOrder()
+        app.appScope.launch {
+            runCatching {
+                val done = dao.digestedChapters(sourceId, titleId).toSet()
+                val missing = ordered.subList(0, at).filter { it.id !in done }.takeLast(BACKFILL_CHAPTERS)
+                if (missing.isNotEmpty()) aiRecapper.digests(AiServices.client(app, config), missing, recapLanguage(), order, ::chapterText)
             }
         }
     }
@@ -879,6 +927,12 @@ class NovelReaderViewModel(
 
         /** Load the next chapter when this many rows or fewer are left below the screen. */
         const val APPEND_WHEN_REMAINING = 15
+
+        /** Chapters before the spot that get missing story notes when a title opens ("After each chapter"). */
+        const val BACKFILL_CHAPTERS = 10
+
+        /** Chapters before the spot that get missing story notes when a summary needs them ("When needed"). */
+        const val NEEDED_FILL_CHAPTERS = 20
 
         /** After a failed chapter load, wait this long before trying the same chapter again. */
         const val APPEND_RETRY_MS = 10_000L

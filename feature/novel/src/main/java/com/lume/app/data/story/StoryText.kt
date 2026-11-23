@@ -1,7 +1,11 @@
 package com.lume.app.data.story
 
+import com.lume.app.data.db.CODEX_AI
+import com.lume.app.data.db.CODEX_IGNORED
+import com.lume.app.data.db.CODEX_USER
 import com.lume.app.data.db.CodexEntryEntity
 import com.lume.app.data.db.LibraryDao
+import com.lume.app.llm.nameKey
 
 /** The kinds a codex entry can have, as stored in [CodexEntryEntity.kind]. */
 val CODEX_KINDS = listOf("character", "place", "group", "item", "term", "other")
@@ -62,8 +66,19 @@ fun parseAliases(text: String, name: String): List<String> =
         .distinctBy { it.lowercase() }
 
 /**
+ * Removes a codex entry. One the AI found is kept as ignored instead, so the name isn't added
+ * again; the reader's own entries are deleted.
+ */
+suspend fun removeCodexEntry(dao: LibraryDao, entry: CodexEntryEntity) {
+    if (entry.origin == CODEX_AI) dao.updateCodexEntry(entry.copy(origin = CODEX_IGNORED, updatedAt = System.currentTimeMillis()))
+    else dao.deleteCodexEntry(entry.id)
+}
+
+/**
  * Saves a codex entry of the title: a new one when [existing] is null, else a change of it. Naming
  * an entry like another one of the title replaces that one (the unique name would otherwise fail).
+ * An entry the reader saves is theirs, also one the AI found or one they had removed. A renamed
+ * entry keeps its AI facts.
  */
 suspend fun saveCodexEntry(
     dao: LibraryDao,
@@ -78,9 +93,12 @@ suspend fun saveCodexEntry(
     val clean = name.trim()
     if (clean.isEmpty()) return
     val now = System.currentTimeMillis()
-    val clash = dao.codexOnce(sourceId, titleId).firstOrNull { it.entry.name == clean && it.entry.id != existing?.id }
+    val clash = dao.codexWithIgnored(sourceId, titleId).firstOrNull { it.entry.name == clean && it.entry.id != existing?.id }
     if (clash != null && existing != null) dao.deleteCodexEntry(existing.id)
     val base = clash?.entry ?: existing
+    if (existing != null && nameKey(existing.name) != nameKey(clean)) {
+        dao.moveFacts(sourceId, titleId, nameKey(existing.name), nameKey(clean))
+    }
     val entry = CodexEntryEntity(
         id = base?.id ?: 0L,
         sourceId = sourceId,
@@ -93,6 +111,8 @@ suspend fun saveCodexEntry(
         summaryUpToChapterId = base?.summaryUpToChapterId,
         createdAt = base?.createdAt?.takeIf { it > 0 } ?: now,
         updatedAt = now,
+        origin = CODEX_USER,
+        firstChapterId = base?.firstChapterId,
     )
     dao.saveCodexEntry(entry, aliases.filter { !it.trim().equals(clean, ignoreCase = true) })
 }

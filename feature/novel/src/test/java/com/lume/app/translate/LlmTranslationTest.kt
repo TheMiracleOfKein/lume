@@ -287,6 +287,41 @@ class LlmTranslationTest {
     }
 
     @Test
+    fun notesComeWithTheTranslationInChapterOrder() = runBlocking {
+        var call = 0
+        val http = OkHttpClient.Builder().addInterceptor { chain ->
+            val buffer = okio.Buffer()
+            chain.request().body!!.writeTo(buffer)
+            val system = Json.parseToJsonElement(buffer.readUtf8()).jsonObject["messages"]!!.jsonArray[0].jsonObject["content"]!!.jsonPrimitive.content
+            assertTrue(system.contains("\"notes\""))
+            call++
+            val content = if (call == 1) {
+                """{"paragraphs":[{"id":0,"html":"Позже."}],"notes":{"summary":"Second part.","names":[{"name":"Kirito","fact":"Wins."}]}}"""
+            } else {
+                """{"paragraphs":[{"id":0,"html":"Сначала."}],"notes":{"summary":"First part.","names":[{"name":"Nobody","fact":"Not in the text."}]}}"""
+            }
+            val reply = buildJsonObject {
+                putJsonArray("choices") { addJsonObject { putJsonObject("message") { put("content", content) } } }
+            }.toString()
+            Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200).message("OK")
+                .body(reply.toResponseBody("application/json".toMediaType())).build()
+        }.build()
+        val glossary = listOf(com.lume.app.data.db.GlossaryTermEntity("src", "t", "Kirito", "Кирито"))
+        val provider = LlmProvider(LlmClient(http, LlmConfig(LlmPreset.Custom, "http://local/v1", "m", null)), glossary, emptyList(), null, notes = true)
+        // The part further on is translated first (the reader was there), then the start.
+        provider.position = 5
+        provider.translate("en", "ru", listOf("Kirito wins."))
+        provider.position = 0
+        provider.translate("en", "ru", listOf("It begins."))
+        val (notes, covered) = provider.takeNotes()!!
+        assertEquals("First part. Second part.", notes.summary)
+        assertEquals(listOf(com.lume.app.data.story.NoteName("Kirito", target = "Кирито", fact = "Wins.")), notes.names)
+        assertEquals(2, covered)
+        assertNull(provider.takeNotes())
+        assertFalse(systemPrompt("en", "ru", null).contains("\"notes\""))
+    }
+
+    @Test
     fun formsOfOneNameBecomeOneTerm() {
         val original = "Yu San A-san bowed. \"Yu San A,\" said Lin. Yu San A's sword fell. Elder Mo-sama nodded."
         val found = listOf(
