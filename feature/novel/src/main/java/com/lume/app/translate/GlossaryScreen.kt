@@ -58,6 +58,7 @@ import com.lume.app.data.db.GLOSSARY_REJECTED
 import com.lume.app.data.db.GLOSSARY_SUGGESTED
 import com.lume.app.data.db.GlossaryTermEntity
 import com.lume.app.data.story.saveCodexEntry
+import com.lume.app.llm.nameKey
 import com.lume.app.ui.screens.codexKindLabel
 import com.lume.app.ui.components.BackButton
 import com.lume.app.ui.components.LumeInsets
@@ -87,7 +88,11 @@ fun GlossaryScreen(nav: NavHostController, sourceId: String, titleId: String, ti
     val clipboard = LocalClipboardManager.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
+    // Suggestions from before names were merged may repeat a name in another form.
+    androidx.compose.runtime.LaunchedEffect(sourceId, titleId) { tidyGlossary(app.dao, sourceId, titleId) }
+
     val suggested = terms.filter { it.status == GLOSSARY_SUGGESTED }.sortedBy { it.source.lowercase() }
+    val duplicates = if (query.isBlank()) confirmedDuplicates(terms) else emptyList()
     val shown = filterGlossary(terms.filter { it.status != GLOSSARY_SUGGESTED }, query).let { list ->
         if (byName) list.sortedBy { it.source.lowercase() } else list.sortedByDescending { it.updatedAt }
     }
@@ -162,7 +167,7 @@ fun GlossaryScreen(nav: NavHostController, sourceId: String, titleId: String, ti
                                 fontSize = 15.sp,
                                 modifier = Modifier.weight(1f),
                             )
-                            TextButton(onClick = { scope.launch { suggested.forEach { acceptSuggestion(app, it) } } }) {
+                            TextButton(onClick = { scope.launch { acceptSuggestions(app, suggested) } }) {
                                 Text(stringResource(R.string.glossary_accept_all))
                             }
                         }
@@ -186,7 +191,7 @@ fun GlossaryScreen(nav: NavHostController, sourceId: String, titleId: String, ti
                             Text("${term.source} → ${term.target}", color = AppColors.textPrimary, fontSize = 15.sp)
                             term.kind?.let { Text(stringResource(codexKindLabel(it)), color = AppColors.textSecondary, fontSize = 12.sp) }
                         }
-                        IconButton(onClick = { scope.launch { acceptSuggestion(app, term) } }) {
+                        IconButton(onClick = { scope.launch { acceptSuggestions(app, listOf(term)) } }) {
                             Icon(Icons.Outlined.Check, stringResource(R.string.glossary_accept), tint = AppColors.accent)
                         }
                         IconButton(onClick = {
@@ -197,6 +202,32 @@ fun GlossaryScreen(nav: NavHostController, sourceId: String, titleId: String, ti
                     }
                 }
                 item(key = "suggested-end") { androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 12.dp)) }
+            }
+            if (duplicates.isNotEmpty()) {
+                item(key = "dup-head") {
+                    Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                        Text(stringResource(R.string.glossary_duplicates_title), color = AppColors.textPrimary, fontSize = 15.sp)
+                        Text(stringResource(R.string.glossary_duplicates_hint), color = AppColors.textSecondary, fontSize = 12.sp)
+                    }
+                }
+                items(duplicates, key = { "d:" + it.first().source }) { group ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 2.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(AppColors.surface)
+                            .heightIn(min = 52.dp)
+                            .padding(start = 14.dp, top = 4.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            group.forEach { t -> Text("${t.source} → ${t.target}", color = AppColors.textPrimary, fontSize = 14.sp) }
+                        }
+                        TextButton(onClick = { scope.launch { mergeTerms(app, group) } }) { Text(stringResource(R.string.glossary_merge)) }
+                    }
+                }
+                item(key = "dup-end") { androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 12.dp)) }
             }
             items(shown, key = { it.source }) { term ->
                 Row(
@@ -309,16 +340,39 @@ private fun ImportDialog(onImport: (String) -> Unit, onDismiss: () -> Unit) {
 private val CODEX_LINKED_KINDS = setOf("character", "place", "group", "item")
 
 /**
- * Accepts an AI suggestion: it becomes a confirmed term. A character, place, group or item that the
- * codex doesn't know yet (by name or other spelling) is added there too, with the translation as
- * another spelling, so story lookup finds it in either language.
+ * Accepts AI suggestions (all of one title): they become confirmed terms. A character, place, group
+ * or item that the codex doesn't know yet (by any form of its name or other spelling) is added
+ * there too, with the translation as another spelling, so story lookup finds it in either language.
  */
-internal suspend fun acceptSuggestion(app: AppContainer, term: GlossaryTermEntity) {
-    app.dao.setGlossaryStatus(term.sourceId, term.titleId, term.source, GLOSSARY_CONFIRMED, System.currentTimeMillis())
-    val kind = term.kind?.takeIf { it in CODEX_LINKED_KINDS } ?: return
-    val codex = app.dao.codexOnce(term.sourceId, term.titleId)
-    val known = codex.any { e -> e.entry.name.equals(term.source, true) || e.aliases.any { it.alias.equals(term.source, true) } }
-    if (!known) saveCodexEntry(app.dao, term.sourceId, term.titleId, null, term.source, kind, "", listOf(term.target))
+internal suspend fun acceptSuggestions(app: AppContainer, terms: List<GlossaryTermEntity>) {
+    val first = terms.firstOrNull() ?: return
+    val now = System.currentTimeMillis()
+    terms.forEach { app.dao.setGlossaryStatus(it.sourceId, it.titleId, it.source, GLOSSARY_CONFIRMED, now) }
+    val linked = terms.filter { it.kind in CODEX_LINKED_KINDS }
+    if (linked.isEmpty()) return
+    val known = app.dao.codexOnce(first.sourceId, first.titleId)
+        .flatMap { e -> listOf(e.entry.name) + e.aliases.map { it.alias } }
+        .mapTo(HashSet(), ::nameKey)
+    for (term in linked) {
+        if (!known.add(nameKey(term.source))) continue
+        saveCodexEntry(app.dao, term.sourceId, term.titleId, null, term.source, term.kind!!, "", listOf(term.target))
+    }
+}
+
+/**
+ * Merges forms of one name: the first of [group] stays, the others are deleted. Their spellings
+ * become other spellings of the name's codex entry, if it has one, so lookup still finds them.
+ */
+internal suspend fun mergeTerms(app: AppContainer, group: List<GlossaryTermEntity>) {
+    val keep = group.firstOrNull() ?: return
+    val others = group.drop(1)
+    others.forEach { app.dao.deleteGlossaryTerm(it.sourceId, it.titleId, it.source) }
+    val key = nameKey(keep.source)
+    val entry = app.dao.codexOnce(keep.sourceId, keep.titleId).firstOrNull { e ->
+        nameKey(e.entry.name) == key || e.aliases.any { nameKey(it.alias) == key }
+    } ?: return
+    val aliases = (entry.aliases.map { it.alias } + others.map { it.source }).distinctBy { it.lowercase() }
+    saveCodexEntry(app.dao, keep.sourceId, keep.titleId, entry.entry, entry.entry.name, entry.entry.kind, entry.entry.note.orEmpty(), aliases)
 }
 
 /** Terms whose original or translation contains [query], ignoring case. */

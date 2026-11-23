@@ -1,6 +1,7 @@
 package com.lume.app.llm
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -20,6 +21,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 /**
@@ -35,7 +37,13 @@ enum class LlmPreset(
     /** Where the user gets a key. */
     val keyUrl: String?,
 ) {
-    OpenRouter("openrouter", "OpenRouter", "https://openrouter.ai/api/v1", listOf("openrouter/auto"), "https://openrouter.ai/keys"),
+    // Cheap, fast models with JSON answers and a long context; OpenRouter's own router (which may
+    // pick an expensive model) only when none of them is offered.
+    OpenRouter(
+        "openrouter", "OpenRouter", "https://openrouter.ai/api/v1",
+        listOf("deepseek/deepseek-v4-flash", "google/gemini-3.1-flash-lite", "deepseek/deepseek-v3.2", "google/gemini-2.5-flash", "openrouter/auto"),
+        "https://openrouter.ai/keys",
+    ),
     OpenAI("openai", "OpenAI", "https://api.openai.com/v1", listOf("gpt-5-mini", "gpt-4.1-mini", "gpt-4o-mini"), "https://platform.openai.com/api-keys"),
     DeepSeek("deepseek", "DeepSeek", "https://api.deepseek.com/v1", listOf("deepseek-chat"), "https://platform.deepseek.com/api_keys"),
     Gemini(
@@ -100,24 +108,69 @@ data class LlmConfig(val preset: LlmPreset, val baseUrl: String, val model: Stri
 /** A model the service offers; [promptPrice] and [completionPrice] are dollars per million tokens, when known. */
 data class LlmModel(val id: String, val name: String, val promptPrice: Double?, val completionPrice: Double?)
 
-/** One chat answer: the text, and whether it was cut off by the length limit. */
-data class LlmAnswer(val content: String, val truncated: Boolean)
+/** What a request is for; usage is totalled per feature. */
+enum class AiFeature(val id: String) {
+    Translation("translation"),
+    Notes("notes"),
+    Recap("recap"),
+    Summary("summary"),
+    Other("other"),
+}
 
-/** Calls an OpenAI-compatible service. One instance per config; safe to share between coroutines. */
-class LlmClient(http: OkHttpClient, val config: LlmConfig) {
+/** Tokens a request used, and its cost in dollars when the service reports it (OpenRouter). */
+data class LlmUsage(val promptTokens: Long, val completionTokens: Long, val cost: Double?)
+
+/** One chat answer: the text, whether it was cut off by the length limit, and what it used. */
+data class LlmAnswer(val content: String, val truncated: Boolean, val usage: LlmUsage? = null)
+
+/**
+ * Calls an OpenAI-compatible service. One instance per config; safe to share between coroutines.
+ * [onUsage] gets each answer's token use, for the usage totals.
+ */
+class LlmClient(
+    http: OkHttpClient,
+    val config: LlmConfig,
+    private val onUsage: (suspend (AiFeature, LlmUsage) -> Unit)? = null,
+) {
     // Models can take a while to write a long chapter part.
     private val http = http.newBuilder().readTimeout(3, TimeUnit.MINUTES).callTimeout(5, TimeUnit.MINUTES).build()
 
-    /** Sends [system] and [user] and returns the answer, asking for a JSON object when [json] is set. */
-    suspend fun chat(system: String, user: String, json: Boolean = true, temperature: Double = 0.3): LlmAnswer =
-        withContext(Dispatchers.IO) {
+    /**
+     * Sends [system] and [user] and returns the answer, asking for a JSON object when [json] is set.
+     * [maxTokens] caps the answer. A busy service (429, 502–504) is asked again up to [retries]
+     * times after its `Retry-After`. An optional parameter the service or model refuses (the
+     * answer format, a token cap, temperature, reasoning effort) is left out from then on.
+     */
+    suspend fun chat(
+        system: String,
+        user: String,
+        json: Boolean = true,
+        temperature: Double = 0.3,
+        maxTokens: Int? = null,
+        feature: AiFeature = AiFeature.Other,
+        retries: Int = 1,
+    ): LlmAnswer = withContext(Dispatchers.IO) {
+        val options = ChatOptions(json, temperature, maxTokens)
+        val refusedKey = "${config.baseUrl}|${config.model}"
+        var attempt = 0
+        var answer: LlmAnswer? = null
+        while (answer == null) {
+            val dropped = refused[refusedKey].orEmpty()
+            val body = chatBody(config.preset, config.model, system, user, options, dropped)
             try {
-                post(chatBody(config.model, system, user, json, temperature))
-            } catch (e: ResponseFormatRefused) {
-                // Some models and local servers don't know response_format: ask again without it.
-                post(chatBody(config.model, system, user, json = false, temperature = temperature))
+                answer = post(body)
+            } catch (e: ParamsRefused) {
+                // Each round drops at least one parameter that was sent, so this ends.
+                refused[refusedKey] = dropped + e.params
+            } catch (e: ServiceHttpException) {
+                if (e.code !in RETRY_CODES || attempt >= retries) throw e
+                attempt++
+                delay((e.retryAfterMs ?: DEFAULT_RETRY_MS).coerceIn(0, MAX_RETRY_MS))
             }
         }
+        answer.usage?.let { u -> onUsage?.let { runCatching { it(feature, u) } } }
+        answer
+    }
 
     /** The service's models, for the picker and the key check; a short wait, as nothing is generated. */
     suspend fun models(): List<LlmModel> = withContext(Dispatchers.IO) {
@@ -149,8 +202,12 @@ class LlmClient(http: OkHttpClient, val config: LlmConfig) {
             .build()
         http.newCall(request).execute().use { response ->
             val text = response.body.string()
-            if (response.code == 400 && text.contains("response_format", ignoreCase = true)) throw ResponseFormatRefused()
-            if (!response.isSuccessful) throw llmError(response.code, text)
+            if (response.code == 400 || response.code == 422) {
+                refusedParams(body, text).takeIf { it.isNotEmpty() }?.let { throw ParamsRefused(it) }
+            }
+            if (!response.isSuccessful) {
+                throw llmError(response.code, text, response.header("Retry-After")?.trim()?.toLongOrNull()?.times(1000))
+            }
             return parseChat(text)
         }
     }
@@ -164,20 +221,87 @@ class LlmClient(http: OkHttpClient, val config: LlmConfig) {
         }
     }
 
-    private class ResponseFormatRefused : IOException()
+    private class ParamsRefused(val params: Set<String>) : IOException()
+
+    private companion object {
+        val RETRY_CODES = setOf(429, 502, 503, 504)
+        const val DEFAULT_RETRY_MS = 3_000L
+        const val MAX_RETRY_MS = 20_000L
+
+        /** Optional parameters a service or model refused, per base URL and model, for this run of the app. */
+        val refused = ConcurrentHashMap<String, Set<String>>()
+    }
 }
 
 private val json = Json { ignoreUnknownKeys = true }
 
-internal fun chatBody(model: String, system: String, user: String, json: Boolean, temperature: Double): String = buildJsonObject {
+/** What a request asks for besides the messages. */
+internal data class ChatOptions(val json: Boolean, val temperature: Double, val maxTokens: Int?)
+
+/** The optional parameters, most specific names first (a refusal is matched by name in the error text). */
+internal val OPTIONAL_PARAMS = listOf(
+    "response_format", "max_completion_tokens", "max_tokens", "temperature", "reasoning_effort", "reasoning", "usage",
+)
+
+/**
+ * The request body. Leaves out the parameters in [dropped], and those the model is known not to
+ * take: OpenAI's reasoning models only allow the default temperature and name the cap
+ * `max_completion_tokens`. Reasoning effort is set as low as the service allows, since a
+ * translation or summary gains little from thinking and pays for every thinking token.
+ */
+internal fun chatBody(
+    preset: LlmPreset,
+    model: String,
+    system: String,
+    user: String,
+    options: ChatOptions,
+    dropped: Set<String> = emptySet(),
+): String = buildJsonObject {
+    fun allowed(name: String) = name !in dropped
     put("model", model)
     putJsonArray("messages") {
         addJsonObject { put("role", "system"); put("content", system) }
         addJsonObject { put("role", "user"); put("content", user) }
     }
-    put("temperature", temperature)
-    if (json) putJsonObject("response_format") { put("type", "json_object") }
+    val openAiReasoning = preset == LlmPreset.OpenAI && isOpenAiReasoningModel(model)
+    if (!openAiReasoning && allowed("temperature")) put("temperature", options.temperature)
+    options.maxTokens?.let { cap ->
+        val name = if (preset == LlmPreset.OpenAI) "max_completion_tokens" else "max_tokens"
+        if (allowed(name)) put(name, cap)
+    }
+    if (options.json && allowed("response_format")) putJsonObject("response_format") { put("type", "json_object") }
+    when (preset) {
+        LlmPreset.OpenAI -> if (openAiReasoning && allowed("reasoning_effort")) {
+            put("reasoning_effort", if (model.startsWith("gpt-5")) "minimal" else "low")
+        }
+        LlmPreset.Gemini -> if (model.contains("gemini-2.5") && allowed("reasoning_effort")) {
+            // Flash can think not at all; Pro can only think less.
+            put("reasoning_effort", if (model.contains("flash")) "none" else "low")
+        }
+        LlmPreset.OpenRouter -> {
+            if (allowed("reasoning")) putJsonObject("reasoning") { put("effort", "low") }
+            if (allowed("usage")) putJsonObject("usage") { put("include", true) }
+        }
+        LlmPreset.DeepSeek, LlmPreset.Custom -> Unit
+    }
 }.toString()
+
+private fun isOpenAiReasoningModel(model: String): Boolean =
+    model.startsWith("gpt-5") || Regex("""o\d.*""").matches(model)
+
+/** The optional parameters of [body] that the error [text] names, so the request can go again without them. */
+internal fun refusedParams(body: String, text: String): Set<String> {
+    val sent = runCatching { json.parseToJsonElement(body).jsonObject.keys }.getOrNull() ?: return emptySet()
+    val out = LinkedHashSet<String>()
+    var rest = text
+    for (name in OPTIONAL_PARAMS) {
+        if (name !in sent || !rest.contains(name, ignoreCase = true)) continue
+        out += name
+        // "reasoning_effort" also contains "reasoning": count each mention once.
+        rest = rest.replace(name, "", ignoreCase = true)
+    }
+    return out
+}
 
 /** The first choice's text; an answer without one is an error. */
 internal fun parseChat(body: String): LlmAnswer {
@@ -189,7 +313,15 @@ internal fun parseChat(body: String): LlmAnswer {
     val content = ((choice["message"] as? JsonObject)?.get("content") as? JsonPrimitive)?.contentOrNull.orEmpty()
     val finish = (choice["finish_reason"] as? JsonPrimitive)?.contentOrNull
     if (content.isBlank() && finish != "length") throw IOException("The AI service sent an empty answer")
-    return LlmAnswer(content, truncated = finish == "length")
+    return LlmAnswer(content, truncated = finish == "length", usage = parseUsage(root["usage"] as? JsonObject))
+}
+
+private fun parseUsage(usage: JsonObject?): LlmUsage? {
+    usage ?: return null
+    fun number(key: String) = (usage[key] as? JsonPrimitive)?.let { it.contentOrNull?.toDoubleOrNull() }
+    val prompt = number("prompt_tokens")?.toLong() ?: return null
+    val completion = number("completion_tokens")?.toLong() ?: 0L
+    return LlmUsage(prompt, completion, number("cost")?.takeIf { it >= 0 })
 }
 
 internal fun parseModels(body: String): List<LlmModel> {
@@ -210,12 +342,12 @@ internal fun parseModels(body: String): List<LlmModel> {
 private fun errorMessage(error: JsonObject): String? = (error["message"] as? JsonPrimitive)?.contentOrNull?.take(200)
 
 /** An error answer of an online service, with its HTTP [code], so callers can tell a refused key from a busy service. */
-class ServiceHttpException(val code: Int, message: String) : IOException(message) {
+class ServiceHttpException(val code: Int, message: String, val retryAfterMs: Long? = null) : IOException(message) {
     /** The user can fix it in the settings: the key, the account or the model. */
     val needsSettings: Boolean get() = code in setOf(401, 402, 403, 404, 456)
 }
 
-internal fun llmError(code: Int, body: String): ServiceHttpException {
+internal fun llmError(code: Int, body: String, retryAfterMs: Long? = null): ServiceHttpException {
     val detail = runCatching {
         (json.parseToJsonElement(body).jsonObject["error"] as? JsonObject)?.let(::errorMessage)
     }.getOrNull()
@@ -227,7 +359,7 @@ internal fun llmError(code: Int, body: String): ServiceHttpException {
         429 -> "The AI service is limiting requests right now; try again later"
         else -> "AI service: HTTP $code"
     }
-    return ServiceHttpException(code, if (detail != null && code !in setOf(401, 403)) "$text ($detail)" else text)
+    return ServiceHttpException(code, if (detail != null && code !in setOf(401, 403)) "$text ($detail)" else text, retryAfterMs)
 }
 
 /**

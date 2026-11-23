@@ -42,6 +42,30 @@ class AiRecapTest {
     }
 
     @Test
+    fun digestBatchesStayUnderTheLimit() {
+        assertEquals(listOf(listOf(0, 1), listOf(2, 3), listOf(4)), digestBatches(listOf(15_000, 20_000, 30_000, 10_000, 9_000), 40_000))
+        // A chapter longer than the limit goes alone.
+        assertEquals(listOf(listOf(0), listOf(1)), digestBatches(listOf(50_000, 100), 40_000))
+        assertEquals(emptyList<List<Int>>(), digestBatches(emptyList(), 40_000))
+    }
+
+    @Test
+    fun digestsAreReadByChapter() {
+        val answer = "```json\n{\"chapters\":[{\"id\":\"1\",\"digest\":\"Первая.\"},{\"id\":2,\"digest\":\"Вторая.\"},{\"id\":\"3\"}]}\n```"
+        assertEquals(mapOf("1" to "Первая.", "2" to "Вторая."), parseDigests(answer))
+        val p = Json.parseToJsonElement(digestUserPrompt(listOf("1" to "Text one", "2" to "Text two"))).jsonObject
+        assertEquals(listOf("1", "2"), p["chapters"]!!.jsonArray.map { it.jsonObject["id"]!!.jsonPrimitive.content })
+    }
+
+    @Test
+    fun aSummaryGetsTheDigestsThatNameTheEntry() {
+        val all = (1..20).map { "Ch $it" to if (it % 5 == 0) "Lin Feng fights." else "Others talk." }
+        val picked = relevantDigests(all, listOf("Lin Feng", "Лин Фэн"))
+        // Chapters 5, 10 and 15 name him; the last four are kept for where the story is now.
+        assertEquals(listOf("Ch 5", "Ch 10", "Ch 15", "Ch 17", "Ch 18", "Ch 19", "Ch 20"), picked.map { it.first })
+    }
+
+    @Test
     fun recapPromptListsDigestsInOrder() {
         val p = Json.parseToJsonElement(recapUserPrompt(listOf("Ch 1" to "A", "Ch 2" to "B"), "Ch 3", "So far.")).jsonObject
         val earlier = p["earlier_chapters"]!!.jsonArray
