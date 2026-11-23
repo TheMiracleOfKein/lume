@@ -32,8 +32,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CodexAliasEntity::class,
         ChapterDigestEntity::class,
         CodexRelationEntity::class,
+        CodexFactEntity::class,
     ],
-    version = 22,
+    version = 23,
     exportSchema = true,
 )
 abstract class LumeDatabase : RoomDatabase() {
@@ -368,11 +369,24 @@ abstract class LumeDatabase : RoomDatabase() {
             }
         }
 
+        /** AI story notes: codex entries found by AI (and where), and facts per name and chapter. Additive. */
+        val MIGRATION_22_23 = object : Migration(22, 23) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE codex_entries ADD COLUMN origin TEXT NOT NULL DEFAULT 'user'")
+                db.execSQL("ALTER TABLE codex_entries ADD COLUMN firstChapterId TEXT")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `codex_facts` (`sourceId` TEXT NOT NULL, `titleId` TEXT NOT NULL, " +
+                        "`nameKey` TEXT NOT NULL, `chapterId` TEXT NOT NULL, `lang` TEXT NOT NULL, `text` TEXT NOT NULL, " +
+                        "`origin` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`sourceId`, `titleId`, `nameKey`, `chapterId`))",
+                )
+            }
+        }
+
         val MIGRATIONS: Array<Migration> get() = arrayOf(
             MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
             MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16,
             MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20,
-            MIGRATION_20_21, MIGRATION_21_22,
+            MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23,
         )
     }
 }

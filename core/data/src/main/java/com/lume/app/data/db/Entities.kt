@@ -388,7 +388,8 @@ data class ChapterTextFts(val text: String)
 /**
  * A short AI-written digest of one chapter in [lang], for the AI recap and later story summaries.
  * Made from the chapter's text only, so it never tells more than that chapter. [model] is the
- * service and model that wrote it. Rebuildable, so not in backups or sync.
+ * service and model that wrote it. In backups (since format 9), as it costs a request to write
+ * again; not in sync.
  */
 @Entity(tableName = "chapter_digests", primaryKeys = ["sourceId", "titleId", "chapterId", "lang"])
 data class ChapterDigestEntity(
@@ -405,7 +406,8 @@ data class ChapterDigestEntity(
  * How [fromName] relates to [toName] in a title ("sister", "member of", "rival"), as the AI saw
  * it reading up to [upToChapterId]. By name rather than entry id, so it survives an entry being
  * renamed or saved again, and [toName] may be a name the codex doesn't have yet. Shown only to a
- * reader at or after [upToChapterId]. Rebuildable, so not in backups or sync.
+ * reader at or after [upToChapterId]. Story notes add one per chapter they see it in; a summary
+ * replaces those it wrote itself. In backups (since format 9), as it costs requests to write again.
  */
 @Entity(tableName = "codex_relations", indices = [Index("sourceId", "titleId")])
 data class CodexRelationEntity(
@@ -434,12 +436,40 @@ data class CodexEntryEntity(
     /** `character`, `place`, `group`, `item`, `term` or `other`. */
     @ColumnInfo(defaultValue = "other") val kind: String = "other",
     val note: String? = null,
-    /** Reserved for generated summaries; nothing writes these yet. */
+    /** The AI summary, written from what was read up to [summaryUpToChapterId]; [summaryOrigin] is `llm:<service>:<model>`. */
     val summary: String? = null,
     val summaryOrigin: String? = null,
     val summaryUpToChapterId: String? = null,
     val createdAt: Long = 0L,
     val updatedAt: Long = 0L,
+    /**
+     * [CODEX_USER] (saved by the reader), [CODEX_AI] (found by AI story notes) or [CODEX_IGNORED]
+     * (an AI entry the reader removed: hidden, and its name isn't added again).
+     */
+    @ColumnInfo(defaultValue = "user") val origin: String = CODEX_USER,
+    /** For an AI entry, the chapter the name was first seen in; a reader before it doesn't see the entry. */
+    val firstChapterId: String? = null,
+)
+
+const val CODEX_USER = "user"
+const val CODEX_AI = "ai"
+const val CODEX_IGNORED = "ignored"
+
+/**
+ * What one chapter shows about a name, in one or two sentences, from AI story notes. Keyed by the
+ * name's normalized form (`nameKey`), so facts stay with a name when its entry is renamed or
+ * merged. Shown only to a reader at or after [chapterId]. [origin] is `llm:<service>:<model>`.
+ */
+@Entity(tableName = "codex_facts", primaryKeys = ["sourceId", "titleId", "nameKey", "chapterId"])
+data class CodexFactEntity(
+    val sourceId: String,
+    val titleId: String,
+    val nameKey: String,
+    val chapterId: String,
+    val lang: String,
+    val text: String,
+    val origin: String,
+    val createdAt: Long,
 )
 
 /** Another spelling of a [CodexEntryEntity]; removed with its entry. */
