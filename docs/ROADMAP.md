@@ -218,71 +218,71 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **Goal:** any page, any size, any phone: no memory crashes, sharp zoom, layouts that fit the screen.
 
-**v0.8.0: reader 2.0** ✅ released 2026-11-07 ([notes](releases/v0.8.0.md), [device check](releases/v0.8.0-check.md))
+**v0.8.0: reader 2.0** ✅ released 2026-11-07 ([notes](releases/v0.8.0.md), [device check](releases/checks/v0.8.0-check.md))
 
 **v0.8.1: zoom pan fix** ✅ released 2026-11-07 ([notes](releases/v0.8.1.md)): a zoomed webtoon page no longer twitches when moved.
 
-**v0.9.0: CBR, CB7 and PDF** ✅ released 2026-11-08 ([notes](releases/v0.9.0.md), [device check](releases/v0.9.0-check.md)): local chapters as CBR, CB7 and PDF, and offline parser tests.
+**v0.9.0: CBR, CB7 and PDF** ✅ released 2026-11-08 ([notes](releases/v0.9.0.md), [device check](releases/checks/v0.9.0-check.md)): local chapters as CBR, CB7 and PDF, and offline parser tests.
 
-**v0.9.1: watched folders** ✅ released 2026-11-08 ([notes](releases/v0.9.1.md), [device check](releases/v0.9.1-check.md)): folders that Lume re-scans for new and changed chapters.
+**v0.9.1: watched folders** ✅ released 2026-11-08 ([notes](releases/v0.9.1.md), [device check](releases/checks/v0.9.1-check.md)): folders that Lume re-scans for new and changed chapters.
 
-**v0.9.2: self-hosted servers** ✅ released 2026-11-08 ([notes](releases/v0.9.2.md), [device check](releases/v0.9.2-check.md)): OPDS catalogues, Komga and Kavita as sources you add yourself.
+**v0.9.2: self-hosted servers** ✅ released 2026-11-08 ([notes](releases/v0.9.2.md), [device check](releases/checks/v0.9.2-check.md)): OPDS catalogues, Komga and Kavita as sources you add yourself.
 
-**v0.9.3: InkStory** ✅ released 2026-11-10 ([notes](releases/v0.9.3.md), [device check](releases/v0.9.3-check.md)): a new Russian source; Com-X.life dropped for now.
+**v0.9.3: InkStory** ✅ released 2026-11-10 ([notes](releases/v0.9.3.md), [device check](releases/checks/v0.9.3-check.md)): a new Russian source; Com-X.life dropped for now.
 
-**v0.9.4: sharp webtoon strips** ✅ released 2026-11-10 ([notes](releases/v0.9.4.md), [device check](releases/v0.9.4-check.md)): long strip pages in webtoon mode drawn at full quality again.
+**v0.9.4: sharp webtoon strips** ✅ released 2026-11-10 ([notes](releases/v0.9.4.md), [device check](releases/checks/v0.9.4-check.md)): long strip pages in webtoon mode drawn at full quality again.
 
-**v0.9.5: smooth webtoon drags** ✅ released 2026-11-10 ([notes](releases/v0.9.5.md), [device check](releases/v0.9.5-check.md)): long pages no longer jump when a short swipe starts, and never blank while they sharpen.
+**v0.9.5: smooth webtoon drags** ✅ released 2026-11-10 ([notes](releases/v0.9.5.md), [device check](releases/checks/v0.9.5-check.md)): long pages no longer jump when a short swipe starts, and never blank while they sharpen.
 
-**v0.9.6: library and stats** ✅ released 2026-11-11 ([notes](releases/v0.9.6.md), [device check](releases/v0.9.6-check.md)): reading statistics, one notification per title, updates and notifications per category, and source errors kept across restarts and shown in global search.
+**v0.9.6: library and stats** ✅ released 2026-11-11 ([notes](releases/v0.9.6.md), [device check](releases/checks/v0.9.6-check.md)): reading statistics, one notification per title, updates and notifications per category, and source errors kept across restarts and shown in global search.
 
-**v0.9.7: imports and folders** ✅ released 2026-11-11 ([notes](releases/v0.9.7.md), [device check](releases/v0.9.7-check.md)): Kotatsu backups, a tracker's reading list, and any folder as download storage.
+**v0.9.7: imports and folders** ✅ released 2026-11-11 ([notes](releases/v0.9.7.md), [device check](releases/checks/v0.9.7-check.md)): Kotatsu backups, a tracker's reading list, and any folder as download storage.
 
 **v0.9.8: nearby sending** ✅ released 2026-11-11 ([notes](releases/v0.9.8.md)): send downloaded chapters to another phone on the same Wi-Fi, paired with a code and encrypted (the v0.7.x plan, same-network part).
 
-**v0.9.9: fixes** ✅ released 2026-11-11 ([notes](releases/v0.9.9.md), [device check](releases/v0.9.9-check.md)): MangaDex works again, an error log with the full text of source errors, and reading statistics that count only chapters read in the app.
+**v0.9.9: fixes** ✅ released 2026-11-11 ([notes](releases/v0.9.9.md), [device check](releases/checks/v0.9.9-check.md)): MangaDex works again, an error log with the full text of source errors, and reading statistics that count only chapters read in the app.
 
-**v0.9.10: crash log and backup format** ✅ released 2026-11-12 ([notes](releases/v0.9.10.md), [device check](releases/v0.9.10-check.md)): crashes saved on the phone and shared from About, the backup format written down and pinned by tests, TalkBack only in the open menu, search marks for titles saved from another source, and an optional signed release workflow (all from v1.0 or older leftovers).
+**v0.9.10: crash log and backup format** ✅ released 2026-11-12 ([notes](releases/v0.9.10.md), [device check](releases/checks/v0.9.10-check.md)): crashes saved on the phone and shared from About, the backup format written down and pinned by tests, TalkBack only in the open menu, search marks for titles saved from another source, and an optional signed release workflow (all from v1.0 or older leftovers).
 
-**v0.9.11: encrypted sign-ins** ✅ released 2026-11-12 ([notes](releases/v0.9.11.md), [device check](releases/v0.9.11-check.md)): tracker tokens, site sign-ins and the sync password encrypted with the Android Keystore, a checksum file next to each APK, and one title at a time out of Continue reading and the history (from v1.0).
+**v0.9.11: encrypted sign-ins** ✅ released 2026-11-12 ([notes](releases/v0.9.11.md), [device check](releases/checks/v0.9.11-check.md)): tracker tokens, site sign-ins and the sync password encrypted with the Android Keystore, a checksum file next to each APK, and one title at a time out of Continue reading and the history (from v1.0).
 
 **v0.9.12: Continue reading covers** ✅ released 2026-11-12 ([notes](releases/v0.9.12.md)): cards under Continue reading show the cover instead of a cut-out of the page.
 
-**v0.9.13: quality pass** ✅ released 2026-11-12 ([notes](releases/v0.9.13.md), [device check](releases/v0.9.13-check.md)): genre filter in the library, QR code for nearby sending, bookmark import as background work, WCAG AA colours and large-font fixes, the chapter list jump (O17), ViewModel, screenshot and emulator tests, and the user guide (from v1.0 and older leftovers).
+**v0.9.13: quality pass** ✅ released 2026-11-12 ([notes](releases/v0.9.13.md), [device check](releases/checks/v0.9.13-check.md)): genre filter in the library, QR code for nearby sending, bookmark import as background work, WCAG AA colours and large-font fixes, the chapter list jump (O17), ViewModel, screenshot and emulator tests, and the user guide (from v1.0 and older leftovers).
 
-**v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
+**v0.9.14: search and chapters ahead** ✅ released 2026-11-14 ([notes](releases/v0.9.14.md), [device check](releases/checks/v0.9.14-check.md)): whole chapters loaded ahead while reading, paced so sites don't block it; search results with name matches first; search and filters inside a source's catalogue; the filter sheet no longer shakes when swiped down.
 
-**v1.7.0: chapter translation** ✅ released 2026-11-21 ([notes](releases/v1.7.0.md), [device check](releases/v1.7.0-check.md)): English chapters read in Russian and Russian ones in English, with Google Translate, DeepL (own key) or offline on the phone through the Lume Translate add-on (Firefox Translations models); the original on a long press; a per-title glossary with its own screen, in backups and sync; read aloud goes on in the translation.
+**v1.7.0: chapter translation** ✅ released 2026-11-21 ([notes](releases/v1.7.0.md), [device check](releases/checks/v1.7.0-check.md)): English chapters read in Russian and Russian ones in English, with Google Translate, DeepL (own key) or offline on the phone through the Lume Translate add-on (Firefox Translations models); the original on a long press; a per-title glossary with its own screen, in backups and sync; read aloud goes on in the translation.
 
-**v1.8.0: story lookup** ✅ released 2026-11-21 ([notes](releases/v1.8.0.md), [device check](releases/v1.8.0-check.md)): a long press on a name shows where it first appeared and its latest mentions, offline and without spoilers, from an on-device index of read and downloaded chapters; a per-title codex of names with notes and other spellings (in backups); a "Previously…" recap after a break.
+**v1.8.0: story lookup** ✅ released 2026-11-21 ([notes](releases/v1.8.0.md), [device check](releases/checks/v1.8.0-check.md)): a long press on a name shows where it first appeared and its latest mentions, offline and without spoilers, from an on-device index of read and downloaded chapters; a per-title codex of names with notes and other spellings (in backups); a "Previously…" recap after a break.
 
-**v1.9.0: AI translation** ✅ released 2026-11-22 ([notes](releases/v1.9.0.md), [device check](releases/v1.9.0-check.md)): chapter translation with a language model and your own key (OpenRouter, OpenAI, DeepSeek, Gemini or your own server). New names are suggested into the glossary and kept the same in every chapter, with a style note per title. An AI "story so far" in "Previously…", and AI summaries and relations for codex names, all spoiler-safe.
+**v1.9.0: AI translation** ✅ released 2026-11-22 ([notes](releases/v1.9.0.md), [device check](releases/checks/v1.9.0-check.md)): chapter translation with a language model and your own key (OpenRouter, OpenAI, DeepSeek, Gemini or your own server). New names are suggested into the glossary and kept the same in every chapter, with a style note per title. An AI "story so far" in "Previously…", and AI summaries and relations for codex names, all spoiler-safe.
 
-**v1.12.0: story notes** ✅ released 2026-11-24 ([notes](releases/v1.12.0.md), [device check](releases/v1.12.0-check.md)): Settings → Reader → AI story notes (Off, After each chapter, When needed). One request per chapter brings its summary, the names in it with a fact each and their relations; with AI translation they come in the translation's own answers. The codex fills itself with names marked AI, hidden before the chapter they first appear in; the lookup sheet lists earlier facts without a request, and summaries are written from them. The codex screen shows summaries up to the reading spot. Story knowledge is in backups (format 9). Database 23.
+**v1.12.0: story notes** ✅ released 2026-11-24 ([notes](releases/v1.12.0.md), [device check](releases/checks/v1.12.0-check.md)): Settings → Reader → AI story notes (Off, After each chapter, When needed). One request per chapter brings its summary, the names in it with a fact each and their relations; with AI translation they come in the translation's own answers. The codex fills itself with names marked AI, hidden before the chapter they first appear in; the lookup sheet lists earlier facts without a request, and summaries are written from them. The codex screen shows summaries up to the reading spot. Story knowledge is in backups (format 9). Database 23.
 
 **v1.12.1: Lib API address** ✅ released 2026-11-24 ([notes](releases/v1.12.1.md)): the Lib sites use `api.lib.social` instead of `api.cdnlibs.org`, which did not answer for some readers. Next: source hosts that can be changed without an app update.
 
 **v1.13.0: source addresses without an update** ✅ released 2026-11-24 ([notes](releases/v1.13.0.md)): Settings → Network → Update source addresses. `docs/packs/hosts.json` on `main` sets `apiBase`, `baseUrl` and `imageHosts` per source or engine and a fallback list per host; apps read it every 6 hours and after a failure, cache it, and switch to the next host when one does not answer. Lib sources stay within the trusted Lib domains. Still open: a check on a device with the file changed.
 
-**v1.11.0: cheaper AI** ✅ released 2026-11-23 ([notes](releases/v1.11.0.md), [device check](releases/v1.11.0-check.md)): each translation request sends only the glossary terms its text holds, in larger parts, with capped answers and as little model "thinking" as the service allows; a failed chapter keeps what came back. Forms of one name ("-san", "'s") are one glossary term, old duplicates are cleared and your own can be merged. Recap digests are written together and the recap is kept for the same spot; codex summaries send less. OpenRouter's Automatic takes a cheap model. Settings → AI and translation shows what AI used this month.
+**v1.11.0: cheaper AI** ✅ released 2026-11-23 ([notes](releases/v1.11.0.md), [device check](releases/checks/v1.11.0-check.md)): each translation request sends only the glossary terms its text holds, in larger parts, with capped answers and as little model "thinking" as the service allows; a failed chapter keeps what came back. Forms of one name ("-san", "'s") are one glossary term, old duplicates are cleared and your own can be merged. Recap digests are written together and the recap is kept for the same spot; codex summaries send less. OpenRouter's Automatic takes a cheap model. Settings → AI and translation shows what AI used this month.
 
-**v1.10.0: AI settings** ✅ released 2026-11-23 ([notes](releases/v1.10.0.md), [device check](releases/v1.10.0-check.md)): Settings → AI and translation holds the keys, shows whether each works, and sets the one active service and model (Automatic for every service) that translation, the recap and codex summaries share; the reader only picks. Translation shows whom it waits for and for how long, and why it failed. Each reader opens in the original (back within 15 minutes, it stays on). The recap is offered after a break and can be opened any time.
+**v1.10.0: AI settings** ✅ released 2026-11-23 ([notes](releases/v1.10.0.md), [device check](releases/checks/v1.10.0-check.md)): Settings → AI and translation holds the keys, shows whether each works, and sets the one active service and model (Automatic for every service) that translation, the recap and codex summaries share; the reader only picks. Translation shows whom it waits for and for how long, and why it failed. Each reader opens in the original (back within 15 minutes, it stays on). The recap is offered after a break and can be opened any time.
 
-**v1.6.0: read aloud** ✅ released 2026-11-21 ([notes](releases/v1.6.0.md), [device check](releases/v1.6.0-check.md)): the text reader reads chapters aloud with Android's text-to-speech, on to the next chapter, with the screen off and from the notification and lock screen; the spoken sentence is highlighted and followed; speed, voice, engine and a sleep timer.
+**v1.6.0: read aloud** ✅ released 2026-11-21 ([notes](releases/v1.6.0.md), [device check](releases/checks/v1.6.0-check.md)): the text reader reads chapters aloud with Android's text-to-speech, on to the next chapter, with the screen off and from the notification and lock screen; the spoken sentence is highlighted and followed; speed, voice, engine and a sleep timer.
 
-**v1.5.6: guided zoom fix** ✅ released 2026-11-21 ([notes](releases/v1.5.6.md), [device check](releases/v1.5.6-check.md)): with guided panel view on, a page you arrive on (going back, seekbar jump) shows whole instead of zoomed into the panel last seen.
+**v1.5.6: guided zoom fix** ✅ released 2026-11-21 ([notes](releases/v1.5.6.md), [device check](releases/checks/v1.5.6-check.md)): with guided panel view on, a page you arrive on (going back, seekbar jump) shows whole instead of zoomed into the panel last seen.
 
-**v1.5.5: guided panels** ✅ released 2026-11-21 ([notes](releases/v1.5.5.md), [device check](releases/v1.5.5-check.md)): guided panel view no longer stops responding after an interrupted animation; a panel order setting (right to left by default, separate from the page-turn direction); the page around the panel in focus is dimmed; panels include bubbles and art that break out of their frames.
+**v1.5.5: guided panels** ✅ released 2026-11-21 ([notes](releases/v1.5.5.md), [device check](releases/checks/v1.5.5-check.md)): guided panel view no longer stops responding after an interrupted animation; a panel order setting (right to left by default, separate from the page-turn direction); the page around the panel in focus is dimmed; panels include bubbles and art that break out of their frames.
 
 **v1.5.4: smooth tab swipes** ✅ released 2026-11-21 ([notes](releases/v1.5.4.md)): the tab underline slides with the finger and the tab changes as soon as the next page is nearer; neighbouring pages are prepared ahead; the Catalog's search bar stays on the Library tab, so the tabs no longer jump. No device check: released on the user's request without emulator tests.
 
-**v1.5.3: swipe tabs and translations** ✅ released 2026-11-20 ([notes](releases/v1.5.3.md), [device check](releases/v1.5.3-check.md)): swipe between the Catalog tabs, search modes and library categories; switch a chapter's translation team from the reader (MangaLib, RanobeLib); SlashLib in manga mode; a Continue reading or History cover opens the title page; the text reader's title opens the title page; RanobeLib and MangaLib descriptions sent as rich text show again.
+**v1.5.3: swipe tabs and translations** ✅ released 2026-11-20 ([notes](releases/v1.5.3.md), [device check](releases/checks/v1.5.3-check.md)): swipe between the Catalog tabs, search modes and library categories; switch a chapter's translation team from the reader (MangaLib, RanobeLib); SlashLib in manga mode; a Continue reading or History cover opens the title page; the text reader's title opens the title page; RanobeLib and MangaLib descriptions sent as rich text show again.
 
 **v1.5.2: still reader sheets** ✅ released 2026-11-20 ([notes](releases/v1.5.2.md)): the reader's settings, chapter list and bookmarks sheets no longer twitch up and down after a slow drag or on their own; every sheet now goes through one `LumeBottomSheet` with the fix, and a test fails the build on a sheet that bypasses it. No device check: released on the user's request without emulator tests.
 
-**v1.5.1: ranobe trackers and search** ✅ released 2026-11-20 ([notes](releases/v1.5.1.md), [device check](releases/v1.5.1-check.md)): Ranobe mode lists only the trackers with novel lists, tracker search results show their format and year, search in Ranobe mode looks only at novel sources, and the reader's settings sheet closes after a slow drag.
+**v1.5.1: ranobe trackers and search** ✅ released 2026-11-20 ([notes](releases/v1.5.1.md), [device check](releases/checks/v1.5.1-check.md)): Ranobe mode lists only the trackers with novel lists, tracker search results show their format and year, search in Ranobe mode looks only at novel sources, and the reader's settings sheet closes after a slow drag.
 
-**v1.5.0: novel trackers** ✅ released 2026-11-19 ([notes](releases/v1.5.0.md), [device check](releases/v1.5.0-check.md)): novel lists on AniList, MyAnimeList and Shikimori, Royal Road and Scribble Hub filters, readable error messages with an Android-side parser test, and text reader settings saved for one title.
+**v1.5.0: novel trackers** ✅ released 2026-11-19 ([notes](releases/v1.5.0.md), [device check](releases/checks/v1.5.0-check.md)): novel lists on AniList, MyAnimeList and Shikimori, Royal Road and Scribble Hub filters, readable error messages with an Android-side parser test, and text reader settings saved for one title.
 
 **v1.4.2: reader settings reset** ✅ released 2026-11-19 ([notes](releases/v1.4.2.md)): a "Reset to defaults" button in the manga and text reader settings and in Settings → Reader; the manga one also drops the open title's own reader settings.
 
@@ -290,17 +290,17 @@ Sync moves your library and progress, never the downloaded pages. This moves the
 
 **v1.4.0: English novel sources** ✅ released 2026-11-19 ([notes](releases/v1.4.0.md); no device check yet): Royal Road and Scribble Hub in Ranobe mode, with chapter text, downloads and links.
 
-**v1.3.0: paged reader and ranobe build** ✅ released 2026-11-19 ([notes](releases/v1.3.0.md), [device check](releases/v1.3.0-check.md)): a page-by-page mode in the text reader, novel downloads sent to a nearby phone, and a third build with the novel mode only.
+**v1.3.0: paged reader and ranobe build** ✅ released 2026-11-19 ([notes](releases/v1.3.0.md), [device check](releases/checks/v1.3.0-check.md)): a page-by-page mode in the text reader, novel downloads sent to a nearby phone, and a third build with the novel mode only.
 
-**v1.2.0: RanobeLib and novel downloads** ✅ released 2026-11-17 ([notes](releases/v1.2.0.md), [device check](releases/v1.2.0-check.md)): RanobeLib in Ranobe mode on the shared Lib client, novel chapters downloaded as text with their pictures, Ranobe out of preview.
+**v1.2.0: RanobeLib and novel downloads** ✅ released 2026-11-17 ([notes](releases/v1.2.0.md), [device check](releases/checks/v1.2.0-check.md)): RanobeLib in Ranobe mode on the shared Lib client, novel chapters downloaded as text with their pictures, Ranobe out of preview.
 
-**v1.1.2: Lib chapter fixes** ✅ released 2026-11-17 ([notes](releases/v1.1.2.md), [device check](releases/v1.1.2-check.md)): paid early-access chapters on the Lib sites are no longer listed; 12-bit AVIF pages (green stripes) load as JPEG from the site's mirror.
+**v1.1.2: Lib chapter fixes** ✅ released 2026-11-17 ([notes](releases/v1.1.2.md), [device check](releases/checks/v1.1.2-check.md)): paid early-access chapters on the Lib sites are no longer listed; 12-bit AVIF pages (green stripes) load as JPEG from the site's mirror.
 
-**v1.1.1: settings per mode** ✅ released 2026-11-17 ([notes](releases/v1.1.1.md), [device check](releases/v1.1.1-check.md)): settings follow the reading mode, with the text reader's defaults in Ranobe; similar titles open on the source you read; 18+ sources off in global search by default.
+**v1.1.1: settings per mode** ✅ released 2026-11-17 ([notes](releases/v1.1.1.md), [device check](releases/checks/v1.1.1-check.md)): settings follow the reading mode, with the text reader's defaults in Ranobe; similar titles open on the source you read; 18+ sources off in global search by default.
 
-**v1.1.0: novel reader and local books** ✅ released 2026-11-17 ([notes](releases/v1.1.0.md), [device check](releases/v1.1.0-check.md)): EPUB and TXT books from files and folders, and a scrolling text reader with themes and your place kept to the paragraph.
+**v1.1.0: novel reader and local books** ✅ released 2026-11-17 ([notes](releases/v1.1.0.md), [device check](releases/checks/v1.1.0-check.md)): EPUB and TXT books from files and folders, and a scrolling text reader with themes and your place kept to the paragraph.
 
-**v1.0.0: reading modes** ✅ released 2026-11-17 ([notes](releases/v1.0.0.md), [device check](releases/v1.0.0-check.md)): the app split into modules, a long press on the logo switches between Manga and a Ranobe preview, and two builds (full and manga only).
+**v1.0.0: reading modes** ✅ released 2026-11-17 ([notes](releases/v1.0.0.md), [device check](releases/checks/v1.0.0-check.md)): the app split into modules, a long press on the logo switches between Manga and a Ranobe preview, and two builds (full and manga only).
 
 **v0.9.16: filter sheet fling** ✅ released 2026-11-14 ([notes](releases/v0.9.16.md)): the filter sheet no longer springs up and down after a hard swipe.
 
@@ -768,7 +768,7 @@ Release notes: [docs/releases/v0.7.10.md](releases/v0.7.10.md). From the full au
 
 ### v0.7.11: reader and navigation ✅ released 2026-11-01
 
-Release notes: [docs/releases/v0.7.11.md](releases/v0.7.11.md). From the full audit of v0.7.9 (static findings 9, 12, 14 and 17); device check in [v0.7.11-check.md](releases/v0.7.11-check.md).
+Release notes: [docs/releases/v0.7.11.md](releases/v0.7.11.md). From the full audit of v0.7.9 (static findings 9, 12, 14 and 17); device check in [v0.7.11-check.md](releases/checks/v0.7.11-check.md).
 
 - ✅ **Tall pages:** in webtoon mode, a page still taller than 4096 px after Coil's capped decode is redrawn with `BitmapRegionDecoder` in slices of at most 2048 decoded px (`ReaderTallPage`, `TallPageTiles`). Old Asura chapters draw on the emulator; a page over 4096 px wasn't confirmed to take the slice path on the device (unit tests cover the slice math).
 - ✅ **Navigation:** `openLink` pushes non-tab routes with `launchSingleTop`, replaces an open reader, and keeps tab routes on `navigateToTab`; menu entries use `launchSingleTop`.
@@ -780,7 +780,7 @@ Release notes: [docs/releases/v0.7.11.md](releases/v0.7.11.md). From the full au
 
 ### v0.7.12: polish ✅ released 2026-11-01
 
-Release notes: [docs/releases/v0.7.12.md](releases/v0.7.12.md). From the full audit of v0.7.9 (static findings 10, 11, 13, 15, 16, 18 and 19, plus the menu redesign); device check in [v0.7.12-check.md](releases/v0.7.12-check.md).
+Release notes: [docs/releases/v0.7.12.md](releases/v0.7.12.md). From the full audit of v0.7.9 (static findings 10, 11, 13, 15, 16, 18 and 19, plus the menu redesign); device check in [v0.7.12-check.md](releases/checks/v0.7.12-check.md).
 
 - ✅ **Downloads:** unique `(sourceId, titleId, chapterId)` index (migration 10 → 11, duplicates dropped first); WorkManager 2.12 already stops the dataSync worker on `onTimeout`, and stopped rows go back to pending.
 - ✅ **Library check:** failed and checked counts, `retry()` when every title fails, shown on Updates.
@@ -793,7 +793,7 @@ Release notes: [docs/releases/v0.7.12.md](releases/v0.7.12.md). From the full au
 
 ### v0.7.13: chips and leftovers ✅ released 2026-11-03
 
-Release notes: [docs/releases/v0.7.13.md](releases/v0.7.13.md); device check in [v0.7.13-check.md](releases/v0.7.13-check.md).
+Release notes: [docs/releases/v0.7.13.md](releases/v0.7.13.md); device check in [v0.7.13-check.md](releases/checks/v0.7.13-check.md).
 
 - ✅ **Genres:** `FilterList.withGenre` and `browse/{sourceId}?genre=`; a text search when the source has no such filter.
 - ✅ **Library:** filter chips (`LibrarySettings.filterChips`), bulk bell (`planBulkBell`, pool of 20), Continue button (`continueButton`, off by default).
@@ -805,7 +805,7 @@ Release notes: [docs/releases/v0.7.13.md](releases/v0.7.13.md); device check in 
 
 ### v0.7.14: UI fixes, part one ✅ released 2026-11-06
 
-Release notes: [docs/releases/v0.7.14.md](releases/v0.7.14.md); device check in [v0.7.14-check.md](releases/v0.7.14-check.md).
+Release notes: [docs/releases/v0.7.14.md](releases/v0.7.14.md); device check in [v0.7.14-check.md](releases/checks/v0.7.14-check.md).
 
 - ✅ **Theme:** `outline`, `accentText` and `selection` tokens; full `schemeOf` role map; light and dark window themes.
 - ✅ **System bars:** `ui/theme/SystemBars.kt` in all three activities; the reader forces light-content bars.
@@ -817,7 +817,7 @@ Release notes: [docs/releases/v0.7.14.md](releases/v0.7.14.md); device check in 
 
 ### v0.7.16: Home and source fixes ✅ released 2026-11-07
 
-Release notes: [docs/releases/v0.7.16.md](releases/v0.7.16.md); device check in [v0.7.16-check.md](releases/v0.7.16-check.md).
+Release notes: [docs/releases/v0.7.16.md](releases/v0.7.16.md); device check in [v0.7.16-check.md](releases/checks/v0.7.16-check.md).
 
 - ✅ **Home:** history from `HomeViewModel` (eager `StateFlow`) and stable keys for static items, so "Continue reading" is there in the first frame.
 - ✅ **ReManga:** `/api/v2/` for catalogue, search, title, chapters and pages; paging by `next`; Popular and the default sort by `-votes`. Live check passes (images are geo-blocked from the build machine).
@@ -826,7 +826,7 @@ Release notes: [docs/releases/v0.7.16.md](releases/v0.7.16.md); device check in 
 
 ### v0.7.15: UI fixes, part two ✅ released 2026-11-06
 
-Release notes: [docs/releases/v0.7.15.md](releases/v0.7.15.md); device check in [v0.7.15-check.md](releases/v0.7.15-check.md).
+Release notes: [docs/releases/v0.7.15.md](releases/v0.7.15.md); device check in [v0.7.15-check.md](releases/checks/v0.7.15-check.md).
 
 - ✅ **Text (X1-X12):** `maxLines` + ellipsis, `heightIn(min)` instead of fixed heights, `FlowRow` for menu chips and update dialog buttons, centred `EmptyBox` / `ErrorRetryBox`.
 - ✅ **Touch targets (S1-S7):** `minimumInteractiveComponentSize()` on chips, Continue button and small buttons.
@@ -838,7 +838,7 @@ Release notes: [docs/releases/v0.7.15.md](releases/v0.7.15.md); device check in 
 
 ### v0.8.0: reader 2.0 ✅ released 2026-11-07
 
-Release notes: [docs/releases/v0.8.0.md](releases/v0.8.0.md); device check in [v0.8.0-check.md](releases/v0.8.0-check.md).
+Release notes: [docs/releases/v0.8.0.md](releases/v0.8.0.md); device check in [v0.8.0-check.md](releases/checks/v0.8.0-check.md).
 
 - ✅ **Image pipeline:** Coil 3 (`image_cache_v3`), Telephoto for the paged modes, webtoon detail through `zoomedVisibleRegion` and `PageDetail`, `preloadPages` with sizes learned on the way.
 - ✅ **Layouts:** `StripLayout` (split pages, spreads, lone cover), crop through `PageFit.placeRegion`, previous chapter above in seamless webtoon, two-pane title screen at 840 dp.
@@ -857,7 +857,7 @@ Release notes: [docs/releases/v0.8.1.md](releases/v0.8.1.md).
 
 ### v0.9.0: CBR, CB7 and PDF ✅ released 2026-11-08
 
-Release notes: [docs/releases/v0.9.0.md](releases/v0.9.0.md); device check in [v0.9.0-check.md](releases/v0.9.0-check.md).
+Release notes: [docs/releases/v0.9.0.md](releases/v0.9.0.md); device check in [v0.9.0-check.md](releases/checks/v0.9.0-check.md).
 
 - ✅ **Archives:** `data/local/archive` (`ArchiveReader` for ZIP, RAR through junrar, 7z through Commons Compress), picked by magic bytes; one archive check for the importer, the local engine and downloads.
 - ✅ **PDF:** `lume-pdf://` page URLs drawn by `PdfPageFetcher` through a shared `PdfRendererPool`, bitmaps capped at 8M pixels; `pageData(url)` in the reader, analyzer and bookmarks.
@@ -868,7 +868,7 @@ Release notes: [docs/releases/v0.9.0.md](releases/v0.9.0.md); device check in [v
 
 ### v0.9.1: watched folders ✅ released 2026-11-08
 
-Release notes: [docs/releases/v0.9.1.md](releases/v0.9.1.md); device check in [v0.9.1-check.md](releases/v0.9.1-check.md).
+Release notes: [docs/releases/v0.9.1.md](releases/v0.9.1.md); device check in [v0.9.1-check.md](releases/checks/v0.9.1-check.md).
 
 - ✅ **Watched folders** in Settings → Library → Local files: add, remove, "Scan now" and a scan interval (off, 6, 12 or 24 hours) run by `FolderScanWorker`.
 - ✅ **Import ledger** (`imported_files`, Room 13): only new and changed files are copied; a scan that finds chapters posts "N new chapters".
@@ -878,7 +878,7 @@ Release notes: [docs/releases/v0.9.1.md](releases/v0.9.1.md); device check in [v
 
 ### v0.9.2: self-hosted servers ✅ released 2026-11-08
 
-Release notes: [docs/releases/v0.9.2.md](releases/v0.9.2.md); device check in [v0.9.2-check.md](releases/v0.9.2-check.md).
+Release notes: [docs/releases/v0.9.2.md](releases/v0.9.2.md); device check in [v0.9.2-check.md](releases/checks/v0.9.2-check.md).
 
 - ✅ **Add server** in Sources: OPDS, Komga or Kavita, with edit and remove; servers are stored like source packs (no database change).
 - ✅ **Sign-ins** encrypted with an Android Keystore key (`ServerCredentialStore`), sent only to the server's own scheme, host and port (`ServerAuthInterceptor`); no session cookies for servers; a saved sign-in is kept on edit only while the server's address stays on the same origin.
@@ -890,7 +890,7 @@ Release notes: [docs/releases/v0.9.2.md](releases/v0.9.2.md); device check in [v
 
 ### v0.9.3: InkStory ✅ released 2026-11-10
 
-Release notes: [docs/releases/v0.9.3.md](releases/v0.9.3.md); device check in [v0.9.3-check.md](releases/v0.9.3-check.md).
+Release notes: [docs/releases/v0.9.3.md](releases/v0.9.3.md); device check in [v0.9.3-check.md](releases/checks/v0.9.3-check.md).
 
 - ✅ **InkStory** (`InkStoryEngine`): popular, latest, search, sort, genre and tag filters, details, chapters from every team, pages. The data comes from the page the server renders (no public API); objects are found by field name.
 - ✅ Restricted titles are left out of lists, paid chapters are skipped, and a restricted title opened from a link gives a clear error.
@@ -900,13 +900,13 @@ Release notes: [docs/releases/v0.9.3.md](releases/v0.9.3.md); device check in [v
 
 ### v0.9.4: sharp webtoon strips ✅ released 2026-11-10
 
-Release notes: [docs/releases/v0.9.4.md](releases/v0.9.4.md); device check in [v0.9.4-check.md](releases/v0.9.4-check.md).
+Release notes: [docs/releases/v0.9.4.md](releases/v0.9.4.md); device check in [v0.9.4-check.md](releases/checks/v0.9.4-check.md).
 
 - ✅ **Long strips sharp in webtoon mode.** Since Coil 3 a strip was fitted into the 4096 px height cap, so it never switched to full-resolution slices and looked blurry. Tallness is now judged by the page's shape at screen width (`isTallAtWidth`).
 
 ### v0.9.5: smooth webtoon drags ✅ released 2026-11-10
 
-Release notes: [docs/releases/v0.9.5.md](releases/v0.9.5.md); device check in [v0.9.5-check.md](releases/v0.9.5-check.md).
+Release notes: [docs/releases/v0.9.5.md](releases/v0.9.5.md); device check in [v0.9.5-check.md](releases/checks/v0.9.5-check.md).
 
 - ✅ **Slices in GPU memory.** Slices and zoom detail are hardware bitmaps (`decodeForDrawing`), so the first frame of a drag doesn't upload them again.
 - ✅ **No blank while sharpening.** The normal page bitmap stays under the slices until they're decoded.
@@ -914,7 +914,7 @@ Release notes: [docs/releases/v0.9.5.md](releases/v0.9.5.md); device check in [v
 
 ### v0.9.6: library and stats ✅ released 2026-11-11
 
-Release notes: [docs/releases/v0.9.6.md](releases/v0.9.6.md); device check in [v0.9.6-check.md](releases/v0.9.6-check.md).
+Release notes: [docs/releases/v0.9.6.md](releases/v0.9.6.md); device check in [v0.9.6-check.md](releases/checks/v0.9.6-check.md).
 
 - ✅ **Reading statistics**: chapters, pages and reading time, total, per month and per title (database 13 → 14, new `reading_sessions` table; in the JSON backup, not synced).
 - ✅ **One notification per title** under a group summary, replaced by the next check; "Notify for categories" mutes categories.
@@ -923,7 +923,7 @@ Release notes: [docs/releases/v0.9.6.md](releases/v0.9.6.md); device check in [v
 
 ### v0.9.7: imports and folders ✅ released 2026-11-11
 
-Release notes: [docs/releases/v0.9.7.md](releases/v0.9.7.md); device check in [v0.9.7-check.md](releases/v0.9.7-check.md).
+Release notes: [docs/releases/v0.9.7.md](releases/v0.9.7.md); device check in [v0.9.7-check.md](releases/checks/v0.9.7-check.md).
 
 - ✅ **Kotatsu backups**: favourites and categories; titles of sources Lume doesn't have are listed. No reading history (chapter hashes, no numbers).
 - ✅ **Tracker reading list** (AniList, MyAnimeList): matched like "Found for you", linked, read up to the tracker's progress.
@@ -944,14 +944,14 @@ Release notes: [docs/releases/v0.9.8.md](releases/v0.9.8.md).
 
 ### v1.1.2: Lib chapter fixes ✅ released 2026-11-17
 
-Release notes: [docs/releases/v1.1.2.md](releases/v1.1.2.md). Device check: [docs/releases/v1.1.2-check.md](releases/v1.1.2-check.md).
+Release notes: [docs/releases/v1.1.2.md](releases/v1.1.2.md). Device check: [docs/releases/checks/v1.1.2-check.md](releases/checks/v1.1.2-check.md).
 
 - ✅ **Paid chapters**: translations with `restricted_view.is_open` false are skipped, and chapters with none open are left out of the list and updates.
 - ✅ **12-bit AVIF pages**: the first page's `av1C` box is read; anything but the AV1 Main profile loads that chapter from the JPEG mirror.
 
 ### v1.1.1: settings per mode ✅ released 2026-11-17
 
-Release notes: [docs/releases/v1.1.1.md](releases/v1.1.1.md). Device check: [docs/releases/v1.1.1-check.md](releases/v1.1.1-check.md).
+Release notes: [docs/releases/v1.1.1.md](releases/v1.1.1.md). Device check: [docs/releases/checks/v1.1.1-check.md](releases/checks/v1.1.1-check.md).
 
 - ✅ **Settings per mode**: sections and settings carry the modes they apply to; Ranobe hides downloads, trackers, similar titles and finding other sources, and its Reader page holds the text reader's defaults. Settings search follows the mode.
 - ✅ **Similar titles on the open source**: one exact name match opens, other results open as that source's search, nothing found offers global search.
@@ -959,7 +959,7 @@ Release notes: [docs/releases/v1.1.1.md](releases/v1.1.1.md). Device check: [doc
 
 ### v1.1.0: novel reader and local books ✅ released 2026-11-17
 
-Release notes: [docs/releases/v1.1.0.md](releases/v1.1.0.md). Device check: [docs/releases/v1.1.0-check.md](releases/v1.1.0-check.md).
+Release notes: [docs/releases/v1.1.0.md](releases/v1.1.0.md). Device check: [docs/releases/checks/v1.1.0-check.md](releases/checks/v1.1.0-check.md).
 
 - ✅ **Local books**: EPUB 2/3 and TXT (UTF-8 or Windows-1251, chapters from headings) as the Local books source; "Import books…", folder import and watched folders.
 - ✅ **Text reader**: scroll mode, tap zones, seamless next chapter, chapter list, text settings and five themes; position as block and fraction, with History, Continue reading, read marks and reading time.
@@ -968,7 +968,7 @@ Release notes: [docs/releases/v1.1.0.md](releases/v1.1.0.md). Device check: [doc
 
 ### v1.0.0: reading modes ✅ released 2026-11-17
 
-Release notes: [docs/releases/v1.0.0.md](releases/v1.0.0.md). Device check: [docs/releases/v1.0.0-check.md](releases/v1.0.0-check.md).
+Release notes: [docs/releases/v1.0.0.md](releases/v1.0.0.md). Device check: [docs/releases/checks/v1.0.0-check.md](releases/checks/v1.0.0-check.md).
 
 - ✅ **Modules**: the single app module split into core and feature modules; package names unchanged.
 - ✅ **Media kinds**: `MediaKind`, `ContentModule`, `ComicSource`; database migration 15→16 marks existing rows as comics; backups and sync carry the kind.
@@ -994,7 +994,7 @@ Release notes: [docs/releases/v0.9.15.md](releases/v0.9.15.md).
 
 ### v0.9.14: search and chapters ahead ✅ released 2026-11-14
 
-Release notes: [docs/releases/v0.9.14.md](releases/v0.9.14.md). Device check: [docs/releases/v0.9.14-check.md](releases/v0.9.14-check.md).
+Release notes: [docs/releases/v0.9.14.md](releases/v0.9.14.md). Device check: [docs/releases/checks/v0.9.14-check.md](releases/checks/v0.9.14-check.md).
 
 - ✅ **Chapters loaded ahead** (Off / 1 / 2): images one at a time with random pauses and backoff, downloaded chapters skipped, page lists reused so the cache is found.
 - ✅ **Search ranking**: name and alternative-name matches before titles that only mention the words.
@@ -1004,7 +1004,7 @@ Release notes: [docs/releases/v0.9.14.md](releases/v0.9.14.md). Device check: [d
 
 ### v0.9.13: quality pass ✅ released 2026-11-12
 
-Release notes: [docs/releases/v0.9.13.md](releases/v0.9.13.md). Device check: [docs/releases/v0.9.13-check.md](releases/v0.9.13-check.md).
+Release notes: [docs/releases/v0.9.13.md](releases/v0.9.13.md). Device check: [docs/releases/checks/v0.9.13-check.md](releases/checks/v0.9.13-check.md).
 
 - ✅ **Genre filter in the library** (database 14 → 15, genres per title, filled when a title is opened or updated).
 - ✅ **QR code for nearby sending** (ZXing, Apache-2.0); Wi-Fi Direct and the hotspot stay ⏸️.
