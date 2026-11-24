@@ -25,20 +25,22 @@ Tracker keys (`LUME_*`) are optional; without them only tracker sign-in is missi
 
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) gives the overview. In short:
 
-- Kotlin, Jetpack Compose, Room, DataStore, WorkManager, Coil 2, OkHttp and jsoup.
+- Gradle modules: `:core:model`, `:core:common`, `:core:data`, `:core:ui`, `:core:translate`, `:feature:comics` (manga mode), `:feature:novel` (ranobe mode), `:app` (assembles the `full`, `manga` and `ranobe` flavors) and `:translate-addon` (the Lume Translate app).
+- Kotlin, Jetpack Compose, Room, DataStore, WorkManager, Coil 3, Telephoto, Media3, OkHttp and jsoup.
 - Shared objects come from `AppContainer`: `LocalAppContainer` in composables, the constructor in ViewModels. Don't add new `LumeApp.instance` lookups.
 - Screen state lives in ViewModels (`mutableStateOf`); database streams are `StateFlow`s.
 - Animation specs come from `ui/theme/Motion.kt`.
-- Sources are Kotlin engines in `data/source/`. New site families need an engine; a new site of a supported family only needs a JSON pack ([docs/ENGINES.md](docs/ENGINES.md)).
+- Bottom sheets use `LumeBottomSheet` (`core/ui`), never Material's `ModalBottomSheet` directly; a test fails the build otherwise.
+- Sources are Kotlin engines in `data/source/` of `:feature:comics` or `:feature:novel`. New site families need an engine; a new site of a supported family only needs a JSON pack ([docs/ENGINES.md](docs/ENGINES.md)).
 
 ## Rules for changes
 
 - **Strings:** every new UI string goes into both `res/values/strings.xml` (English) and `res/values-ru/strings.xml` (Russian). Use `plurals` for counted text.
 - **Database:** Room changes are additive migrations only.
   - Add the migration to `LumeDatabase.MIGRATIONS`.
-  - Commit the exported schema in `app/schemas/`.
-  - Extend `app/src/sharedTest/java/com/lume/app/data/db/MigrationTest.kt`.
-- **Tests:** pure logic gets JVM tests in `app/src/test/`.
+  - Commit the exported schema in `core/data/schemas/`.
+  - Extend `core/data/src/sharedTest/java/com/lume/app/data/db/MigrationTest.kt`.
+- **Tests:** pure logic gets JVM tests in the module that owns the code (`core/data/src/test/`, `feature/novel/src/test/`, …).
 - **Style:** match the code around your change. Keep changes focused.
 - **Docs:** update `docs/` when the behaviour of engines, packs or user-facing features changes.
 - **Never commit** `local.properties`, signing keys, OAuth secrets, APKs, IDE files or personal scripts.
@@ -48,8 +50,10 @@ Tracker keys (`LUME_*`) are optional; without them only tracker sign-in is missi
 Run what CI runs before opening a pull request:
 
 ```bash
-./gradlew :core:model:test :core:data:testDebugUnitTest :core:ui:testDebugUnitTest :feature:comics:testDebugUnitTest :feature:novel:testDebugUnitTest :app:assembleDebug :app:testFullDebugUnitTest :app:testMangaDebugUnitTest :app:lintFullDebug :app:lintMangaDebug :app:assembleFullRelease :app:assembleMangaRelease
+./gradlew :core:model:test :core:common:testDebugUnitTest :core:data:testDebugUnitTest :core:ui:testDebugUnitTest :core:translate:testDebugUnitTest :feature:comics:testDebugUnitTest :feature:novel:testDebugUnitTest :app:assembleDebug :app:testFullDebugUnitTest :app:testMangaDebugUnitTest :app:testRanobeDebugUnitTest :app:lintFullDebug :app:lintMangaDebug :app:lintRanobeDebug
 ```
+
+CI also runs lint on every module, the Roborazzi screenshot tests and the three release builds.
 
 - On Windows the Room migration test is skipped on the JVM; CI (Linux) runs it. To run it locally, use a device or emulator: `./gradlew :core:data:connectedDebugAndroidTest`.
 - To check the built-in sources against the live sites: `./gradlew :feature:comics:testDebugUnitTest -Plume.live` (add `-Plume.live.sources=mangadex,asura` for a subset). A weekly workflow does the same.
@@ -64,7 +68,7 @@ Run what CI runs before opening a pull request:
 
 ## Releases
 
-Maintainers only. Each release bumps `versionCode` and `versionName` in `app/build.gradle.kts`, adds `docs/releases/vX.Y.Z.md` and updates the roadmap marks. The signed APK is attached to the GitHub release as `lume-vX.Y.Z.apk`.
+Maintainers only; the steps are in [docs/RELEASING.md](docs/RELEASING.md). In short: bump `lume.versionCode` and `lume.versionName` in `gradle.properties`, add `docs/releases/vX.Y.Z.md`, update the roadmap, then push a `vX.Y.Z` tag. The release workflow builds, signs and publishes `lume-vX.Y.Z-full.apk`, `-manga.apk` and `-ranobe.apk`, each with a `.sha256`. The Lume Translate add-on has its own `translate-vX.Y.Z` releases.
 
 ## License
 
