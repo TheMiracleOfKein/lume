@@ -249,6 +249,10 @@ class SettingsViewModel(private val app: AppContainer) : ViewModel() {
         viewModelScope.launch { prefs.setSecureScreen(value) }
     }
 
+    fun setRemoteHosts(value: Boolean) {
+        viewModelScope.launch { prefs.setRemoteHosts(value) }
+    }
+
     fun setDoh(id: String) {
         viewModelScope.launch {
             prefs.setDnsOverHttps(id)

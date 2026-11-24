@@ -271,6 +271,8 @@ class AppPreferences(
     private val appLockKey = booleanPreferencesKey("app_lock")
     private val secureScreenKey = booleanPreferencesKey("secure_screen")
     private val dohKey = stringPreferencesKey("dns_over_https")
+    private val remoteHostsKey = booleanPreferencesKey("remote_hosts")
+    private val hostsFetchedAtKey = longPreferencesKey("hosts_fetched_at")
     private val translateLabelsKey = booleanPreferencesKey("translate_chapter_labels")
     private val storyIndexKey = booleanPreferencesKey("story_index")
     private val recapAfterHoursKey = intPreferencesKey("recap_after_hours")
@@ -379,6 +381,12 @@ class AppPreferences(
     /** DNS over HTTPS provider id ("" = the system resolver); see `data/network/Doh.kt`. */
     val dnsOverHttps: StateFlow<String> = state { it[dohKey].orEmpty() }
 
+    /** Source addresses are refreshed from the hosts file (`docs/packs/hosts.json`); on by default. */
+    val remoteHosts: StateFlow<Boolean> = state { it[remoteHostsKey] ?: true }
+
+    /** When the hosts file was last downloaded (epoch millis), 0 if never. */
+    val hostsFetchedAt: StateFlow<Long> = state { it[hostsFetchedAtKey] ?: 0L }
+
     /** Russian-only chapter labels ("Том 1 Глава 5") are shown in the app language. */
     val translateChapterLabels: StateFlow<Boolean> = state { it[translateLabelsKey] ?: true }
 
@@ -431,6 +439,14 @@ class AppPreferences(
 
     suspend fun setDnsOverHttps(value: String) {
         context.appDataStore.edit { it[dohKey] = value }
+    }
+
+    suspend fun setRemoteHosts(value: Boolean) {
+        context.appDataStore.edit { it[remoteHostsKey] = value }
+    }
+
+    suspend fun setHostsFetchedAt(value: Long) {
+        context.appDataStore.edit { it[hostsFetchedAtKey] = value }
     }
 
     suspend fun setTranslateChapterLabels(value: Boolean) {

@@ -893,6 +893,8 @@
     <string name="settings_secure_screen">Hide in recent apps</string>
     <string name="settings_secure_screen_hint">Blank preview in the app switcher; screenshots are blocked</string>
     <string name="settings_section_network">Network and storage</string>
+    <string name="settings_remote_hosts">Update source addresses</string>
+    <string name="settings_remote_hosts_hint">When a site moves to a new address, Lume learns it from a small list on GitHub, without an app update. Only addresses are fetched.</string>
     <string name="settings_doh">DNS over HTTPS</string>
     <string name="settings_doh_off">Off</string>
     <string name="settings_doh_hint">Helps when your provider blocks sites by DNS</string>
@@ -1091,6 +1093,7 @@
     <string name="settings_kw_app_lock">fingerprint, pin, password, biometric, security</string>
     <string name="settings_kw_secure_screen">screenshot, recent apps, privacy</string>
     <string name="settings_kw_doh">dns, block, provider, cloudflare, google</string>
+    <string name="settings_kw_remote_hosts">address, host, domain, mirror, api, update, blocked</string>
     <string name="settings_kw_cache">space, images, covers, storage</string>
     <string name="settings_kw_cookies">sign out, cloudflare, sites, webview</string>
     <string name="settings_kw_about">version, licenses, open source, github</string>

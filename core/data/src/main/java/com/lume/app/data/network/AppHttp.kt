@@ -46,6 +46,9 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
     /** System DNS or DNS over HTTPS (Settings → Network). */
     val dns = SwitchableDns()
 
+    /** Other addresses to try when a source's host does not answer. */
+    val hostFallback = HostFallback()
+
     @Volatile
     var userAgent: String = DEFAULT_UA
         private set
@@ -68,6 +71,7 @@ class AppHttp(private val cookieJar: CookieJar = WebViewCookieJar()) {
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(45, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
+        .addInterceptor(HostFallbackInterceptor(hostFallback))
         .addInterceptor(ImageDecryptInterceptor())
         .addInterceptor(rateLimiter)
         .addInterceptor(RetryInterceptor())

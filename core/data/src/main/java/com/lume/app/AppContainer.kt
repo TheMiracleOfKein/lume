@@ -66,7 +66,8 @@ class AppContainer(
     /** Full text of recent errors (Sources → Error log), kept only on the phone. */
     val errorLog = com.lume.app.data.ErrorLog(app.filesDir.resolve("error_log.json"), appScope)
 
-    val sources = SourceRegistry(app, http, prefs, dao, libAuth, imageReferers, serverCredentials, scope = appScope, errorLog = errorLog, modules = installedModules)
+    val sourceHosts = com.lume.app.data.source.SourceHosts(app, http, prefs)
+    val sources = SourceRegistry(app, http, prefs, dao, libAuth, imageReferers, serverCredentials, scope = appScope, errorLog = errorLog, modules = installedModules, hosts = sourceHosts)
     val safStorage = com.lume.app.data.downloads.SafStorage(app)
     val downloads = DownloadStore(app, dao, http, prefs, safStorage)
     val offlineCache = OfflineTitleCache(dao)
@@ -97,6 +98,31 @@ class AppContainer(
     val continueReading = com.lume.app.data.continuity.ContinueReading(app, dao, prefs, { app.imageLoader }, appScope)
 
     /** Background start-up work: sources, download recovery, the library schedule. */
+    /**
+     * Source addresses from the hosts file: fetched at start (at most every 6 hours), again soon
+     * after a host did not answer, and cleared when the setting is turned off.
+     */
+    private fun watchHosts() {
+        http.hostFallback.onHostFailure = {
+            appScope.launch(Dispatchers.IO) {
+                if (sourceHosts.refresh(HOSTS_RETRY_AFTER)) sources.applyHosts()
+            }
+        }
+        appScope.launch(Dispatchers.IO) {
+            var first = true
+            prefs.remoteHosts.collect { on ->
+                if (on) {
+                    val age = if (first) com.lume.app.data.source.SourceHosts.REFRESH_EVERY else 0L
+                    if (sourceHosts.refresh(age)) sources.applyHosts()
+                } else if (!first) {
+                    sourceHosts.clear()
+                    sources.applyHosts()
+                }
+                first = false
+            }
+        }
+    }
+
     fun start() {
         com.lume.app.domain.ChapterLabels.volume = { com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_volume, it) }
         com.lume.app.domain.ChapterLabels.chapter = { com.lume.app.data.locale.appString(com.lume.app.R.string.chapter_number, it) }
@@ -116,6 +142,7 @@ class AppContainer(
         appScope.launch(Dispatchers.IO) {
             runCatching { libAuth.sealStored() }
             sources.load()
+            watchHosts()
             val recovered = downloads.recoverFromDisk()
             if (recovered > 0) {
                 android.util.Log.i("LumeApp", "Recovered $recovered download(s) from disk")
@@ -144,3 +171,6 @@ class AppContainer(
     }
 }
 
+
+/** After a host failed, the hosts file is looked at again, but not more often than this. */
+private const val HOSTS_RETRY_AFTER = 15L * 60 * 1000

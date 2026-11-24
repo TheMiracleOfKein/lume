@@ -22,8 +22,11 @@ import com.lume.app.domain.ComicPage
 import com.lume.app.domain.FilterList
 import com.lume.app.domain.HomeFeed
 import com.lume.app.domain.PackEntry
+import com.lume.app.domain.HostOverrides
+import com.lume.app.domain.HostsFile
 import com.lume.app.domain.PackIndex
 import com.lume.app.domain.resolvePackUrl
+import com.lume.app.domain.withHosts
 import com.lume.app.domain.withSettings
 import com.lume.app.domain.PagedResult
 import com.lume.app.domain.TitleDetails
@@ -51,6 +54,7 @@ class SourceRegistry(
     scope: kotlinx.coroutines.CoroutineScope? = null,
     errorLog: com.lume.app.data.ErrorLog? = null,
     private val modules: List<ContentModule>,
+    private val hosts: SourceHosts? = null,
 ) {
     private val bundledIds = mutableSetOf<String>()
 
@@ -80,7 +84,40 @@ class SourceRegistry(
 
     fun isBundled(id: String): Boolean = id in bundledIds || id == SourceEngines.LOCAL || id == SourceEngines.LOCAL_NOVEL
 
+    /** The hosts file with only what is safe for these sources (see [HostOverrides.sanitize]). */
+    private fun activeHosts(): HostsFile {
+        val file = hosts?.file?.value ?: return HostsFile()
+        // A Lib sign-in goes to the API host, so a Lib source (or the Lib engines) is held to the
+        // trusted domains. An entry is only used for a source already in baseManifests, so its key is known.
+        return HostOverrides.sanitize(file) { key ->
+            SourceEngines.isLib(baseManifests[key]?.engine ?: key)
+        }
+    }
+
+    /** Sources with an address of their own (servers, local files) never take one from the hosts file. */
+    private fun hostEntry(base: SourceManifest): com.lume.app.domain.HostEntry? {
+        if (hosts == null || SourceEngines.isServer(base.engine) || SourceEngines.isLocal(base.engine)) return null
+        return HostOverrides.entryFor(activeHosts(), base)
+    }
+
+    /**
+     * Takes the addresses of the current hosts file: rebuilds the engines whose address changed
+     * and tells the HTTP client where to go when a host does not answer.
+     */
+    suspend fun applyHosts() {
+        val active = activeHosts()
+        http.hostFallback.set(active.fallbacks)
+        val next = _sources.value.toMutableList()
+        for (base in baseManifests.values.toList()) {
+            if (SourceEngines.isServer(base.engine) || SourceEngines.isLocal(base.engine)) continue
+            upsert(next, createEngine(base))
+        }
+        _sources.value = next
+    }
+
     suspend fun load() {
+        hosts?.loadCached()
+        http.hostFallback.set(activeHosts().fallbacks)
         try {
             bundledIds.clear()
             baseManifests.clear()
@@ -291,7 +328,7 @@ class SourceRegistry(
         settings: Map<String, String>? = prefs.sourceSettings.value[base.id],
     ): CatalogSource {
         baseManifests[base.id] = base
-        val manifest = base.withSettings(settings)
+        val manifest = base.withSettings(settings).withHosts(hostEntry(base))
         referers?.register(manifest)
         // engineConfig.rateLimit = requests/second for the API host (or the site when no apiBase).
         // The Lib sites share one API that refuses bursts, so they get a limit even without one.
