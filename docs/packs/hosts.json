@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "sources": {
+    "libsocial": { "apiBase": "https://api.lib.social/api" },
+    "ranobelib": { "apiBase": "https://api.lib.social/api" }
+  },
+  "fallbacks": {
+    "api.lib.social": ["api.mangalib.me"],
+    "api.mangalib.me": ["api.lib.social"],
+    "api.cdnlibs.org": ["api.lib.social", "api.mangalib.me"]
+  }
+}

@@ -171,6 +171,7 @@ object SettingsCatalog {
         SettingInfo("app_lock", SettingsPage.Privacy, R.string.settings_app_lock, R.string.settings_app_lock_hint, R.string.settings_kw_app_lock),
         SettingInfo("secure_screen", SettingsPage.Privacy, R.string.settings_secure_screen, R.string.settings_secure_screen_hint, R.string.settings_kw_secure_screen),
 
+        SettingInfo("remote_hosts", SettingsPage.Network, R.string.settings_remote_hosts, R.string.settings_remote_hosts_hint, R.string.settings_kw_remote_hosts),
         SettingInfo("doh", SettingsPage.Network, R.string.settings_doh, R.string.settings_doh_hint, R.string.settings_kw_doh),
         SettingInfo("clear_cache", SettingsPage.Network, R.string.settings_clear_cache, R.string.settings_clear_cache_hint, R.string.settings_kw_cache),
         SettingInfo("clear_cookies", SettingsPage.Network, R.string.settings_clear_cookies, R.string.settings_clear_cookies_hint, R.string.settings_kw_cookies),

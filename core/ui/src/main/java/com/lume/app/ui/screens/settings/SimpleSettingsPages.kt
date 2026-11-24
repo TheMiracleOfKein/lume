@@ -93,7 +93,16 @@ fun NetworkSettings(vm: SettingsViewModel) {
     val doh by vm.prefs.dnsOverHttps.collectAsState()
     var confirmCache by rememberSaveable { mutableStateOf(false) }
     var confirmCookies by rememberSaveable { mutableStateOf(false) }
+    val remoteHosts by vm.prefs.remoteHosts.collectAsState()
     SettingsGroup {
+        SettingItem("remote_hosts") {
+            SwitchRow(
+                label = stringResource(R.string.settings_remote_hosts),
+                hint = stringResource(R.string.settings_remote_hosts_hint),
+                checked = remoteHosts,
+                onCheckedChange = vm::setRemoteHosts,
+            )
+        }
         SettingItem("doh") {
             SettingsLabel(stringResource(R.string.settings_doh))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

@@ -914,6 +914,8 @@
     <string name="settings_secure_screen">Скрывать в недавних</string>
     <string name="settings_secure_screen_hint">Пустое превью в списке приложений; скриншоты запрещены</string>
     <string name="settings_section_network">Сеть и хранилище</string>
+    <string name="settings_remote_hosts">Обновлять адреса источников</string>
+    <string name="settings_remote_hosts_hint">Если сайт переезжает на новый адрес, Lume узнаёт его из небольшого списка на GitHub, без обновления приложения. Загружаются только адреса.</string>
     <string name="settings_doh">DNS через HTTPS</string>
     <string name="settings_doh_off">Выкл.</string>
     <string name="settings_doh_hint">Помогает, если провайдер блокирует сайты через DNS</string>
@@ -1120,6 +1122,7 @@
     <string name="settings_kw_app_lock">отпечаток, пин-код, пароль, биометрия, безопасность</string>
     <string name="settings_kw_secure_screen">скриншот, недавние приложения, приватность</string>
     <string name="settings_kw_doh">dns, блокировка, провайдер, cloudflare, google</string>
+    <string name="settings_kw_remote_hosts">адрес, хост, домен, зеркало, api, обновление, блокировка</string>
     <string name="settings_kw_cache">место, картинки, обложки, память</string>
     <string name="settings_kw_cookies">выход, cloudflare, сайты, webview</string>
     <string name="settings_kw_about">версия, лицензии, открытый код, github</string>
