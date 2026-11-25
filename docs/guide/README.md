@@ -11,7 +11,7 @@ How to use Lume, from the first launch to every setting. Names in **bold** are t
 
 - [Title screen](title-screen.md): chapters, one title from several sources, similar titles, trackers on a title.
 - [Reading manga and comics](manga-reader.md): webtoon and paged modes, zoom, guided panel view, cropping and spreads, page bookmarks.
-- [Reading novels (Ranobe mode)](novels.md): RanobeLib, Royal Road, Scribble Hub, EPUB and TXT books, the text reader, read aloud, name lookup and codex, novel trackers.
+- [Reading novels (Ranobe mode)](novels.md): RanobeLib, Royal Road, Scribble Hub, NovelFull, NOVGO, EPUB and TXT books, the text reader, read aloud, name lookup and codex, novel trackers.
 - [Translation and AI](translation-and-ai.md): translate chapters (Google, DeepL, AI with your key, offline on the phone), glossary, AI story notes, recap and codex summaries.
 
 ## Your library
@@ -31,7 +31,7 @@ How to use Lume, from the first launch to every setting. Names in **bold** are t
 
 | Feature | Manga mode | Ranobe mode |
 | --- | --- | --- |
-| Built-in sources | 13 sites + local files | RanobeLib, Royal Road, Scribble Hub + EPUB/TXT |
+| Built-in sources | 13 sites + local files | RanobeLib, Royal Road, Scribble Hub, NovelFull, NOVGO + EPUB/TXT |
 | JSON packs, own servers | Yes | No |
 | Finding a title on other sources when you add it, similar titles | Yes | No |
 | Downloads, nearby sending | Yes | Yes |

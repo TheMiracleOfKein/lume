@@ -14,6 +14,10 @@
                 <data android:host="royalroad.com" />
                 <data android:host="www.scribblehub.com" />
                 <data android:host="scribblehub.com" />
+                <data android:host="novelfull.com" />
+                <data android:host="www.novelfull.com" />
+                <data android:host="novgo.net" />
+                <data android:host="www.novgo.net" />
             </intent-filter>
         </activity>
     </application>

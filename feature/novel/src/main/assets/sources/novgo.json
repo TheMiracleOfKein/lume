@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "novgo",
+  "name": "NOVGO",
+  "version": "1.0.0",
+  "mediaKind": "novel",
+  "language": "en",
+  "engine": "novelfull",
+  "baseUrl": "https://novgo.net",
+  "headers": {
+    "Referer": "https://novgo.net/"
+  },
+  "engineConfig": {}
+}

@@ -25,6 +25,7 @@ These hold for every release:
 | Library and sources | 0.9.x | CBR/CB7/PDF, watched folders, OPDS/Komga/Kavita, InkStory, statistics, nearby sending, encrypted sign-ins, crash log |
 | Stable, reading modes | 1.0 | Manga and Ranobe modes, separate builds, user guide, CI emulator and screenshot tests |
 | Ranobe | 1.1–1.5 | Text reader, EPUB/TXT, RanobeLib, Royal Road, Scribble Hub, novel downloads, ranobe build, novel trackers |
+| More novel sources | 1.14 | NovelFull and NOVGO: translated Chinese, Korean and Japanese novels and light novels |
 | Listening, translation and AI | 1.6–1.12 | Read aloud, chapter translation (4 engines + offline add-on), name lookup and codex, AI story notes |
 | Sources that move | 1.13 | Source addresses updated from `hosts.json` without an app update |
 
@@ -32,6 +33,7 @@ These hold for every release:
 
 | Version | Theme | Released |
 | --- | --- | --- |
+| [v1.14.0](releases/v1.14.0.md) | Translated novels | pending |
 | [v1.13.0](releases/v1.13.0.md) | Source addresses without an update | 2026-11-24 |
 | [v1.12.1](releases/v1.12.1.md) | Lib API address | 2026-11-24 |
 | [v1.12.0](releases/v1.12.0.md) | AI story notes | 2026-11-24 |
@@ -40,7 +42,6 @@ These hold for every release:
 | [v1.9.0](releases/v1.9.0.md) | AI translation | 2026-11-22 |
 | [v1.8.0](releases/v1.8.0.md) | Story lookup | 2026-11-21 |
 | [v1.7.0](releases/v1.7.0.md) | Chapter translation | 2026-11-21 |
-| [v1.6.0](releases/v1.6.0.md) | Read aloud | 2026-11-21 |
 
 Every older version: [docs/releases/](releases/).
 
@@ -53,7 +54,7 @@ Every older version: [docs/releases/](releases/).
   - **RanobeDB**: a light novel database with a public API; check what its user lists allow before planning sign-in.
   - **MangaUpdates novels**: its database has a "Novel" type, so it can serve Ranobe mode with the same account once its search keeps only novels.
   - Not planned: Kitsu (few novels, entries mixed with manga).
-- 🟡 **Translated-novel sites** (M): Royal Road and Scribble Hub are done (1.4–1.5). Still open: sites such as NovelBin, which refused plain requests when checked. A selector-driven engine with one JSON pack per site can come with those.
+- 🟡 **Translated-novel sites** (M): Royal Road and Scribble Hub (1.4–1.5), NovelFull and NOVGO (1.14) are done. Still open: bigger light-novel sites such as NovelBin, NovelFire, FreeWebNovel and Ranobes, which answered plain requests with a Cloudflare block when checked. A selector-driven engine with one JSON pack per site can come with those.
 - 🟡 **Translation** (1.7–1.11): still open are the chapter title row (it stays in the original), more offline language pairs than English → Russian, and offline speed measured on more arm64 phones.
 - 🟡 **AI features** (1.9–1.12): a full check with a real key (device checks so far used a fake key and covered setup and error paths); "Sign in with OpenRouter" (OAuth PKCE), if OpenRouter accepts Lume's link scheme as a callback.
 - **Codex in sync** (M): needs a sync collection with nested aliases, like the glossary's.

@@ -70,7 +70,7 @@ Each APK also has a `.sha256` file next to it on the release page.
 ### Ranobe mode (novels)
 
 **Sources and books** ([guide](docs/guide/novels.md))
-- RanobeLib (Russian), Royal Road and Scribble Hub (English), with search, filters and downloads.
+- RanobeLib (Russian); Royal Road and Scribble Hub (English originals); NovelFull and NOVGO (translated Chinese, Korean and Japanese novels, light novels included); with search, filters and downloads.
 - Your own EPUB 2/3 and TXT files (encoding and chapters detected), from a file picker, a folder or a watched folder.
 
 **Text reader**
@@ -140,6 +140,7 @@ Each APK also has a `.sha256` file next to it on the release page.
 | RanobeLib | Ranobe | Russian | `ranobelib` |
 | Royal Road | Ranobe | English | `royalroad` |
 | Scribble Hub | Ranobe | English | `scribblehub` |
+| NovelFull, NOVGO | Ranobe | English | `novelfull` |
 | Local files | Both | — | `local` |
 | OPDS, Komga, Kavita (servers you add) | Manga | — | `opds`, `komga`, `kavita` |
 

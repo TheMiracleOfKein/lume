@@ -24,7 +24,7 @@ Keys are stored encrypted on the phone and are never part of backups or sync. Th
 
 ## Translating chapters
 
-English titles (Royal Road, Scribble Hub, English books you imported) can be read in Russian, and Russian ones (RanobeLib) in English. Tap the translate button in the reader's top bar and pick **How to translate**:
+English titles (Royal Road, Scribble Hub, NovelFull, NOVGO, English books you imported) can be read in Russian, and Russian ones (RanobeLib) in English. Tap the translate button in the reader's top bar and pick **How to translate**:
 
 - **Google Translate**: online, free, nothing to set up. The chapter text goes to Google.
 - **DeepL**: online, with your own key from a free DeepL API account (500,000 characters a month). The key is stored encrypted and never leaves the phone in a backup.

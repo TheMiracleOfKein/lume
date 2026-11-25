@@ -36,6 +36,7 @@ JSON pack ──► SourceRegistry ──► known engine id ──► Kotlin cl
 | `local` | Offline folders/CBZ | no |
 | `royalroad` | Royal Road HTML, chapter text; novel module only | no |
 | `scribblehub` | Scribble Hub HTML + `admin-ajax.php` chapter list, chapter text; novel module only | no |
+| `novelfull` | NovelFull-theme HTML (NovelFull, NOVGO) + `/ajax-chapter-option` chapter list, chapter text; novel module only | no |
 
 ## Bundled sources (assets)
 
@@ -48,6 +49,7 @@ JSON pack ──► SourceRegistry ──► known engine id ──► Kotlin cl
 | `ranobelib` | `ranobelib` | Novels, `siteId` 3; in `feature/novel` assets, so the full and ranobe builds only |
 | `royalroad` | `royalroad` | English novels; `feature/novel` assets |
 | `scribblehub` | `scribblehub` | English novels; `feature/novel` assets |
+| `novelfull` / `novgo` | `novelfull` | Translated novels in English; `feature/novel` assets |
 | `mangaread` | `madara` | Family pack example |
 | `hivetoons` / `vortexscans` | `hivetoons` | Family packs |
 | `remanga` | `remanga` | Russian API |
@@ -74,6 +76,15 @@ Both are plain HTML sites behind Cloudflare; the app's challenge WebView solves 
 
 - **Royal Road:** lists are `.fiction-list-item` (`/fictions/weekly-popular`, `/fictions/latest-updates`, `/fictions/search?title=`, `?page=N`). The title page has every chapter in `window.chapters = [...]`, with `order` (the chapter number is `order + 1`) and `isUnlocked`; locked (paid) chapters are left out. The text is `.chapter-inner.chapter-content`. Each chapter hides an anti-copy line through a class that the page's `<style>` sets to `display: none`; `NovelHtml.hiddenClasses` reads those rules and the elements are removed. Author's notes are left out.
 - **Scribble Hub:** lists are `.search_main_box` (`/series-ranking/?sort=1&order=1`, `/latest-series/`, `/series-finder/?sf=1&sh=<query>&order=desc&sort=ratings`, `pg=N`); the page count is only in the pagination script (`items: N`). The title page shows the newest 15 chapters; the whole list is a POST to `/wp-admin/admin-ajax.php` (`action=wi_getreleases_pagination`, `pagenum=-1`, `mypostid=<id>`) answering the same `li.toc_w` rows, whose `order` attribute is the chapter number. The text is `#chp_raw` without `.wi_authornotes`.
+
+### NovelFull and NOVGO
+
+One engine, `novelfull`, for two sites on the same theme: NovelFull (`novelfull.com`) and NOVGO (`novgo.net`, where `allnovelfull.net` now redirects). Both carry translated Chinese, Korean and Japanese novels, light novels among them (e.g. Overlord, Classroom of the Elite). Plain HTML; no challenge was seen when they were added. The URLs are shared, the list and title page markup is not, so each selector names both layouts.
+
+- **Lists:** `/most-popular`, `/latest-release-novel`, `/hot-novel`, `/completed-novel`, `/genre/<Name>` (spaces as `+`) and `/search?keyword=`, all paged with `?page=N`. Rows are `.list-truyen .row` with `h3.truyen-title` (NovelFull) or `.li-row` with `h3.tit` (NOVGO); a next page is `li.next a` or `a[rel=next]`. The site searches by text only and a genre page has no other filter, so the filter panel has a list choice and one genre; text wins over the genre, the genre over the list.
+- **Title:** ids are paths (`/overlord-ln.html`). Details come from `.info` / `.m-imgtxt`; the score is `#rateVal` (out of 10) or `#novel-score[data-avg]` (out of 5, doubled).
+- **Chapters:** the title page lists 50 per page; the whole list, in reading order, is the `<select>` of `/ajax-chapter-option?novelId=<id>`, where the id is the title page's first `data-novel-id`. The chapter number is the place in that list.
+- **Text:** `#chapter-content`, without ad frames and NovelFull's closing "If you find any errors … report chapter" line.
 
 One-site engines (`weebcentral`, `demonic`) remain in the binary for compatibility but are **not** in default assets and **cannot** be imported as JSON. Sample manifests: [`packs/site`](packs/site/weebcentral.json).
 
@@ -148,7 +159,7 @@ reported as `SKIP`, not failures. Plain `testDebugUnitTest` runs only offline un
 
 RanobeLib has its own check in the novel module (popular → search → details → chapters →
 chapter text): `./gradlew :feature:novel:testDebugUnitTest -Plume.live`. The same command runs
-`LiveEnglishNovelsTest` for Royal Road and Scribble Hub; a Cloudflare check is reported as
+`LiveEnglishNovelsTest` for Royal Road, Scribble Hub, NovelFull and NOVGO; a Cloudflare check is reported as
 skipped. The weekly workflow runs all of them.
 Unit tests run on OkHttp's JVM build (the Android one reads its public-suffix list from
 Android assets, which JVM tests don't have).
@@ -240,6 +251,7 @@ reads that engine's chapter list from its title page, or the case is simply not 
 | `mangadex` | popular, search, details, chapters, pages | none; `details-2` is the statistics response (fixtures hand-written, see above) |
 | `royalroad` (novel) | popular, popular-page2, latest, search, details, chapter | chapters are read from `details.html` (the page script); saved in a browser, chapter text cut to a few paragraphs |
 | `scribblehub` (novel) | popular, latest, search, details, chapter | chapters are read from the 15 rows of `details.html` (the `admin-ajax.php` answer has the same markup but wasn't saved); `search` is the finder without a query; the chapter's text was replaced by neutral sample paragraphs |
+| `novelfull`, `novgo` (novel) | popular, latest, search, details, chapters, chapter | none; each chapter's text was replaced by neutral sample paragraphs (NovelFull's ad frames and "report chapter" line kept) |
 | `mangakatana` | popular, search, details, pages | chapters are read from `details.html`; no `chapters` file |
 | `mangalib` | popular, search, details, chapters, pages | none |
 | `remanga` | popular, search, details, pages, `chapters-page1`, `chapters-last` | chapters split into pages; no single `chapters` file |
