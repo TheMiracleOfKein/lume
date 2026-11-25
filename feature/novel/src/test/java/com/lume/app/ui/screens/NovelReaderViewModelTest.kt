@@ -298,6 +298,30 @@ class NovelReaderViewModelTest {
     }
 
     @Test
+    fun hidingChapterTitlesRebuildsTheRowsAndSavesTheComfortSettings() {
+        val vm = open("Book/0")
+        vm.awaitLoaded()
+        assertTrue(vm.items.any { it is NovelItem.Header })
+        val version = vm.textVersion
+        vm.updateSettings(
+            vm.settings.copy(showChapterTitle = false, brightness = 0.4f, volumeKeys = true, paragraphIndent = 2, autoScrollSpeed = 7, statusLine = false),
+            commit = true,
+        )
+        assertFalse(vm.items.any { it is NovelItem.Header })
+        assertTrue(vm.textVersion > version)
+        awaitUntil(what = "comfort settings saved") { !app.prefs.novelReaderSettings.value.showChapterTitle }
+        val saved = app.prefs.novelReaderSettings.value
+        assertEquals(0.4f, saved.brightness)
+        assertTrue(saved.volumeKeys)
+        assertEquals(2, saved.paragraphIndent)
+        assertEquals(7, saved.autoScrollSpeed)
+        assertFalse(saved.statusLine)
+
+        vm.updateSettings(vm.settings.copy(showChapterTitle = true), commit = true)
+        assertTrue(vm.items.any { it is NovelItem.Header })
+    }
+
+    @Test
     fun resetSettingsRestoresTheDefaultsAndSavesThem() {
         val vm = open("Book/0")
         vm.awaitLoaded()

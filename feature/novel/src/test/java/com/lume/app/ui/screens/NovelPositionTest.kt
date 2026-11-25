@@ -48,6 +48,39 @@ class NovelPositionTest {
     }
 
     @Test
+    fun hiddenTitlesLeaveOutTheTitleRowAndTheTextsOwnTitle() {
+        val heading = listOf(NovelBlock.Heading(1, listOf(Span("Chapter 1: Title a"))), NovelBlock.Paragraph(listOf(Span("p"))))
+        val hidden = buildNovelItems(
+            listOf(
+                LoadedNovelChapter(chapter("a"), heading),
+                LoadedNovelChapter(chapter("b"), paragraphs(2)),
+            ),
+            showTitles = false,
+        )
+        // Block indices stay the book's own: the hidden heading is block 0 of "a".
+        assertEquals(listOf("b:a:1", "b:b:0", "b:b:1"), hidden.map { it.key })
+        assertEquals(0, chapterStartIndex(hidden, "a"))
+        assertEquals(0, novelItemIndex(hidden, NovelAnchor("a", 0, 0f)))
+        assertEquals(1, novelItemIndex(hidden, NovelAnchor("b", 0, 0f)))
+        assertEquals(2, novelItemIndex(hidden, NovelAnchor("b", 1, 0.5f)))
+        assertEquals(0, chapterEndIndex(hidden, "a"))
+    }
+
+    @Test
+    fun hiddenTitlesKeepAChapterThatIsOnlyItsHeading() {
+        val only = listOf(NovelBlock.Heading(1, listOf(Span("Title a"))))
+        assertEquals(listOf("b:a:0"), buildNovelItems(listOf(LoadedNovelChapter(chapter("a"), only)), showTitles = false).map { it.key })
+        // An empty chapter keeps its title row, so it still has a place in the list.
+        assertEquals(listOf("h:a"), buildNovelItems(listOf(LoadedNovelChapter(chapter("a"), emptyList())), showTitles = false).map { it.key })
+    }
+
+    @Test
+    fun hiddenTitlesKeepOtherHeadings() {
+        val other = listOf(NovelBlock.Heading(2, listOf(Span("Something else"))), NovelBlock.Paragraph(listOf(Span("p"))))
+        assertEquals(listOf("b:a:0", "b:a:1"), buildNovelItems(listOf(LoadedNovelChapter(chapter("a"), other)), showTitles = false).map { it.key })
+    }
+
+    @Test
     fun topOfAChapterIsItsTitleRow() {
         assertEquals(0, novelItemIndex(items, NovelAnchor("a", 0, 0f)))
         assertEquals(4, novelItemIndex(items, NovelAnchor("b", 0, 0f)))

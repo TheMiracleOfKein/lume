@@ -42,13 +42,21 @@ fun startsWithOwnTitle(chapter: Chapter, blocks: List<NovelBlock>): Boolean {
 /**
  * The list rows for the loaded chapters in order: each chapter's title, then its blocks. The title
  * row is left out when the first block is already that heading; block indices stay the book's own.
+ * Without [showTitles] there is no title row, and the text's own title heading is left out too
+ * (unless it is all the chapter has: every chapter keeps at least one row).
  */
-fun buildNovelItems(loaded: List<LoadedNovelChapter>): List<NovelItem> {
+fun buildNovelItems(loaded: List<LoadedNovelChapter>, showTitles: Boolean = true): List<NovelItem> {
     val out = ArrayList<NovelItem>(loaded.sumOf { it.blocks.size + 1 })
     for (lc in loaded) {
         // Decided on the original text, so the title row doesn't come and go as a translation arrives.
-        if (!startsWithOwnTitle(lc.chapter, lc.original ?: lc.blocks)) out += NovelItem.Header(lc.chapter)
-        lc.blocks.forEachIndexed { i, block -> out += NovelItem.Block(lc.chapter.id, i, block) }
+        val ownTitle = startsWithOwnTitle(lc.chapter, lc.original ?: lc.blocks)
+        if (showTitles && !ownTitle) out += NovelItem.Header(lc.chapter)
+        val skipFirst = !showTitles && ownTitle && lc.blocks.size > 1
+        lc.blocks.forEachIndexed { i, block ->
+            if (i == 0 && skipFirst) return@forEachIndexed
+            out += NovelItem.Block(lc.chapter.id, i, block)
+        }
+        if (lc.blocks.isEmpty() && !showTitles) out += NovelItem.Header(lc.chapter)
     }
     return out
 }

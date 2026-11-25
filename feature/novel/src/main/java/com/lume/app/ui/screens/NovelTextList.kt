@@ -28,7 +28,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.lume.app.R
@@ -94,6 +96,10 @@ internal fun novelBodyStyle(settings: NovelReaderSettings, palette: NovelPalette
     lineBreak = if (settings.justify) LineBreak.Paragraph else LineBreak.Simple,
 )
 
+/** The style of a paragraph: the body with its first line indented by [NovelReaderSettings.paragraphIndent]. */
+internal fun novelParagraphStyle(settings: NovelReaderSettings, body: TextStyle): TextStyle =
+    if (settings.paragraphIndent <= 0) body else body.copy(textIndent = TextIndent(firstLine = settings.paragraphIndent.em))
+
 @Composable
 private fun NovelBlockView(
     block: NovelBlock,
@@ -115,7 +121,7 @@ private fun NovelBlockView(
     when (block) {
         is NovelBlock.Paragraph -> Text(
             text = marked(block.spans.toAnnotatedString()),
-            style = body,
+            style = novelParagraphStyle(settings, body),
             onTextLayout = onLayout(0.dp),
             modifier = Modifier.fillMaxWidth().padding(start = side, end = side, bottom = after),
         )
