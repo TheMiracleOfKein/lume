@@ -4,7 +4,7 @@ Lume reads light novels, web novels and books in the same app as manga, with the
 
 What you get in Ranobe mode:
 
-- **Sources**: RanobeLib (Russian), Royal Road and Scribble Hub (English), and your own EPUB and TXT files.
+- **Sources**: RanobeLib (Russian); Royal Road and Scribble Hub (English originals); NovelFull and NOVGO (Chinese, Korean and Japanese novels translated into English, light novels included); and your own EPUB and TXT files.
 - **A text reader** that scrolls or turns pages, with your choice of font, size, spacing, margins and theme.
 - **Read aloud** with any text-to-speech engine on the phone, screen off included.
 - **Translation** of chapters (English ↔ Russian): Google, DeepL, an AI service with your key, or offline on the phone. See [Translation and AI](translation-and-ai.md).
@@ -34,6 +34,14 @@ Two English sources for original web fiction, in Ranobe mode: Catalog (popular a
 - Author's notes before or after a chapter aren't shown, only the story.
 - Links to a title or a chapter, opened from the browser or shared to Lume, open the title.
 - **Filters**: Royal Road has sort order, status, type (original or fan fiction), and genres, content warnings and tags to include or exclude. Scribble Hub has sort order, status, and genres and tags to include or exclude, matching any or all of them.
+
+## NovelFull and NOVGO
+
+Two English sources for translated novels: Chinese, Korean and Japanese web novels and light novels (for example Overlord, Classroom of the Elite, Lord of the Mysteries). Catalog (popular and latest), search, title details and the whole chapter list, read in the text reader and downloadable.
+
+- **Filters**: a list (popular, latest updates, trending or completed) and a genre. The sites search by title only, so a search ignores the filters, and a genre ignores the list choice.
+- Light novels are often split by volume, with chapter titles such as "Book 2: Chapter 3: part 1". Lume keeps the site's titles and numbers chapters in reading order.
+- Links to a title or a chapter, opened from the browser or shared to Lume, open the title.
 
 ## Downloading chapters
 

@@ -53,7 +53,7 @@ Every older version: [docs/releases/](releases/).
   - **RanobeDB**: a light novel database with a public API; check what its user lists allow before planning sign-in.
   - **MangaUpdates novels**: its database has a "Novel" type, so it can serve Ranobe mode with the same account once its search keeps only novels.
   - Not planned: Kitsu (few novels, entries mixed with manga).
-- 🟡 **Translated-novel sites** (M): Royal Road and Scribble Hub are done (1.4–1.5). Still open: sites such as NovelBin, which refused plain requests when checked. A selector-driven engine with one JSON pack per site can come with those.
+- 🟡 **Translated-novel sites** (M): Royal Road and Scribble Hub are done (1.4–1.5); NovelFull and NOVGO (translated CN/KR/JP novels and light novels) are added. Still open: bigger light-novel sites such as NovelBin, NovelFire, FreeWebNovel and Ranobes, which answered plain requests with a Cloudflare block when checked. A selector-driven engine with one JSON pack per site can come with those.
 - 🟡 **Translation** (1.7–1.11): still open are the chapter title row (it stays in the original), more offline language pairs than English → Russian, and offline speed measured on more arm64 phones.
 - 🟡 **AI features** (1.9–1.12): a full check with a real key (device checks so far used a fake key and covered setup and error paths); "Sign in with OpenRouter" (OAuth PKCE), if OpenRouter accepts Lume's link scheme as a callback.
 - **Codex in sync** (M): needs a sync collection with nested aliases, like the glossary's.

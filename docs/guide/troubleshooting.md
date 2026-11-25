@@ -45,7 +45,7 @@ A site asks you to prove you are human. Lume shows **Cloudflare check**: wait un
 
 **Is Lume free? Does it have ads?** It is free and open source. No ads, no analytics.
 
-**Can Lume read novels?** Yes, in Ranobe mode (full and ranobe builds): RanobeLib, Royal Road, Scribble Hub, and your own EPUB and TXT files. See [Reading novels](novels.md).
+**Can Lume read novels?** Yes, in Ranobe mode (full and ranobe builds): RanobeLib, Royal Road, Scribble Hub, NovelFull, NOVGO, and your own EPUB and TXT files. See [Reading novels](novels.md).
 
 **Which build should I install?** The full build, unless you only want manga or only novels. See [Pick a build](getting-started.md#pick-a-build).
 

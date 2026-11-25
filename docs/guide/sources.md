@@ -26,7 +26,7 @@ You can also open a title link from your browser, or share it to Lume.
 Lume's sources are built into the app; there is nothing to install. Each mode has its own:
 
 - **Manga mode**: MangaDex, MangaKatana, Asura Scans, MangaRead, HiveToons, Vortex Scans (English); MangaLib, SlashLib, YaoiLib, HentaiLib, ReManga, MangaBuff, InkStory (Russian); **Local files**.
-- **Ranobe mode**: Royal Road, Scribble Hub (English); RanobeLib (Russian); **Local files** (EPUB and TXT books).
+- **Ranobe mode**: Royal Road, Scribble Hub, NovelFull, NOVGO (English); RanobeLib (Russian); **Local files** (EPUB and TXT books).
 - In both: packs you installed and servers you added.
 
 The table with languages and engines is in the [README](../../README.md#built-in-sources).
