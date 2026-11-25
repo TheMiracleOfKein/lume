@@ -59,15 +59,22 @@ EPUB 2 and EPUB 3 are read, with the cover and the chapter names from the book. 
 
 ## The reader
 
-The text scrolls vertically.
+The text scrolls vertically, or turns page by page (see below).
 
 - Tap the middle to show or hide the bars.
 - Tap the top or bottom of the screen to scroll up or down by about a screen.
+- **Swipe up or down along the left edge** to make the screen brighter or dimmer. The level shows while you swipe and is kept for the next time. A tap on the edge still works as before.
+- With **Volume keys turn pages** on, volume down goes forward and volume up goes back.
 - The next chapter follows right after the end of the current one.
-- The bottom bar has the chapter list, **Read aloud** (headphones) and the reader settings.
+- The bottom bar has the chapter list, **Read aloud** (headphones), **auto-scroll** (▶, in scroll mode) and the reader settings. Auto-scroll moves the text at a steady speed. Tap the middle or drag the text to stop it.
+- While the bars are hidden, a small **status line** under the text shows the time, how far into the chapter you are and the battery.
 - The top bar has translate, the codex (book icon) and "Previously…" (⟲). Tap the title to open the title page.
 
-The settings panel has **Text size**, **Line spacing**, **Side margins**, **Paragraph spacing**, **Font** (serif or sans-serif), **Justify text** (long words are hyphenated so lines don't get wide gaps) and **Reader theme** (**App**, **Light**, **Sepia**, **Dark**, **Black**). **Page by page** turns the text into pages: swipe sideways, or tap the right or left edge, to turn them; a paragraph goes on over the next page, and each chapter starts on a new one. Changes show at once.
+The settings panel has **Text size**, **Line spacing**, **Side margins**, **Paragraph spacing**, **Font** (serif or sans-serif), **Justify text** (long words are hyphenated so lines don't get wide gaps), **Paragraph indent** (off, 1 or 2 em) and **Reader theme** (**App**, **Light**, **Sepia**, **Dark**, **Black**). **Page by page** turns the text into pages: swipe sideways, or tap the right or left edge, to turn them; a paragraph goes on over the next page, and each chapter starts on a new one. Changes show at once.
+
+- **Chapter title in the text**: turn it off to hide the chapter number and title above the text. A title the chapter's own text starts with is hidden as well. The top bar still shows it.
+- **Auto-scroll speed**: from 1 (slow) to 10.
+- *Controls*: **Brightness on the left edge**, **Volume keys turn pages** and **Status line**. Once you set your own brightness, **Use system brightness** goes back to the phone's level.
 
 - **Save for this title** keeps text size, theme and page mode for this novel only. Font, margins and spacing stay shared.
 - **Reset to defaults** puts the reader settings back (and drops what was saved for the title). It asks first.
