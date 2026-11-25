@@ -24,12 +24,29 @@ data class NovelReaderSettings(
     val theme: NovelTheme = NovelTheme.App,
     /** Page by page (turned sideways) instead of one long scroll. */
     val paged: Boolean = false,
+    /** The chapter's number and title are shown above its text (the top bar keeps it either way). */
+    val showChapterTitle: Boolean = true,
+    /** A vertical swipe along the left edge changes the screen brightness. */
+    val brightnessSwipe: Boolean = true,
+    /** The reader's own screen brightness 0.01..1, or [BRIGHTNESS_SYSTEM] to follow the system. */
+    val brightness: Float = BRIGHTNESS_SYSTEM,
+    /** The volume keys turn the page (or scroll by a screen). */
+    val volumeKeys: Boolean = false,
+    /** A small line at the bottom with the time, battery and chapter progress while the bars are hidden. */
+    val statusLine: Boolean = true,
+    /** First-line indent of paragraphs in em, [PARAGRAPH_INDENT_RANGE]. */
+    val paragraphIndent: Int = 0,
+    /** Auto-scroll speed step, [AUTO_SCROLL_SPEED_RANGE]. */
+    val autoScrollSpeed: Int = 3,
 ) {
     fun clamped(): NovelReaderSettings = copy(
         fontSize = fontSize.coerceIn(FONT_SIZE_RANGE),
         lineHeight = (Math.round(lineHeight.coerceIn(LINE_HEIGHT_RANGE.start, LINE_HEIGHT_RANGE.endInclusive) * 20) / 20f),
         sideMargin = sideMargin.coerceIn(SIDE_MARGIN_RANGE),
         paragraphSpacing = paragraphSpacing.coerceIn(PARAGRAPH_SPACING_RANGE),
+        brightness = if (brightness < 0f || brightness.isNaN()) BRIGHTNESS_SYSTEM else brightness.coerceIn(BRIGHTNESS_MIN, 1f),
+        paragraphIndent = paragraphIndent.coerceIn(PARAGRAPH_INDENT_RANGE),
+        autoScrollSpeed = autoScrollSpeed.coerceIn(AUTO_SCROLL_SPEED_RANGE),
     )
 
     companion object {
@@ -37,5 +54,9 @@ data class NovelReaderSettings(
         val LINE_HEIGHT_RANGE = 1.2f..2.0f
         val SIDE_MARGIN_RANGE = 8..48
         val PARAGRAPH_SPACING_RANGE = 0..24
+        val PARAGRAPH_INDENT_RANGE = 0..2
+        val AUTO_SCROLL_SPEED_RANGE = 1..10
+        const val BRIGHTNESS_SYSTEM = -1f
+        const val BRIGHTNESS_MIN = 0.01f
     }
 }
