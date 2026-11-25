@@ -33,7 +33,7 @@ These hold for every release:
 
 | Version | Theme | Released |
 | --- | --- | --- |
-| [v1.14.0](releases/v1.14.0.md) | Translated novels | pending |
+| [v1.14.0](releases/v1.14.0.md) | Translated novels | 2026-11-26 |
 | [v1.13.0](releases/v1.13.0.md) | Source addresses without an update | 2026-11-24 |
 | [v1.12.1](releases/v1.12.1.md) | Lib API address | 2026-11-24 |
 | [v1.12.0](releases/v1.12.0.md) | AI story notes | 2026-11-24 |
