@@ -43,8 +43,8 @@ jobs:
         if: always() && (github.event.inputs.sources == '' || contains(github.event.inputs.sources, 'ranobelib'))
         run: ./gradlew --no-configuration-cache :feature:novel:testDebugUnitTest --tests 'com.lume.app.data.source.LiveRanobeLibTest' -Plume.live
 
-      - name: Check Royal Road and Scribble Hub
-        if: always() && (github.event.inputs.sources == '' || contains(github.event.inputs.sources, 'royalroad') || contains(github.event.inputs.sources, 'scribblehub'))
+      - name: Check Royal Road, Scribble Hub, NovelFull and NOVGO
+        if: always() && (github.event.inputs.sources == '' || contains(github.event.inputs.sources, 'royalroad') || contains(github.event.inputs.sources, 'scribblehub') || contains(github.event.inputs.sources, 'novelfull') || contains(github.event.inputs.sources, 'novgo'))
         run: ./gradlew --no-configuration-cache :feature:novel:testDebugUnitTest --tests 'com.lume.app.data.source.LiveEnglishNovelsTest' -Plume.live
 
       - name: Report

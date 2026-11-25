@@ -29,6 +29,7 @@ object SourceEngines {
     const val RANOBELIB = "ranobelib"
     const val ROYALROAD = "royalroad"
     const val SCRIBBLEHUB = "scribblehub"
+    const val NOVELFULL = "novelfull"
     const val OPDS = "opds"
     const val KOMGA = "komga"
     const val KAVITA = "kavita"
@@ -59,7 +60,7 @@ object SourceEngines {
     val packImportable: Set<String> = setOf(MADARA, LIBSOCIAL, HIVETOONS)
 
     /** Compiled one-site adapters; bundled only if present in assets. */
-    val siteOnly: Set<String> = setOf(WEEBCENTRAL, DEMONIC, ROYALROAD, SCRIBBLEHUB)
+    val siteOnly: Set<String> = setOf(WEEBCENTRAL, DEMONIC, ROYALROAD, SCRIBBLEHUB, NOVELFULL)
 
     /** The built-in local-files source; the registry adds it when a module provides [LOCAL]. */
     val localManifest = SourceManifest(
@@ -112,6 +113,7 @@ object SourceEngines {
         RANOBELIB -> "RanobeLib (cdnlibs)"
         ROYALROAD -> "Royal Road"
         SCRIBBLEHUB -> "Scribble Hub"
+        NOVELFULL -> "NovelFull (NovelFull, NOVGO)"
         OPDS -> "OPDS"
         KOMGA -> "Komga"
         KAVITA -> "Kavita"

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "novelfull",
+  "name": "NovelFull",
+  "version": "1.0.0",
+  "mediaKind": "novel",
+  "language": "en",
+  "engine": "novelfull",
+  "baseUrl": "https://novelfull.com",
+  "headers": {
+    "Referer": "https://novelfull.com/"
+  },
+  "engineConfig": {}
+}

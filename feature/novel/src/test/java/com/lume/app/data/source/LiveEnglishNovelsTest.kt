@@ -15,11 +15,11 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Royal Road and Scribble Hub against the real sites, the way the app uses them:
+ * Royal Road, Scribble Hub, NovelFull and NOVGO against the real sites, the way the app uses them:
  * popular → search → details → chapters → text of the first chapter.
  *
  * Opt-in (hits the network): ./gradlew :feature:novel:testDebugUnitTest -Plume.live
- * Both sites sit behind Cloudflare. A challenge (the app solves it in its WebView) or a region
+ * The sites sit behind Cloudflare. A challenge (the app solves it in its WebView) or a region
  * block is reported as skipped, not as a failure.
  */
 class LiveEnglishNovelsTest {
@@ -28,6 +28,12 @@ class LiveEnglishNovelsTest {
 
     @Test
     fun scribbleHubWorks() = check("scribblehub") { m, http -> ScribbleHubEngine(m, http) }
+
+    @Test
+    fun novelFullWorks() = check("novelfull") { m, http -> NovelFullEngine(m, http) }
+
+    @Test
+    fun novgoWorks() = check("novgo") { m, http -> NovelFullEngine(m, http) }
 
     private fun check(id: String, create: (SourceManifest, AppHttp) -> NovelSource) = runBlocking {
         assumeTrue("Live source checks disabled (pass -Plume.live)", System.getProperty("lume.live") == "true")
