@@ -75,8 +75,14 @@ The text reader's defaults. The same options are in the reader's settings panel;
 | **Text size**, **Line spacing**, **Side margins**, **Paragraph spacing** | How the text is laid out. | n/a |
 | **Font** | Serif or sans-serif. | n/a |
 | **Justify text** | Even line edges, with hyphenation of long words. | n/a |
+| **Paragraph indent** | First-line indent of paragraphs: off, 1 or 2 em. | Off |
+| **Chapter title in the text** | The chapter number and title above its text. Off also hides a title the text itself starts with. | On |
 | **Page by page** | Turn pages sideways instead of scrolling. | Off |
+| **Auto-scroll speed** | How fast auto-scroll (▶ on the bottom bar) moves the text, 1 to 10. | 3 |
 | **Reader theme** | **App**, **Light**, **Sepia**, **Dark** or **Black**. | App |
+| **Brightness on the left edge** | Swipe up or down along the left edge to change the brightness while reading. **Use system brightness** goes back to the phone's level. | On |
+| **Volume keys turn pages** | Volume down goes forward, volume up back. | Off |
+| **Status line** | Time, chapter progress and battery under the text while the bars are hidden. | On |
 | *Story* | | |
 | **Story index** | Keeps the text of chapters you read or download on the phone, so a long-pressed name can be looked up offline. Nothing is stored in incognito. | On |
 | **"Previously…" recap** | After a break of 6 hours, 1 day or 3 days, the reader offers a recap of the last paragraphs before your spot. **Off** turns it off. | 1 day |

@@ -29,6 +29,8 @@ import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.outlined.Headphones
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.SkipPrevious
 import androidx.compose.material.icons.outlined.Translate
@@ -224,6 +226,9 @@ internal fun NovelBottomBar(
     modifier: Modifier = Modifier,
     /** Starts read aloud (or opens its settings while it runs); null hides the button. */
     onReadAloud: (() -> Unit)? = null,
+    /** Auto-scroll is running (true), stopped (false), or not offered (null, e.g. page by page). */
+    autoScroll: Boolean? = null,
+    onToggleAutoScroll: () -> Unit = {},
 ) {
     val progressLabel = stringResource(R.string.novel_chapter_progress, percent)
     Column(
@@ -276,6 +281,15 @@ internal fun NovelBottomBar(
             if (onReadAloud != null) {
                 IconButton(onClick = onReadAloud) {
                     Icon(Icons.Outlined.Headphones, stringResource(R.string.read_aloud), tint = palette.text)
+                }
+            }
+            if (autoScroll != null) {
+                IconButton(onClick = onToggleAutoScroll) {
+                    Icon(
+                        if (autoScroll) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                        stringResource(if (autoScroll) R.string.reader_auto_scroll_stop else R.string.reader_auto_scroll_start),
+                        tint = if (autoScroll) palette.accent else palette.text,
+                    )
                 }
             }
             IconButton(onClick = onSettings) {

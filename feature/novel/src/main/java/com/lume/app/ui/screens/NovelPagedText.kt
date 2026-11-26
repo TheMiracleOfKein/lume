@@ -49,7 +49,9 @@ import com.lume.app.R
 import com.lume.app.data.novel.NovelBlock
 import com.lume.app.data.prefs.NovelReaderSettings
 import com.lume.app.ui.theme.Motion
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 
 /** A row as the paged reader draws it: its text and style, or a picture. */
@@ -72,7 +74,7 @@ private fun pagedRow(item: NovelItem, settings: NovelReaderSettings, palette: No
             top = 28.dp, bottom = 20.dp, heading = true,
         )
         is NovelItem.Block -> when (val block = item.block) {
-            is NovelBlock.Paragraph -> PagedRow.Text(block.spans.toAnnotatedString(), body, 0.dp, after, heading = false)
+            is NovelBlock.Paragraph -> PagedRow.Text(block.spans.toAnnotatedString(), novelParagraphStyle(settings, body), 0.dp, after, heading = false)
             is NovelBlock.Heading -> {
                 val scale = headingScale(block.level)
                 PagedRow.Text(
@@ -94,6 +96,18 @@ private fun pagedRow(item: NovelItem, settings: NovelReaderSettings, palette: No
             )
         }
     }
+}
+
+/** These settings with everything that doesn't change the text's layout set to its default. */
+internal fun NovelReaderSettings.layoutOnly(): NovelReaderSettings {
+    val d = NovelReaderSettings()
+    return copy(
+        brightnessSwipe = d.brightnessSwipe,
+        brightness = d.brightness,
+        volumeKeys = d.volumeKeys,
+        statusLine = d.statusLine,
+        autoScrollSpeed = d.autoScrollSpeed,
+    )
 }
 
 /** True for a chapter's first row: it starts a new page. */
@@ -125,8 +139,11 @@ internal fun NovelPagedText(
     onTurned: () -> Unit,
     /** A block was long-pressed (chapter id, block index, character offset in the block's text or null). */
     onLongPress: (String, Int, Int?) -> Unit = { _, _, _ -> },
+    /** Page turns from the volume keys: +1 forward, -1 back. */
+    pageTurns: Flow<Int> = emptyFlow(),
 ) {
-    val settings = vm.settings
+    // Only what shapes the pages: brightness or the volume keys changing must not paginate again.
+    val settings = vm.settings.layoutOnly()
     val items = vm.items
     val session = vm.session
     val density = LocalDensity.current
@@ -229,6 +246,13 @@ internal fun NovelPagedText(
                 }
         }
 
+        LaunchedEffect(pagerState, pageTurns) {
+            pageTurns.collect { delta ->
+                if (vm.readAloud != null) vm.changeFollowVoice(false)
+                turn(pagerState, delta)
+            }
+        }
+
         val spoken = vm.spoken
         val spokenColor = spokenColor(palette)
         val scope = rememberCoroutineScope()
@@ -325,15 +349,13 @@ private suspend fun turn(state: PagerState, delta: Int) {
 /** The page with the spoken sentence's first line, or null when its row isn't loaded. */
 private fun spokenPage(items: List<NovelItem>, measures: List<PageMeasure>, pages: List<NovelPage>, s: SpokenRange): Int? {
     if (pages.isEmpty()) return null
-    val index = if (s.block < 0) {
-        chapterStartIndex(items, s.chapterId)
-    } else {
-        items.indexOfFirst { it is NovelItem.Block && it.chapterId == s.chapterId && it.index == s.block }
-    }
+    val own = if (s.block < 0) -1 else items.indexOfFirst { it is NovelItem.Block && it.chapterId == s.chapterId && it.index == s.block }
+    // A hidden title (or title heading) has no row of its own: the chapter's first page.
+    val index = if (own >= 0) own else chapterStartIndex(items, s.chapterId)
     if (index < 0) return null
     val item = items[index]
     val m = measures.getOrNull(index)
-    val length = (item as? NovelItem.Block)?.block?.textLength() ?: 0
+    val length = if (own >= 0) (item as? NovelItem.Block)?.block?.textLength() ?: 0 else 0
     val line = if (m is PageMeasure.Lines && length > 0) lineAtFraction(m, s.start.toFloat() / length) else 0
     return pageOf(pages, index, line)
 }

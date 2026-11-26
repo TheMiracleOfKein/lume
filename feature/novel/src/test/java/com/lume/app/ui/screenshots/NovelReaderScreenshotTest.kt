@@ -48,7 +48,7 @@ class NovelReaderScreenshotTest : ScreenshotTest() {
         val palette = novelPalette(settings.theme)
         Box(Modifier.fillMaxSize()) {
             NovelTextList(
-                items = items,
+                items = if (settings.showChapterTitle) items else buildNovelItems(listOf(LoadedNovelChapter(chapter, blocks)), showTitles = false),
                 settings = settings,
                 palette = palette,
                 listState = rememberLazyListState(),
@@ -82,6 +82,10 @@ class NovelReaderScreenshotTest : ScreenshotTest() {
     @Test fun sepia() = shoot("novel_reader_sepia", Look.Light) { Reader(NovelReaderSettings(theme = NovelTheme.Sepia, justify = true)) }
     @Test fun blackSans() = shoot("novel_reader_black", Look.Dark) {
         Reader(NovelReaderSettings(theme = NovelTheme.Black, font = NovelFont.Sans, fontSize = 20, lineHeight = 1.7f))
+    }
+
+    @Test fun titleHiddenIndented() = shoot("novel_reader_no_title", Look.Light) {
+        Reader(NovelReaderSettings(showChapterTitle = false, paragraphIndent = 2, paragraphSpacing = 4))
     }
 
     @Test fun settingsSheet() = shoot("novel_settings", Look.Light) {

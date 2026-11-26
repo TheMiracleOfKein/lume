@@ -118,6 +118,8 @@ class NovelReaderViewModel(
     var items by mutableStateOf<List<NovelItem>>(emptyList())
         private set
 
+    private fun buildItems(): List<NovelItem> = buildNovelItems(loaded, settings.showChapterTitle)
+
     /**
      * Changes whenever the list is rebuilt from scratch (first load, retry, another chapter). The
      * screen keys its list state on it and restores to [anchor] once per session. Appending the
@@ -206,7 +208,7 @@ class NovelReaderViewModel(
     fun updateSettings(next: NovelReaderSettings, commit: Boolean) {
         val clean = next.clamped()
         settingsTouched = true
-        settings = clean
+        applySettings(clean)
         if (!commit) return
         if (saveForTitle) {
             globalSettings = clean.keepingGlobalTitleFields()
@@ -237,8 +239,18 @@ class NovelReaderViewModel(
         saveForTitle = false
         saveTitleOverrides(null)
         globalSettings = NovelReaderSettings()
-        settings = globalSettings
+        applySettings(globalSettings)
         viewModelScope.launch { app.prefs.setNovelReaderSettings(NovelReaderSettings()) }
+    }
+
+    /** Shows [next]; the title rows come or go with it, and the paged reader finds its page again. */
+    private fun applySettings(next: NovelReaderSettings) {
+        val titlesChanged = next.showChapterTitle != settings.showChapterTitle
+        settings = next
+        if (titlesChanged && loaded.isNotEmpty()) {
+            items = buildItems()
+            textVersion++
+        }
     }
 
     // ---- Read aloud state (declared before init, whose collector sets it at once) --------
@@ -266,7 +278,7 @@ class NovelReaderViewModel(
         val i = loaded.indexOfFirst { it.chapter.id == chapterId }
         if (i < 0 || loaded[i].let { (it.original ?: it.blocks).size } != blocks.size) return
         loaded = loaded.toMutableList().also { it[i] = LoadedNovelChapter(it[i].chapter, blocks, original) }
-        items = buildNovelItems(loaded)
+        items = buildItems()
         textVersion++
     }
 
@@ -389,7 +401,7 @@ class NovelReaderViewModel(
                 dismissRecap()
                 translation.onListReset()
                 loaded = listOf(first)
-                items = buildNovelItems(loaded)
+                items = buildItems()
                 anchor = start
                 currentChapterId = start.chapterId
                 translation.currentChapterId = start.chapterId
@@ -439,7 +451,7 @@ class NovelReaderViewModel(
                     .onSuccess { chapter ->
                         if (forSession != session) return@onSuccess
                         loaded = loaded + chapter
-                        items = buildNovelItems(loaded)
+                        items = buildItems()
                         translation.onChapterLoaded(chapter)
                     }
                     .onFailure { e ->

@@ -74,7 +74,8 @@ Each APK also has a `.sha256` file next to it on the release page.
 - Your own EPUB 2/3 and TXT files (encoding and chapters detected), from a file picker, a folder or a watched folder.
 
 **Text reader**
-- Scroll or page by page; font, size, line and paragraph spacing, margins, justified text, five themes.
+- Scroll or page by page; font, size, line and paragraph spacing, paragraph indent, margins, justified text, five themes.
+- Brightness by swiping the left edge, volume keys to turn pages, auto-scroll, a status line with time and battery, and the chapter title in the text hidden if you like.
 - Settings saved per title if you like, and the paragraph you stopped at kept everywhere.
 
 **Read aloud**

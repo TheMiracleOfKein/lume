@@ -67,10 +67,24 @@ import com.lume.app.translate.glossaryRoute
 import com.lume.app.translate.translationStatusLine
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.screens.settings.SettingsPage
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /** What the list shows right now, for reporting the position. */
@@ -78,6 +92,9 @@ private data class Viewport(val index: Int, val offset: Int, val size: Int, val 
 
 /** Fraction of the viewport a tap on the top or bottom third scrolls. */
 private const val TAP_SCROLL_FRACTION = 0.9f
+
+/** Auto-scroll speed in dp per second for each step of [com.lume.app.data.prefs.NovelReaderSettings.autoScrollSpeed]. */
+private const val AUTO_SCROLL_DP_PER_STEP = 12f
 
 /** Room for the read aloud panel (its buttons and one line of messages) below the text. */
 private val READ_ALOUD_PANEL_SPACE = 112.dp
@@ -143,6 +160,20 @@ fun NovelReaderScreen(
     DisposableEffect(insetsController) {
         onDispose { insetsController?.show(WindowInsetsCompat.Type.systemBars()) }
     }
+    // The reader's own brightness; while the edge is swiped the live value, saved on release.
+    var liveBrightness by remember { mutableStateOf<Float?>(null) }
+    NovelBrightnessEffect(window, liveBrightness ?: settings.brightness)
+    // Auto-scroll (scrolling mode only); read aloud moves the text itself, so it stops this.
+    var autoScroll by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(settings.paged, readAloud != null) { if (settings.paged || readAloud != null) autoScroll = false }
+    // Volume keys turn the page while no sheet or dialog is open.
+    val pageTurns = remember { MutableSharedFlow<Int>(extraBufferCapacity = 4) }
+    val focusRequester = remember { FocusRequester() }
+    val overlayOpen = settingsOpen || chaptersOpen || translationsOpen || readAloudOpen || translateOpen ||
+        lookupOpen || recapOpen || originalText != null
+    LaunchedEffect(overlayOpen, vm.loading) {
+        if (!overlayOpen && !vm.loading) runCatching { focusRequester.requestFocus() }
+    }
     // Status and navigation bar icons follow the reader's colours while reading.
     val darkReader = palette.dark
     DisposableEffect(insetsController, darkReader) {
@@ -182,7 +213,24 @@ fun NovelReaderScreen(
         vm.lookup(chapterId, index, offset) { original -> originalText = original }
     }
 
-    Box(Modifier.fillMaxSize().background(palette.background)) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(palette.background)
+            .focusRequester(focusRequester)
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                if (!settings.volumeKeys || overlayOpen) return@onPreviewKeyEvent false
+                val delta = when (event.nativeKeyEvent.keyCode) {
+                    android.view.KeyEvent.KEYCODE_VOLUME_DOWN -> 1
+                    android.view.KeyEvent.KEYCODE_VOLUME_UP -> -1
+                    else -> return@onPreviewKeyEvent false
+                }
+                // Both down and up are taken, so the system volume doesn't change.
+                if (event.type == KeyEventType.KeyDown) pageTurns.tryEmit(delta)
+                true
+            },
+    ) {
         val error = vm.error
         when {
             vm.loading -> {
@@ -194,13 +242,36 @@ fun NovelReaderScreen(
                 topBar(Modifier.align(Alignment.TopCenter))
             }
             else -> {
-                NovelReaderContent(
-                    vm = vm,
+                BrightnessEdge(
+                    enabled = settings.brightnessSwipe,
+                    brightness = liveBrightness ?: settings.brightness,
                     palette = palette,
-                    onTapCentre = { chromeVisible = !chromeVisible },
-                    onScrolled = { chromeVisible = false },
-                    onLongPress = longPress,
-                )
+                    onLive = { liveBrightness = it },
+                    onDone = {
+                        vm.updateSettings(vm.settings.copy(brightness = it), commit = true)
+                        liveBrightness = null
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    NovelReaderContent(
+                        vm = vm,
+                        palette = palette,
+                        onTapCentre = {
+                            // A tap while auto-scrolling pauses it and brings the bars.
+                            if (autoScroll) {
+                                autoScroll = false
+                                chromeVisible = true
+                            } else {
+                                chromeVisible = !chromeVisible
+                            }
+                        },
+                        onScrolled = { chromeVisible = false },
+                        onLongPress = longPress,
+                        pageTurns = pageTurns,
+                        autoScroll = autoScroll,
+                        onAutoScrollStop = { autoScroll = false },
+                    )
+                }
                 AnimatedVisibility(
                     visible = chromeVisible,
                     modifier = Modifier.align(Alignment.TopCenter),
@@ -222,6 +293,18 @@ fun NovelReaderScreen(
                             onShow = vm::showOfferedRecap,
                             onDismiss = vm::dismissRecapOffer,
                             modifier = if (chromeVisible) {
+                                Modifier
+                            } else {
+                                Modifier.windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility.only(WindowInsetsSides.Bottom))
+                            },
+                        )
+                    }
+                    // Time, progress and battery while the bars are away (the bottom bar shows progress itself).
+                    if (settings.statusLine && !chromeVisible) {
+                        NovelStatusLine(
+                            percent = vm.percent,
+                            palette = palette,
+                            modifier = if (readAloud != null) {
                                 Modifier
                             } else {
                                 Modifier.windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility.only(WindowInsetsSides.Bottom))
@@ -259,6 +342,11 @@ fun NovelReaderScreen(
                             onSettings = { settingsOpen = true },
                             onReadAloud = {
                                 if (readAloud != null) readAloudOpen = true else vm.startReadAloud(context)
+                            },
+                            autoScroll = autoScroll.takeIf { !settings.paged && readAloud == null },
+                            onToggleAutoScroll = {
+                                autoScroll = !autoScroll
+                                if (autoScroll) chromeVisible = false
                             },
                         )
                     }
@@ -399,6 +487,11 @@ private fun NovelReaderContent(
     onScrolled: () -> Unit,
     /** A block was long-pressed (chapter id, block index, character offset in its text or null). */
     onLongPress: (String, Int, Int?) -> Unit = { _, _, _ -> },
+    /** Page turns from the volume keys: +1 forward, -1 back. */
+    pageTurns: Flow<Int> = emptyFlow(),
+    /** Auto-scroll is on (scrolling mode only). */
+    autoScroll: Boolean = false,
+    onAutoScrollStop: () -> Unit = {},
 ) {
     val layouts = remember { NovelTextLayouts() }
     val topPad = WindowInsets.statusBarsIgnoringVisibility.let { with(LocalDensity.current) { it.getTop(this).toDp() } }
@@ -406,7 +499,10 @@ private fun NovelReaderContent(
     val panelPad = if (vm.readAloud != null) READ_ALOUD_PANEL_SPACE else 0.dp
     val bottomPad = WindowInsets.navigationBarsIgnoringVisibility.let { with(LocalDensity.current) { it.getBottom(this).toDp() } } + panelPad
     if (vm.settings.paged) {
-        NovelPagedText(vm, palette, topPad, bottomPad, onTapCentre = onTapCentre, onTurned = onScrolled, onLongPress = onLongPress)
+        NovelPagedText(
+            vm, palette, topPad, bottomPad,
+            onTapCentre = onTapCentre, onTurned = onScrolled, onLongPress = onLongPress, pageTurns = pageTurns,
+        )
         return
     }
     val session = vm.session
@@ -458,6 +554,47 @@ private fun NovelReaderContent(
             .distinctUntilChanged()
             .collect { followSpoken(listState, vm.items, it) }
     }
+    // Volume keys: a screen down or up, like the tap zones.
+    val autoScrolling by rememberUpdatedState(autoScroll)
+    LaunchedEffect(listState, pageTurns) {
+        pageTurns.collect { delta ->
+            if (vm.readAloud != null) vm.changeFollowVoice(false)
+            val by = delta * listState.layoutInfo.viewportSize.height * TAP_SCROLL_FRACTION
+            // An animated jump would cancel the auto-scroll glide (and the glide it), so jump at once then.
+            if (autoScrolling) listState.scrollBy(by) else listState.animateScrollBy(by, Motion.medium())
+        }
+    }
+    // Auto-scroll: a steady glide at the set speed; a drag by hand or the end of the text stops it.
+    val currentStop by rememberUpdatedState(onAutoScrollStop)
+    val density = LocalDensity.current
+    LaunchedEffect(listState, autoScroll) {
+        if (!autoScroll) return@LaunchedEffect
+        val glide = launch {
+            var last = 0L
+            while (true) {
+                val now = withFrameNanos { it }
+                val seconds = if (last == 0L) 0f else (now - last) / 1_000_000_000f
+                last = now
+                val pxPerSecond = with(density) { (AUTO_SCROLL_DP_PER_STEP * vm.settings.autoScrollSpeed).dp.toPx() }
+                if (seconds > 0f) {
+                    // A tap or key scroll cancels this step; the glide goes on.
+                    try {
+                        listState.scrollBy(pxPerSecond * seconds)
+                    } catch (e: CancellationException) {
+                        if (!isActive) throw e
+                    }
+                }
+                // The end of the text; with a next chapter it is appended soon and the glide goes on.
+                if (!listState.canScrollForward && vm.neighbours.next == null) {
+                    currentStop()
+                    break
+                }
+            }
+        }
+        listState.interactionSource.interactions.first { it is DragInteraction.Start }
+        glide.cancel()
+        currentStop()
+    }
 
     Box(
         Modifier
@@ -504,13 +641,12 @@ private fun NovelReaderContent(
  * already well in view, so the text doesn't jump with every sentence.
  */
 private suspend fun followSpoken(state: LazyListState, items: List<NovelItem>, spoken: SpokenRange) {
-    val index = if (spoken.block < 0) {
-        chapterStartIndex(items, spoken.chapterId)
-    } else {
-        items.indexOfFirst { it is NovelItem.Block && it.chapterId == spoken.chapterId && it.index == spoken.block }
-    }
+    // A hidden title (or title heading) has no row of its own: follow the chapter's first row.
+    val index = items.indexOfFirst { it is NovelItem.Block && it.chapterId == spoken.chapterId && it.index == spoken.block }
+        .takeIf { spoken.block >= 0 && it >= 0 } ?: chapterStartIndex(items, spoken.chapterId)
     if (index < 0) return
-    val length = (items[index] as? NovelItem.Block)?.block?.textLength() ?: 0
+    val own = (items[index] as? NovelItem.Block)?.takeIf { it.chapterId == spoken.chapterId && it.index == spoken.block }
+    val length = own?.block?.textLength() ?: 0
     val fraction = if (length > 0) spoken.start.toFloat() / length else 0f
     fun sentenceY(): Float? {
         val info = state.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index } ?: return null

@@ -200,6 +200,13 @@ class AppPreferences(
     private val novelJustifyKey = booleanPreferencesKey("novel_justify")
     private val novelThemeKey = intPreferencesKey("novel_theme")
     private val novelPagedKey = booleanPreferencesKey("novel_paged")
+    private val novelShowChapterTitleKey = booleanPreferencesKey("novel_show_chapter_title")
+    private val novelBrightnessSwipeKey = booleanPreferencesKey("novel_brightness_swipe")
+    private val novelBrightnessKey = doublePreferencesKey("novel_brightness")
+    private val novelVolumeKeysKey = booleanPreferencesKey("novel_volume_keys")
+    private val novelStatusLineKey = booleanPreferencesKey("novel_status_line")
+    private val novelParagraphIndentKey = intPreferencesKey("novel_paragraph_indent")
+    private val novelAutoScrollSpeedKey = intPreferencesKey("novel_auto_scroll_speed")
     private val readAloudSpeedKey = doublePreferencesKey("read_aloud_speed")
     private val readAloudVoiceKey = stringPreferencesKey("read_aloud_voice")
     private val readAloudEngineKey = stringPreferencesKey("read_aloud_engine")
@@ -544,6 +551,13 @@ class AppPreferences(
             justify = prefs[novelJustifyKey] ?: defaults.justify,
             theme = NovelTheme.entries.getOrElse(prefs[novelThemeKey] ?: -1) { defaults.theme },
             paged = prefs[novelPagedKey] ?: defaults.paged,
+            showChapterTitle = prefs[novelShowChapterTitleKey] ?: defaults.showChapterTitle,
+            brightnessSwipe = prefs[novelBrightnessSwipeKey] ?: defaults.brightnessSwipe,
+            brightness = (prefs[novelBrightnessKey] ?: defaults.brightness.toDouble()).toFloat(),
+            volumeKeys = prefs[novelVolumeKeysKey] ?: defaults.volumeKeys,
+            statusLine = prefs[novelStatusLineKey] ?: defaults.statusLine,
+            paragraphIndent = prefs[novelParagraphIndentKey] ?: defaults.paragraphIndent,
+            autoScrollSpeed = prefs[novelAutoScrollSpeedKey] ?: defaults.autoScrollSpeed,
         ).clamped()
     }
 
@@ -936,6 +950,13 @@ class AppPreferences(
             it[novelJustifyKey] = s.justify
             it[novelThemeKey] = s.theme.ordinal
             it[novelPagedKey] = s.paged
+            it[novelShowChapterTitleKey] = s.showChapterTitle
+            it[novelBrightnessSwipeKey] = s.brightnessSwipe
+            it[novelBrightnessKey] = s.brightness.toDouble()
+            it[novelVolumeKeysKey] = s.volumeKeys
+            it[novelStatusLineKey] = s.statusLine
+            it[novelParagraphIndentKey] = s.paragraphIndent
+            it[novelAutoScrollSpeedKey] = s.autoScrollSpeed
         }
     }
 

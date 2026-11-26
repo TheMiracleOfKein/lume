@@ -29,6 +29,31 @@ class NovelReaderSettingsTest {
     }
 
     @Test
+    fun readingComfortDefaults() {
+        val d = NovelReaderSettings()
+        assertEquals(true, d.showChapterTitle)
+        assertEquals(true, d.brightnessSwipe)
+        assertEquals(NovelReaderSettings.BRIGHTNESS_SYSTEM, d.brightness)
+        assertEquals(false, d.volumeKeys)
+        assertEquals(true, d.statusLine)
+        assertEquals(0, d.paragraphIndent)
+        assertEquals(3, d.autoScrollSpeed)
+    }
+
+    @Test
+    fun brightnessIndentAndSpeedAreClamped() {
+        assertEquals(NovelReaderSettings.BRIGHTNESS_SYSTEM, NovelReaderSettings(brightness = -0.3f).clamped().brightness)
+        assertEquals(NovelReaderSettings.BRIGHTNESS_SYSTEM, NovelReaderSettings(brightness = Float.NaN).clamped().brightness)
+        assertEquals(NovelReaderSettings.BRIGHTNESS_MIN, NovelReaderSettings(brightness = 0f).clamped().brightness)
+        assertEquals(1f, NovelReaderSettings(brightness = 3f).clamped().brightness)
+        assertEquals(0.4f, NovelReaderSettings(brightness = 0.4f).clamped().brightness)
+        assertEquals(2, NovelReaderSettings(paragraphIndent = 9).clamped().paragraphIndent)
+        assertEquals(0, NovelReaderSettings(paragraphIndent = -1).clamped().paragraphIndent)
+        assertEquals(1, NovelReaderSettings(autoScrollSpeed = 0).clamped().autoScrollSpeed)
+        assertEquals(10, NovelReaderSettings(autoScrollSpeed = 50).clamped().autoScrollSpeed)
+    }
+
+    @Test
     fun lineHeightSnapsToTwentiethsSoStoredDoublesCompareEqual() {
         assertEquals(1.45f, NovelReaderSettings(lineHeight = 1.4500001f).clamped().lineHeight)
     }

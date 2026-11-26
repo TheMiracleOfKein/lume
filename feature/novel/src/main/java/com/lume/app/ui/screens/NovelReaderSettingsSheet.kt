@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -25,7 +26,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.lume.app.R
 import com.lume.app.data.prefs.NovelFont
@@ -103,6 +106,7 @@ internal fun NovelReaderSettingsControls(
                 fontSize = settings.fontSize.sp,
                 lineHeight = (settings.fontSize * settings.lineHeight).sp,
                 textAlign = if (settings.justify) TextAlign.Justify else TextAlign.Start,
+                textIndent = if (settings.paragraphIndent > 0) TextIndent(firstLine = settings.paragraphIndent.em) else null,
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -184,12 +188,82 @@ internal fun NovelReaderSettingsControls(
                 onCheckedChange = { onCommit(settings.copy(justify = it)) },
             )
         }
+        item("novel_paragraph_indent") {
+            Spacer(Modifier.height(4.dp))
+            Text(stringResource(R.string.novel_paragraph_indent), color = AppColors.textSecondary, fontSize = 13.sp)
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (indent in NovelReaderSettings.PARAGRAPH_INDENT_RANGE) {
+                    ChoiceChip(
+                        label = if (indent == 0) stringResource(R.string.novel_paragraph_indent_off) else "$indent em",
+                        selected = settings.paragraphIndent == indent,
+                        onClick = { onCommit(settings.copy(paragraphIndent = indent)) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+        item("novel_show_chapter_title") {
+            SwitchRow(
+                label = stringResource(R.string.novel_show_chapter_title),
+                hint = stringResource(R.string.novel_show_chapter_title_summary),
+                checked = settings.showChapterTitle,
+                onCheckedChange = { onCommit(settings.copy(showChapterTitle = it)) },
+            )
+        }
         item("novel_paged") {
             SwitchRow(
                 label = stringResource(R.string.novel_paged),
                 hint = stringResource(R.string.novel_paged_summary),
                 checked = settings.paged,
                 onCheckedChange = { onCommit(settings.copy(paged = it)) },
+            )
+        }
+        item("novel_auto_scroll_speed") {
+            SliderRow(
+                label = stringResource(R.string.novel_auto_scroll_speed),
+                valueText = "${settings.autoScrollSpeed}",
+                value = settings.autoScrollSpeed.toFloat(),
+                range = NovelReaderSettings.AUTO_SCROLL_SPEED_RANGE.first.toFloat()..NovelReaderSettings.AUTO_SCROLL_SPEED_RANGE.last.toFloat(),
+                steps = NovelReaderSettings.AUTO_SCROLL_SPEED_RANGE.last - NovelReaderSettings.AUTO_SCROLL_SPEED_RANGE.first - 1,
+                onChange = { change(latest[0].copy(autoScrollSpeed = it.roundToInt())) },
+                onFinished = commitLatest,
+            )
+        }
+
+        Spacer(Modifier.height(10.dp))
+        Text(stringResource(R.string.novel_controls), color = AppColors.textSecondary, fontSize = 13.sp)
+        item("novel_brightness_swipe") {
+            SwitchRow(
+                label = stringResource(R.string.novel_brightness_swipe),
+                hint = stringResource(R.string.novel_brightness_swipe_summary),
+                checked = settings.brightnessSwipe,
+                onCheckedChange = { onCommit(settings.copy(brightnessSwipe = it)) },
+            )
+            if (settings.brightness >= 0f) {
+                TextButton(onClick = { onCommit(settings.copy(brightness = NovelReaderSettings.BRIGHTNESS_SYSTEM)) }) {
+                    Text(
+                        stringResource(R.string.novel_brightness_system, (settings.brightness * 100).roundToInt()),
+                        color = AppColors.accent,
+                    )
+                }
+            }
+        }
+        item("novel_volume_keys") {
+            SwitchRow(
+                label = stringResource(R.string.novel_volume_keys),
+                hint = stringResource(R.string.novel_volume_keys_summary),
+                checked = settings.volumeKeys,
+                onCheckedChange = { onCommit(settings.copy(volumeKeys = it)) },
+            )
+        }
+        item("novel_status_line") {
+            SwitchRow(
+                label = stringResource(R.string.novel_status_line),
+                hint = stringResource(R.string.novel_status_line_summary),
+                checked = settings.statusLine,
+                onCheckedChange = { onCommit(settings.copy(statusLine = it)) },
             )
         }
 
