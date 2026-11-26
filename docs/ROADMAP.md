@@ -26,6 +26,7 @@ These hold for every release:
 | Stable, reading modes | 1.0 | Manga and Ranobe modes, separate builds, user guide, CI emulator and screenshot tests |
 | Ranobe | 1.1–1.5 | Text reader, EPUB/TXT, RanobeLib, Royal Road, Scribble Hub, novel downloads, ranobe build, novel trackers |
 | More novel sources | 1.14 | NovelFull and NOVGO: translated Chinese, Korean and Japanese novels and light novels |
+| Reader comfort | 1.15 | Hidden chapter titles, left-edge brightness, volume keys, status line, paragraph indent, auto-scroll |
 | Listening, translation and AI | 1.6–1.12 | Read aloud, chapter translation (4 engines + offline add-on), name lookup and codex, AI story notes |
 | Sources that move | 1.13 | Source addresses updated from `hosts.json` without an app update |
 
@@ -33,6 +34,7 @@ These hold for every release:
 
 | Version | Theme | Released |
 | --- | --- | --- |
+| [v1.15.0](releases/v1.15.0.md) | Reader comfort | pending |
 | [v1.14.0](releases/v1.14.0.md) | Translated novels | 2026-11-26 |
 | [v1.13.0](releases/v1.13.0.md) | Source addresses without an update | 2026-11-24 |
 | [v1.12.1](releases/v1.12.1.md) | Lib API address | 2026-11-24 |
@@ -41,7 +43,6 @@ These hold for every release:
 | [v1.10.0](releases/v1.10.0.md) | AI settings | 2026-11-23 |
 | [v1.9.0](releases/v1.9.0.md) | AI translation | 2026-11-22 |
 | [v1.8.0](releases/v1.8.0.md) | Story lookup | 2026-11-21 |
-| [v1.7.0](releases/v1.7.0.md) | Chapter translation | 2026-11-21 |
 
 Every older version: [docs/releases/](releases/).
 
