@@ -52,6 +52,7 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.lume.app.LocalAppContainer
+import com.lume.app.ui.components.BrightnessWindowEffect
 import com.lume.app.ui.components.ErrorRetryBox
 import com.lume.app.ui.components.LoadingBox
 import com.lume.app.ui.components.LocalNavExiting
@@ -162,7 +163,7 @@ fun NovelReaderScreen(
     }
     // The reader's own brightness; while the edge is swiped the live value, saved on release.
     var liveBrightness by remember { mutableStateOf<Float?>(null) }
-    NovelBrightnessEffect(window, liveBrightness ?: settings.brightness)
+    BrightnessWindowEffect(window,liveBrightness ?: settings.brightness)
     // Auto-scroll (scrolling mode only); read aloud moves the text itself, so it stops this.
     var autoScroll by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(settings.paged, readAloud != null) { if (settings.paged || readAloud != null) autoScroll = false }
