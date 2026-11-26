@@ -34,7 +34,7 @@ These hold for every release:
 
 | Version | Theme | Released |
 | --- | --- | --- |
-| [v1.15.1](releases/v1.15.1.md) | Brightness steps | pending |
+| [v1.15.1](releases/v1.15.1.md) | Brightness steps | 2026-11-26 |
 | [v1.15.0](releases/v1.15.0.md) | Reader comfort | 2026-11-26 |
 | [v1.14.0](releases/v1.14.0.md) | Translated novels | 2026-11-26 |
 | [v1.13.0](releases/v1.13.0.md) | Source addresses without an update | 2026-11-24 |
