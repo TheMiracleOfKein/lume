@@ -909,6 +909,6 @@ class ReaderViewModel(
         /** Seamless webtoon: load the chapter before this close to the start of the strip. */
         const val PREFETCH_PREVIOUS_WHEN_WITHIN = 3
 
-        fun aspectKey(chapterId: String, pageIndex: Int) = "$chapterId $pageIndex"
+        fun aspectKey(chapterId: String, pageIndex: Int) = "$chapterId\u0000$pageIndex"
     }
 }
