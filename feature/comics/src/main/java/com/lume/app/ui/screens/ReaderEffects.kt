@@ -23,6 +23,7 @@ import com.lume.app.data.prefs.ReaderSettings
 import androidx.core.net.toUri
 import com.lume.app.domain.ImageBytes
 import com.lume.app.domain.isContentUri
+import com.lume.app.ui.components.BrightnessCurve
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -78,7 +79,7 @@ internal fun ReaderWindowEffects(activity: Activity?, settings: ReaderSettings) 
     DisposableEffect(activity, settings.brightness) {
         val window = activity?.window
         window?.attributes = window.attributes.apply {
-            screenBrightness = if (settings.brightness < 0f) WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE else settings.brightness
+            screenBrightness = if (settings.brightness < 0f) WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE else BrightnessCurve.levelToWindow(settings.brightness)
         }
         onDispose {
             window?.attributes = window.attributes.apply { screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE }

@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lume.app.data.prefs.NovelReaderSettings
+import com.lume.app.ui.components.BrightnessCurve
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -68,7 +69,7 @@ internal fun brightnessAfterDrag(start: Float, dy: Float, height: Float): Float 
 internal fun NovelBrightnessEffect(window: Window?, brightness: Float) {
     SideEffect {
         window?.attributes = window.attributes.apply {
-            screenBrightness = if (brightness < 0f) WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE else brightness
+            screenBrightness = if (brightness < 0f) WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE else BrightnessCurve.levelToWindow(brightness)
         }
     }
     DisposableEffect(window) {
@@ -78,9 +79,9 @@ internal fun NovelBrightnessEffect(window: Window?, brightness: Float) {
     }
 }
 
-/** The system brightness as 0..1, roughly (the stored value is 0..255), or 0.5 when it can't be read. */
+/** The system brightness as a shown level 0..1, roughly (the stored value is linear 0..255), or 0.5 when it can't be read. */
 private fun systemBrightness(context: Context): Float =
-    runCatching { Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS) / 255f }
+    runCatching { BrightnessCurve.windowToLevel(Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS) / 255f) }
         .getOrDefault(0.5f)
         .coerceIn(NovelReaderSettings.BRIGHTNESS_MIN, 1f)
 
