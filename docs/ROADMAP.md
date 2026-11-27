@@ -34,7 +34,7 @@ These hold for every release:
 
 | Version | Theme | Released |
 | --- | --- | --- |
-| [v1.16.0](releases/v1.16.0.md) | Code cleanup | pending |
+| [v1.16.0](releases/v1.16.0.md) | Code cleanup | 2026-11-27 |
 | [v1.15.1](releases/v1.15.1.md) | Brightness steps | 2026-11-26 |
 | [v1.15.0](releases/v1.15.0.md) | Reader comfort | 2026-11-26 |
 | [v1.14.0](releases/v1.14.0.md) | Translated novels | 2026-11-26 |
