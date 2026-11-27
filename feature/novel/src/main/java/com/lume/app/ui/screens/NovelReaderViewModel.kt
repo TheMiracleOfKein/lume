@@ -44,7 +44,6 @@ import com.lume.app.data.prefs.NovelTheme
 import com.lume.app.domain.Chapter
 import com.lume.app.domain.ChapterNeighbours
 import com.lume.app.domain.CloudflareException
-import com.lume.app.domain.ReadingSessionTracker
 import com.lume.app.domain.chapterNeighbours
 import com.lume.app.domain.chapterTranslations
 import com.lume.app.domain.inReadingOrder
@@ -485,7 +484,7 @@ class NovelReaderViewModel(
         }
         if (currentBlock != next.block) currentBlock = next.block
         pendingSave.value = next
-        trackReading(next)
+        book.recorder.track(next.chapterId, next.block)
 
         // A chapter counts as read once its last row is on screen; every chapter before the one
         // you are in has been scrolled through.
@@ -835,20 +834,6 @@ class NovelReaderViewModel(
 
     // ---- Reading statistics ---------------------------------------------------------------
 
-    private val sessionTracker = ReadingSessionTracker()
-
-    private fun trackReading(next: NovelAnchor) {
-        if (app.prefs.incognito.value) return
-        sessionTracker.onPage(next.chapterId, next.block, System.currentTimeMillis())?.let(::saveSession)
-    }
-
-    /** The reader stopped or closed: the stretch of reading ends here. */
-    private fun finishReading() {
-        sessionTracker.finish(System.currentTimeMillis())?.let(::saveSession)
-    }
-
-    private fun saveSession(session: ReadingSessionTracker.Session) = book.saveSession(session)
-
     private fun markFinished(chapterId: String) {
         // Incognito: nothing about this reading is kept (read marks, trackers).
         if (app.prefs.incognito.value) return
@@ -861,7 +846,7 @@ class NovelReaderViewModel(
 
     /** Save now, in a scope that survives this ViewModel (Back, stop, process going away). */
     fun flush() {
-        finishReading()
+        book.recorder.finish()
         if (!dirty) return
         val a = anchor
         val atEnd = atChapterEnd

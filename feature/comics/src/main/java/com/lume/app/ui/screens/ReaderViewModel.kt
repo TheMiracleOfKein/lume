@@ -14,11 +14,8 @@ import coil3.request.SuccessResult
 import coil3.request.crossfade
 import com.lume.app.AppContainer
 import com.lume.app.R
-import com.lume.app.data.db.ChapterProgressEntity
-import com.lume.app.data.db.ChapterReadEntity
+import com.lume.app.data.continuity.ReadingRecorder
 import com.lume.app.data.db.PageBookmarkEntity
-import com.lume.app.data.db.ProgressEntity
-import com.lume.app.data.db.ReadingSessionEntity
 import com.lume.app.data.db.TitlePrefsEntity
 import com.lume.app.data.locale.appString
 import com.lume.app.data.prefs.ReaderSettings
@@ -33,7 +30,6 @@ import com.lume.app.domain.hasChapterBeyond
 import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.ComicPage
 import com.lume.app.domain.ReaderMode
-import com.lume.app.domain.ReadingSessionTracker
 import com.lume.app.domain.ReaderTheme
 import com.lume.app.domain.chapterTranslations
 import com.lume.app.domain.dedupeChapters
@@ -560,7 +556,7 @@ class ReaderViewModel(
         }
         if (currentPageIndex != next.pageIndex) currentPageIndex = next.pageIndex
         pendingSave.value = next
-        trackReading(next)
+        recorder.track(next.chapterId, next.pageIndex)
 
         // Scrolling into a later chapter means the earlier ones you read were finished.
         val order = loaded.indexOfFirst { chapterIdsMatch(it.chapter.id, next.chapterId) }
@@ -593,50 +589,21 @@ class ReaderViewModel(
 
     // ---- Reading statistics -----------------------------------------------------------------
 
-    private val sessionTracker = ReadingSessionTracker()
-
-    /** Feeds the statistics; a chapter change closes the previous chapter's session. */
-    private fun trackReading(next: ReaderAnchor) {
-        if (app.prefs.incognito.value) return
-        sessionTracker.onPage(next.chapterId, next.pageIndex, System.currentTimeMillis())?.let(::saveSession)
-    }
-
-    /** The reader stopped or closed: the stretch of reading ends here. */
-    private fun finishReading() {
-        sessionTracker.finish(System.currentTimeMillis())?.let(::saveSession)
-    }
-
-    private fun saveSession(session: ReadingSessionTracker.Session) {
-        // Incognito: nothing about this reading is kept.
-        if (app.prefs.incognito.value) return
-        val entity = ReadingSessionEntity(
-            sourceId = sourceId,
-            titleId = titleId,
-            titleName = titleName,
-            chapterId = session.chapterId,
-            startedAt = session.startedAt,
-            durationMs = session.durationMs,
-            pagesRead = session.pagesRead,
-        )
-        app.appScope.launch { withContext(NonCancellable) { dao.insertSession(entity) } }
-    }
+    private val recorder = ReadingRecorder(app, sourceId, titleId, { titleName }, countsPages = true)
 
     /** A chapter counts as read (and trackers move) only once you reach its end. */
     private fun markFinished(chapterId: String) {
         // Incognito: nothing about this reading is kept (read marks, trackers, downloads).
-        if (app.prefs.incognito.value) return
+        if (recorder.incognito) return
         if (!markedRead.add(chapterId)) return
         val lc = loaded.firstOrNull { chapterIdsMatch(it.chapter.id, chapterId) }
-        app.appScope.launch {
-            withContext(NonCancellable) {
-                dao.markChapterRead(ChapterReadEntity(sourceId = sourceId, titleId = titleId, chapterId = chapterId))
-                if (lc != null && !chapterIdsMatch(chapterId, anchor.chapterId)) {
-                    // Left behind at its end: reopening it from the list starts from the top.
-                    writeChapterProgress(ReaderAnchor(lc.chapter.id, lc.pages.size - 1, 1f), lc.pages.size, completed = true)
-                }
-                runCatching { app.trackerSync.pushProgress(sourceId, titleId, chapters, chapterId) }
-            }
+        val leftBehind: (suspend () -> Unit)? = if (lc != null && !chapterIdsMatch(chapterId, anchor.chapterId)) {
+            // Left behind at its end: reopening it from the list starts from the top.
+            { writeChapterProgress(ReaderAnchor(lc.chapter.id, lc.pages.size - 1, 1f), lc.pages.size, completed = true) }
+        } else {
+            null
         }
+        recorder.markRead(chapterId, chapters, leftBehind)
     }
 
     fun aspectOf(chapterId: String, pageIndex: Int): Float? = aspects[aspectKey(chapterId, pageIndex)]
@@ -668,7 +635,7 @@ class ReaderViewModel(
 
     /** Save now, in a scope that survives this ViewModel (Back, stop, process going away). */
     fun flush() {
-        finishReading()
+        recorder.finish()
         if (!dirty) return
         val a = anchor
         app.appScope.launch { withContext(NonCancellable) { persist(a) } }
@@ -680,27 +647,21 @@ class ReaderViewModel(
         savedState[KEY_PAGE] = a.pageIndex
         savedState[KEY_OFFSET] = a.pageOffset
         // Incognito: the spot survives rotation (saved state) but never reaches history.
-        if (app.prefs.incognito.value) return
+        if (recorder.incognito) return
         val lc = loaded.firstOrNull { chapterIdsMatch(it.chapter.id, a.chapterId) } ?: return
         val count = lc.pages.size
         val atEnd = isAtChapterEnd(a, count)
         writeChapterProgress(a, count, completed = atEnd)
         reportToServer(lc.chapter, a.pageIndex, atEnd)
-        dao.upsertProgress(
-            ProgressEntity(
-                sourceId = sourceId,
-                titleId = titleId,
-                titleName = titleName,
-                coverUrl = coverUrl,
-                typeLabel = typeLabel,
-                chapterId = lc.chapter.id,
-                chapterName = lc.chapter.title,
-                chapterUrl = lc.chapter.url,
-                pageIndex = a.pageIndex,
-                pageCount = count,
-                pageOffset = a.pageOffset,
-                pageImageUrl = lc.pages.getOrNull(a.pageIndex)?.imageUrl,
-            ),
+        recorder.saveHistory(
+            chapter = lc.chapter,
+            coverUrl = coverUrl,
+            typeLabel = typeLabel,
+            position = a.pageIndex,
+            count = count,
+            offset = a.pageOffset,
+            pageImageUrl = lc.pages.getOrNull(a.pageIndex)?.imageUrl,
+            mediaKind = "comics",
         )
     }
 
@@ -724,18 +685,7 @@ class ReaderViewModel(
     }
 
     private suspend fun writeChapterProgress(a: ReaderAnchor, count: Int, completed: Boolean) {
-        dao.upsertChapterProgress(
-            ChapterProgressEntity(
-                sourceId = sourceId,
-                titleId = titleId,
-                chapterId = a.chapterId,
-                pageIndex = a.pageIndex,
-                pageOffset = a.pageOffset,
-                pageCount = count,
-                completed = completed,
-                pageAspectsJson = aspectsFor(a.chapterId, count),
-            ),
-        )
+        recorder.saveChapterProgress(a.chapterId, a.pageIndex, a.pageOffset, count, completed, aspectsFor(a.chapterId, count))
     }
 
     // ---- Navigation inside the reader ------------------------------------------------------
