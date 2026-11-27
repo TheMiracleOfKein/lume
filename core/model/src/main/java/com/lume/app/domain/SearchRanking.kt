@@ -43,7 +43,17 @@ fun <T> rankByName(query: String, items: List<T>, names: (T) -> List<String>): L
 fun rankSearchResults(query: String, items: List<TitleSummary>): List<TitleSummary> =
     rankByName(query, items) { listOfNotNull(it.title, it.subtitle) }
 
+/**
+ * How well a whole result list matched [query]: the rank of its best name match, or
+ * [RANK_NO_RESULTS] when the list is empty. Global search orders the sources by it.
+ */
+fun bestNameMatchRank(query: String, items: List<TitleSummary>): Int =
+    items.minOfOrNull { nameMatchRank(query, listOfNotNull(it.title, it.subtitle)) } ?: RANK_NO_RESULTS
+
 private const val RANK_ELSEWHERE = 6
+
+/** Below any result, even one that matched only outside its name. */
+const val RANK_NO_RESULTS = RANK_ELSEWHERE + 1
 
 private fun searchWords(text: String): List<String> =
     text.lowercase().split(Regex("""[^\p{L}\p{N}]+""")).filter { it.isNotEmpty() }

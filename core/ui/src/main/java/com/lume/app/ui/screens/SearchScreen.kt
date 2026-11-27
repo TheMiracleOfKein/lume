@@ -375,8 +375,8 @@ private fun GlobalResults(
     // An empty source with a known problem stays a row of its own, so its error line shows.
     fun SourceRow.foldsAway() = (state as? SourceState.Done)?.items?.isEmpty() == true && sourceId !in problems
     // Rows stay in one fixed order (active source first) while results stream in, so nothing
-    // jumps around under your finger. Once every source answered, the empty ones fold into a
-    // one-line footer.
+    // jumps around under your finger. Once every source answered, the best name matches move up
+    // (SearchViewModel.rankSourceRows) and the empty ones fold into a one-line footer.
     val emptyNames = remember(rows, finished, problems) {
         if (!finished) emptyList()
         else rows.filter { it.foldsAway() }.map { it.sourceName }
