@@ -1,15 +1,12 @@
 package com.lume.app.data.prefs
 
 import android.content.Context
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import com.lume.app.data.security.SecretSealer
 import com.lume.app.domain.AutoDownloadMode
 import com.lume.app.domain.LibraryCheckOutcome
@@ -17,206 +14,32 @@ import com.lume.app.domain.LibraryDisplay
 import com.lume.app.domain.LibrarySettings
 import com.lume.app.domain.UpdateRules
 import com.lume.app.domain.LibrarySort
-import com.lume.app.domain.ReaderMode
-import com.lume.app.domain.ReaderTheme
 import com.lume.app.domain.decodeLibraryFilters
 import com.lume.app.domain.encodeLibraryFilters
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
-
-private val Context.appDataStore by preferencesDataStore("lume_prefs")
-
-/**
- * Values that belong to this install only: tracker tokens and app keys, and the automatic backup
- * folder (a permission only this install holds). Kept apart from the settings so Android's cloud
- * backup can keep the settings and leave this file out (see `res/xml/data_extraction_rules.xml`).
- */
-private val Context.privateDataStore by preferencesDataStore("lume_private")
-
-data class ReaderSettings(
-    val mode: ReaderMode = ReaderMode.Webtoon,
-    val theme: ReaderTheme = ReaderTheme.Dark,
-    val gap: Float = 0f,
-    val doubleTapZoom: Boolean = true,
-    val hidePageNumber: Boolean = false,
-    /** Continuous scroll across chapters with a divider; next chapter is prefetched. */
-    val seamlessReading: Boolean = true,
-    /** Volume down / up turn to the next / previous page (consumes the key in the reader). */
-    val volumeKeys: Boolean = false,
-    /** Paged modes: tap the left / right third to turn pages; the middle toggles controls. */
-    val tapZones: Boolean = true,
-    /**
-     * Fullscreen reading: scrolling hides the reader controls *and* the status / navigation bars;
-     * a tap without scrolling brings them back.
-     */
-    val immersive: Boolean = true,
-    val keepScreenOn: Boolean = true,
-    /** Webtoon mode: empty margin on each side, in percent of the screen width (tablets/landscape). */
-    val sidePaddingPercent: Int = 0,
-    /** Extra darkening over pages for night reading, 0 (off) … 0.8. */
-    val dim: Float = 0f,
-    /** [ORIENTATION_AUTO], [ORIENTATION_PORTRAIT] or [ORIENTATION_LANDSCAPE] while reading. */
-    val orientation: Int = ORIENTATION_AUTO,
-    /** [FILTER_NONE], [FILTER_SEPIA], [FILTER_GREY] or [FILTER_WARM] over the pages. */
-    val colorFilter: Int = FILTER_NONE,
-    /** E-ink screens: grey, high-contrast pages and page turns without animation. */
-    val eInk: Boolean = false,
-    /** Screen brightness while reading, 0.01 … 1; [BRIGHTNESS_SYSTEM] keeps the system's. */
-    val brightness: Float = BRIGHTNESS_SYSTEM,
-    /** Webtoon auto-scroll speed, 1 (slow) … [MAX_AUTO_SCROLL]. */
-    val autoScrollSpeed: Int = 3,
-    /** Webtoon mode: tap the top / bottom third to scroll back / on; the middle toggles controls. */
-    val webtoonTapZones: Boolean = false,
-    /** Pages loaded ahead of the one on screen, 0 … [MAX_PRELOAD]. */
-    val preloadPages: Int = 4,
-    /** Whole chapters after the current one loaded ahead while reading, 0 … [MAX_PRELOAD_CHAPTERS]. */
-    val preloadChapters: Int = 0,
-    /** Paged modes: plain white or black borders are cut off, so the drawing fills the screen. */
-    val cropBorders: Boolean = false,
-    /** Paged modes in portrait: a double page is shown as two halves, one after the other. */
-    val splitWide: Boolean = false,
-    /** Paged modes: [SPREADS_OFF], [SPREADS_AUTO] (landscape and wide screens) or [SPREADS_ALWAYS]. */
-    val spreads: Int = SPREADS_AUTO,
-    /** Spreads: the chapter's first page stands alone, so the pairs match a printed book. */
-    val spreadCoverAlone: Boolean = true,
-    /** Paged modes: a tap or page turn moves from panel to panel, zooming in on each. */
-    val guidedPanels: Boolean = false,
-    /**
-     * Guided panel view: [PANELS_RTL] (manga) or [PANELS_LTR] (western comics) within a row of
-     * panels. Separate from the page-turn direction ([mode]).
-     */
-    val panelOrder: Int = PANELS_RTL,
-) {
-    companion object {
-        const val PANELS_RTL = 0
-        const val PANELS_LTR = 1
-        const val SPREADS_OFF = 0
-        const val SPREADS_AUTO = 1
-        const val SPREADS_ALWAYS = 2
-        const val MAX_PRELOAD = 10
-        const val MAX_PRELOAD_CHAPTERS = 2
-        const val ORIENTATION_AUTO = 0
-        const val ORIENTATION_PORTRAIT = 1
-        const val ORIENTATION_LANDSCAPE = 2
-        const val FILTER_NONE = 0
-        const val FILTER_SEPIA = 1
-        const val FILTER_GREY = 2
-        const val FILTER_WARM = 3
-        const val BRIGHTNESS_SYSTEM = -1f
-        const val MAX_AUTO_SCROLL = 10
-    }
-}
-
-data class SyncSettings(
-    /** [OFF], [FOLDER] or [WEBDAV]. */
-    val backend: String = OFF,
-    /** The picked folder (a tree URI) for [FOLDER]. */
-    val folder: String? = null,
-    val webDavUrl: String = "",
-    val webDavUser: String = "",
-    val webDavPassword: String = "",
-    /** Encrypts the sync files when not empty; every device needs the same one. */
-    val passphrase: String = "",
-    val intervalHours: Int = 6,
-) {
-    val ready: Boolean
-        get() = when (backend) {
-            FOLDER -> folder != null
-            WEBDAV -> webDavUrl.startsWith("http://") || webDavUrl.startsWith("https://")
-            else -> false
-        }
-
-    companion object {
-        const val OFF = "off"
-        const val FOLDER = "folder"
-        const val WEBDAV = "webdav"
-        val BACKENDS = listOf(OFF, FOLDER, WEBDAV)
-    }
-}
-
-data class SyncStatus(
-    val lastAt: Long = 0L,
-    val error: String? = null,
-    /** Other devices whose files the last sync read. */
-    val devices: Int = 0,
-    /** Records the last sync changed on this device. */
-    val changes: Int = 0,
-)
 
 /**
  * Every preference is a [StateFlow] that already holds the stored value: the file is read once,
  * synchronously, when the app starts. Screens read `.value` on their first frame, so switches,
  * expanded sections and the theme never start from a default and then animate to the real value.
+ *
+ * The preferences sit in a chain of classes, one per area, each in its own file: [PrefsBase]
+ * (stores, helpers, backup of settings), [TrackerPrefs], [AiPrefs], [SyncPrefs], [ReaderPrefs]
+ * and this one with the rest (appearance, privacy, library, sources, downloads, backups).
  */
 class AppPreferences(
-    private val context: Context,
-    private val scope: CoroutineScope,
-    /** Encrypts tokens, passwords and app secrets in [privateDataStore]; see [isSecretKey]. */
-    private val secrets: SecretSealer = SecretSealer(),
-) {
+    context: Context,
+    scope: CoroutineScope,
+    secrets: SecretSealer = SecretSealer(),
+) : ReaderPrefs(context, scope, secrets) {
     private val darkThemeKey = booleanPreferencesKey("dark_theme")
     private fun activeSourceKey(kind: com.lume.app.domain.MediaKind) = stringPreferencesKey(
         // The Comics key is the one used before reading modes, so nothing is lost on update.
         if (kind == com.lume.app.domain.MediaKind.Comics) "active_source_id" else "active_source_id_${kind.id}",
     )
     private val activeModeKey = stringPreferencesKey("active_mode")
-    private val readerModeKey = intPreferencesKey("reader_mode")
-    private val readerThemeKey = intPreferencesKey("reader_theme")
-    private val readerGapKey = doublePreferencesKey("reader_gap")
-    private val readerZoomKey = booleanPreferencesKey("reader_zoom")
-    private val readerHidePageKey = booleanPreferencesKey("reader_hide_page")
-    private val readerSeamlessKey = booleanPreferencesKey("reader_seamless")
-    private val readerVolumeKeysKey = booleanPreferencesKey("reader_volume_keys")
-    private val readerTapZonesKey = booleanPreferencesKey("reader_tap_zones")
-    private val readerImmersiveKey = booleanPreferencesKey("reader_immersive")
-    private val readerKeepScreenOnKey = booleanPreferencesKey("reader_keep_screen_on")
-    private val readerSidePaddingKey = intPreferencesKey("reader_side_padding")
-    private val readerDimKey = doublePreferencesKey("reader_dim")
-    private val readerOrientationKey = intPreferencesKey("reader_orientation")
-    private val readerColorFilterKey = intPreferencesKey("reader_color_filter")
-    private val readerEInkKey = booleanPreferencesKey("reader_eink")
-    private val readerBrightnessKey = doublePreferencesKey("reader_brightness")
-    private val readerAutoScrollKey = intPreferencesKey("reader_auto_scroll_speed")
-    private val readerWebtoonTapZonesKey = booleanPreferencesKey("reader_webtoon_tap_zones")
-    private val readerPreloadKey = intPreferencesKey("reader_preload_pages")
-    private val readerPreloadChaptersKey = intPreferencesKey("reader_preload_chapters")
-    private val readerCropBordersKey = booleanPreferencesKey("reader_crop_borders")
-    private val readerSplitWideKey = booleanPreferencesKey("reader_split_wide")
-    private val readerSpreadsKey = intPreferencesKey("reader_spreads")
-    private val readerSpreadCoverKey = booleanPreferencesKey("reader_spread_cover_alone")
-    private val readerGuidedPanelsKey = booleanPreferencesKey("reader_guided_panels")
-    private val readerPanelOrderKey = intPreferencesKey("reader_panel_order")
-    private val novelFontSizeKey = intPreferencesKey("novel_font_size")
-    private val novelLineHeightKey = doublePreferencesKey("novel_line_height")
-    private val novelFontKey = intPreferencesKey("novel_font")
-    private val novelSideMarginKey = intPreferencesKey("novel_side_margin")
-    private val novelParagraphSpacingKey = intPreferencesKey("novel_paragraph_spacing")
-    private val novelJustifyKey = booleanPreferencesKey("novel_justify")
-    private val novelThemeKey = intPreferencesKey("novel_theme")
-    private val novelPagedKey = booleanPreferencesKey("novel_paged")
-    private val novelShowChapterTitleKey = booleanPreferencesKey("novel_show_chapter_title")
-    private val novelBrightnessSwipeKey = booleanPreferencesKey("novel_brightness_swipe")
-    private val novelBrightnessKey = doublePreferencesKey("novel_brightness")
-    private val novelVolumeKeysKey = booleanPreferencesKey("novel_volume_keys")
-    private val novelStatusLineKey = booleanPreferencesKey("novel_status_line")
-    private val novelParagraphIndentKey = intPreferencesKey("novel_paragraph_indent")
-    private val novelAutoScrollSpeedKey = intPreferencesKey("novel_auto_scroll_speed")
-    private val readAloudSpeedKey = doublePreferencesKey("read_aloud_speed")
-    private val readAloudVoiceKey = stringPreferencesKey("read_aloud_voice")
-    private val readAloudEngineKey = stringPreferencesKey("read_aloud_engine")
-    private val translationEngineKey = stringPreferencesKey("translation_engine")
-    private val llmPresetKey = stringPreferencesKey("translate_llm_preset")
-    private val llmBaseUrlKey = stringPreferencesKey("translate_llm_base_url")
-    private val llmModelKey = stringPreferencesKey("translate_llm_model")
-
-    // "secret" in the name: private store, encrypted, never in backups or sync.
-    private val deeplKeySecret = stringPreferencesKey("translate_deepl_secret")
     private val libraryIntervalKey = intPreferencesKey("library_update_interval_hours")
     private val libraryWifiOnlyKey = booleanPreferencesKey("library_update_wifi_only")
     private val librarySkipCompletedKey = booleanPreferencesKey("library_update_skip_completed")
@@ -229,15 +52,6 @@ class AppPreferences(
     private val globalSearchNsfwKey = booleanPreferencesKey("global_search_nsfw")
     private val libraryUpdatesKey = booleanPreferencesKey("library_updates_enabled")
     private val appLanguageKey = stringPreferencesKey("app_language")
-
-    private val anilistTokenKey = stringPreferencesKey("anilist_access_token")
-    private val anilistClientIdKey = stringPreferencesKey("anilist_client_id")
-    private val anilistClientSecretKey = stringPreferencesKey("anilist_client_secret")
-    private val shikiTokenKey = stringPreferencesKey("shikimori_access_token")
-    private val shikiRefreshKey = stringPreferencesKey("shikimori_refresh_token")
-    private val shikiUserIdKey = stringPreferencesKey("shikimori_user_id")
-    private val shikiClientIdKey = stringPreferencesKey("shikimori_client_id")
-    private val shikiClientSecretKey = stringPreferencesKey("shikimori_client_secret")
 
     private val libraryDisplayKey = stringPreferencesKey("library_display")
     private val librarySortKey = stringPreferencesKey("library_sort")
@@ -268,7 +82,6 @@ class AppPreferences(
     private val autoDownloadModeKey = intPreferencesKey("downloads_auto_new_mode")
     private val deleteAfterReadKey = booleanPreferencesKey("downloads_delete_after_read")
 
-    private val trackerAutoLinkKey = booleanPreferencesKey("tracker_auto_link_enabled")
     private val findOtherSourcesKey = booleanPreferencesKey("find_other_sources")
     private val similarTitlesKey = booleanPreferencesKey("similar_titles")
     private val themeModeKey = stringPreferencesKey("theme_mode")
@@ -281,80 +94,10 @@ class AppPreferences(
     private val remoteHostsKey = booleanPreferencesKey("remote_hosts")
     private val hostsFetchedAtKey = longPreferencesKey("hosts_fetched_at")
     private val translateLabelsKey = booleanPreferencesKey("translate_chapter_labels")
-    private val storyIndexKey = booleanPreferencesKey("story_index")
-    private val recapAfterHoursKey = intPreferencesKey("recap_after_hours")
-    private val aiRecapKey = booleanPreferencesKey("story_ai_recap")
-    private val storyNotesKey = stringPreferencesKey("story_notes_mode")
-    private val aiUsageKey = stringPreferencesKey("ai_usage")
     private val autoBackupDaysKey = intPreferencesKey("auto_backup_days")
     private val autoBackupKeepKey = intPreferencesKey("auto_backup_keep")
     private val folderScanHoursKey = intPreferencesKey("folder_scan_hours")
     private val autoBackupFolderKey = stringPreferencesKey("auto_backup_folder")
-    private val syncBackendKey = stringPreferencesKey("sync_backend")
-    private val syncFolderKey = stringPreferencesKey("sync_folder")
-    private val syncWebDavUrlKey = stringPreferencesKey("sync_webdav_url")
-    private val syncWebDavUserKey = stringPreferencesKey("sync_webdav_user")
-    private val syncWebDavPasswordKey = stringPreferencesKey("sync_webdav_password")
-    private val syncPassphraseKey = stringPreferencesKey("sync_passphrase")
-    private val syncIntervalKey = intPreferencesKey("sync_interval_hours")
-    private val syncLastAtKey = longPreferencesKey("sync_last_at")
-    private val syncLastErrorKey = stringPreferencesKey("sync_last_error")
-    private val syncDevicesKey = intPreferencesKey("sync_devices")
-    private val syncChangesKey = intPreferencesKey("sync_changes")
-
-    init {
-        runBlocking {
-            movePrivateValues()
-            sealPrivateValues()
-        }
-    }
-
-    private val initial: Preferences = runBlocking { context.appDataStore.data.first() }
-    private val current: StateFlow<Preferences> =
-        context.appDataStore.data.stateIn(scope, SharingStarted.Eagerly, initial)
-    private val initialPrivate: Preferences = runBlocking { context.privateDataStore.data.first() }
-    private val currentPrivate: StateFlow<Preferences> =
-        context.privateDataStore.data.stateIn(scope, SharingStarted.Eagerly, initialPrivate)
-
-    private fun <T> state(read: (Preferences) -> T): StateFlow<T> =
-        current.map(read).stateIn(scope, SharingStarted.Eagerly, read(initial))
-
-    private fun <T> privateState(read: (Preferences) -> T): StateFlow<T> =
-        currentPrivate.map(read).stateIn(scope, SharingStarted.Eagerly, read(initialPrivate))
-
-    /** Up to v0.6.1 tokens lived in the settings file; they move to [privateDataStore] once. */
-    private suspend fun movePrivateValues() {
-        val moving = context.appDataStore.data.first().asMap().filterKeys { isPrivateKey(it.name) }
-        if (moving.isEmpty()) return
-        context.privateDataStore.edit { target ->
-            @Suppress("UNCHECKED_CAST")
-            moving.forEach { (key, value) -> target[key as Preferences.Key<Any>] = value }
-        }
-        context.appDataStore.edit { prefs -> moving.keys.forEach { prefs.remove(it) } }
-    }
-
-    /** Up to v0.9.10 the private values were plain text; the secret ones are encrypted once. */
-    private suspend fun sealPrivateValues() {
-        val plain = context.privateDataStore.data.first().asMap().mapNotNull { (key, value) ->
-            if (value !is String || !isSecretKey(key.name) || secrets.isSealed(value)) return@mapNotNull null
-            val sealed = secrets.seal(value)
-            if (secrets.isSealed(sealed)) Pair(stringPreferencesKey(key.name), sealed) else null
-        }
-        if (plain.isEmpty()) return
-        context.privateDataStore.edit { target -> plain.forEach { (key, sealed) -> target[key] = sealed } }
-    }
-
-    private suspend fun <T> put(key: Preferences.Key<T>, value: T) {
-        context.appDataStore.edit { it[key] = value }
-    }
-
-    /** A secret value of the private store, decrypted. */
-    private fun Preferences.secret(key: Preferences.Key<String>): String? = secrets.open(this[key])
-
-    /** Writes [value] to the private store, encrypted, or removes [key] when it is blank. */
-    private suspend fun putSecret(key: Preferences.Key<String>, value: String?) {
-        context.privateDataStore.edit { if (value.isNullOrBlank()) it.remove(key) else it[key] = secrets.seal(value) }
-    }
 
     val darkTheme: StateFlow<Boolean> = state { it[darkThemeKey] ?: true }
 
@@ -397,37 +140,6 @@ class AppPreferences(
     /** Russian-only chapter labels ("Том 1 Глава 5") are shown in the app language. */
     val translateChapterLabels: StateFlow<Boolean> = state { it[translateLabelsKey] ?: true }
 
-    /** Chapters read or downloaded are indexed for name lookup. */
-    val storyIndex: StateFlow<Boolean> = state { it[storyIndexKey] ?: true }
-
-    /** "Previously..." recap after this many hours away from a title (0 = off). */
-    val recapAfterHours: StateFlow<Int> = state { it[recapAfterHoursKey] ?: 24 }
-
-    suspend fun setStoryIndex(value: Boolean) = put(storyIndexKey, value)
-
-    suspend fun setRecapAfterHours(value: Int) = put(recapAfterHoursKey, value)
-
-    /**
-     * AI story notes: read chapters get a digest, the names in them and a fact about each from the
-     * active AI service, for "Previously…" and the codex. [STORY_NOTES_OFF] by default, as it sends
-     * chapter text there; [STORY_NOTES_FINISHED] writes them as each chapter is finished,
-     * [STORY_NOTES_NEEDED] only when the recap or the codex needs them, several chapters per
-     * request. Up to v1.11.0 a switch, "AI recap"; on counts as [STORY_NOTES_FINISHED].
-     */
-    val storyNotes: StateFlow<String> = state { storyNotesOf(it) }
-
-    /** Whether AI story notes are on in either mode (the AI recap with them). */
-    val aiRecap: StateFlow<Boolean> = state { storyNotesOf(it) != STORY_NOTES_OFF }
-
-    private fun storyNotesOf(prefs: Preferences): String =
-        prefs[storyNotesKey]?.takeIf { it in STORY_NOTES_MODES }
-            ?: if (prefs[aiRecapKey] == true) STORY_NOTES_FINISHED else STORY_NOTES_OFF
-
-    suspend fun setStoryNotes(mode: String) {
-        if (mode !in STORY_NOTES_MODES) return
-        put(storyNotesKey, mode)
-    }
-
     suspend fun setIncognito(value: Boolean) = put(incognitoKey, value)
 
     suspend fun setAppLock(value: Boolean) = put(appLockKey, value)
@@ -462,29 +174,6 @@ class AppPreferences(
     /** "system" | "en" | "ru" | … — see [com.lume.app.data.locale.AppLanguage]. */
     val appLanguage: StateFlow<String> = state { it[appLanguageKey] ?: "system" }
 
-    val anilistAccessToken: StateFlow<String?> = privateState { it.secret(anilistTokenKey) }
-    val anilistClientId: StateFlow<String?> = privateState { it[anilistClientIdKey] }
-    val anilistClientSecret: StateFlow<String?> = privateState { it.secret(anilistClientSecretKey) }
-    val shikimoriAccessToken: StateFlow<String?> = privateState { it.secret(shikiTokenKey) }
-    val shikimoriRefreshToken: StateFlow<String?> = privateState { it.secret(shikiRefreshKey) }
-
-    /**
-     * Values of the trackers added in v0.5 (MyAnimeList, Kitsu, MangaUpdates), stored as
-     * `tracker_<id>_<name>`. Never part of backups (see [isPrivateKey]).
-     */
-    val trackerValues: StateFlow<Map<String, String>> = privateState { prefs ->
-        prefs.asMap().mapNotNull { (k, v) ->
-            if (!k.name.startsWith(TRACKER_PREFIX) || v !is String) return@mapNotNull null
-            secrets.open(v)?.let { k.name.removePrefix(TRACKER_PREFIX) to it }
-        }.toMap()
-    }
-
-    fun trackerValue(trackerId: String, name: String): String? = trackerValues.value["${trackerId}_$name"]
-
-    suspend fun setTrackerValue(trackerId: String, name: String, value: String?) {
-        putSecret(stringPreferencesKey("$TRACKER_PREFIX${trackerId}_$name"), value)
-    }
-
     /**
      * The sources' last errors as JSON. They live in [privateDataStore], so they stay on the phone:
      * out of the settings backup, sync and the system backup.
@@ -495,11 +184,6 @@ class AppPreferences(
         context.privateDataStore.edit { it[stringPreferencesKey("source_problems")] = json }
     }
 
-    /** Link titles to trackers by an exact title match when they are added to the library. */
-    val trackerAutoLink: StateFlow<Boolean> = state { it[trackerAutoLinkKey] ?: true }
-
-    suspend fun setTrackerAutoLink(value: Boolean) = put(trackerAutoLinkKey, value)
-
     /** Look for a title on the other sources when it is added to the library ("Also on …"). */
     val findOtherSources: StateFlow<Boolean> = state { it[findOtherSourcesKey] ?: true }
 
@@ -509,75 +193,6 @@ class AppPreferences(
     val similarTitles: StateFlow<Boolean> = state { it[similarTitlesKey] ?: true }
 
     suspend fun setSimilarTitles(value: Boolean) = put(similarTitlesKey, value)
-
-    val shikimoriUserId: StateFlow<String?> = privateState { it[shikiUserIdKey] }
-    val shikimoriClientId: StateFlow<String?> = privateState { it[shikiClientIdKey] }
-    val shikimoriClientSecret: StateFlow<String?> = privateState { it.secret(shikiClientSecretKey) }
-
-    /** Text layout and colours of the novel reader. */
-    val novelReaderSettings: StateFlow<NovelReaderSettings> = state { prefs ->
-        val defaults = NovelReaderSettings()
-        NovelReaderSettings(
-            fontSize = prefs[novelFontSizeKey] ?: defaults.fontSize,
-            lineHeight = (prefs[novelLineHeightKey] ?: defaults.lineHeight.toDouble()).toFloat(),
-            font = NovelFont.entries.getOrElse(prefs[novelFontKey] ?: -1) { defaults.font },
-            sideMargin = prefs[novelSideMarginKey] ?: defaults.sideMargin,
-            paragraphSpacing = prefs[novelParagraphSpacingKey] ?: defaults.paragraphSpacing,
-            justify = prefs[novelJustifyKey] ?: defaults.justify,
-            theme = NovelTheme.entries.getOrElse(prefs[novelThemeKey] ?: -1) { defaults.theme },
-            paged = prefs[novelPagedKey] ?: defaults.paged,
-            showChapterTitle = prefs[novelShowChapterTitleKey] ?: defaults.showChapterTitle,
-            brightnessSwipe = prefs[novelBrightnessSwipeKey] ?: defaults.brightnessSwipe,
-            brightness = (prefs[novelBrightnessKey] ?: defaults.brightness.toDouble()).toFloat(),
-            volumeKeys = prefs[novelVolumeKeysKey] ?: defaults.volumeKeys,
-            statusLine = prefs[novelStatusLineKey] ?: defaults.statusLine,
-            paragraphIndent = prefs[novelParagraphIndentKey] ?: defaults.paragraphIndent,
-            autoScrollSpeed = prefs[novelAutoScrollSpeedKey] ?: defaults.autoScrollSpeed,
-        ).clamped()
-    }
-
-    /** Speed, voice and engine of read aloud in the text reader. */
-    val readAloudSettings: StateFlow<ReadAloudSettings> = state { prefs ->
-        ReadAloudSettings(
-            speed = (prefs[readAloudSpeedKey] ?: 1.0).toFloat(),
-            voiceName = prefs[readAloudVoiceKey],
-            engine = prefs[readAloudEngineKey],
-        ).clamped()
-    }
-
-    val readerSettings: StateFlow<ReaderSettings> = state { prefs ->
-        val modeIndex = prefs[readerModeKey] ?: ReaderMode.Webtoon.prefsIndex
-        val themeIndex = prefs[readerThemeKey] ?: ReaderTheme.Dark.ordinal
-        ReaderSettings(
-            mode = ReaderMode.fromPrefs(modeIndex),
-            theme = ReaderTheme.entries.getOrElse(themeIndex) { ReaderTheme.Dark },
-            gap = (prefs[readerGapKey] ?: 0.0).toFloat().coerceIn(0f, 32f),
-            doubleTapZoom = prefs[readerZoomKey] ?: true,
-            hidePageNumber = prefs[readerHidePageKey] ?: false,
-            seamlessReading = prefs[readerSeamlessKey] ?: true,
-            volumeKeys = prefs[readerVolumeKeysKey] ?: false,
-            tapZones = prefs[readerTapZonesKey] ?: true,
-            immersive = prefs[readerImmersiveKey] ?: true,
-            keepScreenOn = prefs[readerKeepScreenOnKey] ?: true,
-            sidePaddingPercent = (prefs[readerSidePaddingKey] ?: 0).coerceIn(0, MAX_SIDE_PADDING),
-            dim = (prefs[readerDimKey] ?: 0.0).toFloat().coerceIn(0f, MAX_DIM),
-            orientation = (prefs[readerOrientationKey] ?: ReaderSettings.ORIENTATION_AUTO).coerceIn(0, 2),
-            colorFilter = (prefs[readerColorFilterKey] ?: ReaderSettings.FILTER_NONE).coerceIn(0, 3),
-            eInk = prefs[readerEInkKey] ?: false,
-            brightness = (prefs[readerBrightnessKey] ?: ReaderSettings.BRIGHTNESS_SYSTEM.toDouble()).toFloat()
-                .let { if (it < 0f) ReaderSettings.BRIGHTNESS_SYSTEM else it.coerceIn(0.01f, 1f) },
-            autoScrollSpeed = (prefs[readerAutoScrollKey] ?: 3).coerceIn(1, ReaderSettings.MAX_AUTO_SCROLL),
-            webtoonTapZones = prefs[readerWebtoonTapZonesKey] ?: false,
-            preloadPages = (prefs[readerPreloadKey] ?: 4).coerceIn(0, ReaderSettings.MAX_PRELOAD),
-            preloadChapters = (prefs[readerPreloadChaptersKey] ?: 0).coerceIn(0, ReaderSettings.MAX_PRELOAD_CHAPTERS),
-            cropBorders = prefs[readerCropBordersKey] ?: false,
-            splitWide = prefs[readerSplitWideKey] ?: false,
-            spreads = (prefs[readerSpreadsKey] ?: ReaderSettings.SPREADS_AUTO).coerceIn(0, 2),
-            spreadCoverAlone = prefs[readerSpreadCoverKey] ?: true,
-            guidedPanels = prefs[readerGuidedPanelsKey] ?: false,
-            panelOrder = (prefs[readerPanelOrderKey] ?: ReaderSettings.PANELS_RTL).coerceIn(0, 1),
-        )
-    }
 
     /** Hours between background library checks (one of [LIBRARY_INTERVALS]). */
     val libraryUpdateIntervalHours: StateFlow<Int> = state { it[libraryIntervalKey]?.takeIf { h -> h in LIBRARY_INTERVALS } ?: 6 }
@@ -743,99 +358,6 @@ class AppPreferences(
         context.privateDataStore.edit { if (uri.isNullOrBlank()) it.remove(autoBackupFolderKey) else it[autoBackupFolderKey] = uri }
     }
 
-    /**
-     * Sync between devices (Settings → Sync). All of it belongs to this install (a folder
-     * permission, a server password), so it lives in the private store and never in backups.
-     */
-    val syncSettings: StateFlow<SyncSettings> = privateState { p ->
-        SyncSettings(
-            backend = p[syncBackendKey]?.takeIf { it in SyncSettings.BACKENDS } ?: SyncSettings.OFF,
-            folder = p[syncFolderKey]?.takeIf(String::isNotBlank),
-            webDavUrl = p[syncWebDavUrlKey].orEmpty(),
-            webDavUser = p[syncWebDavUserKey].orEmpty(),
-            webDavPassword = p.secret(syncWebDavPasswordKey).orEmpty(),
-            passphrase = p.secret(syncPassphraseKey).orEmpty(),
-            intervalHours = p[syncIntervalKey]?.takeIf { it in SYNC_INTERVALS } ?: 6,
-        )
-    }
-
-    /** The last sync: when it finished, what failed, how many other devices it saw. */
-    val syncStatus: StateFlow<SyncStatus> = privateState { p ->
-        SyncStatus(
-            lastAt = p[syncLastAtKey] ?: 0L,
-            error = p[syncLastErrorKey]?.takeIf(String::isNotBlank),
-            devices = p[syncDevicesKey] ?: 0,
-            changes = p[syncChangesKey] ?: 0,
-        )
-    }
-
-    suspend fun setSyncSettings(settings: SyncSettings) {
-        context.privateDataStore.edit {
-            it[syncBackendKey] = settings.backend
-            if (settings.folder == null) it.remove(syncFolderKey) else it[syncFolderKey] = settings.folder
-            it[syncWebDavUrlKey] = settings.webDavUrl.trim()
-            it[syncWebDavUserKey] = settings.webDavUser.trim()
-            it[syncWebDavPasswordKey] = secrets.seal(settings.webDavPassword)
-            it[syncPassphraseKey] = secrets.seal(settings.passphrase)
-            it[syncIntervalKey] = settings.intervalHours
-        }
-    }
-
-    suspend fun setSyncStatus(status: SyncStatus) {
-        context.privateDataStore.edit {
-            it[syncLastAtKey] = status.lastAt
-            if (status.error == null) it.remove(syncLastErrorKey) else it[syncLastErrorKey] = status.error
-            it[syncDevicesKey] = status.devices
-            it[syncChangesKey] = status.changes
-        }
-    }
-
-    /**
-     * Every stored preference as (key, type, value) for backups. Account tokens, app keys and
-     * the backup folder live in [privateDataStore] and stay out; the filter guards against strays.
-     */
-    fun exportSettings(): List<Triple<String, String, String>> = current.value.asMap().mapNotNull { (key, value) ->
-        if (isPrivateKey(key.name)) return@mapNotNull null
-        when (value) {
-            is Boolean -> Triple(key.name, "bool", value.toString())
-            is Int -> Triple(key.name, "int", value.toString())
-            is Long -> Triple(key.name, "long", value.toString())
-            is Double -> Triple(key.name, "double", value.toString())
-            is Float -> Triple(key.name, "float", value.toString())
-            is String -> Triple(key.name, "string", value)
-            is Set<*> -> Triple(key.name, "set", prefsJson.encodeToString(value.map { it.toString() }))
-            else -> null
-        }
-    }
-
-    /** Writes settings from a backup back; unknown types and private keys are skipped. */
-    suspend fun importSettings(values: List<Triple<String, String, String>>) {
-        context.appDataStore.edit { prefs ->
-            for ((name, type, raw) in values) {
-                if (isPrivateKey(name)) continue
-                runCatching {
-                    when (type) {
-                        "bool" -> prefs[booleanPreferencesKey(name)] = raw.toBooleanStrict()
-                        "int" -> prefs[intPreferencesKey(name)] = raw.toInt()
-                        "long" -> prefs[longPreferencesKey(name)] = raw.toLong()
-                        "double" -> prefs[doublePreferencesKey(name)] = raw.toDouble()
-                        "float" -> prefs[androidx.datastore.preferences.core.floatPreferencesKey(name)] = raw.toFloat()
-                        "string" -> prefs[stringPreferencesKey(name)] = raw
-                        "set" -> prefs[stringSetPreferencesKey(name)] = prefsJson.decodeFromString<List<String>>(raw).toSet()
-                    }
-                }
-            }
-        }
-    }
-
-    private fun isPrivateKey(name: String): Boolean =
-        PRIVATE_KEY_PARTS.any { name.contains(it) } || name == "auto_backup_folder" || name.startsWith("sync_") ||
-            (name.startsWith(TRACKER_PREFIX) && name != "tracker_auto_link_enabled")
-
-    /** Private values that are encrypted at rest: tokens, passwords, app secrets, tracker values. */
-    private fun isSecretKey(name: String): Boolean =
-        SECRET_KEY_PARTS.any { name.contains(it) } || (name.startsWith(TRACKER_PREFIX) && name != "tracker_auto_link_enabled")
-
     /** Where the pack catalogue is read from; see `docs/packs/index.json`. */
     val packIndexUrl: StateFlow<String> = state { it[packIndexUrlKey]?.takeIf(String::isNotBlank) ?: DEFAULT_PACK_INDEX }
 
@@ -882,209 +404,6 @@ class AppPreferences(
 
     suspend fun setAppLanguage(tag: String) = put(appLanguageKey, tag)
 
-    suspend fun setNovelReaderSettings(settings: NovelReaderSettings) {
-        val s = settings.clamped()
-        context.appDataStore.edit {
-            it[novelFontSizeKey] = s.fontSize
-            it[novelLineHeightKey] = s.lineHeight.toDouble()
-            it[novelFontKey] = s.font.ordinal
-            it[novelSideMarginKey] = s.sideMargin
-            it[novelParagraphSpacingKey] = s.paragraphSpacing
-            it[novelJustifyKey] = s.justify
-            it[novelThemeKey] = s.theme.ordinal
-            it[novelPagedKey] = s.paged
-            it[novelShowChapterTitleKey] = s.showChapterTitle
-            it[novelBrightnessSwipeKey] = s.brightnessSwipe
-            it[novelBrightnessKey] = s.brightness.toDouble()
-            it[novelVolumeKeysKey] = s.volumeKeys
-            it[novelStatusLineKey] = s.statusLine
-            it[novelParagraphIndentKey] = s.paragraphIndent
-            it[novelAutoScrollSpeedKey] = s.autoScrollSpeed
-        }
-    }
-
-    /**
-     * How the text reader translates: `offline` (the Lume Translate add-on), `google` or `deepl`
-     * (online, chapter text goes to that service). Null until the user picks one.
-     */
-    val translationEngine: StateFlow<String?> = state { it[translationEngineKey] }
-
-    suspend fun setTranslationEngine(id: String) = put(translationEngineKey, id)
-
-    /** The user's own DeepL API key (free or paid), or null. */
-    val deeplKey: StateFlow<String?> = privateState { it.secret(deeplKeySecret) }
-
-    suspend fun setDeeplKey(key: String?) = putSecret(deeplKeySecret, key?.trim())
-
-    /** The AI service (`openrouter`, `openai`, ...) translation, the recap and codex summaries use; null = the default. */
-    val llmPreset: StateFlow<String?> = state { it[llmPresetKey] }
-
-    /** AI translation: the base URL for the `custom` service (for example a local Ollama). */
-    val llmBaseUrl: StateFlow<String?> = state { it[llmBaseUrlKey]?.takeIf(String::isNotBlank) }
-
-    /**
-     * AI: the model picked for each service id; a service without an entry uses its automatic
-     * model. Up to v1.9.0 one model was kept for the active service only; it still counts for it.
-     */
-    val llmModels: StateFlow<Map<String, String>> = state { prefs ->
-        val perService = prefs.asMap().mapNotNull { (k, v) ->
-            if (!k.name.startsWith(LLM_MODEL_PREFIX) || v !is String || v.isBlank()) return@mapNotNull null
-            k.name.removePrefix(LLM_MODEL_PREFIX) to v
-        }.toMap()
-        val legacy = prefs[llmModelKey]?.takeIf(String::isNotBlank)
-        val active = prefs[llmPresetKey] ?: LLM_DEFAULT_PRESET
-        if (legacy != null && active !in perService) perService + (active to legacy) else perService
-    }
-
-    /** Makes [preset] the AI service that translation, the recap and codex summaries use. */
-    suspend fun setLlmPreset(preset: String) {
-        context.appDataStore.edit { prefs ->
-            // The old single model belongs to the service that was active; keep it there.
-            prefs[llmModelKey]?.takeIf(String::isNotBlank)?.let { legacy ->
-                val owner = prefs[llmPresetKey] ?: LLM_DEFAULT_PRESET
-                val key = stringPreferencesKey(LLM_MODEL_PREFIX + owner)
-                if (prefs[key].isNullOrBlank()) prefs[key] = legacy
-                prefs.remove(llmModelKey)
-            }
-            prefs[llmPresetKey] = preset
-        }
-    }
-
-    suspend fun setLlmBaseUrl(url: String?) {
-        context.appDataStore.edit { if (url.isNullOrBlank()) it.remove(llmBaseUrlKey) else it[llmBaseUrlKey] = url.trim() }
-    }
-
-    /** The model for [preset]; null goes back to the service's automatic model. */
-    suspend fun setLlmModel(preset: String, model: String?) {
-        context.appDataStore.edit { prefs ->
-            val key = stringPreferencesKey(LLM_MODEL_PREFIX + preset)
-            if (model.isNullOrBlank()) prefs.remove(key) else prefs[key] = model.trim()
-            if ((prefs[llmPresetKey] ?: LLM_DEFAULT_PRESET) == preset) prefs.remove(llmModelKey)
-        }
-    }
-
-    /**
-     * The last check of each AI service and of DeepL (`deepl`), as the feature encodes it. Kept
-     * in the private store: it is about this phone's keys and isn't backed up or synced.
-     */
-    val aiChecks: StateFlow<Map<String, String>> = privateState { prefs ->
-        prefs.asMap().mapNotNull { (k, v) ->
-            if (!k.name.startsWith(AI_CHECK_PREFIX) || v !is String) return@mapNotNull null
-            k.name.removePrefix(AI_CHECK_PREFIX) to v
-        }.toMap()
-    }
-
-    suspend fun setAiCheck(id: String, value: String?) {
-        context.privateDataStore.edit {
-            val key = stringPreferencesKey(AI_CHECK_PREFIX + id)
-            if (value == null) it.remove(key) else it[key] = value
-        }
-    }
-
-    /**
-     * AI usage totals (tokens and cost per month and feature) as the feature encodes them. Kept in
-     * the private store: it is about this phone's requests and isn't backed up or synced.
-     */
-    val aiUsage: StateFlow<String?> = privateState { it[aiUsageKey] }
-
-    /** Replaces the usage totals with [transform] of the current ones, atomically. */
-    suspend fun updateAiUsage(transform: (String?) -> String?) {
-        context.privateDataStore.edit { prefs ->
-            val next = transform(prefs[aiUsageKey])
-            if (next == null) prefs.remove(aiUsageKey) else prefs[aiUsageKey] = next
-        }
-    }
-
-    /** The user's API keys for AI translation, one per service id, decrypted. */
-    val llmKeys: StateFlow<Map<String, String>> = privateState { prefs ->
-        prefs.asMap().keys.mapNotNull { key ->
-            val preset = key.name.removePrefix(LLM_KEY_PREFIX).removeSuffix(LLM_KEY_SUFFIX)
-            if (!key.name.startsWith(LLM_KEY_PREFIX) || !key.name.endsWith(LLM_KEY_SUFFIX)) return@mapNotNull null
-            prefs.secret(stringPreferencesKey(key.name))?.takeIf(String::isNotBlank)?.let { preset to it }
-        }.toMap()
-    }
-
-    suspend fun setLlmKey(preset: String, key: String?) =
-        putSecret(stringPreferencesKey(LLM_KEY_PREFIX + preset + LLM_KEY_SUFFIX), key?.trim())
-
-    suspend fun setReadAloudSettings(settings: ReadAloudSettings) {
-        val s = settings.clamped()
-        context.appDataStore.edit {
-            it[readAloudSpeedKey] = s.speed.toDouble()
-            if (s.voiceName != null) it[readAloudVoiceKey] = s.voiceName else it.remove(readAloudVoiceKey)
-            if (s.engine != null) it[readAloudEngineKey] = s.engine else it.remove(readAloudEngineKey)
-        }
-    }
-
-    suspend fun setReaderSettings(settings: ReaderSettings) {
-        context.appDataStore.edit {
-            it[readerModeKey] = settings.mode.prefsIndex
-            it[readerThemeKey] = settings.theme.ordinal
-            it[readerGapKey] = settings.gap.toDouble()
-            it[readerZoomKey] = settings.doubleTapZoom
-            it[readerHidePageKey] = settings.hidePageNumber
-            it[readerSeamlessKey] = settings.seamlessReading
-            it[readerVolumeKeysKey] = settings.volumeKeys
-            it[readerTapZonesKey] = settings.tapZones
-            it[readerImmersiveKey] = settings.immersive
-            it[readerKeepScreenOnKey] = settings.keepScreenOn
-            it[readerSidePaddingKey] = settings.sidePaddingPercent
-            it[readerDimKey] = settings.dim.toDouble()
-            it[readerOrientationKey] = settings.orientation
-            it[readerColorFilterKey] = settings.colorFilter
-            it[readerEInkKey] = settings.eInk
-            it[readerBrightnessKey] = settings.brightness.toDouble()
-            it[readerAutoScrollKey] = settings.autoScrollSpeed
-            it[readerWebtoonTapZonesKey] = settings.webtoonTapZones
-            it[readerPreloadKey] = settings.preloadPages
-            it[readerPreloadChaptersKey] = settings.preloadChapters
-            it[readerCropBordersKey] = settings.cropBorders
-            it[readerSplitWideKey] = settings.splitWide
-            it[readerSpreadsKey] = settings.spreads
-            it[readerSpreadCoverKey] = settings.spreadCoverAlone
-            it[readerGuidedPanelsKey] = settings.guidedPanels
-            it[readerPanelOrderKey] = settings.panelOrder
-        }
-    }
-
-    suspend fun setAniListAccessToken(token: String?) {
-        putSecret(anilistTokenKey, token)
-    }
-
-    @Suppress("unused")
-    suspend fun setAniListClient(clientId: String, clientSecret: String) {
-        context.privateDataStore.edit {
-            it[anilistClientIdKey] = clientId
-            it[anilistClientSecretKey] = secrets.seal(clientSecret)
-        }
-    }
-
-    suspend fun setShikimoriTokens(access: String?, refresh: String?) {
-        context.privateDataStore.edit {
-            if (access.isNullOrBlank()) {
-                it.remove(shikiTokenKey)
-                it.remove(shikiUserIdKey)
-            } else {
-                it[shikiTokenKey] = secrets.seal(access)
-            }
-            if (refresh.isNullOrBlank()) it.remove(shikiRefreshKey) else it[shikiRefreshKey] = secrets.seal(refresh)
-        }
-    }
-
-    suspend fun setShikimoriUserId(userId: String?) {
-        context.privateDataStore.edit {
-            if (userId.isNullOrBlank()) it.remove(shikiUserIdKey) else it[shikiUserIdKey] = userId
-        }
-    }
-
-    @Suppress("unused")
-    suspend fun setShikimoriClient(clientId: String, clientSecret: String) {
-        context.privateDataStore.edit {
-            it[shikiClientIdKey] = clientId
-            it[shikiClientSecretKey] = secrets.seal(clientSecret)
-        }
-    }
-
     companion object {
         val LIBRARY_INTERVALS = listOf(3, 6, 12, 24, 48)
         const val MAX_SIDE_PADDING = 30
@@ -1097,29 +416,6 @@ class AppPreferences(
         val FOLDER_SCAN_HOURS = listOf(0, 6, 12, 24)
         /** Hours between background syncs; 0 = only "Sync now" and app start. */
         val SYNC_INTERVALS = listOf(0, 1, 6, 12, 24)
-        private val PRIVATE_KEY_PARTS = listOf("token", "secret", "client_id", "user_id", "password", "verifier")
-        private val SECRET_KEY_PARTS = listOf("token", "secret", "password", "verifier", "passphrase")
-        private const val TRACKER_PREFIX = "tracker_"
-
-        // "secret" in the name keeps these keys private and encrypted.
-        private const val LLM_KEY_PREFIX = "translate_llm_"
-        private const val LLM_KEY_SUFFIX = "_secret"
-        private const val LLM_MODEL_PREFIX = "ai_model_"
-        private const val AI_CHECK_PREFIX = "ai_check_"
-        /** The service used before the user picks one (`LlmPreset.DEFAULT` in the novel module). */
-        private const val LLM_DEFAULT_PRESET = "openrouter"
         const val DEFAULT_PACK_INDEX = "https://raw.githubusercontent.com/TheMiracleOfKein/lume/main/docs/packs/index.json"
-        private val prefsJson = Json { ignoreUnknownKeys = true }
     }
 }
-
-/** AI story notes are off: nothing is sent. */
-const val STORY_NOTES_OFF = "off"
-
-/** AI story notes are written as each chapter is finished. */
-const val STORY_NOTES_FINISHED = "finished"
-
-/** AI story notes are written only when the recap or the codex needs them, several chapters per request. */
-const val STORY_NOTES_NEEDED = "needed"
-
-private val STORY_NOTES_MODES = setOf(STORY_NOTES_OFF, STORY_NOTES_FINISHED, STORY_NOTES_NEEDED)
