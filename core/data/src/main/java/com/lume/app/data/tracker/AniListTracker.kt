@@ -14,7 +14,6 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
@@ -61,18 +60,15 @@ class AniListTracker(
         }.toString()
         val jsonRequest = Request.Builder()
             .url("https://anilist.co/api/v2/oauth/token")
-            .post(jsonBody.toRequestBody("application/json".toMediaType()))
+            .post(jsonBody.toRequestBody(JSON_MEDIA_TYPE))
             .header("Accept", "application/json")
             .header("Content-Type", "application/json")
             .build()
-        http.okHttp.newCall(jsonRequest).execute().use { response ->
-            val text = response.body.string()
-            if (!response.isSuccessful) return@withContext false
-            val obj = json.parseToJsonElement(text).jsonObject
-            val token = obj["access_token"]?.jsonPrimitive?.content ?: return@withContext false
-            prefs.setAniListAccessToken(token)
-            true
-        }
+        val text = http.okHttp.fetchText(jsonRequest) ?: return@withContext false
+        val obj = json.parseToJsonElement(text).jsonObject
+        val token = obj["access_token"]?.jsonPrimitive?.content ?: return@withContext false
+        prefs.setAniListAccessToken(token)
+        true
     }
 
     override suspend fun logout() {
@@ -83,19 +79,20 @@ class AniListTracker(
 
     override val statuses: List<TrackStatus> get() = STATUS.statuses
 
-    private suspend fun graphql(body: String, token: String?): kotlinx.serialization.json.JsonObject? = withContext(Dispatchers.IO) {
+    /** The raw answer text of a GraphQL call, or null when it failed. */
+    private fun graphqlText(body: String, token: String?): String? {
         val request = Request.Builder()
             .url("https://graphql.anilist.co")
-            .post(body.toRequestBody("application/json".toMediaType()))
+            .post(body.toRequestBody(JSON_MEDIA_TYPE))
             .apply { if (token != null) header("Authorization", "Bearer $token") }
             .header("Accept", "application/json")
             .header("Content-Type", "application/json")
             .build()
-        http.okHttp.newCall(request).execute().use { response ->
-            val text = response.body.string()
-            if (!response.isSuccessful) return@use null
-            json.parseToJsonElement(text).jsonObject["data"]?.jsonObject
-        }
+        return http.okHttp.fetchText(request)
+    }
+
+    private suspend fun graphql(body: String, token: String?): kotlinx.serialization.json.JsonObject? = withContext(Dispatchers.IO) {
+        graphqlText(body, token)?.let { json.parseToJsonElement(it).jsonObject["data"]?.jsonObject }
     }
 
     override val supportsListImport: Boolean get() = true
@@ -103,27 +100,12 @@ class AniListTracker(
     override suspend fun fetchReadingList(kind: MediaKind): List<TrackerListEntry>? = withContext(Dispatchers.IO) {
         if (kind != MediaKind.Comics && kind != MediaKind.Novel) return@withContext null
         val token = prefs.anilistAccessToken.first() ?: return@withContext null
-        val viewer = rawGraphql("""{"query":"query{Viewer{id}}"}""", token) ?: return@withContext null
+        val viewer = graphqlText("""{"query":"query{Viewer{id}}"}""", token) ?: return@withContext null
         val userId = parseAniListViewerId(json, viewer) ?: return@withContext null
         val body =
             """{"query":"query(${'$'}userId:Int){MediaListCollection(userId:${'$'}userId,type:MANGA,status:CURRENT){lists{entries{progress score(format:POINT_10_DECIMAL) media{id format title{romaji english native} synonyms siteUrl coverImage{large} staff(perPage:3){nodes{name{full}}}}}}}}","variables":{"userId":$userId}}"""
-        val text = rawGraphql(body, token) ?: return@withContext null
+        val text = graphqlText(body, token) ?: return@withContext null
         runCatching { parseAniListReadingList(json, text, kind) }.getOrNull()
-    }
-
-    /** The raw answer text of a GraphQL call, or null when it failed. */
-    private fun rawGraphql(body: String, token: String): String? {
-        val request = Request.Builder()
-            .url("https://graphql.anilist.co")
-            .post(body.toRequestBody("application/json".toMediaType()))
-            .header("Authorization", "Bearer $token")
-            .header("Accept", "application/json")
-            .header("Content-Type", "application/json")
-            .build()
-        return http.okHttp.newCall(request).execute().use { response ->
-            val text = response.body.string()
-            text.takeIf { response.isSuccessful }
-        }
     }
 
     override suspend fun fetchEntry(remoteId: String): TrackerEntry? {
@@ -171,46 +153,37 @@ class AniListTracker(
         val q = query.trim()
         if (q.isEmpty() || (kind != MediaKind.Comics && kind != MediaKind.Novel)) return@withContext emptyList()
         val body = aniListSearchBody(kind, json.encodeToString(q))
-        val request = Request.Builder()
-            .url("https://graphql.anilist.co")
-            .post(body.toRequestBody("application/json".toMediaType()))
-            .header("Accept", "application/json")
-            .header("Content-Type", "application/json")
-            .build()
-        http.okHttp.newCall(request).execute().use { response ->
-            val text = response.body.string()
-            if (!response.isSuccessful) return@withContext emptyList()
-            val root = json.parseToJsonElement(text).jsonObject
-            val media = root["data"]?.jsonObject
-                ?.get("Page")?.jsonObject
-                ?.get("media")?.jsonArray
-                ?: return@withContext emptyList()
-            media.mapNotNull { el ->
-                val obj = el.jsonObject
-                val id = obj["id"]?.jsonPrimitive?.longOrNull?.toString() ?: return@mapNotNull null
-                val titles = obj["title"]?.jsonObject
-                // A missing name is JSON null, which must not show up as the text "null".
-                val name = listOf("english", "romaji", "native").firstNotNullOfOrNull { key ->
-                    (titles?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content?.takeIf { it.isNotBlank() }
-                } ?: return@mapNotNull null
-                TrackerSearchResult(
-                    remoteId = id,
-                    title = name,
-                    url = obj["siteUrl"]?.jsonPrimitive?.content,
-                    coverUrl = obj["coverImage"]?.jsonObject?.get("large")?.jsonPrimitive?.content,
-                    altTitles = listOf("english", "romaji", "native").mapNotNull { key ->
-                        (titles?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content
-                    } + (obj["synonyms"] as? kotlinx.serialization.json.JsonArray).orEmpty().mapNotNull {
-                        (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content
-                    },
-                    format = TitleFormat.parse(
-                        (obj["format"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
-                        (obj["countryOfOrigin"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
-                    ),
-                    year = ((obj["startDate"] as? kotlinx.serialization.json.JsonObject)?.get("year") as? JsonPrimitive)
-                        ?.content?.toIntOrNull(),
-                )
-            }
+        val text = graphqlText(body, null) ?: return@withContext emptyList()
+        val root = json.parseToJsonElement(text).jsonObject
+        val media = root["data"]?.jsonObject
+            ?.get("Page")?.jsonObject
+            ?.get("media")?.jsonArray
+            ?: return@withContext emptyList()
+        media.mapNotNull { el ->
+            val obj = el.jsonObject
+            val id = obj["id"]?.jsonPrimitive?.longOrNull?.toString() ?: return@mapNotNull null
+            val titles = obj["title"]?.jsonObject
+            // A missing name is JSON null, which must not show up as the text "null".
+            val name = listOf("english", "romaji", "native").firstNotNullOfOrNull { key ->
+                (titles?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content?.takeIf { it.isNotBlank() }
+            } ?: return@mapNotNull null
+            TrackerSearchResult(
+                remoteId = id,
+                title = name,
+                url = obj["siteUrl"]?.jsonPrimitive?.content,
+                coverUrl = obj["coverImage"]?.jsonObject?.get("large")?.jsonPrimitive?.content,
+                altTitles = listOf("english", "romaji", "native").mapNotNull { key ->
+                    (titles?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content
+                } + (obj["synonyms"] as? kotlinx.serialization.json.JsonArray).orEmpty().mapNotNull {
+                    (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content
+                },
+                format = TitleFormat.parse(
+                    (obj["format"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
+                    (obj["countryOfOrigin"] as? JsonPrimitive)?.takeIf { it.isString }?.content,
+                ),
+                year = ((obj["startDate"] as? kotlinx.serialization.json.JsonObject)?.get("year") as? JsonPrimitive)
+                    ?.content?.toIntOrNull(),
+            )
         }
     }
 
@@ -242,26 +215,16 @@ class AniListTracker(
         val mediaId = remoteId.toLongOrNull() ?: return@withContext null
         val body =
             """{"query":"query(${'$'}id:Int){Media(id:${'$'}id,type:MANGA){mediaListEntry{progress status score}}}","variables":{"id":$mediaId}}"""
-        val request = Request.Builder()
-            .url("https://graphql.anilist.co")
-            .post(body.toRequestBody("application/json".toMediaType()))
-            .header("Authorization", "Bearer $token")
-            .header("Accept", "application/json")
-            .header("Content-Type", "application/json")
-            .build()
-        http.okHttp.newCall(request).execute().use { response ->
-            val text = response.body.string()
-            if (!response.isSuccessful) return@withContext null
-            val entry = json.parseToJsonElement(text).jsonObject["data"]?.jsonObject
-                ?.get("Media")?.jsonObject
-                ?.get("mediaListEntry")?.jsonObject
-                ?: return@withContext TrackerProgress(0)
-            TrackerProgress(
-                chaptersRead = entry["progress"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0,
-                status = entry["status"]?.jsonPrimitive?.content,
-                score = entry["score"]?.jsonPrimitive?.content?.toFloatOrNull(),
-            )
-        }
+        val text = graphqlText(body, token) ?: return@withContext null
+        val entry = json.parseToJsonElement(text).jsonObject["data"]?.jsonObject
+            ?.get("Media")?.jsonObject
+            ?.get("mediaListEntry")?.jsonObject
+            ?: return@withContext TrackerProgress(0)
+        TrackerProgress(
+            chaptersRead = entry["progress"]?.jsonPrimitive?.content?.toIntOrNull() ?: 0,
+            status = entry["status"]?.jsonPrimitive?.content,
+            score = entry["score"]?.jsonPrimitive?.content?.toFloatOrNull(),
+        )
     }
 
     override suspend fun updateProgress(remoteId: String, chaptersRead: Int): Boolean =
@@ -270,14 +233,7 @@ class AniListTracker(
             val mediaId = remoteId.toLongOrNull() ?: return@withContext false
             val body =
                 """{"query":"mutation(${'$'}id:Int,${'$'}progress:Int){SaveMediaListEntry(mediaId:${'$'}id,progress:${'$'}progress){id progress}}","variables":{"id":$mediaId,"progress":$chaptersRead}}"""
-            val request = Request.Builder()
-                .url("https://graphql.anilist.co")
-                .post(body.toRequestBody("application/json".toMediaType()))
-                .header("Authorization", "Bearer $token")
-                .header("Accept", "application/json")
-                .header("Content-Type", "application/json")
-                .build()
-            http.okHttp.newCall(request).execute().use { it.isSuccessful }
+    graphqlText(body, token) != null
         }
 
     companion object {

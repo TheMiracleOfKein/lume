@@ -17,7 +17,6 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.FormBody
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.URI
@@ -55,22 +54,13 @@ class ShikimoriTracker(
             .add("redirect_uri", REDIRECT_URI)
             .add("code", code)
             .build()
-        val request = Request.Builder()
-            .url("$BASE_URL/oauth/token")
-            .post(body)
-            .header("User-Agent", USER_AGENT)
-            .header("Accept", "application/json")
-            .build()
-        http.okHttp.newCall(request).execute().use { response ->
-            val text = response.body.string()
-            if (!response.isSuccessful) return@withContext false
-            val obj = json.parseToJsonElement(text).jsonObject
-            val token = obj["access_token"]?.jsonPrimitive?.content ?: return@withContext false
-            val refresh = obj["refresh_token"]?.jsonPrimitive?.content
-            prefs.setShikimoriTokens(token, refresh)
-            runCatching { fetchAndStoreUserId(token) }
-            true
-        }
+        val text = http.okHttp.fetchText(tokenRequest(body)) ?: return@withContext false
+        val obj = json.parseToJsonElement(text).jsonObject
+        val token = obj["access_token"]?.jsonPrimitive?.content ?: return@withContext false
+        val refresh = obj["refresh_token"]?.jsonPrimitive?.content
+        prefs.setShikimoriTokens(token, refresh)
+        runCatching { fetchAndStoreUserId(token) }
+        true
     }
 
     override suspend fun logout() {
@@ -111,9 +101,7 @@ class ShikimoriTracker(
             .add("client_secret", clientSecret)
             .add("refresh_token", refresh)
             .build()
-        val request = Request.Builder().url("$BASE_URL/oauth/token").post(body)
-            .header("User-Agent", USER_AGENT).header("Accept", "application/json").build()
-        return http.okHttp.newCall(request).execute().use { response ->
+        return http.okHttp.newCall(tokenRequest(body)).execute().use { response ->
             val text = response.body.string()
             if (!response.isSuccessful) {
                 // 400/401: the refresh token is gone too. Other errors may pass; keep the tokens.
@@ -134,15 +122,7 @@ class ShikimoriTracker(
         val token = prefs.shikimoriAccessToken.first() ?: return null
         val userId = ensureUserId(token) ?: return null
         return authed(
-            build = { t ->
-                Request.Builder()
-                    .url("$API_URL/v2/user_rates?user_id=$userId&target_type=Manga&target_id=$remoteId")
-                    .get()
-                    .header("User-Agent", USER_AGENT)
-                    .header("Authorization", "Bearer $t")
-                    .header("Accept", "application/json")
-                    .build()
-            },
+            build = { t -> apiRequest("$API_URL/v2/user_rates?user_id=$userId&target_type=Manga&target_id=$remoteId", t) },
             read = { response ->
                 val text = response.body.string()
                 if (!response.isSuccessful) error("HTTP ${response.code}")
@@ -180,13 +160,12 @@ class ShikimoriTracker(
         }.toString()
         return authed(
             build = { t ->
-                Request.Builder()
-                    .url(if (rateId != null) "$API_URL/v2/user_rates/$rateId" else "$API_URL/v2/user_rates")
-                    .method(if (rateId != null) "PATCH" else "POST", payload.toRequestBody("application/json".toMediaType()))
-                    .header("User-Agent", USER_AGENT)
-                    .header("Authorization", "Bearer $t")
-                    .header("Accept", "application/json")
-                    .build()
+                apiRequest(
+                    if (rateId != null) "$API_URL/v2/user_rates/$rateId" else "$API_URL/v2/user_rates",
+                    t,
+                    if (rateId != null) "PATCH" else "POST",
+                    payload,
+                )
             },
             read = { it.isSuccessful },
         ) ?: false
@@ -217,16 +196,8 @@ class ShikimoriTracker(
         val all = mutableListOf<TrackerListEntry>()
         for (page in 1..MAX_LIST_PAGES) {
             val text = authed(
-                build = { t ->
-                    Request.Builder()
-                        .url("$API_URL/users/$userId/manga_rates?status=watching&limit=$LIST_PAGE&page=$page")
-                        .get()
-                        .header("User-Agent", USER_AGENT)
-                        .header("Authorization", "Bearer $t")
-                        .header("Accept", "application/json")
-                        .build()
-                },
-                read = { response -> response.body.string().takeIf { response.isSuccessful } },
+                build = { t -> apiRequest("$API_URL/users/$userId/manga_rates?status=watching&limit=$LIST_PAGE&page=$page", t) },
+                read = { it.textOrNull() },
             ) ?: return null
             val rows = runCatching { json.parseToJsonElement(text).jsonArray.size }.getOrNull() ?: return null
             all += runCatching { parseShikimoriReadingList(json, text, kind, BASE_URL) }.getOrNull() ?: return null
@@ -297,16 +268,7 @@ class ShikimoriTracker(
                 "$API_URL/v2/user_rates"
             }
             authed(
-                build = { t ->
-                    Request.Builder()
-                        .url(url)
-                        .method(if (rateId != null) "PATCH" else "POST", payload.toRequestBody("application/json".toMediaType()))
-                        .header("User-Agent", USER_AGENT)
-                        .header("Authorization", "Bearer $t")
-                        .header("Accept", "application/json")
-                        .header("Content-Type", "application/json")
-                        .build()
-                },
+                build = { t -> apiRequest(url, t, if (rateId != null) "PATCH" else "POST", payload) },
                 read = { response ->
                     if (!response.isSuccessful) {
                         android.util.Log.w("Shikimori", "updateProgress failed ${response.code}: ${response.body.string()}")
@@ -322,22 +284,25 @@ class ShikimoriTracker(
     }
 
     private suspend fun fetchAndStoreUserId(token: String): String? {
-        val request = Request.Builder()
-            .url("$API_URL/users/whoami")
-            .get()
+        val text = http.okHttp.fetchText(apiRequest("$API_URL/users/whoami", token)) ?: return null
+        val id = json.parseToJsonElement(text).jsonObject["id"]?.jsonPrimitive?.content ?: return null
+        prefs.setShikimoriUserId(id)
+        return id
+    }
+
+    /** An API call with the app's user agent and the bearer [token]; [payload] is a JSON body. */
+    private fun apiRequest(url: String, token: String, method: String = "GET", payload: String? = null): Request =
+        Request.Builder()
+            .url(url)
+            .method(method, payload?.toRequestBody(JSON_MEDIA_TYPE))
             .header("User-Agent", USER_AGENT)
             .header("Authorization", "Bearer $token")
             .header("Accept", "application/json")
             .build()
-        return http.okHttp.newCall(request).execute().use { response ->
-            val text = response.body.string()
-            if (!response.isSuccessful) return@use null
-            val id = json.parseToJsonElement(text).jsonObject["id"]?.jsonPrimitive?.content
-                ?: return@use null
-            prefs.setShikimoriUserId(id)
-            id
-        }
-    }
+
+    private fun tokenRequest(form: FormBody): Request =
+        Request.Builder().url("$BASE_URL/oauth/token").post(form)
+            .header("User-Agent", USER_AGENT).header("Accept", "application/json").build()
 
     companion object {
         const val REDIRECT_URI = "lume://oauth/shikimori"

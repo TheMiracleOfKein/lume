@@ -126,8 +126,7 @@ class MyAnimeListTracker(
         // Comics and novels share the /manga endpoint; the page is larger because the other kind is dropped.
         val url = "$API/manga?q=${urlEncode(q)}&limit=$SEARCH_LIMIT&nsfw=true&fields=alternative_titles,main_picture,media_type,start_date"
         return api({ url(url).get() }) { response ->
-            if (!response.isSuccessful) return@api emptyList()
-            parseMalSearch(json, response.body.string(), kind).take(10)
+            response.textOrNull()?.let { parseMalSearch(json, it, kind).take(10) }
         }.orEmpty()
     }
 
@@ -142,8 +141,7 @@ class MyAnimeListTracker(
         while (url != null && pages++ < MAX_LIST_PAGES) {
             val page = url
             val parsed = api({ url(page).get() }) { response ->
-                if (!response.isSuccessful) return@api null
-                runCatching { parseMalReadingList(json, response.body.string(), kind) }.getOrNull()
+                response.textOrNull()?.let { runCatching { parseMalReadingList(json, it, kind) }.getOrNull() }
             } ?: return null
             all += parsed.first
             url = parsed.second
@@ -154,8 +152,7 @@ class MyAnimeListTracker(
     /** What MyAnimeList users recommend for [remoteId]; null when signed out or on errors. */
     suspend fun recommendations(remoteId: String): List<SimilarTitle>? =
         api({ url("$API/manga/$remoteId?fields=recommendations").get() }) { response ->
-            if (!response.isSuccessful) return@api null
-            parseMalRecommendations(json, response.body.string())
+            response.textOrNull()?.let { parseMalRecommendations(json, it) }
         }
 
     override suspend fun link(sourceId: String, titleId: String, remoteId: String, remoteUrl: String?, kind: MediaKind) {
@@ -170,8 +167,8 @@ class MyAnimeListTracker(
     override suspend fun fetchEntry(remoteId: String): TrackerEntry? {
         val url = "$API/manga/$remoteId?fields=num_chapters,my_list_status{start_date,finish_date}"
         return api({ url(url).get() }) { response ->
-            if (!response.isSuccessful) return@api null
-            val obj = json.parseToJsonElement(response.body.string()).jsonObject
+            val text = response.textOrNull() ?: return@api null
+            val obj = json.parseToJsonElement(text).jsonObject
             val total = (obj["num_chapters"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()?.takeIf { it > 0 }
             val list = obj["my_list_status"] as? JsonObject ?: return@api TrackerEntry(totalChapters = total)
             fun str(key: String) = (list[key] as? JsonPrimitive)?.contentOrNull
