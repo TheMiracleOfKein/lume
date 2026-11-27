@@ -187,7 +187,7 @@
     <string name="sources_lang_multi">Несколько языков</string>
     <string name="sources_lang_badge_multi">MULTI</string>
     <string name="source_login_title">Вход · %1$s</string>
-    <string name="source_login_hint">Войдите на сайте, приложение подхватит сессию само. Нажмите на поле почты, чтобы подставить логин, сохранённый в Google Паролях. Вход через Google внутри приложений может не работать, используйте почту и пароль.</string>
+    <string name="source_login_hint">Войдите на сайте, приложение подхватит сессию само. Нажмите на поле почты, чтобы подставить логин, сохранённый в Google Паролях. Вход через Google тоже работает, и Lume запоминает Google-аккаунт, так что его пароль нужен только один раз.</string>
     <string name="source_login_ok">Вы вошли</string>
     <string name="source_login_stale">Сайт ещё помнил старый аккаунт, поэтому его сохранённая сессия очищена. Войдите заново. Если старый аккаунт всё ещё виден, сначала выйдите на самом сайте.</string>
     <string name="source_logout_ok">Вы вышли</string>

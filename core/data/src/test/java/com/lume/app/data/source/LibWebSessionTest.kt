@@ -28,6 +28,20 @@ class LibWebSessionTest {
     }
 
     @Test
+    fun googleCookiesComeBackWithTheirScope() {
+        assertEquals(
+            "SID=a; Domain=.google.com; Path=/; Secure; SameSite=Lax; Max-Age=15552000",
+            LibWebSession.googleCookie("SID=a"),
+        )
+        assertEquals(
+            "__Host-GAPS=b; Path=/; Secure; SameSite=Lax; Max-Age=15552000",
+            LibWebSession.googleCookie("__Host-GAPS=b"),
+        )
+        assertTrue(LibWebSession.googleCookie("__Secure-3PSID=c").contains("SameSite=None"))
+        assertEquals(listOf("SID=a", "HSID=b=c"), LibWebSession.cookiePairs("SID=a; HSID=b=c; ; =x; SID=a"))
+    }
+
+    @Test
     fun parentDomainOfSubdomainOnly() {
         assertEquals("lib.social", LibWebSession.parentDomain("auth.lib.social"))
         assertNull(LibWebSession.parentDomain("mangalib.me"))
