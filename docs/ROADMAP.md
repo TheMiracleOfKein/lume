@@ -34,6 +34,7 @@ These hold for every release:
 
 | Version | Theme | Released |
 | --- | --- | --- |
+| [v1.16.0](releases/v1.16.0.md) | Code cleanup | pending |
 | [v1.15.1](releases/v1.15.1.md) | Brightness steps | 2026-11-26 |
 | [v1.15.0](releases/v1.15.0.md) | Reader comfort | 2026-11-26 |
 | [v1.14.0](releases/v1.14.0.md) | Translated novels | 2026-11-26 |
@@ -42,7 +43,6 @@ These hold for every release:
 | [v1.12.0](releases/v1.12.0.md) | AI story notes | 2026-11-24 |
 | [v1.11.0](releases/v1.11.0.md) | Cheaper AI | 2026-11-23 |
 | [v1.10.0](releases/v1.10.0.md) | AI settings | 2026-11-23 |
-| [v1.9.0](releases/v1.9.0.md) | AI translation | 2026-11-22 |
 
 Every older version: [docs/releases/](releases/).
 
