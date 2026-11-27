@@ -46,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
-import com.lume.app.data.tracker.Tracker
 import com.lume.app.data.tracker.TrackerLogin
 import com.lume.app.ui.components.ConfirmDialog
 import com.lume.app.ui.components.PasswordField
@@ -81,16 +80,13 @@ fun TrackerSettings(vm: SettingsViewModel) {
     var importTrackerId by rememberSaveable { mutableStateOf<String?>(null) }
     val importStatus by vm.trackerImportStatus.collectAsState()
     container.trackers.all.firstOrNull { it.id == importTrackerId }?.let { tracker ->
-        AlertDialog(
-            onDismissRequest = { importTrackerId = null },
-            title = { Text(stringResource(R.string.tracker_import_title, tracker.displayName)) },
-            text = { Text(stringResource(R.string.tracker_import_text, tracker.displayName)) },
-            confirmButton = {
-                TextButton(onClick = { vm.importTrackerList(tracker.id); importTrackerId = null }) {
-                    Text(stringResource(R.string.tracker_import_confirm), color = AppColors.accentText)
-                }
-            },
-            dismissButton = { TextButton(onClick = { importTrackerId = null }) { Text(stringResource(R.string.action_cancel)) } },
+        ConfirmDialog(
+            title = stringResource(R.string.tracker_import_title, tracker.displayName),
+            text = stringResource(R.string.tracker_import_text, tracker.displayName),
+            confirmLabel = stringResource(R.string.tracker_import_confirm),
+            confirmColor = AppColors.accentText,
+            onConfirm = { vm.importTrackerList(tracker.id) },
+            onDismiss = { importTrackerId = null },
         )
     }
     val passwordLogin = container.trackers.all.firstOrNull { it.id == passwordLoginId }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import com.lume.app.ui.components.BackButton
+import com.lume.app.ui.components.ConfirmDialog
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.ExpandLess
@@ -28,7 +29,6 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.InstallMobile
 import androidx.compose.material.icons.outlined.SendToMobile
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.mutableStateOf
@@ -83,26 +83,17 @@ fun DownloadsScreen(nav: NavHostController) {
     var pending by remember { mutableStateOf<PendingDelete?>(null) }
 
     pending?.let { p ->
-        AlertDialog(
-            onDismissRequest = { pending = null },
-            title = { Text(stringResource(R.string.dialog_delete_downloads_title)) },
-            text = {
-                Text(
-                    stringResource(
-                        if (p.chapterId == null) R.string.dialog_delete_title_downloads_text else R.string.dialog_delete_chapter_download_text,
-                        p.name,
-                    ),
-                )
+        ConfirmDialog(
+            title = stringResource(R.string.dialog_delete_downloads_title),
+            text = stringResource(
+                if (p.chapterId == null) R.string.dialog_delete_title_downloads_text else R.string.dialog_delete_chapter_download_text,
+                p.name,
+            ),
+            confirmLabel = stringResource(R.string.action_delete),
+            onConfirm = {
+                if (p.chapterId == null) vm.deleteTitle(p.sourceId, p.titleId) else vm.deleteChapter(p.sourceId, p.titleId, p.chapterId)
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    if (p.chapterId == null) vm.deleteTitle(p.sourceId, p.titleId) else vm.deleteChapter(p.sourceId, p.titleId, p.chapterId)
-                    pending = null
-                }) { Text(stringResource(R.string.action_delete), color = AppColors.danger) }
-            },
-            dismissButton = {
-                TextButton(onClick = { pending = null }) { Text(stringResource(R.string.action_cancel)) }
-            },
+            onDismiss = { pending = null },
         )
     }
 

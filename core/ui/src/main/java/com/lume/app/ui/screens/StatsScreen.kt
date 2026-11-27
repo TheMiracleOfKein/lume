@@ -47,6 +47,7 @@ import com.lume.app.domain.computeReadingStats
 import com.lume.app.ui.components.BackButton
 import com.lume.app.ui.components.EmptyBox
 import com.lume.app.ui.components.LumeInsets
+import com.lume.app.ui.components.SectionLabel
 import com.lume.app.ui.nav.Routes
 import com.lume.app.ui.shell.belongsToMode
 import com.lume.app.ui.theme.AppColors
@@ -122,7 +123,7 @@ private fun StatsContent(stats: ReadingStats, nav: NavHostController) {
                 StatTile(stats.pages.toString(), stringResource(R.string.stats_pages), Modifier.weight(1f))
             }
         }
-        item(key = "months-title") { SectionLabel(stringResource(R.string.stats_by_month)) }
+        item(key = "months-title") { StatsSectionLabel(stringResource(R.string.stats_by_month)) }
         items(stats.months, key = { "m-${it.month}" }) { month ->
             val fraction by animateFloatAsState(month.durationMs.toFloat() / longest, Motion.medium(), label = "bar")
             Column(Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
@@ -154,7 +155,7 @@ private fun StatsContent(stats: ReadingStats, nav: NavHostController) {
             }
         }
         if (stats.titles.isNotEmpty()) {
-            item(key = "titles-title") { SectionLabel(stringResource(R.string.stats_by_title)) }
+            item(key = "titles-title") { StatsSectionLabel(stringResource(R.string.stats_by_title)) }
             items(stats.titles, key = { "t-${it.sourceId}:${it.titleId}" }) { title ->
                 Column(
                     Modifier
@@ -184,14 +185,8 @@ private fun StatsContent(stats: ReadingStats, nav: NavHostController) {
 }
 
 @Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text,
-        color = AppColors.textSecondary,
-        fontSize = 13.sp,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
-    )
+private fun StatsSectionLabel(text: String) {
+    SectionLabel(text, Modifier.padding(top = 16.dp, bottom = 4.dp))
 }
 
 @Composable

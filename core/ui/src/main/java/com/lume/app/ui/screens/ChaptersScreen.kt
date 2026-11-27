@@ -52,7 +52,6 @@ import androidx.compose.material.icons.outlined.RemoveDone
 import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.VerticalAlignBottom
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -63,10 +62,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import com.lume.app.ui.components.ConfirmDialog
 import com.lume.app.ui.components.LumeBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -338,19 +337,12 @@ fun ChaptersScreen(
     }
 
     if (confirmDeleteAll) {
-        AlertDialog(
-            onDismissRequest = { confirmDeleteAll = false },
-            title = { Text(stringResource(R.string.dialog_delete_downloads_title)) },
-            text = { Text(stringResource(R.string.dialog_delete_downloads_text, downloadedIds.size)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.deleteAllDownloads()
-                    confirmDeleteAll = false
-                }) { Text(stringResource(R.string.action_delete), color = AppColors.danger) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDeleteAll = false }) { Text(stringResource(R.string.action_cancel)) }
-            },
+        ConfirmDialog(
+            title = stringResource(R.string.dialog_delete_downloads_title),
+            text = stringResource(R.string.dialog_delete_downloads_text, downloadedIds.size),
+            confirmLabel = stringResource(R.string.action_delete),
+            onConfirm = vm::deleteAllDownloads,
+            onDismiss = { confirmDeleteAll = false },
         )
     }
 }

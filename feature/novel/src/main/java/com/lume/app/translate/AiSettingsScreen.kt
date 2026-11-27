@@ -140,7 +140,7 @@ internal fun AiSettingsScreen() {
             )
             active.keyUrl?.let { link -> KeyLink(link) }
         }
-        CheckRow(
+        ConnectionCheckRow(
             status = if (checking == active.id) null else checkLine(check, hasKey = ready),
             enabled = ready && checking == null,
             onCheck = { runCheck(active.id) { AiServices.check(app, active) } },
@@ -188,7 +188,7 @@ internal fun AiSettingsScreen() {
                 onRemove = { app.appScope.launch { AiServices.saveDeepLKey(app, null) } },
             )
             KeyLink("https://www.deepl.com/pro-api")
-            CheckRow(
+            ConnectionCheckRow(
                 status = if (checking == AiServices.DEEPL) null else checkLine(ServiceCheck.decode(checks[AiServices.DEEPL]), hasKey = !deeplKey.isNullOrBlank()),
                 enabled = !deeplKey.isNullOrBlank() && checking == null,
                 onCheck = { runCheck(AiServices.DEEPL) { AiServices.checkDeepL(app) } },
@@ -326,7 +326,7 @@ private fun UrlField(saved: String?, onSave: (String) -> Unit) {
 
 /** The last check's result ([status] null while checking) and "Check now". */
 @Composable
-private fun CheckRow(status: String?, enabled: Boolean, onCheck: () -> Unit) {
+private fun ConnectionCheckRow(status: String?, enabled: Boolean, onCheck: () -> Unit) {
     if (status == null) {
         Text(stringResource(R.string.ai_status_checking), color = AppColors.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
         LinearProgressIndicator(Modifier.fillMaxWidth().padding(vertical = 6.dp))

@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import com.lume.app.ui.components.BackButton
+import com.lume.app.ui.components.ConfirmDialog
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -44,7 +45,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,7 +53,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
-import com.lume.app.data.db.CategoryEntity
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.SettingsSection
 import com.lume.app.ui.theme.AppColors
@@ -170,19 +169,12 @@ fun CategoriesScreen(nav: NavHostController) {
         )
     }
     deleting?.let { cat ->
-        AlertDialog(
-            onDismissRequest = { deletingId = null },
-            title = { Text(stringResource(R.string.dialog_delete_category_title)) },
-            text = { Text(stringResource(R.string.dialog_delete_category_text, cat.name)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.delete(cat.id)
-                    deletingId = null
-                }) { Text(stringResource(R.string.action_delete), color = AppColors.danger) }
-            },
-            dismissButton = {
-                TextButton(onClick = { deletingId = null }) { Text(stringResource(R.string.action_cancel)) }
-            },
+        ConfirmDialog(
+            title = stringResource(R.string.dialog_delete_category_title),
+            text = stringResource(R.string.dialog_delete_category_text, cat.name),
+            confirmLabel = stringResource(R.string.action_delete),
+            onConfirm = { vm.delete(cat.id) },
+            onDismiss = { deletingId = null },
         )
     }
 }

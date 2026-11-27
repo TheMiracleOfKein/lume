@@ -7,9 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.lume.app.data.server.ServerAuth
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,12 +70,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import android.text.format.DateUtils
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -190,7 +186,7 @@ fun SourcesScreen(nav: NavHostController) {
             }
             grouped.forEach { (langKey, list) ->
                 item(key = "lang-$langKey") {
-                    SectionLabel(
+                    SourcesSectionLabel(
                         if (langKey == PINNED_GROUP) stringResource(R.string.source_pinned) else languageGroupLabel(langKey),
                     )
                 }
@@ -198,7 +194,7 @@ fun SourcesScreen(nav: NavHostController) {
                     val id = source.manifest.id
                     val isLib = SourceEngines.isLib(source.manifest.engine)
                     val token by vm.loginToken(id).collectAsState(initial = null)
-                    SourceRow(
+                    CatalogSourceRow(
                         source = source,
                         selected = id == activeId,
                         disabled = id in disabled,
@@ -518,7 +514,7 @@ private fun ServerDialog(draft: SourcesViewModel.ServerDraft, onSave: () -> Unit
 private fun PackCatalogue(vm: SourcesViewModel) {
     val packs = vm.packs
     Column(Modifier.padding(top = 8.dp)) {
-        SectionLabel(stringResource(R.string.sources_section_packs))
+        SourcesSectionLabel(stringResource(R.string.sources_section_packs))
         if (packs == null) {
             OutlinedButton(onClick = { vm.checkPacks() }, enabled = !vm.packsLoading, modifier = Modifier.fillMaxWidth()) {
                 Text(
@@ -617,7 +613,7 @@ private fun languageGroupLabel(key: String): String = when (key) {
 }
 
 @Composable
-private fun SectionLabel(text: String) {
+private fun SourcesSectionLabel(text: String) {
     Text(
         text = text,
         color = AppColors.textTertiary,
@@ -627,7 +623,7 @@ private fun SectionLabel(text: String) {
 }
 
 @Composable
-private fun SourceRow(
+private fun CatalogSourceRow(
     source: CatalogSource,
     selected: Boolean,
     disabled: Boolean,
