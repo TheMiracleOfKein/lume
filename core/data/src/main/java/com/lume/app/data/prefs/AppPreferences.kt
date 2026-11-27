@@ -344,6 +344,10 @@ class AppPreferences(
         context.privateDataStore.edit { target -> plain.forEach { (key, sealed) -> target[key] = sealed } }
     }
 
+    private suspend fun <T> put(key: Preferences.Key<T>, value: T) {
+        context.appDataStore.edit { it[key] = value }
+    }
+
     /** A secret value of the private store, decrypted. */
     private fun Preferences.secret(key: Preferences.Key<String>): String? = secrets.open(this[key])
 
@@ -368,13 +372,9 @@ class AppPreferences(
         }
     }
 
-    suspend fun setPureBlack(value: Boolean) {
-        context.appDataStore.edit { it[pureBlackKey] = value }
-    }
+    suspend fun setPureBlack(value: Boolean) = put(pureBlackKey, value)
 
-    suspend fun setDynamicColor(value: Boolean) {
-        context.appDataStore.edit { it[dynamicColorKey] = value }
-    }
+    suspend fun setDynamicColor(value: Boolean) = put(dynamicColorKey, value)
 
     /** Incognito: reading leaves no history, progress or read marks. */
     val incognito: StateFlow<Boolean> = state { it[incognitoKey] ?: false }
@@ -403,13 +403,9 @@ class AppPreferences(
     /** "Previously..." recap after this many hours away from a title (0 = off). */
     val recapAfterHours: StateFlow<Int> = state { it[recapAfterHoursKey] ?: 24 }
 
-    suspend fun setStoryIndex(value: Boolean) {
-        context.appDataStore.edit { it[storyIndexKey] = value }
-    }
+    suspend fun setStoryIndex(value: Boolean) = put(storyIndexKey, value)
 
-    suspend fun setRecapAfterHours(value: Int) {
-        context.appDataStore.edit { it[recapAfterHoursKey] = value }
-    }
+    suspend fun setRecapAfterHours(value: Int) = put(recapAfterHoursKey, value)
 
     /**
      * AI story notes: read chapters get a digest, the names in them and a fact about each from the
@@ -429,36 +425,22 @@ class AppPreferences(
 
     suspend fun setStoryNotes(mode: String) {
         if (mode !in STORY_NOTES_MODES) return
-        context.appDataStore.edit { it[storyNotesKey] = mode }
+        put(storyNotesKey, mode)
     }
 
-    suspend fun setIncognito(value: Boolean) {
-        context.appDataStore.edit { it[incognitoKey] = value }
-    }
+    suspend fun setIncognito(value: Boolean) = put(incognitoKey, value)
 
-    suspend fun setAppLock(value: Boolean) {
-        context.appDataStore.edit { it[appLockKey] = value }
-    }
+    suspend fun setAppLock(value: Boolean) = put(appLockKey, value)
 
-    suspend fun setSecureScreen(value: Boolean) {
-        context.appDataStore.edit { it[secureScreenKey] = value }
-    }
+    suspend fun setSecureScreen(value: Boolean) = put(secureScreenKey, value)
 
-    suspend fun setDnsOverHttps(value: String) {
-        context.appDataStore.edit { it[dohKey] = value }
-    }
+    suspend fun setDnsOverHttps(value: String) = put(dohKey, value)
 
-    suspend fun setRemoteHosts(value: Boolean) {
-        context.appDataStore.edit { it[remoteHostsKey] = value }
-    }
+    suspend fun setRemoteHosts(value: Boolean) = put(remoteHostsKey, value)
 
-    suspend fun setHostsFetchedAt(value: Long) {
-        context.appDataStore.edit { it[hostsFetchedAtKey] = value }
-    }
+    suspend fun setHostsFetchedAt(value: Long) = put(hostsFetchedAtKey, value)
 
-    suspend fun setTranslateChapterLabels(value: Boolean) {
-        context.appDataStore.edit { it[translateLabelsKey] = value }
-    }
+    suspend fun setTranslateChapterLabels(value: Boolean) = put(translateLabelsKey, value)
 
     /** The kind of content the library, history and sources show. */
     val activeMode: StateFlow<com.lume.app.domain.MediaKind> =
@@ -473,9 +455,7 @@ class AppPreferences(
     suspend fun activeSourceIdOf(kind: com.lume.app.domain.MediaKind): String? =
         context.appDataStore.data.first()[activeSourceKey(kind)]
 
-    suspend fun setActiveMode(kind: com.lume.app.domain.MediaKind) {
-        context.appDataStore.edit { it[activeModeKey] = kind.id }
-    }
+    suspend fun setActiveMode(kind: com.lume.app.domain.MediaKind) = put(activeModeKey, kind.id)
 
     val libraryUpdatesEnabled: StateFlow<Boolean> = state { it[libraryUpdatesKey] ?: false }
 
@@ -518,23 +498,18 @@ class AppPreferences(
     /** Link titles to trackers by an exact title match when they are added to the library. */
     val trackerAutoLink: StateFlow<Boolean> = state { it[trackerAutoLinkKey] ?: true }
 
-    suspend fun setTrackerAutoLink(value: Boolean) {
-        context.appDataStore.edit { it[trackerAutoLinkKey] = value }
-    }
+    suspend fun setTrackerAutoLink(value: Boolean) = put(trackerAutoLinkKey, value)
 
     /** Look for a title on the other sources when it is added to the library ("Also on …"). */
     val findOtherSources: StateFlow<Boolean> = state { it[findOtherSourcesKey] ?: true }
 
-    suspend fun setFindOtherSources(value: Boolean) {
-        context.appDataStore.edit { it[findOtherSourcesKey] = value }
-    }
+    suspend fun setFindOtherSources(value: Boolean) = put(findOtherSourcesKey, value)
 
     /** "Similar titles" on the title screen (asks AniList, or MyAnimeList, by the title's name). */
     val similarTitles: StateFlow<Boolean> = state { it[similarTitlesKey] ?: true }
 
-    suspend fun setSimilarTitles(value: Boolean) {
-        context.appDataStore.edit { it[similarTitlesKey] = value }
-    }
+    suspend fun setSimilarTitles(value: Boolean) = put(similarTitlesKey, value)
+
     val shikimoriUserId: StateFlow<String?> = privateState { it[shikiUserIdKey] }
     val shikimoriClientId: StateFlow<String?> = privateState { it[shikiClientIdKey] }
     val shikimoriClientSecret: StateFlow<String?> = privateState { it.secret(shikiClientSecretKey) }
@@ -709,9 +684,8 @@ class AppPreferences(
             .orEmpty()
     }
 
-    suspend fun setSearchHistory(items: List<String>) {
-        context.appDataStore.edit { it[searchHistoryKey] = prefsJson.encodeToString(items.take(MAX_SEARCH_HISTORY)) }
-    }
+    suspend fun setSearchHistory(items: List<String>) =
+        put(searchHistoryKey, prefsJson.encodeToString(items.take(MAX_SEARCH_HISTORY)))
 
     /** The download queue is on hold (the running chapter goes back to the queue). */
     val downloadsPaused: StateFlow<Boolean> = state { it[downloadsPausedKey] ?: false }
@@ -732,29 +706,17 @@ class AppPreferences(
     /** Chapters finished in the reader lose their download when the reader closes. */
     val deleteAfterRead: StateFlow<Boolean> = state { it[deleteAfterReadKey] ?: false }
 
-    suspend fun setDownloadsPaused(value: Boolean) {
-        context.appDataStore.edit { it[downloadsPausedKey] = value }
-    }
+    suspend fun setDownloadsPaused(value: Boolean) = put(downloadsPausedKey, value)
 
-    suspend fun setDownloadParallelPages(value: Int) {
-        context.appDataStore.edit { it[downloadPagesKey] = value.coerceIn(1, MAX_PARALLEL_PAGES) }
-    }
+    suspend fun setDownloadParallelPages(value: Int) = put(downloadPagesKey, value.coerceIn(1, MAX_PARALLEL_PAGES))
 
-    suspend fun setDownloadsAsCbz(value: Boolean) {
-        context.appDataStore.edit { it[downloadsCbzKey] = value }
-    }
+    suspend fun setDownloadsAsCbz(value: Boolean) = put(downloadsCbzKey, value)
 
-    suspend fun setDownloadsRoot(path: String) {
-        context.appDataStore.edit { it[downloadsRootKey] = path }
-    }
+    suspend fun setDownloadsRoot(path: String) = put(downloadsRootKey, path)
 
-    suspend fun setAutoDownloadMode(value: AutoDownloadMode) {
-        context.appDataStore.edit { it[autoDownloadModeKey] = value.ordinal }
-    }
+    suspend fun setAutoDownloadMode(value: AutoDownloadMode) = put(autoDownloadModeKey, value.ordinal)
 
-    suspend fun setDeleteAfterRead(value: Boolean) {
-        context.appDataStore.edit { it[deleteAfterReadKey] = value }
-    }
+    suspend fun setDeleteAfterRead(value: Boolean) = put(deleteAfterReadKey, value)
 
     /** Days between automatic backups; 0 = off. */
     val autoBackupDays: StateFlow<Int> = state { it[autoBackupDaysKey]?.takeIf { d -> d in AUTO_BACKUP_DAYS } ?: 0 }
@@ -775,9 +737,7 @@ class AppPreferences(
     /** Hours between scans of the watched folders; 0 = off. */
     val folderScanHours: StateFlow<Int> = state { it[folderScanHoursKey]?.takeIf { h -> h in FOLDER_SCAN_HOURS } ?: 0 }
 
-    suspend fun setFolderScanHours(hours: Int) {
-        context.appDataStore.edit { it[folderScanHoursKey] = hours }
-    }
+    suspend fun setFolderScanHours(hours: Int) = put(folderScanHoursKey, hours)
 
     suspend fun setAutoBackupFolder(uri: String?) {
         context.privateDataStore.edit { if (uri.isNullOrBlank()) it.remove(autoBackupFolderKey) else it[autoBackupFolderKey] = uri }
@@ -893,13 +853,9 @@ class AppPreferences(
         }
     }
 
-    suspend fun setLibraryUpdateIntervalHours(hours: Int) {
-        context.appDataStore.edit { it[libraryIntervalKey] = hours }
-    }
+    suspend fun setLibraryUpdateIntervalHours(hours: Int) = put(libraryIntervalKey, hours)
 
-    suspend fun setLibraryUpdateWifiOnly(value: Boolean) {
-        context.appDataStore.edit { it[libraryWifiOnlyKey] = value }
-    }
+    suspend fun setLibraryUpdateWifiOnly(value: Boolean) = put(libraryWifiOnlyKey, value)
 
     suspend fun setLibraryUpdateRules(rules: UpdateRules) {
         context.appDataStore.edit {
@@ -911,33 +867,20 @@ class AppPreferences(
         }
     }
 
-    suspend fun setNotifyMutedCategories(ids: Set<Long>) {
-        context.appDataStore.edit { it[libraryNotifyMutedKey] = ids.map(Long::toString).toSet() }
-    }
+    suspend fun setNotifyMutedCategories(ids: Set<Long>) = put(libraryNotifyMutedKey, ids.map(Long::toString).toSet())
 
-    suspend fun setDownloadsWifiOnly(value: Boolean) {
-        context.appDataStore.edit { it[downloadsWifiOnlyKey] = value }
-    }
+    suspend fun setDownloadsWifiOnly(value: Boolean) = put(downloadsWifiOnlyKey, value)
 
-    suspend fun setGlobalSearchNsfw(value: Boolean) {
-        context.appDataStore.edit { it[globalSearchNsfwKey] = value }
-    }
+    suspend fun setGlobalSearchNsfw(value: Boolean) = put(globalSearchNsfwKey, value)
 
-    suspend fun setDarkTheme(value: Boolean) {
-        context.appDataStore.edit { it[darkThemeKey] = value }
-    }
+    suspend fun setDarkTheme(value: Boolean) = put(darkThemeKey, value)
 
-    suspend fun setActiveSourceId(id: String, kind: com.lume.app.domain.MediaKind = com.lume.app.domain.MediaKind.Comics) {
-        context.appDataStore.edit { it[activeSourceKey(kind)] = id }
-    }
+    suspend fun setActiveSourceId(id: String, kind: com.lume.app.domain.MediaKind = com.lume.app.domain.MediaKind.Comics) =
+        put(activeSourceKey(kind), id)
 
-    suspend fun setLibraryUpdatesEnabled(value: Boolean) {
-        context.appDataStore.edit { it[libraryUpdatesKey] = value }
-    }
+    suspend fun setLibraryUpdatesEnabled(value: Boolean) = put(libraryUpdatesKey, value)
 
-    suspend fun setAppLanguage(tag: String) {
-        context.appDataStore.edit { it[appLanguageKey] = tag }
-    }
+    suspend fun setAppLanguage(tag: String) = put(appLanguageKey, tag)
 
     suspend fun setNovelReaderSettings(settings: NovelReaderSettings) {
         val s = settings.clamped()
@@ -966,9 +909,7 @@ class AppPreferences(
      */
     val translationEngine: StateFlow<String?> = state { it[translationEngineKey] }
 
-    suspend fun setTranslationEngine(id: String) {
-        context.appDataStore.edit { it[translationEngineKey] = id }
-    }
+    suspend fun setTranslationEngine(id: String) = put(translationEngineKey, id)
 
     /** The user's own DeepL API key (free or paid), or null. */
     val deeplKey: StateFlow<String?> = privateState { it.secret(deeplKeySecret) }
