@@ -15,6 +15,8 @@ import com.lume.app.domain.CloudflareException
 import com.lume.app.domain.FilterList
 import com.lume.app.domain.carryOver
 import com.lume.app.domain.PagedResult
+import com.lume.app.domain.RANK_NO_RESULTS
+import com.lume.app.domain.bestNameMatchRank
 import com.lume.app.domain.rankSearchResults
 import kotlinx.coroutines.flow.StateFlow
 import com.lume.app.domain.TitleSummary
@@ -99,6 +101,10 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
     var globalRows by mutableStateOf<List<SourceRow>>(emptyList())
         private set
     var globalPending by mutableIntStateOf(0)
+        private set
+
+    /** Counts the re-sorts of [globalRows] by name match, so the list can follow them. */
+    var globalRankings by mutableIntStateOf(0)
         private set
 
     private var job: Job? = null
@@ -289,6 +295,12 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
                     val result = permits.withPermit { runSource(source, q) }
                     update(source.manifest.id, result)
                     globalPending--
+                    // Once every source answered, the ones whose names match best move up. Not
+                    // before: rows must not jump under the finger while results stream in.
+                    if (globalPending == 0) {
+                        globalRows = rankSourceRows(q, globalRows)
+                        globalRankings++
+                    }
                 }
             }
         }
@@ -323,7 +335,29 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
         globalRows = globalRows.map { if (it.sourceId == sourceId) it.copy(state = state) else it }
     }
 
-    private companion object {
+    internal companion object {
+        /**
+         * Global search rows, the source whose results match [query] by name best first: a
+         * source with the exact title beats one that found the words only in descriptions or
+         * answered in another language. Failed sources go last; the first order (active and
+         * pinned sources first, then by name) settles ties.
+         */
+        fun rankSourceRows(query: String, rows: List<SourceRow>): List<SourceRow> =
+            rows.withIndex()
+                .sortedWith(
+                    compareBy(
+                        { (_, row) ->
+                            when (val state = row.state) {
+                                is SourceState.Done -> bestNameMatchRank(query, state.items)
+                                is SourceState.Loading -> RANK_NO_RESULTS
+                                is SourceState.Failed -> RANK_NO_RESULTS + 1
+                            }
+                        },
+                        { it.index },
+                    ),
+                )
+                .map { it.value }
+
         /** Per source in global search; anything slower is reported, not waited for. */
         const val GLOBAL_TIMEOUT_MS = 15_000L
         const val CURRENT_TIMEOUT_MS = 45_000L

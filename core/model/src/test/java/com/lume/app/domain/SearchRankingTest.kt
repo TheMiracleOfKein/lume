@@ -51,4 +51,11 @@ class SearchRankingTest {
         val results = listOf(t("Башня бога"), t("Герой"))
         assertEquals("Герой", rankSearchResults("герой", results).first().title)
     }
+
+    @Test
+    fun bestNameMatchRankTakesTheBestItem() {
+        assertEquals(0, bestNameMatchRank("герой", listOf(t("Tower of God"), t("Герой"))))
+        assertEquals(6, bestNameMatchRank("герой", listOf(t("Tower of God"))))
+        assertEquals(RANK_NO_RESULTS, bestNameMatchRank("герой", emptyList()))
+    }
 }

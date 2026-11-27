@@ -48,6 +48,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -375,8 +376,8 @@ private fun GlobalResults(
     // An empty source with a known problem stays a row of its own, so its error line shows.
     fun SourceRow.foldsAway() = (state as? SourceState.Done)?.items?.isEmpty() == true && sourceId !in problems
     // Rows stay in one fixed order (active source first) while results stream in, so nothing
-    // jumps around under your finger. Once every source answered, the empty ones fold into a
-    // one-line footer.
+    // jumps around under your finger. Once every source answered, the best name matches move up
+    // (SearchViewModel.rankSourceRows) and the empty ones fold into a one-line footer.
     val emptyNames = remember(rows, finished, problems) {
         if (!finished) emptyList()
         else rows.filter { it.foldsAway() }.map { it.sourceName }
@@ -402,7 +403,22 @@ private fun GlobalResults(
             EmptyBox(stringResource(R.string.search_empty))
             return@Column
         }
+        val listState = rememberLazyListState()
+        // When the rows are re-sorted, a lazy list keeps the row that was first in view, so the
+        // best matches would land above the screen. At the top of the list, stay at the top.
+        // A side effect runs before this frame's layout, while the list still has its old place.
+        val rankings = vm.globalRankings
+        val followed = remember { intArrayOf(rankings) }
+        SideEffect {
+            if (followed[0] != rankings) {
+                followed[0] = rankings
+                if (listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0) {
+                    listState.requestScrollToItem(0)
+                }
+            }
+        }
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 16.dp),
         ) {

@@ -44,8 +44,13 @@ object LibWebSession {
             val raw = runCatching { cookies.getCookie(origin) }.getOrNull() ?: return@mapNotNull null
             origin to clearancePairs(raw)
         }.filter { it.second.isNotEmpty() }
+        // The Google sign-in stays too: "Sign in with Google" on the Lib sites would otherwise
+        // ask for the Google password again after every wipe.
+        val google = runCatching { cookies.getCookie(GOOGLE_ACCOUNTS) }.getOrNull()
+            ?.let(::cookiePairs).orEmpty()
         runCatching {
             cookies.removeAllCookies {
+                google.forEach { pair -> cookies.setCookie(GOOGLE_ACCOUNTS, googleCookie(pair)) }
                 kept.forEach { (origin, pairs) ->
                     val host = runCatching { URI(origin).host }.getOrNull()
                     val domain = host?.let { parentDomain(it) ?: it }
@@ -58,6 +63,28 @@ object LibWebSession {
                 done()
             }
         }.onFailure { done() }
+    }
+
+    private const val GOOGLE_ACCOUNTS = "https://accounts.google.com"
+
+    /** Google keeps its sign-in about two years; restored cookies keep it for half a year. */
+    private const val GOOGLE_COOKIE_MAX_AGE = 180L * 24 * 60 * 60
+
+    /** Every `name=value` pair in a `Cookie` header value. */
+    internal fun cookiePairs(raw: String): List<String> =
+        raw.split(';').map { it.trim() }.filter { it.indexOf('=') > 0 }.distinct()
+
+    /**
+     * A `Set-Cookie` value that puts a Google cookie back. `Cookie` headers carry no attributes,
+     * so they are rebuilt: `__Host-` cookies belong to accounts.google.com alone, the rest to
+     * all of google.com; the third-party (`3P`) ones must work inside other sites' sign-ins.
+     * Not HttpOnly: some (SAPISID) are read by Google's own page scripts.
+     */
+    internal fun googleCookie(pair: String): String {
+        val name = pair.substringBefore('=')
+        val scope = if (name.startsWith("__Host-")) "" else "; Domain=.google.com"
+        val sameSite = if ("3P" in name) "None" else "Lax"
+        return "$pair$scope; Path=/; Secure; SameSite=$sameSite; Max-Age=$GOOGLE_COOKIE_MAX_AGE"
     }
 
     /** `name=value` pairs of the anti-bot cookies in a `Cookie` header value. */

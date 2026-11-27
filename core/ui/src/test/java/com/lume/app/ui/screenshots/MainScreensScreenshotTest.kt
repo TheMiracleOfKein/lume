@@ -2,6 +2,7 @@ package com.lume.app.ui.screenshots
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,6 +32,7 @@ import com.lume.app.ui.screens.FilterChipRow
 import com.lume.app.ui.screens.HomeFeedList
 import com.lume.app.ui.screens.LibraryContent
 import com.lume.app.ui.screens.TitleHeader
+import com.lume.app.ui.screens.TitleReadBar
 import com.lume.app.ui.screens.settings.SettingsScaffold
 import com.lume.app.ui.screens.settings.SettingsSections
 import org.junit.Test
@@ -141,7 +143,9 @@ class LibraryScreenshotTest : ScreenshotTest() {
 class TitleScreenshotTest : ScreenshotTest() {
     private fun title(look: Look) = shoot("title", look) {
         Column(Modifier.fillMaxSize().padding(16.dp)) {
-            TitleHeader(d = details, sourceId = "demo", hasProgress = true, canRead = true, onRead = {})
+            TitleHeader(d = details, sourceId = "demo")
+            Spacer(Modifier.weight(1f))
+            TitleReadBar(hasProgress = true, canRead = true, onRead = {})
         }
     }
 

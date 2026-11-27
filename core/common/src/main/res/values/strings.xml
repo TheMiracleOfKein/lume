@@ -196,7 +196,7 @@
     <string name="sources_lang_multi">Multi-language</string>
     <string name="sources_lang_badge_multi">MULTI</string>
     <string name="source_login_title">Sign in · %1$s</string>
-    <string name="source_login_hint">Log in on the site and the app picks up the session. Tap the e-mail field to fill a login saved in Google Password Manager. Google sign-in may not work inside apps; use e-mail and password.</string>
+    <string name="source_login_hint">Log in on the site and the app picks up the session. Tap the e-mail field to fill a login saved in Google Password Manager. Signing in with Google works here too, and Lume remembers the Google account, so its password is needed only once.</string>
     <string name="source_login_ok">Signed in</string>
     <string name="source_login_stale">The site still remembered the old account, so its saved session was cleared. Log in again. If the old account still shows, sign out on the site first.</string>
     <string name="source_logout_ok">Signed out</string>

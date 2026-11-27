@@ -10,6 +10,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.navigationBarsIgnoringVisibility
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material3.VerticalDivider
@@ -223,6 +229,27 @@ private fun TitleDetailsPane(nav: NavHostController, sourceId: String, titleId: 
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.background),
             )
         },
+        bottomBar = {
+            // Only with the details on screen: the loading and error panes keep the whole height.
+            if (details != null && !vm.loading && vm.error == null) {
+                TitleReadBar(
+                    hasProgress = progressState != null,
+                    canRead = chapters.isNotEmpty(),
+                    onRead = {
+                        val p = progressState
+                        if (p != null) {
+                            // The exact spot, even if that chapter's own row says "finished".
+                            nav.openReader(sourceId, titleId, p.chapterId, p.pageIndex, p.pageOffset)
+                        } else {
+                            // No progress yet: start from the first chapter, not the newest one.
+                            chapters.inReadingOrder().firstOrNull()?.let {
+                                nav.openReader(sourceId, titleId, it.id)
+                            }
+                        }
+                    },
+                )
+            }
+        },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         val refreshState = rememberPullToRefreshState()
@@ -259,24 +286,7 @@ private fun TitleDetailsPane(nav: NavHostController, sourceId: String, titleId: 
                             .widthIn(max = 840.dp)
                             .padding(16.dp),
                     ) {
-                        TitleHeader(
-                            d = d,
-                            sourceId = sourceId,
-                            hasProgress = progressState != null,
-                            canRead = chapters.isNotEmpty(),
-                            onRead = {
-                                val p = progressState
-                                if (p != null) {
-                                    // The exact spot, even if that chapter's own row says "finished".
-                                    nav.openReader(sourceId, titleId, p.chapterId, p.pageIndex, p.pageOffset)
-                                } else {
-                                    // No progress yet: start from the first chapter, not the newest one.
-                                    chapters.inReadingOrder().firstOrNull()?.let {
-                                        nav.openReader(sourceId, titleId, it.id)
-                                    }
-                                }
-                            },
-                        )
+                        TitleHeader(d = d, sourceId = sourceId)
                         val suggestions = titleSources.filter { it.state == TitleSourceEntity.SUGGESTED }
                         AnimatedVisibility(
                             visible = suggestions.isNotEmpty(),
@@ -522,14 +532,11 @@ internal fun titleFormatLabel(format: TitleFormat): Int = when (format) {
     TitleFormat.WebNovel -> R.string.type_web_novel
 }
 
-/** The cover, names, facts and the Read / Continue button at the top of a title. */
+/** The cover, names and facts at the top of a title. */
 @Composable
 internal fun TitleHeader(
     d: TitleDetails,
     sourceId: String,
-    hasProgress: Boolean,
-    canRead: Boolean,
-    onRead: () -> Unit,
 ) {
                         Row {
                             CoverImage(
@@ -595,23 +602,49 @@ internal fun TitleHeader(
                                 if (facts.isNotEmpty()) {
                                     Text(facts.joinToString(" · "), color = AppColors.textTertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
                                 }
-                                Spacer(Modifier.height(12.dp))
-                                Button(
-                                    onClick = onRead,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = AppColors.accent,
-                                        contentColor = AppColors.onAccent,
-                                    ),
-                                    enabled = canRead,
-                                ) {
-                                    Text(
-                                        if (hasProgress) {
-                                            stringResource(R.string.action_continue)
-                                        } else {
-                                            stringResource(R.string.action_read)
-                                        },
-                                    )
-                                }
                             }
                         }
+}
+
+/**
+ * The Read / Continue button, pinned to the bottom of the title screen so the thumb reaches it
+ * without stretching to the top of the screen.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun TitleReadBar(
+    hasProgress: Boolean,
+    canRead: Boolean,
+    onRead: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(AppColors.background)
+            .windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility.only(WindowInsetsSides.Bottom))
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Button(
+            onClick = onRead,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AppColors.accent,
+                contentColor = AppColors.onAccent,
+            ),
+            enabled = canRead,
+            modifier = Modifier
+                .widthIn(max = 840.dp)
+                .fillMaxWidth()
+                .height(48.dp),
+        ) {
+            Text(
+                if (hasProgress) {
+                    stringResource(R.string.action_continue)
+                } else {
+                    stringResource(R.string.action_read)
+                },
+            )
+        }
+    }
 }

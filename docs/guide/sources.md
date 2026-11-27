@@ -15,6 +15,7 @@ Open **Catalog** to browse the active source. The **Source** entry in the menu s
 
 - Open **Menu → Search**, or switch the search between **Current source** and **All sources**. **All sources** stays in the mode you're in: novel sources in Ranobe mode, comics sources in Manga mode.
 - Results are grouped per source with a count. A source that is slow, down or blocked shows a short reason (for example **No answer in 15 s**) and doesn't stop the others.
+- Rows keep their order while results arrive. Once every source has answered, the sources whose titles match your search best by name move to the top.
 - Your last searches appear under **Recent searches**. Remove one, or tap **Clear**.
 - 18+ sources are included by default. Turn off **Include 18+ sources in global search** to leave them out.
 - Disabled sources are left out of global search too.

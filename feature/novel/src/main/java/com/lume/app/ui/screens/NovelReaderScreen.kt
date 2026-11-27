@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -37,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
@@ -125,6 +127,9 @@ fun NovelReaderScreen(
     val settings = vm.settings
     val palette = novelPalette(settings.theme)
     var chromeVisible by rememberSaveable { mutableStateOf(true) }
+    // Height of the bottom bar (navigation bar included), for the lines that sit above it.
+    var bottomBarHeight by remember { mutableStateOf(0.dp) }
+    val density = LocalDensity.current
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var chaptersOpen by rememberSaveable { mutableStateOf(false) }
     var translationsOpen by rememberSaveable { mutableStateOf(false) }
@@ -281,7 +286,14 @@ fun NovelReaderScreen(
                 ) {
                     topBar(Modifier)
                 }
-                Column(Modifier.align(Alignment.BottomCenter)) {
+                // The bottom bar slides on a layer of its own. In the column below, its exit
+                // animation kept its space for a moment: the status line showed up above the
+                // leaving bar and then dropped. The column now follows the bar's target state.
+                Column(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = if (chromeVisible) bottomBarHeight else 0.dp),
+                ) {
                     // Back after a break: the recap is offered, not pushed; reading on hides the offer.
                     AnimatedVisibility(visible = vm.recapOffered, enter = Motion.barEnterFromBottom, exit = Motion.barExitToBottom) {
                         LaunchedEffect(Unit) {
@@ -327,11 +339,14 @@ fun NovelReaderScreen(
                             },
                         )
                     }
-                    AnimatedVisibility(
-                        visible = chromeVisible,
-                        enter = Motion.barEnterFromBottom,
-                        exit = Motion.barExitToBottom,
-                    ) {
+                }
+                AnimatedVisibility(
+                    visible = chromeVisible,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    enter = Motion.barEnterFromBottom,
+                    exit = Motion.barExitToBottom,
+                ) {
+                    Box(Modifier.onSizeChanged { bottomBarHeight = with(density) { it.height.toDp() } }) {
                         NovelBottomBar(
                             percent = vm.percent,
                             hasPrev = vm.neighbours.previous != null,

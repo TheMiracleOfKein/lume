@@ -34,6 +34,7 @@ These hold for every release:
 
 | Version | Theme | Released |
 | --- | --- | --- |
+| [v1.17.0](releases/v1.17.0.md) | Reach and order | pending |
 | [v1.16.0](releases/v1.16.0.md) | Code cleanup | 2026-11-27 |
 | [v1.15.1](releases/v1.15.1.md) | Brightness steps | 2026-11-26 |
 | [v1.15.0](releases/v1.15.0.md) | Reader comfort | 2026-11-26 |
@@ -42,7 +43,6 @@ These hold for every release:
 | [v1.12.1](releases/v1.12.1.md) | Lib API address | 2026-11-24 |
 | [v1.12.0](releases/v1.12.0.md) | AI story notes | 2026-11-24 |
 | [v1.11.0](releases/v1.11.0.md) | Cheaper AI | 2026-11-23 |
-| [v1.10.0](releases/v1.10.0.md) | AI settings | 2026-11-23 |
 
 Every older version: [docs/releases/](releases/).
 
@@ -84,7 +84,7 @@ Every older version: [docs/releases/](releases/).
 | ⏸️ Nearby sending over Wi-Fi Direct or a local-only hotspot | Needs location / nearby-devices permissions and two real phones to check |
 | ⏸️ Sending from a title's chapter list | The send screen lists every downloaded title instead |
 | ⏸️ Com-X.life | The site checks every visitor with its own browser-fingerprint test, which the app's challenge flow doesn't recognise |
-| ⏸️ "Sign in with Google" in site logins | Google blocks it in web views |
+| ⏸️ Site sign-in with the phone's Google accounts (one tap) | Needs the site to return to Lume after a browser sign-in; lib.social accepts only its own pages (tried in v1.17.0). Google sign-in inside the login page works and is remembered |
 | ⏸️ Stronger sync key derivation (PBKDF2 600k) | Needs a new sync file format that older versions can't read |
 | ⏸️ Links opening under the app lock | Waiting for unlock needs the lock state in the shell |
 | ⏸️ Reading progress from MangaLib bookmarks | The API's progress fields don't line up with chapters in real answers |

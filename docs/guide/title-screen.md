@@ -3,7 +3,7 @@
 Tap a title to open it. At the top are buttons to open it in the browser, share it, add or remove it from the library (bookmark icon) and the bell.
 
 - **The bell** (**Check for new chapters**) subscribes the title. Up to 20 titles can have the bell. With **Download new chapters** set to **Subscribed**, only these titles download automatically. If no title has the bell, Updates checks the 20 titles you read last.
-- **Read** or **Continue** opens the next unread chapter, or the spot where you stopped.
+- **Read** or **Continue**, the wide button at the bottom of the screen, opens the next unread chapter, or the spot where you stopped.
 - **Chapter list** opens the chapters. Tap one to read. Long-press to select several, then use **Mark as read**, **Mark as unread**, **Mark previous as read**, **Download** or **Delete download**. The top bar has a download menu (**Download unread**, **Next N unread**, **Delete downloaded chapters**), a sort button (**Oldest first** or **Newest first**) and **Filter and sort** (**Unread**, **Read**, **With page bookmarks**). When a source has several translation teams, pick one or choose **Show all copies**.
 - **Description**, status, author, artist and score are shown when the source has them. Genres open a catalogue filtered by that genre.
 - **Bookmarks** lists your page bookmarks with the panel you marked.
