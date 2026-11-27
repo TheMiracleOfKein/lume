@@ -25,7 +25,7 @@ A site asks you to prove you are human. Lume shows **Cloudflare check**: wait un
 
 ### Sources that need sign-in
 
-**… shows chapters only to signed-in users. Sign in under Sources → …** Open the source row, tap the key icon and log in on the site. E-mail and password work best; Google sign-in may not work inside apps. If the site still shows the old account, sign out on the site first. HentaiLib shows chapters only to signed-in users. A server (Komga, Kavita, OPDS) that says it **needs a sign-in** needs **Edit server** and the user name and password or API key.
+**… shows chapters only to signed-in users. Sign in under Sources → …** Open the source row, tap the key icon and log in on the site. E-mail and password work, and so does **Sign in with Google**: Lume remembers the Google account, so its password is needed only once. If the site still shows the old account, sign out on the site first. HentaiLib shows chapters only to signed-in users. A server (Komga, Kavita, OPDS) that says it **needs a sign-in** needs **Edit server** and the user name and password or API key.
 
 ### Black pages and early-access chapters
 
