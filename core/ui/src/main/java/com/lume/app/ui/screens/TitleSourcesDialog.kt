@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.lume.app.ui.components.ConfirmDialog
+import com.lume.app.ui.components.SectionLabel
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -88,14 +89,14 @@ fun TitleSourcesDialog(vm: TitleViewModel, titleName: String, onDismiss: () -> U
                     .verticalScroll(rememberScrollState()),
             ) {
                 SectionLabel(stringResource(R.string.sources_main))
-                SourceRow(mainName, titleName) {}
+                LinkedSourceRow(mainName, titleName) {}
 
                 if (linked.isNotEmpty()) {
                     Spacer(Modifier.height(14.dp))
                     SectionLabel(stringResource(R.string.sources_linked))
                     Text(stringResource(R.string.sources_linked_hint), color = AppColors.textTertiary, fontSize = 12.sp)
                     linked.forEachIndexed { index, row ->
-                        SourceRow(sourceName(row.linkSourceId), row.linkTitleName) {
+                        LinkedSourceRow(sourceName(row.linkSourceId), row.linkTitleName) {
                             // Order only matters with two or more.
                             if (linked.size > 1) {
                                 SmallIconButton(Icons.Outlined.ArrowUpward, stringResource(R.string.cd_move_up), enabled = index > 0 && !vm.busy) {
@@ -124,7 +125,7 @@ fun TitleSourcesDialog(vm: TitleViewModel, titleName: String, onDismiss: () -> U
                     Spacer(Modifier.height(14.dp))
                     SectionLabel(stringResource(R.string.sources_suggested))
                     suggested.forEach { row ->
-                        SourceRow(sourceName(row.linkSourceId), row.linkTitleName) {
+                        LinkedSourceRow(sourceName(row.linkSourceId), row.linkTitleName) {
                             SmallIconButton(Icons.Outlined.Close, stringResource(R.string.action_not_now), enabled = !vm.busy) {
                                 vm.dismiss(row)
                             }
@@ -149,7 +150,7 @@ fun TitleSourcesDialog(vm: TitleViewModel, titleName: String, onDismiss: () -> U
                 val lookups = vm.lookups.sortedBy { it.sourceName.lowercase() }
                 lookups.filterIsInstance<SourceLookup.Found>().flatMap { it.candidates }.forEach { candidate ->
                     val isLinked = (candidate.sourceId to candidate.titleId) in linkedKeys
-                    SourceRow(
+                    LinkedSourceRow(
                         source = candidate.sourceName,
                         title = candidate.title,
                         note = when {
@@ -232,14 +233,9 @@ fun TitleSourcesDialog(vm: TitleViewModel, titleName: String, onDismiss: () -> U
     }
 }
 
-@Composable
-private fun SectionLabel(text: String) {
-    Text(text, color = AppColors.textSecondary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-}
-
 /** One source on one line: its name over the title (and an optional note), actions on the right. */
 @Composable
-private fun SourceRow(
+private fun LinkedSourceRow(
     source: String,
     title: String,
     note: String? = null,

@@ -6,8 +6,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -109,24 +111,36 @@ fun SwitchRow(
     }
 }
 
-/** Label with live value above a slider. */
+/** Small semibold heading above a group of rows. */
+@Composable
+fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+    Text(text, color = AppColors.textSecondary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = modifier)
+}
+
+/** Label with its live value above a slider; the slider is announced by the label. */
 @Composable
 fun SliderRow(
     label: String,
+    valueText: String,
     value: Float,
-    onValueChange: (Float) -> Unit,
-    valueRange: ClosedFloatingPointRange<Float>,
-    modifier: Modifier = Modifier,
-    steps: Int = 0,
+    range: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    onChange: (Float) -> Unit,
+    onFinished: (() -> Unit)? = null,
 ) {
-    Column(modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp)) {
-        Text(label, color = AppColors.textSecondary, fontSize = 13.sp)
+    Column(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(label, color = AppColors.textPrimary, fontSize = 14.sp)
+            Text(valueText, color = AppColors.textSecondary, fontSize = 14.sp)
+        }
         Slider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = valueRange,
-            steps = steps,
+            value = value.coerceIn(range),
+            onValueChange = onChange,
+            onValueChangeFinished = onFinished,
+            valueRange = range,
+            steps = steps.coerceAtLeast(0),
             colors = lumeSliderColors(),
+            modifier = Modifier.semantics { contentDescription = label },
         )
     }
 }

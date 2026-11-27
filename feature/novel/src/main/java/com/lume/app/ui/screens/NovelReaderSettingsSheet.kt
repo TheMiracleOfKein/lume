@@ -38,7 +38,7 @@ import com.lume.app.ui.components.ChoiceChip
 import com.lume.app.ui.components.ResetReaderSettingsButton
 import com.lume.app.ui.components.SheetHeader
 import com.lume.app.ui.components.SwitchRow
-import com.lume.app.ui.components.lumeSliderColors
+import com.lume.app.ui.components.SliderRow
 import com.lume.app.ui.theme.AppColors
 import kotlin.math.roundToInt
 
@@ -294,31 +294,4 @@ private fun themeLabel(theme: NovelTheme): Int = when (theme) {
     NovelTheme.Sepia -> R.string.novel_theme_sepia
     NovelTheme.Dark -> R.string.novel_theme_dark
     NovelTheme.Black -> R.string.novel_theme_black
-}
-
-@Composable
-internal fun SliderRow(
-    label: String,
-    valueText: String,
-    value: Float,
-    range: ClosedFloatingPointRange<Float>,
-    steps: Int,
-    onChange: (Float) -> Unit,
-    onFinished: () -> Unit,
-) {
-    Column(Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, color = AppColors.textPrimary, fontSize = 14.sp)
-            Text(valueText, color = AppColors.textSecondary, fontSize = 14.sp)
-        }
-        Slider(
-            value = value.coerceIn(range),
-            onValueChange = onChange,
-            onValueChangeFinished = onFinished,
-            valueRange = range,
-            steps = steps.coerceAtLeast(0),
-            colors = lumeSliderColors(),
-            modifier = Modifier.semantics { contentDescription = label },
-        )
-    }
 }

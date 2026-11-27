@@ -65,6 +65,7 @@ import com.lume.app.readaloud.SleepTimer
 import com.lume.app.readaloud.remainingMs
 import com.lume.app.ui.components.ChoiceChip
 import com.lume.app.ui.components.ConfirmDialog
+import com.lume.app.ui.components.SliderRow
 import com.lume.app.ui.components.SheetHeader
 import com.lume.app.ui.components.SwitchRow
 import com.lume.app.ui.theme.AppColors
@@ -203,7 +204,7 @@ internal fun ReadAloudSheet(
         )
 
         Spacer(Modifier.height(10.dp))
-        SectionLabel(stringResource(R.string.read_aloud_sleep))
+        ReadAloudSectionLabel(stringResource(R.string.read_aloud_sleep))
         FlowRow(
             modifier = Modifier.selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -237,7 +238,7 @@ internal fun ReadAloudSheet(
         }
 
         Spacer(Modifier.height(14.dp))
-        SectionLabel(stringResource(R.string.read_aloud_voice))
+        ReadAloudSectionLabel(stringResource(R.string.read_aloud_voice))
         Column(Modifier.selectableGroup()) {
             ChoiceRow(
                 title = stringResource(R.string.read_aloud_voice_default),
@@ -265,7 +266,7 @@ internal fun ReadAloudSheet(
 
         if (engines.size > 1) {
             Spacer(Modifier.height(10.dp))
-            SectionLabel(stringResource(R.string.read_aloud_engine))
+            ReadAloudSectionLabel(stringResource(R.string.read_aloud_engine))
             Column(Modifier.selectableGroup()) {
                 ChoiceRow(
                     title = stringResource(R.string.read_aloud_engine_default),
@@ -309,7 +310,7 @@ internal fun NoEngineDialog(onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun SectionLabel(text: String) {
+private fun ReadAloudSectionLabel(text: String) {
     Text(text, color = AppColors.textSecondary, fontSize = 13.sp)
     Spacer(Modifier.height(6.dp))
 }

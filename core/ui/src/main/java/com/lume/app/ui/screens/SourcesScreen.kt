@@ -190,7 +190,7 @@ fun SourcesScreen(nav: NavHostController) {
             }
             grouped.forEach { (langKey, list) ->
                 item(key = "lang-$langKey") {
-                    SectionLabel(
+                    SourcesSectionLabel(
                         if (langKey == PINNED_GROUP) stringResource(R.string.source_pinned) else languageGroupLabel(langKey),
                     )
                 }
@@ -198,7 +198,7 @@ fun SourcesScreen(nav: NavHostController) {
                     val id = source.manifest.id
                     val isLib = SourceEngines.isLib(source.manifest.engine)
                     val token by vm.loginToken(id).collectAsState(initial = null)
-                    SourceRow(
+                    CatalogSourceRow(
                         source = source,
                         selected = id == activeId,
                         disabled = id in disabled,
@@ -518,7 +518,7 @@ private fun ServerDialog(draft: SourcesViewModel.ServerDraft, onSave: () -> Unit
 private fun PackCatalogue(vm: SourcesViewModel) {
     val packs = vm.packs
     Column(Modifier.padding(top = 8.dp)) {
-        SectionLabel(stringResource(R.string.sources_section_packs))
+        SourcesSectionLabel(stringResource(R.string.sources_section_packs))
         if (packs == null) {
             OutlinedButton(onClick = { vm.checkPacks() }, enabled = !vm.packsLoading, modifier = Modifier.fillMaxWidth()) {
                 Text(
@@ -617,7 +617,7 @@ private fun languageGroupLabel(key: String): String = when (key) {
 }
 
 @Composable
-private fun SectionLabel(text: String) {
+private fun SourcesSectionLabel(text: String) {
     Text(
         text = text,
         color = AppColors.textTertiary,
@@ -627,7 +627,7 @@ private fun SectionLabel(text: String) {
 }
 
 @Composable
-private fun SourceRow(
+private fun CatalogSourceRow(
     source: CatalogSource,
     selected: Boolean,
     disabled: Boolean,
