@@ -46,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lume.app.LocalAppContainer
 import com.lume.app.R
-import com.lume.app.data.tracker.Tracker
 import com.lume.app.data.tracker.TrackerLogin
 import com.lume.app.ui.components.ConfirmDialog
 import com.lume.app.ui.components.PasswordField
