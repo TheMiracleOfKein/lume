@@ -8,7 +8,6 @@ import android.graphics.Bitmap
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.view.WindowManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.ColorFilter
@@ -23,7 +22,7 @@ import com.lume.app.data.prefs.ReaderSettings
 import androidx.core.net.toUri
 import com.lume.app.domain.ImageBytes
 import com.lume.app.domain.isContentUri
-import com.lume.app.ui.components.BrightnessCurve
+import com.lume.app.ui.components.BrightnessWindowEffect
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -76,15 +75,7 @@ internal fun ReaderWindowEffects(activity: Activity?, settings: ReaderSettings) 
         }
         onDispose { activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED }
     }
-    DisposableEffect(activity, settings.brightness) {
-        val window = activity?.window
-        window?.attributes = window.attributes.apply {
-            screenBrightness = if (settings.brightness < 0f) WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE else BrightnessCurve.levelToWindow(settings.brightness)
-        }
-        onDispose {
-            window?.attributes = window.attributes.apply { screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE }
-        }
-    }
+    BrightnessWindowEffect(activity?.window, settings.brightness)
 }
 
 /** A page's original bytes and file extension, from the download, Coil's disk cache or the network. */

@@ -2,10 +2,7 @@ package com.lume.app.ui.screens
 
 import com.lume.app.AppContainer
 import com.lume.app.R
-import com.lume.app.data.db.ChapterProgressEntity
-import com.lume.app.data.db.ChapterReadEntity
-import com.lume.app.data.db.ProgressEntity
-import com.lume.app.data.db.ReadingSessionEntity
+import com.lume.app.data.continuity.ReadingRecorder
 import com.lume.app.data.locale.appString
 import com.lume.app.data.novel.NovelBlocks
 import com.lume.app.data.story.StoryIndex
@@ -16,7 +13,6 @@ import com.lume.app.domain.dedupeChapters
 import com.lume.app.domain.inReadingOrder
 import com.lume.app.domain.requireNovel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -106,41 +102,26 @@ class NovelBook(private val app: AppContainer, val sourceId: String, val titleId
     /** The chapter's own saved spot, or null. */
     suspend fun chapterProgress(chapterId: String) = dao.getChapterProgress(sourceId, titleId, chapterId)
 
+    /** Reading statistics, spots, history and read marks; text counts time, not pages. */
+    val recorder = ReadingRecorder(app, sourceId, titleId, { titleName }, countsPages = false)
+
+    /** Stores a stretch of reading (or listening) for the statistics. Nothing in incognito. */
+    fun saveSession(session: ReadingSessionTracker.Session) = recorder.saveSession(session)
+
     /** Saves [a] as the chapter's spot and as the title's Continue reading entry. Nothing in incognito. */
     suspend fun saveProgress(a: NovelAnchor, lc: LoadedNovelChapter, completed: Boolean) {
-        if (app.prefs.incognito.value) return
+        if (recorder.incognito) return
         val count = lc.blocks.size
-        writeChapterProgress(a, count, completed)
-        dao.upsertProgress(
-            ProgressEntity(
-                sourceId = sourceId,
-                titleId = titleId,
-                titleName = titleName,
-                coverUrl = coverUrl,
-                typeLabel = typeLabel,
-                chapterId = lc.chapter.id,
-                chapterName = lc.chapter.title,
-                chapterUrl = lc.chapter.url,
-                pageIndex = a.block,
-                pageCount = count,
-                pageOffset = a.fraction,
-                pageImageUrl = null,
-                mediaKind = "novel",
-            ),
-        )
-    }
-
-    private suspend fun writeChapterProgress(a: NovelAnchor, count: Int, completed: Boolean) {
-        dao.upsertChapterProgress(
-            ChapterProgressEntity(
-                sourceId = sourceId,
-                titleId = titleId,
-                chapterId = a.chapterId,
-                pageIndex = a.block,
-                pageOffset = a.fraction,
-                pageCount = count,
-                completed = completed,
-            ),
+        recorder.saveChapterProgress(a.chapterId, a.block, a.fraction, count, completed)
+        recorder.saveHistory(
+            chapter = lc.chapter,
+            coverUrl = coverUrl,
+            typeLabel = typeLabel,
+            position = a.block,
+            count = count,
+            offset = a.fraction,
+            pageImageUrl = null,
+            mediaKind = "novel",
         )
     }
 
@@ -150,30 +131,12 @@ class NovelBook(private val app: AppContainer, val sourceId: String, val titleId
      * end, so reopening it from the list starts from the top. The caller checks incognito.
      */
     fun markRead(chapterId: String, chapters: List<Chapter>, leftBehind: LoadedNovelChapter?) {
-        app.appScope.launch {
-            withContext(NonCancellable) {
-                dao.markChapterRead(ChapterReadEntity(sourceId = sourceId, titleId = titleId, chapterId = chapterId))
-                if (leftBehind != null) {
-                    writeChapterProgress(NovelAnchor(leftBehind.chapter.id, leftBehind.blocks.size - 1, 1f), leftBehind.blocks.size, completed = true)
-                }
-                runCatching { app.trackerSync.pushProgress(sourceId, titleId, chapters, chapterId) }
-            }
-        }
-    }
-
-    /** Stores a stretch of reading (or listening) for the statistics. Nothing in incognito. */
-    fun saveSession(session: ReadingSessionTracker.Session) {
-        if (app.prefs.incognito.value) return
-        val entity = ReadingSessionEntity(
-            sourceId = sourceId,
-            titleId = titleId,
-            titleName = titleName,
-            chapterId = session.chapterId,
-            startedAt = session.startedAt,
-            durationMs = session.durationMs,
-            // Time counts for novels; "pages" don't exist.
-            pagesRead = 0,
+        recorder.markRead(
+            chapterId,
+            chapters,
+            leftBehind?.let { lc ->
+                { recorder.saveChapterProgress(lc.chapter.id, lc.blocks.size - 1, 1f, lc.blocks.size, completed = true) }
+            },
         )
-        app.appScope.launch { withContext(NonCancellable) { dao.insertSession(entity) } }
     }
 }

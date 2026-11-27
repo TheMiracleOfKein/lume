@@ -2,8 +2,6 @@ package com.lume.app.ui.screens
 
 import android.content.Context
 import android.provider.Settings
-import android.view.Window
-import android.view.WindowManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -22,9 +20,7 @@ import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,21 +58,6 @@ private const val INDICATOR_LINGER_MS = 900L
 internal fun brightnessAfterDrag(start: Float, dy: Float, height: Float): Float {
     if (height <= 0f) return start.coerceIn(NovelReaderSettings.BRIGHTNESS_MIN, 1f)
     return (start - dy / (height * FULL_SWIPE)).coerceIn(NovelReaderSettings.BRIGHTNESS_MIN, 1f)
-}
-
-/** The reader's own brightness on [window] ([NovelReaderSettings.BRIGHTNESS_SYSTEM] follows the system); undone when it closes. */
-@Composable
-internal fun NovelBrightnessEffect(window: Window?, brightness: Float) {
-    SideEffect {
-        window?.attributes = window.attributes.apply {
-            screenBrightness = if (brightness < 0f) WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE else BrightnessCurve.levelToWindow(brightness)
-        }
-    }
-    DisposableEffect(window) {
-        onDispose {
-            window?.attributes = window.attributes.apply { screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE }
-        }
-    }
 }
 
 /** The system brightness as a shown level 0..1, roughly (the stored value is linear 0..255), or 0.5 when it can't be read. */
