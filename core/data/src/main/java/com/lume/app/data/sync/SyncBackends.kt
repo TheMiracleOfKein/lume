@@ -26,7 +26,7 @@ interface SyncBackend {
 }
 
 /** A sync failure with a message for the status line. */
-class SyncBackendException(message: String, val httpCode: Int = 0) : IOException(message)
+class SyncBackendException(message: String) : IOException(message)
 
 /** A folder picked with the system file picker; Syncthing, a cloud drive app or an SD card. */
 class FolderSyncBackend(private val context: Context, private val tree: Uri) : SyncBackend {
@@ -209,7 +209,7 @@ class WebDavSyncBackend(
             404 -> "folder not found"
             else -> "HTTP ${response.code}"
         }
-        throw SyncBackendException("WebDAV $what: $reason", response.code)
+        throw SyncBackendException("WebDAV $what: $reason")
     }
 
     companion object {

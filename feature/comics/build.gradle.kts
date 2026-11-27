@@ -74,7 +74,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.coil.compose)
     implementation(libs.jsoup)
     // Local files: CBR (junrar) and CB7 (commons-compress, xz for LZMA).
     implementation(libs.junrar)

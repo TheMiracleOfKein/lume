@@ -36,7 +36,6 @@ data class TrackerListImportResult(
     val notFound: List<String>,
     /** Added or found, but loading the chapters failed: no read marks were set. */
     val failed: Int,
-    val chaptersMarked: Int = 0,
 )
 
 /** Where a list import is. */
@@ -135,7 +134,6 @@ class TrackerListImport(
         val added = AtomicInteger()
         val already = AtomicInteger()
         val failed = AtomicInteger()
-        val marked = AtomicInteger()
         val notFound = java.util.Collections.synchronizedList(mutableListOf<String>())
         val done = AtomicInteger()
         val permits = Semaphore(PARALLEL_ENTRIES)
@@ -153,7 +151,6 @@ class TrackerListImport(
                                     is EntryOutcome.Already -> already.incrementAndGet()
                                     is EntryOutcome.Added -> {
                                         added.incrementAndGet()
-                                        marked.addAndGet(outcome.marked)
                                         if (!outcome.chaptersLoaded) failed.incrementAndGet()
                                     }
                                 }
@@ -171,7 +168,7 @@ class TrackerListImport(
                 }
             }.awaitAll()
         }
-        return TrackerListImportResult(added.get(), already.get(), notFound.toList(), failed.get(), marked.get())
+        return TrackerListImportResult(added.get(), already.get(), notFound.toList(), failed.get())
     }
 
     private sealed interface EntryOutcome {

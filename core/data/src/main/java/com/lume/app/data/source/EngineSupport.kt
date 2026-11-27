@@ -54,6 +54,9 @@ fun resolveUrl(base: String, pathOrUrl: String): URI {
     return URI(base.trimEnd('/') + "/").resolve(trimmed.trimStart('/'))
 }
 
+/** The first path segment of a title id (`slug` or `slug/rest`); the whole id when that is blank. */
+fun slug(id: String): String = id.trim('/').substringBefore('/').ifBlank { id }
+
 /** Append a query fragment to a URL that may or may not already have one. */
 fun withQuery(url: String, query: String): String {
     if (query.isBlank()) return url

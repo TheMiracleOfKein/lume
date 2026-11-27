@@ -46,7 +46,6 @@
     <string name="error_no_active_sources">Нет активных источников</string>
     <string name="error_no_sources">Нет источников</string>
     <string name="error_cloudflare_needed">Нужна проверка Cloudflare</string>
-    <string name="error_no_title_data">Нет данных тайтла</string>
     <string name="error_no_title_offline">Нет данных тайтла (офлайн?)</string>
     <string name="error_no_chapters">Нет глав</string>
     <string name="error_chapter_not_found">Глава не найдена</string>
@@ -1427,14 +1426,11 @@
     <string name="translate_progress">Перевод: %1$d из %2$d абзацев</string>
     <string name="translate_glossary">Глоссарий</string>
     <string name="translate_glossary_hint">Имена и термины, которые должны звучать одинаково во всех главах. Глоссарий исправляет написание; окончания остаются такими, как в переводе.</string>
-    <string name="translate_glossary_term">%1$s → %2$s</string>
-    <string name="translate_glossary_remove">Убрать %1$s</string>
     <string name="translate_glossary_source">Оригинал</string>
     <string name="translate_glossary_target">Перевод</string>
     <string name="translate_glossary_add">Добавить</string>
     <string name="translate_glossary_add_term">В глоссарий</string>
     <string name="translate_original">Оригинал</string>
-    <string name="translate_working">Перевод…</string>
     <string name="translate_pick_engine">Сначала выберите ниже, чем переводить.</string>
     <string name="translate_needs_addon">Установите Lume Translate ниже или выберите онлайн-переводчик.</string>
     <string name="translate_needs_pack">Скачайте языковой пакет ниже или выберите онлайн-переводчик.</string>

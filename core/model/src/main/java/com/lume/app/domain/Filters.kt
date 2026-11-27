@@ -190,12 +190,6 @@ data class BrowseSection(
     val filters: FilterList,
 )
 
-data class GlobalSearchHit(
-    val sourceId: String,
-    val sourceName: String,
-    val title: TitleSummary,
-)
-
 data class LibraryUpdateResult(
     val sourceId: String,
     val titleId: String,

@@ -50,7 +50,6 @@
     <string name="error_no_active_sources">No active sources</string>
     <string name="error_no_sources">No sources</string>
     <string name="error_cloudflare_needed">Cloudflare check required</string>
-    <string name="error_no_title_data">No title data</string>
     <string name="error_no_title_offline">No title data (offline?)</string>
     <string name="error_no_chapters">No chapters</string>
     <string name="error_chapter_not_found">Chapter not found</string>
@@ -1378,14 +1377,11 @@
     <string name="translate_progress">Translating: %1$d of %2$d paragraphs</string>
     <string name="translate_glossary">Glossary</string>
     <string name="translate_glossary_hint">Names and terms that must read the same in every chapter. It fixes the spelling; word endings stay as the translation has them.</string>
-    <string name="translate_glossary_term">%1$s → %2$s</string>
-    <string name="translate_glossary_remove">Remove %1$s</string>
     <string name="translate_glossary_source">Original</string>
     <string name="translate_glossary_target">Translation</string>
     <string name="translate_glossary_add">Add</string>
     <string name="translate_glossary_add_term">Add to glossary</string>
     <string name="translate_original">Original</string>
-    <string name="translate_working">Translating…</string>
     <string name="translate_pick_engine">Pick how to translate below first.</string>
     <string name="translate_needs_addon">Install Lume Translate below, or pick an online engine.</string>
     <string name="translate_needs_pack">Download the language pack below, or pick an online engine.</string>
