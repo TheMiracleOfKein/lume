@@ -103,6 +103,10 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
     var globalPending by mutableIntStateOf(0)
         private set
 
+    /** Counts the re-sorts of [globalRows] by name match, so the list can follow them. */
+    var globalRankings by mutableIntStateOf(0)
+        private set
+
     private var job: Job? = null
 
     fun search() {
@@ -293,7 +297,10 @@ class SearchViewModel(private val app: AppContainer) : ViewModel() {
                     globalPending--
                     // Once every source answered, the ones whose names match best move up. Not
                     // before: rows must not jump under the finger while results stream in.
-                    if (globalPending == 0) globalRows = rankSourceRows(q, globalRows)
+                    if (globalPending == 0) {
+                        globalRows = rankSourceRows(q, globalRows)
+                        globalRankings++
+                    }
                 }
             }
         }
