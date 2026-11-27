@@ -62,8 +62,6 @@ class AppContainer(
     private val secrets = com.lume.app.data.security.SecretSealer()
     val prefs = AppPreferences(app, appScope, secrets)
     val libAuth = LibAuthStore(app, secrets)
-    /** Lib site sign-in in the phone's browser (its saved Google accounts and passwords). */
-    val libBrowserLogin by lazy { com.lume.app.data.source.LibBrowserLogin(http, libAuth) }
     val serverCredentials = com.lume.app.data.server.ServerCredentialStore(app)
     /** Full text of recent errors (Sources → Error log), kept only on the phone. */
     val errorLog = com.lume.app.data.ErrorLog(app.filesDir.resolve("error_log.json"), appScope)

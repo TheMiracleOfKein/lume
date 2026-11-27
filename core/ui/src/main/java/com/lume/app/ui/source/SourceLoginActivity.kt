@@ -1,16 +1,6 @@
 package com.lume.app.ui.source
 
 import android.annotation.SuppressLint
-import android.content.ClipboardManager
-import android.net.Uri
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import com.lume.app.data.source.LibBrowserLogin
-import com.lume.app.domain.SourceManifest
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -85,13 +75,6 @@ class SourceLoginActivity : ComponentActivity() {
     /** The heavy wipe runs once per screen, so a site that keeps the session can't loop it. */
     private var wiped = false
 
-    /** A sign-in running in the browser, waiting for the copied callback address. */
-    private var browserAttempt by mutableStateOf<LibBrowserLogin.Attempt?>(null)
-    private var callbackText by mutableStateOf("")
-    private var browserBusy by mutableStateOf(false)
-    private var browserError by mutableStateOf<String?>(null)
-    private var manifest: SourceManifest? = null
-
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,11 +85,6 @@ class SourceLoginActivity : ComponentActivity() {
         val source = container.sources.sourceById(sourceId) ?: run {
             finish()
             return
-        }
-        manifest = source.manifest
-        // The browser may outlive this screen's process; the attempt's secrets come back with it.
-        savedInstanceState?.getStringArray(STATE_ATTEMPT)?.takeIf { it.size == 4 }?.let { (url, verifier, state, redirect) ->
-            browserAttempt = LibBrowserLogin.Attempt(url, verifier, state, redirect)
         }
         val loginUrl = source.manifest.baseUrl.trimEnd('/') + "/"
         enableEdgeToEdge()
@@ -166,7 +144,6 @@ class SourceLoginActivity : ComponentActivity() {
                         fontSize = 13.sp,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).semantics { liveRegion = LiveRegionMode.Polite },
                     )
-                    BrowserLoginPanel(onStart = { startBrowserLogin(source.manifest.baseUrl) })
                     LoginWebView(
                         url = loginUrl,
                         modifier = Modifier
@@ -288,119 +265,8 @@ class SourceLoginActivity : ComponentActivity() {
         )
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        browserAttempt?.let { outState.putStringArray(STATE_ATTEMPT, arrayOf(it.url, it.verifier, it.state, it.redirectUri)) }
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        // Back from the browser: a copied callback address finishes the sign-in by itself.
-        // The clipboard can only be read with focus, hence here and not in onResume.
-        if (!hasFocus || browserAttempt == null || browserBusy) return
-        val clip = runCatching {
-            val clipboard = getSystemService(ClipboardManager::class.java)
-            clipboard?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)?.toString()
-        }.getOrNull() ?: return
-        val callback = LibBrowserLogin.parseCallback(clip) ?: return
-        if (callback.state != browserAttempt?.state) return
-        callbackText = clip.trim()
-        finishBrowserLogin()
-    }
-
-    /** Opens the lib.social sign-in in a Custom Tab, where the phone's Google accounts are. */
-    private fun startBrowserLogin(baseUrl: String) {
-        val attempt = LibBrowserLogin.start(baseUrl)
-        browserAttempt = attempt
-        browserError = null
-        callbackText = ""
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(attempt.url)).apply {
-            // The Custom Tabs protocol without the library: a session extra, even an empty one,
-            // asks the browser for a tab on top of Lume instead of its own window.
-            putExtras(Bundle().apply { putBinder(EXTRA_CUSTOM_TABS_SESSION, null) })
-        }
-        runCatching { startActivity(intent) }.onFailure {
-            browserAttempt = null
-            Toast.makeText(this, getString(R.string.source_login_browser_missing), Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun finishBrowserLogin() {
-        val attempt = browserAttempt ?: return
-        val source = manifest ?: return
-        val callback = LibBrowserLogin.parseCallback(callbackText)
-        if (callback == null) {
-            browserError = getString(R.string.source_login_browser_bad_link)
-            return
-        }
-        browserBusy = true
-        browserError = null
-        lifecycleScope.launch {
-            val result = runCatching { container.libBrowserLogin.finish(source, attempt, callback) }
-            browserBusy = false
-            if (result.isSuccess) {
-                browserAttempt = null
-                Toast.makeText(this@SourceLoginActivity, getString(R.string.source_login_ok), Toast.LENGTH_SHORT).show()
-                finish()
-            } else {
-                // A code works once: a failed one needs a new sign-in.
-                browserError = getString(R.string.source_login_browser_failed)
-            }
-        }
-    }
-
-    /** "Sign in through the browser", then the field for the copied address. */
-    @Composable
-    private fun BrowserLoginPanel(onStart: () -> Unit) {
-        val attempt = browserAttempt
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 8.dp)) {
-            if (attempt == null) {
-                OutlinedButton(onClick = onStart, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.source_login_browser), color = AppColors.textPrimary)
-                }
-                return@Column
-            }
-            Text(
-                stringResource(R.string.source_login_browser_steps),
-                color = AppColors.textSecondary,
-                fontSize = 13.sp,
-            )
-            OutlinedTextField(
-                value = callbackText,
-                onValueChange = {
-                    callbackText = it
-                    browserError = null
-                },
-                placeholder = { Text(stringResource(R.string.source_login_browser_paste)) },
-                singleLine = true,
-                isError = browserError != null,
-                supportingText = browserError?.let { { Text(it) } },
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = { browserAttempt = null }, enabled = !browserBusy) {
-                    Text(stringResource(R.string.action_cancel), color = AppColors.textSecondary)
-                }
-                TextButton(onClick = onStart, enabled = !browserBusy) {
-                    Text(stringResource(R.string.source_login_browser_again), color = AppColors.textSecondary)
-                }
-                Button(
-                    onClick = ::finishBrowserLogin,
-                    enabled = !browserBusy && callbackText.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.accent, contentColor = AppColors.onAccent),
-                ) {
-                    Text(stringResource(R.string.source_login_browser_finish))
-                }
-            }
-        }
-    }
-
     companion object {
         private const val EXTRA_SOURCE_ID = "source_id"
-        private const val STATE_ATTEMPT = "browser_attempt"
-
-        /** `CustomTabsIntent.EXTRA_SESSION`, the extra that makes a browser open a Custom Tab. */
-        private const val EXTRA_CUSTOM_TABS_SESSION = "android.support.customtabs.extra.SESSION"
 
         fun start(context: Context, sourceId: String) {
             context.startActivity(
