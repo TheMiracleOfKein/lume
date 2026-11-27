@@ -196,8 +196,16 @@
     <string name="sources_lang_multi">Multi-language</string>
     <string name="sources_lang_badge_multi">MULTI</string>
     <string name="source_login_title">Sign in · %1$s</string>
-    <string name="source_login_hint">Log in on the site and the app picks up the session. Tap the e-mail field to fill a login saved in Google Password Manager. Google sign-in may not work inside apps; use e-mail and password.</string>
+    <string name="source_login_hint">Log in on the site below and the app picks up the session. For a Google account saved on the phone, sign in through the browser instead.</string>
     <string name="source_login_ok">Signed in</string>
+    <string name="source_login_browser">Sign in through the browser (Google accounts)</string>
+    <string name="source_login_browser_steps">Sign in in the browser tab. When the site\'s page opens after it, copy its address (⋮ → Share → Copy link, or tap the address bar and copy) and come back: Lume finishes by itself. If not, paste the address here.</string>
+    <string name="source_login_browser_paste">Page address after signing in</string>
+    <string name="source_login_browser_finish">Sign in</string>
+    <string name="source_login_browser_again">Open again</string>
+    <string name="source_login_browser_bad_link">That isn\'t the address of the page after signing in</string>
+    <string name="source_login_browser_failed">The site didn\'t accept the sign-in. Tap Open again and sign in once more.</string>
+    <string name="source_login_browser_missing">No browser found</string>
     <string name="source_login_stale">The site still remembered the old account, so its saved session was cleared. Log in again. If the old account still shows, sign out on the site first.</string>
     <string name="source_logout_ok">Signed out</string>
     <string name="source_auth_on">signed in</string>
