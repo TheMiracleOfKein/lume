@@ -479,9 +479,6 @@ interface LibraryDao {
     @Query("SELECT * FROM download_queue WHERE sourceId = :sourceId AND titleId = :titleId AND chapterId = :chapterId LIMIT 1")
     suspend fun findDownloadQueueItem(sourceId: String, titleId: String, chapterId: String): DownloadQueueEntity?
 
-    @Query("DELETE FROM download_queue WHERE status = 'done'")
-    suspend fun clearDoneDownloadQueue()
-
     /** Rows left "running" when the process died; they go back to the queue at startup. */
     @Query("UPDATE download_queue SET status = 'pending', progress = 0 WHERE status = 'running'")
     suspend fun resetRunningDownloads(): Int
@@ -574,9 +571,6 @@ interface LibraryDao {
 
     @Query("UPDATE categories SET sortOrder = :sortOrder WHERE id = :id")
     suspend fun setCategoryOrder(id: Long, sortOrder: Int)
-
-    @Query("SELECT * FROM offline_title_cache")
-    suspend fun allOfflineTitleCache(): List<OfflineTitleCacheEntity>
 
     /** Cached details of library titles (status, alternative title) without the chapter lists. */
     @Query(

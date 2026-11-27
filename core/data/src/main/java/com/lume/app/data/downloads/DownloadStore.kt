@@ -1067,12 +1067,6 @@ class DownloadStore(
         }
     }
 
-    /** Removes the unpacked CBZ pages (they come back on the next read). */
-    fun clearUnpackedCache() {
-        File(context.cacheDir, "cbz").deleteRecursively()
-        File(context.cacheDir, "cbz_src").deleteRecursively()
-    }
-
     private fun setProgress(key: String, value: Float) {
         progressMap[key] = value
         _progress.value = progressMap.toMap()

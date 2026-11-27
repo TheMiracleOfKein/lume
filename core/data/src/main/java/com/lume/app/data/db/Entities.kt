@@ -279,7 +279,6 @@ data class DownloadQueueEntity(
     companion object {
         const val STATUS_PENDING = "pending"
         const val STATUS_RUNNING = "running"
-        const val STATUS_DONE = "done"
         const val STATUS_ERROR = "error"
     }
 }
