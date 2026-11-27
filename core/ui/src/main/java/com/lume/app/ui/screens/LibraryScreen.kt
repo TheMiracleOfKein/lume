@@ -57,6 +57,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.material3.IconButton
+import com.lume.app.ui.components.ConfirmDialog
 import com.lume.app.ui.components.LumeBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -308,19 +309,12 @@ fun LibraryScreen(nav: NavHostController) {
     }
 
     if (confirmRemove) {
-        AlertDialog(
-            onDismissRequest = { confirmRemove = false },
-            title = { Text(stringResource(R.string.dialog_remove_titles_title)) },
-            text = { Text(stringResource(R.string.dialog_remove_titles_text, vm.selected.size)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.removeFromLibrary()
-                    confirmRemove = false
-                }) { Text(stringResource(R.string.action_remove), color = AppColors.danger) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmRemove = false }) { Text(stringResource(R.string.action_cancel)) }
-            },
+        ConfirmDialog(
+            title = stringResource(R.string.dialog_remove_titles_title),
+            text = stringResource(R.string.dialog_remove_titles_text, vm.selected.size),
+            confirmLabel = stringResource(R.string.action_remove),
+            onConfirm = vm::removeFromLibrary,
+            onDismiss = { confirmRemove = false },
         )
     }
 }

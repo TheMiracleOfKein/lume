@@ -63,6 +63,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import com.lume.app.ui.components.ConfirmDialog
 import com.lume.app.ui.components.LumeBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -338,19 +339,12 @@ fun ChaptersScreen(
     }
 
     if (confirmDeleteAll) {
-        AlertDialog(
-            onDismissRequest = { confirmDeleteAll = false },
-            title = { Text(stringResource(R.string.dialog_delete_downloads_title)) },
-            text = { Text(stringResource(R.string.dialog_delete_downloads_text, downloadedIds.size)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.deleteAllDownloads()
-                    confirmDeleteAll = false
-                }) { Text(stringResource(R.string.action_delete), color = AppColors.danger) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDeleteAll = false }) { Text(stringResource(R.string.action_cancel)) }
-            },
+        ConfirmDialog(
+            title = stringResource(R.string.dialog_delete_downloads_title),
+            text = stringResource(R.string.dialog_delete_downloads_text, downloadedIds.size),
+            confirmLabel = stringResource(R.string.action_delete),
+            onConfirm = vm::deleteAllDownloads,
+            onDismiss = { confirmDeleteAll = false },
         )
     }
 }

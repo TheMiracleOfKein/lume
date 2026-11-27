@@ -478,23 +478,29 @@ fun AnimatedLoadState(
     }
 }
 
-/** Confirm step for a destructive or hard-to-undo action. */
+/**
+ * Plain confirm step: title, optional text, confirm and dismiss buttons. The confirm label is
+ * danger-coloured by default; [onDismiss] also runs after [onConfirm] unless [dismissOnConfirm] is off.
+ */
 @Composable
 fun ConfirmDialog(
     title: String,
-    text: String,
     confirmLabel: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    text: String? = null,
+    dismissLabel: String = stringResource(R.string.action_cancel),
+    confirmColor: Color = AppColors.danger,
+    dismissOnConfirm: Boolean = true,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
-        text = { Text(text) },
+        text = text?.let { { Text(it) } },
         confirmButton = {
-            TextButton(onClick = { onConfirm(); onDismiss() }) { Text(confirmLabel, color = AppColors.danger) }
+            TextButton(onClick = { onConfirm(); if (dismissOnConfirm) onDismiss() }) { Text(confirmLabel, color = confirmColor) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(dismissLabel) } },
     )
 }
 

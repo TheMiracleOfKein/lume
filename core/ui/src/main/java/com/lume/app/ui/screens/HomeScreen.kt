@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lume.app.ui.components.ConfirmDialog
 import com.lume.app.ui.components.LumeInsets
 import com.lume.app.ui.components.LocalShellBottomPadding
 import androidx.compose.foundation.background
@@ -192,21 +193,12 @@ fun HomeScreen(nav: NavHostController) {
     }
 
     if (confirmClear) {
-        AlertDialog(
-            onDismissRequest = { confirmClear = false },
-            title = { Text(stringResource(R.string.home_clear_confirm_title)) },
-            text = { Text(stringResource(R.string.home_clear_confirm_text)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmClear = false
-                        scope.launch { container.dao.clearAllProgress() }
-                    },
-                ) { Text(stringResource(R.string.action_clear), color = AppColors.danger) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmClear = false }) { Text(stringResource(R.string.action_cancel)) }
-            },
+        ConfirmDialog(
+            title = stringResource(R.string.home_clear_confirm_title),
+            text = stringResource(R.string.home_clear_confirm_text),
+            confirmLabel = stringResource(R.string.action_clear),
+            onConfirm = { scope.launch { container.dao.clearAllProgress() } },
+            onDismiss = { confirmClear = false },
         )
     }
 }

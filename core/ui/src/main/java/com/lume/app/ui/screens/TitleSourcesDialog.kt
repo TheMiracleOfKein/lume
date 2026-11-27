@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.lume.app.ui.components.ConfirmDialog
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -208,34 +209,25 @@ fun TitleSourcesDialog(vm: TitleViewModel, titleName: String, onDismiss: () -> U
             is SourceConfirm.Unlink -> stringResource(R.string.dialog_unlink_source_title, sourceName(c.row.linkSourceId)) to
                 stringResource(R.string.dialog_unlink_source_text)
         }
-        AlertDialog(
-            onDismissRequest = { confirm = null },
-            title = { Text(title) },
-            text = { Text(text) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirm = null
-                    when (c) {
-                        is SourceConfirm.MakeMain -> vm.makeMain(c.row)
-                        is SourceConfirm.MoveTo -> vm.moveTo(c.candidate)
-                        is SourceConfirm.Unlink -> vm.unlink(c.row)
-                    }
-                }) {
-                    Text(
-                        stringResource(
-                            when (c) {
-                                is SourceConfirm.MakeMain -> R.string.sources_make_main
-                                is SourceConfirm.MoveTo -> R.string.sources_move_here
-                                is SourceConfirm.Unlink -> R.string.action_unlink
-                            },
-                        ),
-                        color = if (c is SourceConfirm.Unlink) AppColors.danger else AppColors.accentText,
-                    )
+        ConfirmDialog(
+            title = title,
+            text = text,
+            confirmLabel = stringResource(
+                when (c) {
+                    is SourceConfirm.MakeMain -> R.string.sources_make_main
+                    is SourceConfirm.MoveTo -> R.string.sources_move_here
+                    is SourceConfirm.Unlink -> R.string.action_unlink
+                },
+            ),
+            confirmColor = if (c is SourceConfirm.Unlink) AppColors.danger else AppColors.accentText,
+            onConfirm = {
+                when (c) {
+                    is SourceConfirm.MakeMain -> vm.makeMain(c.row)
+                    is SourceConfirm.MoveTo -> vm.moveTo(c.candidate)
+                    is SourceConfirm.Unlink -> vm.unlink(c.row)
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { confirm = null }) { Text(stringResource(R.string.action_cancel)) }
-            },
+            onDismiss = { confirm = null },
         )
     }
 }

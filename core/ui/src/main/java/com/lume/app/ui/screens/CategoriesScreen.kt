@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import com.lume.app.ui.components.BackButton
+import com.lume.app.ui.components.ConfirmDialog
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -170,19 +171,12 @@ fun CategoriesScreen(nav: NavHostController) {
         )
     }
     deleting?.let { cat ->
-        AlertDialog(
-            onDismissRequest = { deletingId = null },
-            title = { Text(stringResource(R.string.dialog_delete_category_title)) },
-            text = { Text(stringResource(R.string.dialog_delete_category_text, cat.name)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.delete(cat.id)
-                    deletingId = null
-                }) { Text(stringResource(R.string.action_delete), color = AppColors.danger) }
-            },
-            dismissButton = {
-                TextButton(onClick = { deletingId = null }) { Text(stringResource(R.string.action_cancel)) }
-            },
+        ConfirmDialog(
+            title = stringResource(R.string.dialog_delete_category_title),
+            text = stringResource(R.string.dialog_delete_category_text, cat.name),
+            confirmLabel = stringResource(R.string.action_delete),
+            onConfirm = { vm.delete(cat.id) },
+            onDismiss = { deletingId = null },
         )
     }
 }

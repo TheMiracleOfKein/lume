@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.lume.app.ui.components.BackButton
+import com.lume.app.ui.components.ConfirmDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,21 +60,12 @@ fun HistoryScreen(nav: NavHostController) {
     }
 
     if (confirmClear) {
-        AlertDialog(
-            onDismissRequest = { confirmClear = false },
-            title = { Text(stringResource(R.string.home_clear_confirm_title)) },
-            text = { Text(stringResource(R.string.home_clear_confirm_text)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmClear = false
-                        vm.clearAll()
-                    },
-                ) { Text(stringResource(R.string.action_clear), color = AppColors.danger) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmClear = false }) { Text(stringResource(R.string.action_cancel)) }
-            },
+        ConfirmDialog(
+            title = stringResource(R.string.home_clear_confirm_title),
+            text = stringResource(R.string.home_clear_confirm_text),
+            confirmLabel = stringResource(R.string.action_clear),
+            onConfirm = vm::clearAll,
+            onDismiss = { confirmClear = false },
         )
     }
 
@@ -136,15 +128,12 @@ fun HistoryScreen(nav: NavHostController) {
 /** Asks before one title leaves Continue reading and the history (Home and History share it). */
 @Composable
 internal fun RemoveFromHistoryDialog(titleName: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.history_remove_confirm_title)) },
-        text = { Text(stringResource(R.string.history_remove_confirm_text, titleName)) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) { Text(stringResource(R.string.action_remove), color = AppColors.danger) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        },
+    ConfirmDialog(
+        title = stringResource(R.string.history_remove_confirm_title),
+        text = stringResource(R.string.history_remove_confirm_text, titleName),
+        confirmLabel = stringResource(R.string.action_remove),
+        dismissOnConfirm = false,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
     )
 }

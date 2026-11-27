@@ -55,6 +55,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import com.lume.app.ui.components.ConfirmDialog
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -443,16 +445,13 @@ private fun ReceiveFind(vm: NearbyReceiveViewModel, denied: Boolean) {
         }
     }
     if (rationale) {
-        AlertDialog(
-            onDismissRequest = { rationale = false },
-            title = { Text(stringResource(R.string.nearby_camera_title)) },
-            text = { Text(stringResource(R.string.nearby_camera_rationale)) },
-            confirmButton = {
-                TextButton(onClick = { rationale = false; cameraPermission.launch(android.Manifest.permission.CAMERA) }) {
-                    Text(stringResource(R.string.nearby_camera_allow))
-                }
-            },
-            dismissButton = { TextButton(onClick = { rationale = false }) { Text(stringResource(R.string.action_cancel)) } },
+        ConfirmDialog(
+            title = stringResource(R.string.nearby_camera_title),
+            text = stringResource(R.string.nearby_camera_rationale),
+            confirmLabel = stringResource(R.string.nearby_camera_allow),
+            confirmColor = Color.Unspecified,
+            onConfirm = { cameraPermission.launch(android.Manifest.permission.CAMERA) },
+            onDismiss = { rationale = false },
         )
     }
     LazyColumn(Modifier.fillMaxSize()) {

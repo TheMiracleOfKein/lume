@@ -111,28 +111,26 @@ fun UpdatePrompt() {
                 },
             )
         }
-        is UpdateState.ReadyToInstall -> AlertDialog(
-            onDismissRequest = updater::dismiss,
-            title = { Text(stringResource(R.string.update_ready_title, s.release.version)) },
-            text = { Text(stringResource(R.string.update_ready_text)) },
-            confirmButton = {
-                TextButton(onClick = { updater.install(context, s.apk) }) { Text(stringResource(R.string.update_install)) }
-            },
-            dismissButton = {
-                TextButton(onClick = updater::dismiss) { Text(stringResource(R.string.update_later)) }
-            },
+        is UpdateState.ReadyToInstall -> ConfirmDialog(
+            title = stringResource(R.string.update_ready_title, s.release.version),
+            text = stringResource(R.string.update_ready_text),
+            confirmLabel = stringResource(R.string.update_install),
+            dismissLabel = stringResource(R.string.update_later),
+            confirmColor = Color.Unspecified,
+            dismissOnConfirm = false,
+            onConfirm = { updater.install(context, s.apk) },
+            onDismiss = updater::dismiss,
         )
         is UpdateState.Failed -> if (s.release != null) {
-            AlertDialog(
-                onDismissRequest = updater::dismiss,
-                title = { Text(stringResource(R.string.update_failed_title)) },
-                text = { Text(s.message) },
-                confirmButton = {
-                    TextButton(onClick = { s.release?.let(updater::download) }) { Text(stringResource(R.string.action_retry)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = updater::dismiss) { Text(stringResource(R.string.action_close)) }
-                },
+            ConfirmDialog(
+                title = stringResource(R.string.update_failed_title),
+                text = s.message,
+                confirmLabel = stringResource(R.string.action_retry),
+                dismissLabel = stringResource(R.string.action_close),
+                confirmColor = Color.Unspecified,
+                dismissOnConfirm = false,
+                onConfirm = { s.release?.let(updater::download) },
+                onDismiss = updater::dismiss,
             )
         }
         else -> Unit

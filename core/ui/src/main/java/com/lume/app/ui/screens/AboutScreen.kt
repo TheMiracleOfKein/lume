@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import com.lume.app.ui.components.BackButton
+import com.lume.app.ui.components.ConfirmDialog
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import com.lume.app.ui.nav.Routes
@@ -43,6 +44,7 @@ import com.lume.app.LocalAppContainer
 import com.lume.app.data.CrashLog
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -91,19 +93,16 @@ fun AboutScreen(nav: NavHostController) {
     var crashes by remember { mutableStateOf(container.crashLog.entries()) }
     var confirmClear by rememberSaveable { mutableStateOf(false) }
     if (confirmClear) {
-        AlertDialog(
-            onDismissRequest = { confirmClear = false },
-            title = { Text(stringResource(R.string.crash_log_clear_title)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    container.crashLog.clear()
-                    crashes = emptyList()
-                    confirmClear = false
-                }) { Text(stringResource(R.string.error_log_clear)) }
+        ConfirmDialog(
+            title = stringResource(R.string.crash_log_clear_title),
+            confirmLabel = stringResource(R.string.error_log_clear),
+            dismissLabel = stringResource(android.R.string.cancel),
+            confirmColor = Color.Unspecified,
+            onConfirm = {
+                container.crashLog.clear()
+                crashes = emptyList()
             },
-            dismissButton = {
-                TextButton(onClick = { confirmClear = false }) { Text(stringResource(android.R.string.cancel)) }
-            },
+            onDismiss = { confirmClear = false },
         )
     }
     Scaffold(

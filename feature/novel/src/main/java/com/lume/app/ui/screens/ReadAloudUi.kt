@@ -64,6 +64,7 @@ import com.lume.app.readaloud.ReadAloudStatus
 import com.lume.app.readaloud.SleepTimer
 import com.lume.app.readaloud.remainingMs
 import com.lume.app.ui.components.ChoiceChip
+import com.lume.app.ui.components.ConfirmDialog
 import com.lume.app.ui.components.SheetHeader
 import com.lume.app.ui.components.SwitchRow
 import com.lume.app.ui.theme.AppColors
@@ -296,16 +297,14 @@ internal fun ReadAloudSheet(
 @Composable
 internal fun NoEngineDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.read_aloud_no_engine_title)) },
-        text = { Text(stringResource(R.string.read_aloud_no_engine)) },
-        confirmButton = {
-            TextButton(onClick = { openTtsSettings(context); onDismiss() }) {
-                Text(stringResource(R.string.read_aloud_tts_settings))
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) } },
+    ConfirmDialog(
+        title = stringResource(R.string.read_aloud_no_engine_title),
+        text = stringResource(R.string.read_aloud_no_engine),
+        confirmLabel = stringResource(R.string.read_aloud_tts_settings),
+        dismissLabel = stringResource(R.string.action_close),
+        confirmColor = Color.Unspecified,
+        onConfirm = { openTtsSettings(context) },
+        onDismiss = onDismiss,
     )
 }
 
