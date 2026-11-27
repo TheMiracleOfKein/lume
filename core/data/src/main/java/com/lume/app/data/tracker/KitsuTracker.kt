@@ -55,8 +55,8 @@ class KitsuTracker(
             .build()
         if (!storeTokens(body)) return@withContext false
         val userId = api({ url("$API/users?filter[self]=true").get() }) { response ->
-            if (!response.isSuccessful) return@api null
-            val data = json.parseToJsonElement(response.body.string()).jsonObject["data"] as? JsonArray
+            val text = response.textOrNull() ?: return@api null
+            val data = json.parseToJsonElement(text).jsonObject["data"] as? JsonArray
             ((data?.firstOrNull() as? JsonObject)?.get("id") as? JsonPrimitive)?.contentOrNull
         }
         if (userId == null) {
@@ -170,8 +170,8 @@ class KitsuTracker(
 
     private suspend fun totalChapters(remoteId: String): Int? =
         api({ url("$API/manga/$remoteId?fields[manga]=chapterCount").get() }) { response ->
-            if (!response.isSuccessful) return@api null
-            val attrs = (json.parseToJsonElement(response.body.string()).jsonObject["data"] as? JsonObject)?.get("attributes") as? JsonObject
+            val text = response.textOrNull() ?: return@api null
+            val attrs = (json.parseToJsonElement(text).jsonObject["data"] as? JsonObject)?.get("attributes") as? JsonObject
             (attrs?.get("chapterCount") as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
         }
 
