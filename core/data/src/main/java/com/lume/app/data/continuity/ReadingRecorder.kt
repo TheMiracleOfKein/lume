@@ -14,9 +14,9 @@ import kotlinx.coroutines.withContext
 /**
  * What both readers write while a title is read: statistics sessions, per-chapter spots, the
  * Continue reading entry, read marks and the tracker push. A position is a plain number (a page,
- * or a text block), so the helper is the same for both. Incognito keeps nothing: [track],
- * [finish], [saveChapterProgress]'s callers and [saveHistory] all stop there; callers of [markRead]
- * check [incognito] themselves, before they note the chapter as read.
+ * or a text block), so the helper is the same for both. Incognito keeps nothing: [track] and
+ * [saveSession] check it here; callers of [markRead], [saveChapterProgress] and [saveHistory]
+ * check [incognito] themselves.
  *
  * [countsPages] is true where pages exist (the comic reader); a text reader counts time only.
  * [titleName] is read when a session is saved, because the title loads after the reader opens.
