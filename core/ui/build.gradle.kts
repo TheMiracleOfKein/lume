@@ -73,11 +73,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     // App lock: the system screen-lock prompt (fingerprint, face, PIN).
     implementation(libs.androidx.biometric)
-    implementation(libs.zxing.core)
     implementation(libs.zxing.embedded)
-    implementation(libs.coil.compose)
-    implementation(libs.coil.network.okhttp)
-    implementation(libs.kotlinx.serialization.json)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)

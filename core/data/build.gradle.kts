@@ -77,7 +77,6 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.okhttp.doh)
     implementation(libs.jsoup)
-    implementation(libs.jspecify)
     implementation(libs.zxing.core)
     // Reads Mihon / Tachiyomi backups (.tachibk is gzipped protobuf).
     implementation(libs.kotlinx.serialization.protobuf)
