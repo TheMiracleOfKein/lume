@@ -288,7 +288,6 @@ class InkStoryEngine(
 
     private fun chapterPath(slug: String, chapterId: String) = "/content/${pathSegment(slug)}/$chapterId"
 
-    private fun slug(id: String): String = id.trim('/').substringBefore('/').ifBlank { id }
 
     override fun webUrl(titleId: String): String = "$siteBase/content/${pathSegment(slug(titleId))}"
 

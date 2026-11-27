@@ -347,7 +347,6 @@ class RemangaEngine(
         else "$siteBase/media/$p"
     }
 
-    private fun slug(id: String): String = id.trim('/').substringBefore('/').ifBlank { id }
 
     private fun nestedName(el: JsonElement?): String? = when (el) {
         is JsonObject -> stringOrNull(el["name"]) ?: stringOrNull(el["label"])
